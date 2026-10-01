@@ -1,0 +1,5 @@
+First release:
+- Today's Astronomy Picture of the Day with its title and date
+- Change the wallpaper daily, on the home screen, lock screen or both
+- On video days, keep the previous wallpaper or use your own picture
+- Save the picture to your gallery

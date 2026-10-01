@@ -1,0 +1,15 @@
+APODroid sets NASA's Astronomy Picture of the Day (APOD) as your wallpaper. A new picture comes out every day, and the app picks it up on its own.
+
+The app is one page: today's picture with its title and date. Tap the picture to open it on NASA's website, or tap the star to save it to your gallery.
+
+<b>Settings:</b>
+<ul>
+<li><b>Change wallpaper daily:</b> checks for the new picture a few times a day, only when there is a network.</li>
+<li><b>Where:</b> home screen, lock screen, or both.</li>
+<li><b>Video days:</b> some days APOD is a video. Keep the previous wallpaper, or use a picture of your own.</li>
+<li><b>Set as wallpaper now.</b></li>
+</ul>
+
+<b>Privacy:</b> no account, no ads, no tracking. The app talks only to science.nasa.gov. Permissions: internet access, setting the wallpaper, network state and starting after a reboot (both for the daily update). Saving to the gallery needs no permission.
+
+APODroid is not made by or affiliated with NASA.

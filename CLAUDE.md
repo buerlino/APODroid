@@ -79,7 +79,8 @@ First release (user, 2026-10-01): 0.1.0, only after step 4 (the daily job), beca
 change is the app's point. The user made the icon (`logo/`; skill, step 5). Signing: a
 new keystore just for APODroid (not gridload's), made with `keytool` outside the repo; the user
 sets the passwords, backs it up and adds the CI secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
-`KEY_ALIAS`, `KEY_PASSWORD`); not done yet (2026-10-01). The GitHub repo had an "Initial commit" (LICENSE only) on
+`KEY_ALIAS`, `KEY_PASSWORD`). Done 2026-10-01: alias `apodroid`, PKCS12, RSA 4096, 10000 days,
+one password for store and key; the secrets are set. They are first tested by the `v0.1.0` tag. The GitHub repo had an "Initial commit" (LICENSE only) on
 `master`; local history is built on it, remote `origin`.
 
 ## Data source (checked 2026-10-01)

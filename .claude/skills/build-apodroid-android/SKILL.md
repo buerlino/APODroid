@@ -125,7 +125,7 @@ saving again after a reinstall (MediaStore would add ` (1)`, as the app no longe
 **`am force-stop` cancels the app's jobs** (the switch then shows off); use `am kill` to restart
 the app without losing the daily job. Happened here; the switch was turned back on.
 
-### Step 5: release setup [icon done 2026-10-01; rest not started]
+### Step 5: release setup [icon, store listing, README done 2026-10-01; keystore, tag, F-Droid open]
 
 **Icon:** the user's SVGs in `logo/` (108×108: `APODroid_back.svg` black, `APODroid_front.svg`
 rays, stars, "APOD"/"Droid") converted to `res/drawable/ic_launcher_{background,foreground}.xml`,
@@ -136,7 +136,16 @@ into SVG renders identical to the original (rsvg-convert + `magick compare`). If
 change, regenerate the XML. The user's launcher (Niagara, `bitpit.launcher`) shows apps as
 coloured dots; see the icon in App info
 (`adb shell am start -a android.settings.APPLICATION_DETAILS_SETTINGS -d package:io.github.buerlino.apodroid`).
-The 512 px fastlane `icon.png` is still to do.
+`fastlane/.../images/icon.png` is a 512 px render of both SVGs (`rsvg-convert` + `magick
+-composite`); regenerate it too if they change.
+
+**Store listing (2026-10-01):** `fastlane/metadata/android/en-US/` with title, short and full
+description, `changelogs/1.txt`, and one screenshot (`phoneScreenshots/1.png`; the whole page
+fits on one screen). Taken with SystemUI demo mode as in gridload
+(`settings put global sysui_demo_allowed 1`, broadcasts `enter`, `clock -e hhmm 1200`,
+`notifications -e visible false`, `network -e wifi show -e level 4 -e fully true` (without
+`fully` the Wi-Fi icon shows "!"), then `exit` and the setting back to 0). `README.md` embeds
+the screenshot.
 
 Fastlane metadata and screenshots, first tag, F-Droid recipe. Decided 2026-10-01: 0.1.0
 after step 4; the user makes the icon; a new APODroid keystore (see `CLAUDE.md`, "Setup and

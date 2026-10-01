@@ -45,6 +45,18 @@ class ApodTest {
     }
 
     @Test
+    fun makesSafeFileNames() {
+        fun name(title: String) = Apod(LocalDate.of(2026, 3, 3), title, "", "", false).fileName
+        assertEquals("APOD_2026-03-03_A_MadeUp_Nebula", name("A Made’Up Nebula"))
+        assertEquals("APOD_2026-03-03_M31_Andromeda_Stars_Dust", name("M31: Andromeda / Stars & Dust?"))
+        assertEquals("APOD_2026-03-03_Comète_Ōmura", name("Comète  Ōmura!"))
+        assertEquals("APOD_2026-03-03", name(""))
+        val long = name("Words ".repeat(50))
+        assertEquals(99, long.length) // cut at 100, trailing "_" dropped
+        assertTrue(long.endsWith("Words"))
+    }
+
+    @Test
     fun detectsVideoDaysFromTheHeroOnly() {
         val mp4 = "<video class='video-js'><source src='https://assets.example/x.mp4' type='video/mp4'></video>"
         val youtube = "<figure class='is-provider-youtube'><iframe src='https://www.youtube.com/embed/abc'></iframe></figure>"

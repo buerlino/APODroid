@@ -20,7 +20,17 @@ data class Apod(
     /** The post on science.nasa.gov. */
     val pageUrl: String,
     val isVideo: Boolean,
-)
+) {
+    /**
+     * A name for the saved picture, without extension: `APOD_2026-10-01_Harvest_Moon_with_Mount_Etna`.
+     * Unique per APOD (the date), only letters, digits, `-` and `_`.
+     */
+    val fileName: String
+        get() {
+            val words = title.replace(Regex("['’]"), "").split(Regex("""[^\p{L}\p{N}]+""")).filter { it.isNotEmpty() }
+            return (listOf("APOD", date.toString()) + words).joinToString("_").take(100).trimEnd('_')
+        }
+}
 
 /**
  * The newest post in the APOD category of science.nasa.gov's WordPress API. Not a documented

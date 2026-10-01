@@ -14,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,10 +30,12 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
@@ -50,11 +53,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import io.github.buerlino.apodroid.core.Apod
 import kotlinx.coroutines.Dispatchers
@@ -70,6 +75,7 @@ class MainActivity : ComponentActivity() {
     private var picture by mutableStateOf<ImageBitmap?>(null)
     private var loading by mutableStateOf(false)
     private var failed by mutableStateOf(false)
+    private var saved by mutableStateOf(false)
     private var daily by mutableStateOf(false)
     private var where by mutableStateOf(Where.BOTH)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
@@ -108,6 +114,7 @@ class MainActivity : ComponentActivity() {
                 changed.onFailure { Log.w("APODroid", "Refresh failed: $it", it) }
                 failed = changed.isFailure && picture == null
             }
+            saved = withContext(Dispatchers.IO) { store.isSaved }
             loading = false
         }
     }
@@ -137,6 +144,19 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching { store.setWallpaper(file) } }
             toast(if (result.isSuccess) "Wallpaper set" else "Couldn't set the wallpaper")
+        }
+    }
+
+    private fun savePicture() {
+        if (saved) {
+            toast("Already saved")
+            return
+        }
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { store.save() } }
+            result.onFailure { Log.w("APODroid", "Save failed: $it", it) }
+            saved = result.isSuccess
+            toast(if (result.isSuccess) "Saved to Pictures/APODroid" else "Couldn't save the picture")
         }
     }
 
@@ -197,12 +217,23 @@ class MainActivity : ComponentActivity() {
             return
         }
         Column(Modifier.clickable { openPage(apod.pageUrl) }) {
-            Image(
-                bitmap = picture,
-                contentDescription = apod.title,
-                modifier = Modifier.fillMaxWidth().aspectRatio(picture.width.toFloat() / picture.height),
-                contentScale = ContentScale.FillWidth,
-            )
+            Box(contentAlignment = Alignment.BottomEnd) {
+                Image(
+                    bitmap = picture,
+                    contentDescription = apod.title,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(picture.width.toFloat() / picture.height),
+                    contentScale = ContentScale.FillWidth,
+                )
+                // Saving a video day's still frame isn't worth it: often it's a generic NASA image.
+                if (!apod.isVideo) {
+                    IconButton(
+                        onClick = ::savePicture,
+                        modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                    ) {
+                        Text(if (saved) "★" else "☆", color = Color.White, fontSize = 24.sp)
+                    }
+                }
+            }
             Column(Modifier.padding(16.dp)) {
                 Text(apod.title, style = MaterialTheme.typography.titleLarge)
                 Text(

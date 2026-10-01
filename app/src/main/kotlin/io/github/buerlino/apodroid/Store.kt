@@ -1,8 +1,12 @@
 package io.github.buerlino.apodroid
 
 import android.app.WallpaperManager
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
 import io.github.buerlino.apodroid.core.Apod
 import io.github.buerlino.apodroid.core.download
 import io.github.buerlino.apodroid.core.fetchLatest
@@ -96,14 +100,52 @@ class Store(private val context: Context) {
         file.inputStream().use { WallpaperManager.getInstance(context).setStream(it, null, true, where.flags) }
         wallpaperDate = apod?.date
     }
+
+    /** True when the stored APOD's picture is in the gallery (saved and not deleted since). */
+    val isSaved: Boolean
+        get() {
+            val date = apod?.date ?: return false
+            if (prefs.getString("savedDate", null) != date.toString()) return false
+            val uri = prefs.getString("savedUri", null)?.let(Uri::parse) ?: return false
+            return runCatching {
+                context.contentResolver.query(uri, arrayOf(MediaStore.Images.Media._ID), null, null, null)
+                    ?.use { it.count > 0 } == true
+            }.getOrDefault(false)
+        }
+
+    /** Blocking. Copies the stored APOD's picture to Pictures/APODroid (no permission on Android 10+). */
+    fun save() = synchronized(refreshLock) {
+        val apod = apod ?: throw IOException("Nothing to save")
+        val type = imageType(imageFile) ?: throw IOException("Not an image")
+        val resolver = context.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "${apod.fileName}.${type.substringAfter('/').replace("jpeg", "jpg")}")
+            put(MediaStore.Images.Media.MIME_TYPE, type)
+            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/APODroid")
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+        val uri = resolver.insert(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values)
+            ?: throw IOException("MediaStore insert failed")
+        try {
+            resolver.openOutputStream(uri)!!.use { out -> imageFile.inputStream().use { it.copyTo(out) } }
+            resolver.update(uri, ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) }, null, null)
+        } catch (e: Exception) {
+            resolver.delete(uri, null, null)
+            throw e
+        }
+        prefs.edit().putString("savedDate", apod.date.toString()).putString("savedUri", uri.toString()).apply()
+    }
 }
 
 private val refreshLock = Any()
 
-fun isImage(file: File): Boolean {
+fun isImage(file: File): Boolean = imageType(file) != null
+
+/** The MIME type of a decodable image, e.g. `image/jpeg`, or null. */
+private fun imageType(file: File): String? {
     val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(file.path, options)
-    return options.outWidth > 0 && options.outHeight > 0
+    return options.outMimeType.takeIf { options.outWidth > 0 && options.outHeight > 0 }
 }
 
 private inline fun <reified T : Enum<T>> enumValue(name: String?): T? =

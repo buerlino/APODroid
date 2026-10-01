@@ -113,8 +113,31 @@ the job is still listed. After that, step 5.
 An ANR showed once in step 4, on a tap right after the `ACCESS_NETWORK_STATE` crash relaunched
 the app; not seen again after the fix.
 
-### Step 5: release setup [not started]
+### Step 4b: save to the gallery [done 2026-10-01]
 
-Icon, fastlane metadata and screenshots, first tag, F-Droid recipe. Decided 2026-10-01: 0.1.0
+The ☆/★ on the picture; details in `CLAUDE.md`, Save. Tested on the phone (Android 16): debug
+build saves `APOD_2026-10-01_Harvest_Moon_with_Erupting_Mount_Etna.jpg` (1280×853, image/jpeg)
+to `Pictures/APODroid/`, star fills; second tap makes no duplicate; star stays filled after a
+restart; deleting the file (`adb shell content delete --uri content://media/external/images/media/<id>`)
+empties it on the next resume; R8 release build saves too. Not tested: a video day (no star),
+saving again after a reinstall (MediaStore would add ` (1)`, as the app no longer owns the old file).
+
+**`am force-stop` cancels the app's jobs** (the switch then shows off); use `am kill` to restart
+the app without losing the daily job. Happened here; the switch was turned back on.
+
+### Step 5: release setup [icon done 2026-10-01; rest not started]
+
+**Icon:** the user's SVGs in `logo/` (108×108: `APODroid_back.svg` black, `APODroid_front.svg`
+rays, stars, "APOD"/"Droid") converted to `res/drawable/ic_launcher_{background,foreground}.xml`,
+combined in `res/mipmap-anydpi/ic_launcher.xml` (adaptive icon, as gridload; no monochrome
+layer). The front's `matrix()` transforms are flattened into the coordinates, ellipses became
+two arcs, the guide `<circle>` and transparent `<rect>` skipped. Check: the drawable turned back
+into SVG renders identical to the original (rsvg-convert + `magick compare`). If the SVGs
+change, regenerate the XML. The user's launcher (Niagara, `bitpit.launcher`) shows apps as
+coloured dots; see the icon in App info
+(`adb shell am start -a android.settings.APPLICATION_DETAILS_SETTINGS -d package:io.github.buerlino.apodroid`).
+The 512 px fastlane `icon.png` is still to do.
+
+Fastlane metadata and screenshots, first tag, F-Droid recipe. Decided 2026-10-01: 0.1.0
 after step 4; the user makes the icon; a new APODroid keystore (see `CLAUDE.md`, "Setup and
 distribution").

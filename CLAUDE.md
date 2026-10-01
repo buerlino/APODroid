@@ -53,7 +53,10 @@ instead of re-deriving it; its CLAUDE.md, section "Decided", explains each choic
   BOM 2026.09.00), `gradle/gradle-daemon-jvm.properties` (the system `java` is 27-ea, too new;
   Gradle runs on JDK 21).
 - AGP 9 has built-in Kotlin: in `:app` apply only `com.android.application` +
-  `org.jetbrains.kotlin.plugin.compose`. `compileSdk 37`, `targetSdk 37`, `minSdk 26`, Java 17.
+  `org.jetbrains.kotlin.plugin.compose`. `compileSdk 37`, `targetSdk 37`, `minSdk 29` (was 26 as gridload; raised 2026-10-01 for
+  saving to the gallery without a permission, see Save), Java 17. Since minSdk ≥ 28 AGP stores
+  `classes.dex` uncompressed, so the release APK grew from 1.0 to 1.76 MB with the dex slightly
+  smaller; left as is (Android runs it from the APK without an extracted copy).
 - Release signing from gitignored `keystore.properties` or env vars (`APODROID_KEYSTORE_FILE`,
   `_KEYSTORE_PASSWORD`, `_KEY_ALIAS`, `_KEY_PASSWORD`, renamed from gridload's `GRIDLOAD_`), unsigned without either (what F-Droid wants). `.github/workflows/release.yml`
   builds a signed APK on a `vX.Y.Z` tag and attaches it to a GitHub Release (Obtainium).
@@ -67,16 +70,16 @@ Set up 2026-10-01 (step 1): copied as above, with `GRIDLOAD_` → `APODROID_` an
 `gridload-` → `apodroid-` in the build and the workflow. Git branch `master` (as gridload).
 Differences from gridload: `lifecycle-runtime-compose` left out until something needs it; no
 permissions yet (each is added with the feature that uses it); dark theme
-(`Theme.Material.NoActionBar` + Compose `darkColorScheme()`), which suits the pictures; no
-icon yet (the system default). versionCode 1, versionName 0.1.0. Tested: `:core:test`,
+(`Theme.Material.NoActionBar` + Compose `darkColorScheme()`), which suits the pictures; the
+icon came later (skill, step 5). versionCode 1, versionName 0.1.0. Tested: `:core:test`,
 `assembleDebug` and `assembleRelease` pass; the unsigned release APK is 765 KB, and a second
 build from a copy in another folder was byte-identical.
 
 First release (user, 2026-10-01): 0.1.0, only after step 4 (the daily job), because the daily
-change is the app's point. The user makes the icon; the release waits for it too. Signing: a
+change is the app's point. The user made the icon (`logo/`; skill, step 5). Signing: a
 new keystore just for APODroid (not gridload's), made with `keytool` outside the repo; the user
 sets the passwords, backs it up and adds the CI secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
-`KEY_ALIAS`, `KEY_PASSWORD`). The GitHub repo had an "Initial commit" (LICENSE only) on
+`KEY_ALIAS`, `KEY_PASSWORD`); not done yet (2026-10-01). The GitHub repo had an "Initial commit" (LICENSE only) on
 `master`; local history is built on it, remote `origin`.
 
 ## Data source (checked 2026-10-01)
@@ -178,6 +181,18 @@ It was started by a Tasker profile that isn't in the export (presumably once a d
 - **No help texts for the settings** (user, 2026-10-01: they explain themselves). Labels only.
 - **No notification** (user, 2026-10-01). Why: it would need the `POST_NOTIFICATIONS` runtime
   permission on Android 13+, and the page shows the title.
+
+### Save (user, 2026-10-01; built)
+
+The star at the bottom right of the picture saves it to the gallery: `Pictures/APODroid/`, named
+`APOD_<date>_<Title_Words>.jpg` (`Apod.fileName` in `:core`; the date makes it unique, only
+letters, digits, `-`, `_`, at most 100 chars). Outlined ☆ = not saved, filled ★ = today's picture
+is saved; a second tap says "Already saved". The star is a text glyph (no icon library). Written
+with `MediaStore` (`IS_PENDING`), which needs no permission on Android 10+, hence `minSdk 29`
+(user chose that over `WRITE_EXTERNAL_STORAGE` for Android 8–9, or a "Save as" dialog each
+time). The saved date and `content://` URI are in the prefs; the star checks the URI still
+exists, so deleting the file in the gallery empties it again. It saves `files/apod.jpg` as
+downloaded (1280 px). No star on video days (the still frame is often a generic NASA image).
 
 ### Background update (decided 2026-10-01)
 

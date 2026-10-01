@@ -1,0 +1,194 @@
+# CLAUDE.md
+
+Guidance for working in this repo. It is the source of truth for later sessions: decisions with
+the date and a short "why", what was tested and rejected, and open questions. Keep it current.
+
+## Project
+
+An Android app that sets NASA's Astronomy Picture of the Day (APOD) as the phone's wallpaper,
+once a day, on its own. It replaces the user's Tasker task `APOD` (`private/APOD.tsk.xml`,
+gitignored because it holds the user's NASA API key). The app is one page: today's picture
+(title, date), and a few settings below it. No other features.
+
+App name: **APODroid** (user, 2026-10-01). applicationId and namespace `io.github.buerlino.apodroid`;
+Kotlin packages `io.github.buerlino.apodroid` (app) and `io.github.buerlino.apodroid.core`.
+Repo: https://github.com/buerlino/APODroid (GPLv3); local folder `FOSS_APOD`. Release APKs are
+named `apodroid-vX.Y.Z.apk`.
+
+- Detailed build plan and progress: [.claude/skills/build-apodroid-android/SKILL.md](.claude/skills/build-apodroid-android/SKILL.md).
+  Where it and this file disagree, this file wins.
+
+## How the user works (2026-10-01)
+
+- Simplest approach that works. No extra screens, options, layers or abstractions until they are
+  needed. Don't clutter the UI or the code.
+- When unsure, or when a simpler or better idea comes up, ask the user before deciding. Don't ask
+  about what's settled below.
+- Step by step: do one step, show it working, then wait for the next instruction.
+- Commit only when asked. The user pushes; never `git push`.
+- When reporting back, say what was actually tested and what wasn't.
+
+## Stack (decided by the user, 2026-10-01)
+
+- Native Android: Kotlin + Jetpack Compose, single Activity. No Flutter, React Native or KMP.
+- No proprietary dependencies (Firebase, Play Services, analytics, ads). As few permissions as
+  possible; ask the user before adding any.
+- Two modules: `:core` (plain Kotlin/JVM, no Android: the logic, parsing and network code,
+  unit-tested with JUnit4) and `:app` (Compose UI, depends on `:core`).
+- Few libraries: kotlinx.serialization and `HttpURLConnection` (no Retrofit/OkHttp). Before any
+  other dependency, check whether the JDK or Android already covers it.
+- Storage: SharedPreferences for small settings, one JSON file for larger data. No database until
+  it's really needed. No background work unless the feature can't work without it (this one
+  can't, see [Background update](#background-update-proposed)).
+- Personal data stays on the phone. Real test files go in the gitignored `private/`; tests use
+  made-up data.
+- English UI, short texts: one idea per line, drop what the screen already shows, explain each
+  concept in one place only.
+
+## Setup and distribution (decided, copied from gridload)
+
+`~/Documents/source99/gridload` is a released app built exactly this way. Copy its build setup
+instead of re-deriving it; its CLAUDE.md, section "Decided", explains each choice:
+- Gradle wrapper, `gradle/libs.versions.toml` (Gradle 9.8.0, AGP 9.4.1, Kotlin 2.4.20, Compose
+  BOM 2026.09.00), `gradle/gradle-daemon-jvm.properties` (the system `java` is 27-ea, too new;
+  Gradle runs on JDK 21).
+- AGP 9 has built-in Kotlin: in `:app` apply only `com.android.application` +
+  `org.jetbrains.kotlin.plugin.compose`. `compileSdk 37`, `targetSdk 37`, `minSdk 26`, Java 17.
+- Release signing from gitignored `keystore.properties` or env vars (`APODROID_KEYSTORE_FILE`,
+  `_KEYSTORE_PASSWORD`, `_KEY_ALIAS`, `_KEY_PASSWORD`, renamed from gridload's `GRIDLOAD_`), unsigned without either (what F-Droid wants). `.github/workflows/release.yml`
+  builds a signed APK on a `vX.Y.Z` tag and attaches it to a GitHub Release (Obtainium).
+  `fastlane/metadata/android/en-US/` for F-Droid, with `changelogs/<versionCode>.txt`.
+- Release build uses R8 (minify + shrinkResources). The build must be reproducible: no
+  timestamps, build paths or machine-specific values in the APK; `dependenciesInfo` off. Unit
+  tests don't cover R8, so test release builds on the phone.
+- Android SDK in `~/Android/Sdk`. The user tests on a real phone over adb, no emulator.
+
+Set up 2026-10-01 (step 1): copied as above, with `GRIDLOAD_` → `APODROID_` and
+`gridload-` → `apodroid-` in the build and the workflow. Git branch `master` (as gridload).
+Differences from gridload: `lifecycle-runtime-compose` left out until something needs it; no
+permissions yet (each is added with the feature that uses it); dark theme
+(`Theme.Material.NoActionBar` + Compose `darkColorScheme()`), which suits the pictures; no
+icon yet (the system default). versionCode 1, versionName 0.1.0. Tested: `:core:test`,
+`assembleDebug` and `assembleRelease` pass; the unsigned release APK is 765 KB, and a second
+build from a copy in another folder was byte-identical.
+
+## Data source (checked 2026-10-01)
+
+**The official API is broken.** `https://api.nasa.gov/planetary/apod` (what the Tasker task
+uses) returns `title: "NASA Science"` and the NASA logo
+(`science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png`) as `url` and
+`hdurl` for every date tried (25 Sep to 1 Oct 2026, and 1 Aug 2026). Cause: APOD moved from
+`apod.nasa.gov` to `science.nasa.gov/apod` (the old pages now redirect there with 301), and the
+API still scrapes the old site. So the Tasker task has probably been setting the NASA logo as the
+wallpaper. `DEMO_KEY` allows 10 requests an hour (`x-ratelimit-limit: 10`).
+
+**Source: the new site's WordPress REST API, the only one** (user, 2026-10-01; public, no key,
+no auth). Why: the official API has no working data at all; the risk below is accepted.
+
+```
+GET https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_page=1
+```
+
+- Category 22766 is `{"name":"APOD","slug":"apod","count":11465}`: the whole archive was migrated.
+  Newest first.
+- Fields used (all present on every post checked, 24 Jun to 1 Oct 2026):
+  - `date`: e.g. `2026-10-01T00:05:00` (US Eastern; `date_gmt` `2026-10-01T04:05:00`). A new
+    picture appears at about 04:05 UTC (06:05 in Switzerland in summer, 05:05 in winter).
+  - `title.rendered`: `APOD: 2026 October 1 &#8211; Harvest Moon with Erupting Mount Etna`. Needs
+    the `APOD: <date> – ` prefix stripped and HTML entities decoded (`&#8211;`, `&#8217;`, and some
+    titles already have a plain `–`). One title had `-` with no space after it (`2026 July 18
+    -Shadow and Rainbow`).
+  - `featured_image.file`: the picture, e.g.
+    `https://assets.science.nasa.gov/dynamicimage/assets/science/cds/apod/apod/2026/october/Harvest%20Moon%20...%20LD.jpg`.
+  - `link`: the post's page, for "open on the web".
+- `_fields=` makes the response small (510 bytes instead of 66 KB) but **drops `featured_image`**
+  (`featured_image_url` survives, a 1600 px `?w=...&fit=clip&crop=...` rendition). So either
+  request the full response once a day, or use `_fields=date,link,title,featured_image_url` and
+  strip its query string. **Decided (step 2):** the full response (about 21 KB per post), because
+  the video check needs `content` and `featured_image.file` is the plain URL.
+- Image sizes for 1 Oct: `featured_image.file` without parameters → 1280×853 (115 KB);
+  `https://assets.science.nasa.gov/content/dam/<same path>` → the original, 1600×1067 (1.1 MB);
+  `?w=4096` → 4096×2730, but only upscaled. The file name ends in `LD`, so a larger HD original
+  may exist somewhere (open question).
+- **Video days** (about 1 in 6 posts mention a video; e.g. 9 Sep `<video>` with an `.mp4`, many
+  others link YouTube in the explanation): `featured_image` is still there, a still frame
+  (`xz_and_frame.jpg`). The Tasker task skipped videos and kept the old wallpaper.
+  **Detection (settled 2026-10-01, step 2):** the hero block, from `media-detail-hero__media` to
+  the next `<h1` (the title), holds `<img>` on image days and `<video>` (mp4) or `<iframe>`
+  (YouTube) on video days. Checked on all 100 posts 24 Jun to 1 Oct 2026: 11 video days (e.g.
+  9 and 13 Sep `<video>`, 23 Aug and 29 Jul `<iframe>`), never both, never neither. YouTube
+  links in the explanation (about 1 in 3 image days) are outside the hero.
+  **The "still frame" isn't always one:** on 4 of those 11 days `featured_image` is a generic NASA
+  image (26 Jul the NASA logo `NASA-Meatball-Feature5.png`; 24 Jun, 8 Jul, 13 Jul
+  `.../cosmic-origins/images/misc/news-thumbnail.png`). So no still-frame setting (First version).
+- No rate-limit headers seen. One request a day (or a few) is harmless.
+
+Risk: this is the site's internal WordPress API, not a documented public API. The category id or
+the fields could change. Keep the parsing in `:core`, tolerant (`ignoreUnknownKeys`, nullable
+fields), and fail without touching the current wallpaper.
+
+## What the Tasker task did (for reference, not to copy)
+
+1. Wait a random 10 to 180 s.
+2. `GET api.nasa.gov/planetary/apod` (30 s timeout). If not 200: retry up to 20 times, waiting
+   10, 20, 30 ... s more each time; after that a notification "ERROR: <title>".
+3. If `media_type` is `image`: download `url` (not `hdurl`) to `Download/nasa_apod.jpg`, media
+   scan, set it as wallpaper (Tasker "Set Wallpaper", option value 2; which screens is unclear),
+   notification "Today's Astro Pic: <title>".
+4. Else (video): notification "ASLOP: <title>", wallpaper unchanged.
+
+It was started by a Tasker profile that isn't in the export (presumably once a day).
+
+## First version (decided 2026-10-01)
+
+- **One page.** Top: today's picture, full width, with its title and date; tap opens the APOD
+  page in the browser. Below: the settings.
+- **Settings** (SharedPreferences):
+  - "Change wallpaper daily": a switch that schedules or cancels the job.
+  - **Where:** home screen, lock screen, or both (user: a setting, not fixed). Default: both.
+  - **Video days:** keep the previous picture, or use my own picture (user, 2026-10-01). Default:
+    keep the previous one, as the Tasker task did. The still frame is not offered: on 4 of 11
+    video days it's a generic NASA image (see Data source). "Keep the previous picture" means
+    leave the wallpaper alone. "My picture" is picked once with the system photo picker
+    (`PickVisualMedia`, in activity-compose; no permission) and copied to `files/fallback.jpg`;
+    a button to pick or change it shows under that choice. Chosen but nothing picked → keep the
+    previous one.
+  - "Set as wallpaper now": a button. It uses the same two settings.
+- **Fetch** in `:core`: newest post → `Apod(date, title, imageUrl, pageUrl, isVideo)`. The image
+  is downloaded to the app's private files (`files/apod.jpg`, no storage permission) and shown
+  from there, decoded with `BitmapFactory` (no image library). The current entry's fields in
+  SharedPreferences. The page shows the still frame on video days either way; the setting only
+  decides the wallpaper.
+- **Wallpaper:** `WallpaperManager.setStream(stream, null, true, which)` with `FLAG_SYSTEM`,
+  `FLAG_LOCK` or both; Android centre-crops the landscape pictures itself. Only change it when
+  the date is new and the download is a complete, decodable image; otherwise leave the current
+  wallpaper.
+- **Built (step 3, 2026-10-01):** the page refreshes on each `onResume` unless the stored date is
+  today's US Eastern date (APOD's). A failed refresh keeps showing the stored picture; only with
+  none is there "Couldn't load today's picture." + "Try again". "Set as wallpaper now" reports
+  with a Toast ("Wallpaper set", "Video today: wallpaper kept"). Video days show "· Video" after
+  the date (not in the original plan; easy to drop).
+- **No help texts for the settings** (user, 2026-10-01: they explain themselves). Labels only.
+- **No notification** (user, 2026-10-01). Why: it would need the `POST_NOTIFICATIONS` runtime
+  permission on Android 13+, and the page shows the title.
+
+### Background update (decided 2026-10-01)
+
+Daily changes can't work without background work. **`JobScheduler`** (part of Android, no
+library), not WorkManager (an AndroidX dependency) or `AlarmManager` (needs our own retry and
+reboot handling). A periodic job, every ~6 hours, only with network; each run asks for the newest
+post (small JSON) and downloads and sets the image only when the date is new. That replaces the
+Tasker retry loop (the job's own backoff) and the random delay, and picks up the new picture
+within a few hours of 04:05 UTC. `setPersisted(true)` keeps it across reboots.
+
+Permissions (user approved, 2026-10-01), all granted at install with no prompt:
+- `INTERNET`
+- `SET_WALLPAPER`
+- `RECEIVE_BOOT_COMPLETED` (for `setPersisted`)
+
+## Open questions
+
+1. Show APOD's own explanation (the astronomer's paragraph about the picture) below the title,
+   or only title and date? (Asked 2026-10-01; the answer given was about the settings.)
+2. Is there a higher resolution than the 1600 px original (the `LD` file name)? Check later; not
+   needed for the first version.

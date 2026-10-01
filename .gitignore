@@ -1,0 +1,29 @@
+# Gradle / build output
+.gradle/
+build/
+.kotlin/
+local.properties
+*.apk
+*.aab
+
+# Signing (never commit keystores or their passwords)
+*.jks
+*.keystore
+keystore.properties
+
+# Personal files (the Tasker export holds a NASA API key)
+private/
+
+# Env / logs
+.env
+.env.*
+*.log
+
+# Editors / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/

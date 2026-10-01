@@ -37,6 +37,14 @@ as far as later work needs it; the history is in git.
   builds.
 - Background job: force a run with `adb shell cmd jobscheduler run -f io.github.buerlino.apodroid <jobId>`, list
   with `adb shell dumpsys jobscheduler | grep io.github.buerlino.apodroid`.
+- The job logs one line per run that has a new date: `adb logcat -d -s APODroid` shows
+  `Daily job: <date>, wallpaper set` (or `video, wallpaper kept`); failures as `Daily job failed`.
+  Crashes: `adb logcat -d | grep AndroidRuntime`.
+- Don't pipe Gradle into `tail` before `&& adb install`: the pipe hides a failed build and the old
+  APK gets installed (happened in step 4).
+- Taps: `adb shell input tap X Y` in physical pixels (screen 1116×2484; screenshots are shown
+  scaled, ×1.24). The "Change wallpaper daily" switch is at 988 1275 when the page is scrolled
+  to the top.
 - Screenshots: `adb exec-out screencap -p > file.png`. If the phone is locked, ask the user;
   don't try to unlock it.
 
@@ -84,14 +92,29 @@ Tested on the phone: fetch and display, browser, picker, set now with each "wher
 (faked by editing `isVideo` in the prefs with `run-as ... sed`) with both choices, and the R8
 release build after `pm clear`. A real video day is still untested.
 
-### Step 4: daily update [not started]
+### Step 4: daily update [built 2026-10-01; waiting for a real day]
 
-The `JobScheduler` job and the "Change wallpaper daily" switch. Test with a forced run, then
-over a real day. Watch out: `dumpsys netpolicy` shows APODroid's UID blocked with
-`APP_BACKGROUND` when it isn't in the foreground (restricted networking mode on the phone).
-Jobs with a network constraint should be exempt while they run; check that the job really gets
-the network.
+The `JobScheduler` job (`DailyJob.kt`, id 1) and the "Change wallpaper daily" switch; details in
+`CLAUDE.md`, Background update. Tested on the phone: switch on schedules it (6 h, network,
+persisted) and it runs at once; forced run with the app process killed and its UID blocked
+(`APP_BACKGROUND` in `dumpsys netpolicy`) fetched, downloaded and set the wallpaper, so the job
+gets the network; a second run the same day does nothing; switch off/on; R8 release build
+(after `pm clear`: job gone, switch on, picture set). Debug builds: fake an old day with
+`adb shell run-as io.github.buerlino.apodroid sed -i -e 's/<today>/<yesterday>/g' shared_prefs/apodroid.xml`
+after `am kill` (run-as doesn't work on release builds). Not tested yet: an unforced run on a
+real new day, a reboot, a real video day.
+
+State left on the phone (2026-10-01, ~10:40): the R8 release build signed with the debug key
+(installs over debug builds; `run-as` doesn't work on it), data cleared, switch on, today's
+picture set. Next (user): on 2026-10-02 after ~06:05 check whether the wallpaper changed on its
+own (`adb logcat -d -s APODroid`; the buffer may have rolled over by then). Then reboot and check
+the job is still listed. After that, step 5.
+
+An ANR showed once in step 4, on a tap right after the `ACCESS_NETWORK_STATE` crash relaunched
+the app; not seen again after the fix.
 
 ### Step 5: release setup [not started]
 
-Icon, fastlane metadata and screenshots, first tag, F-Droid recipe.
+Icon, fastlane metadata and screenshots, first tag, F-Droid recipe. Decided 2026-10-01: 0.1.0
+after step 4; the user makes the icon; a new APODroid keystore (see `CLAUDE.md`, "Setup and
+distribution").

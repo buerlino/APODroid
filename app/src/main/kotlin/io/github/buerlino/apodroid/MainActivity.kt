@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,6 +40,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
@@ -68,6 +70,7 @@ class MainActivity : ComponentActivity() {
     private var picture by mutableStateOf<ImageBitmap?>(null)
     private var loading by mutableStateOf(false)
     private var failed by mutableStateOf(false)
+    private var daily by mutableStateOf(false)
     private var where by mutableStateOf(Where.BOTH)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
     private var hasFallback by mutableStateOf(false)
@@ -75,6 +78,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = Store(this)
+        daily = DailyJob.isScheduled(this)
         where = store.where
         videoDays = store.videoDays
         hasFallback = store.fallbackFile.exists()
@@ -113,6 +117,15 @@ class MainActivity : ComponentActivity() {
         picture = withContext(Dispatchers.IO) {
             store.imageFile.takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.path) }?.asImageBitmap()
         }
+    }
+
+    private fun switchDaily(on: Boolean) {
+        if (on && !DailyJob.schedule(this)) {
+            toast("Couldn't schedule the daily change")
+            return
+        }
+        if (!on) DailyJob.cancel(this)
+        daily = on
     }
 
     private fun setWallpaperNow() {
@@ -205,6 +218,14 @@ class MainActivity : ComponentActivity() {
     private fun Settings() {
         val pick = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let(::saveFallback) }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.fillMaxWidth().toggleable(daily, role = Role.Switch, onValueChange = ::switchDaily),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Change wallpaper daily", Modifier.weight(1f))
+                Switch(checked = daily, onCheckedChange = null)
+            }
+
             Heading("Wallpaper on")
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 val labels = mapOf(Where.HOME to "Home screen", Where.LOCK to "Lock screen", Where.BOTH to "Both")

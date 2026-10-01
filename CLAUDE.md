@@ -72,6 +72,13 @@ icon yet (the system default). versionCode 1, versionName 0.1.0. Tested: `:core:
 `assembleDebug` and `assembleRelease` pass; the unsigned release APK is 765 KB, and a second
 build from a copy in another folder was byte-identical.
 
+First release (user, 2026-10-01): 0.1.0, only after step 4 (the daily job), because the daily
+change is the app's point. The user makes the icon; the release waits for it too. Signing: a
+new keystore just for APODroid (not gridload's), made with `keytool` outside the repo; the user
+sets the passwords, backs it up and adds the CI secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
+`KEY_ALIAS`, `KEY_PASSWORD`). The GitHub repo had an "Initial commit" (LICENSE only) on
+`master`; local history is built on it, remote `origin`.
+
 ## Data source (checked 2026-10-01)
 
 **The official API is broken.** `https://api.nasa.gov/planetary/apod` (what the Tasker task
@@ -185,6 +192,20 @@ Permissions (user approved, 2026-10-01), all granted at install with no prompt:
 - `INTERNET`
 - `SET_WALLPAPER`
 - `RECEIVE_BOOT_COMPLETED` (for `setPersisted`)
+- `ACCESS_NETWORK_STATE` (user approved 2026-10-01, step 4): Android 14+ throws a
+  `SecurityException` on `schedule()` for a job with a network constraint without it. The
+  alternative, no network constraint, would wake and fail offline and use up retries.
+
+**Built (step 4, 2026-10-01):** `DailyJob.kt`. Each run: `refresh()` unless the stored APOD is
+today's, then set the wallpaper if the stored APOD's date isn't `wallpaperDate` (the date last
+set, saved by `setWallpaper`, also by "Set as wallpaper now"). A separate date is needed because
+opening the page also downloads the new picture; the job must still set it. On a video day with
+"keep" nothing is saved, so switching to "my picture" later that day takes effect on the next run.
+`refresh()` holds a lock, as the page and the job can run it at once. Failures return
+`needsReschedule` (the job's backoff, 30 s exponential). The switch's state is whether the job is
+scheduled (`getPendingJob`), no pref; `pm clear` cancels the job and the switch shows off.
+Turning it on runs the job right away (the first period starts now), so today's picture is set
+at once.
 
 ## Open questions
 

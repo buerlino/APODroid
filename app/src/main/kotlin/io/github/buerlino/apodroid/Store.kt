@@ -55,6 +55,11 @@ class Store(private val context: Context) {
                 .apply()
         }
 
+    /** The date of the APOD last set as wallpaper, so the daily job sets each one once. */
+    var wallpaperDate: LocalDate?
+        get() = prefs.getString("wallpaperDate", null)?.let(LocalDate::parse)
+        private set(value) = prefs.edit().putString("wallpaperDate", value?.toString()).apply()
+
     /** True when the stored APOD is today's (APOD dates are US Eastern). */
     val isCurrent: Boolean
         get() = apod?.date == LocalDate.now(ZoneId.of("America/New_York")) && imageFile.exists()
@@ -62,9 +67,9 @@ class Store(private val context: Context) {
     /**
      * Blocking. Asks for the newest APOD and, when its date is new, downloads its picture. The
      * stored APOD only changes once the picture is complete and decodable. Returns true when
-     * it changed.
+     * it changed. The page and the daily job may call it at the same time, hence the lock.
      */
-    fun refresh(): Boolean {
+    fun refresh(): Boolean = synchronized(refreshLock) {
         val latest = fetchLatest()
         val changed = latest.date != apod?.date || !imageFile.exists()
         if (changed) {
@@ -76,7 +81,7 @@ class Store(private val context: Context) {
             }
         }
         apod = latest
-        return changed
+        changed
     }
 
     /** The picture to set as wallpaper, or null to keep the current one (video day). */
@@ -89,8 +94,11 @@ class Store(private val context: Context) {
     /** Blocking. */
     fun setWallpaper(file: File) {
         file.inputStream().use { WallpaperManager.getInstance(context).setStream(it, null, true, where.flags) }
+        wallpaperDate = apod?.date
     }
 }
+
+private val refreshLock = Any()
 
 fun isImage(file: File): Boolean {
     val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }

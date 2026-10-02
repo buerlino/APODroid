@@ -40,17 +40,20 @@ data class Apod(
  */
 const val LATEST_URL = "https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_page=1"
 
-/** Blocking fetch of the newest APOD. Call off the main thread. Throws on network or format errors. */
-fun fetchLatest(url: String = LATEST_URL): Apod =
-    get(url, "application/json") { parseLatest(it.bufferedReader().readText()) }
+/**
+ * Blocking fetch of the newest APOD. Call off the main thread. Throws on network or format errors.
+ * [userAgent] goes with the request so the site can tell this app apart (see CLAUDE.md).
+ */
+fun fetchLatest(userAgent: String, url: String = LATEST_URL): Apod =
+    get(url, "application/json", userAgent) { parseLatest(it.bufferedReader().readText()) }
 
 /**
  * Blocking download of [url] to [to]. Throws on network errors and when fewer bytes arrive than
  * announced; [to] is then deleted.
  */
-fun download(url: String, to: File) {
+fun download(url: String, to: File, userAgent: String) {
     try {
-        get(url, "image/*") { input ->
+        get(url, "image/*", userAgent) { input ->
             val expected = contentLengthLong
             val written = to.outputStream().use { input.copyTo(it) }
             if (expected >= 0 && written != expected) throw IOException("Got $written of $expected bytes")
@@ -61,12 +64,13 @@ fun download(url: String, to: File) {
     }
 }
 
-private fun <T> get(url: String, accept: String, read: HttpURLConnection.(InputStream) -> T): T {
+private fun <T> get(url: String, accept: String, userAgent: String, read: HttpURLConnection.(InputStream) -> T): T {
     val conn = URI(url).toURL().openConnection() as HttpURLConnection
     try {
         conn.connectTimeout = 15_000
         conn.readTimeout = 30_000
         conn.setRequestProperty("Accept", accept)
+        conn.setRequestProperty("User-Agent", userAgent)
         if (conn.responseCode != HttpURLConnection.HTTP_OK) throw IOException("HTTP ${conn.responseCode}")
         return conn.inputStream.use { conn.read(it) }
     } finally {

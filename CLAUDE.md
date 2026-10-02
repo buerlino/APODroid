@@ -153,6 +153,26 @@ Risk: this is the site's internal WordPress API, not a documented public API. Th
 the fields could change. Keep the parsing in `:core`, tolerant (`ignoreUnknownKeys`, nullable
 fields), and fail without touching the current wallpaper.
 
+**Traffic at scale, checked 2026-10-02** (user asked: would 1000 users "DDoS" the server?): no.
+`Store.isCurrent` makes `refresh()` (the one JSON GET) a once-a-day call per device; job runs and
+page opens later that same day are free, no network call, once the stored APOD is current. The
+`JobScheduler` job has no shared trigger time across devices (each one's period starts at its own
+install/enable time, further smeared by Doze/App Standby), so there's no synchronized burst at
+04:05 UTC. Back of envelope: 1000 devices × about 1 JSON request/day (~21 KB) + 1 image/day ≈
+1000–2000 requests/day total, well under 1 request/s on average — the same order of magnitude as
+1000 people running the old Tasker task once a day against `api.nasa.gov`. The real risk from this
+endpoint is fragility (above), not load.
+
+**User-Agent (2026-10-02, after 0.1.1):** both requests send
+`APODroid/<versionName> (+https://github.com/buerlino/APODroid)`, so the site can tell this app
+apart (and throttle or block just it); not needed for load, just good practice on an undocumented
+endpoint. `fetchLatest` and `download` take it as a parameter (`:core` has no Android);
+`Store` builds it with `versionName` read from the installed package at runtime, so the version
+stays only in `app/build.gradle.kts` and no `BuildConfig` is needed. Tested: a `:core` test checks
+the header arrives at a local server; `curl` with it got HTTP 200 from the real endpoint; debug
+build on the phone (fresh install) fetched and showed 2 Oct's picture. The bytes the phone sends
+weren't inspected.
+
 ## What the Tasker task did (for reference, not to copy)
 
 1. Wait a random 10 to 180 s.

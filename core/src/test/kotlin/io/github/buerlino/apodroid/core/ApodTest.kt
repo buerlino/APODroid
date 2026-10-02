@@ -90,19 +90,25 @@ class ApodTest {
 
     @Test
     fun fetchesFromTheServer() = withServer(200, post()) { url ->
-        assertEquals("A Made’Up Nebula", fetchLatest(url).title)
+        assertEquals("A Made’Up Nebula", fetchLatest(UA, url).title)
+    }
+
+    @Test
+    fun sendsTheUserAgent() = withServer(200, post()) { url ->
+        fetchLatest(UA, url)
+        assertEquals(UA, userAgent)
     }
 
     @Test
     fun failsOnHttpErrors() = withServer(503, "") { url ->
-        assertFailsWith<IOException> { fetchLatest(url) }
+        assertFailsWith<IOException> { fetchLatest(UA, url) }
     }
 
     @Test
     fun downloadsToAFile() = withServer(200, "made-up picture bytes") { url ->
         val file = File.createTempFile("apod", ".jpg")
         try {
-            download(url, file)
+            download(url, file, UA)
             assertEquals("made-up picture bytes", file.readText())
         } finally {
             file.delete()
@@ -112,13 +118,17 @@ class ApodTest {
     @Test
     fun deletesTheFileOnHttpErrors() = withServer(404, "") { url ->
         val file = File.createTempFile("apod", ".jpg")
-        assertFailsWith<IOException> { download(url, file) }
+        assertFailsWith<IOException> { download(url, file, UA) }
         assertFalse(file.exists())
     }
+
+    private val UA = "APODroid/0.0.0 (+https://example.org)"
+    private var userAgent: String? = null
 
     private fun withServer(status: Int, body: String, block: (String) -> Unit) {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/") { ex ->
+            userAgent = ex.requestHeaders.getFirst("User-Agent")
             val bytes = body.toByteArray()
             ex.sendResponseHeaders(status, if (bytes.isEmpty()) -1 else bytes.size.toLong())
             ex.responseBody.use { it.write(bytes) }

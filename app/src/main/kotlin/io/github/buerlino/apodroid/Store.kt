@@ -29,6 +29,10 @@ class Store(private val context: Context) {
     val imageFile = File(context.filesDir, "apod.jpg")
     val fallbackFile = File(context.filesDir, "fallback.jpg")
 
+    /** Sent with each request; the version comes from `versionName` in app/build.gradle.kts. */
+    private val userAgent = "APODroid/${context.packageManager.getPackageInfo(context.packageName, 0).versionName}" +
+        " (+https://github.com/buerlino/APODroid)"
+
     var where: Where
         get() = enumValue(prefs.getString("where", null)) ?: Where.BOTH
         set(value) = prefs.edit().putString("where", value.name).apply()
@@ -80,11 +84,11 @@ class Store(private val context: Context) {
      * it changed. The page and the daily job may call it at the same time, hence the lock.
      */
     fun refresh(): Boolean = synchronized(refreshLock) {
-        val latest = fetchLatest()
+        val latest = fetchLatest(userAgent)
         val changed = latest.date != apod?.date || !imageFile.exists()
         if (changed) {
             val part = File(context.filesDir, "apod.part")
-            download(latest.imageUrl, part)
+            download(latest.imageUrl, part, userAgent)
             if (!isImage(part) || !part.renameTo(imageFile)) {
                 part.delete()
                 throw IOException("Not an image: ${latest.imageUrl}")

@@ -202,3 +202,11 @@ app: APODroid", description as gridload's (checklist + reproducible-build note).
 Fastlane metadata and screenshots, first tag, F-Droid recipe. Decided 2026-10-01: 0.1.0
 after step 4; the user makes the icon; a new APODroid keystore (see `CLAUDE.md`, "Setup and
 distribution").
+
+## Open tasks (small, not a roadmap step)
+
+- ~~Add a `User-Agent` header~~ **done 2026-10-02** (not yet released; details and what was
+  tested in `CLAUDE.md`, Data source, "User-Agent"). To test, the GitHub 0.1.1 APK the user had
+  installed (13:08) was uninstalled for the debug build. **State left on the phone (23:41):** that
+  debug build, fresh: today's picture loaded, switch off, defaults. Back to a release-key APK
+  needs another uninstall.

@@ -173,7 +173,12 @@ fits on one screen). Taken with SystemUI demo mode as in gridload
 (`settings put global sysui_demo_allowed 1`, broadcasts `enter`, `clock -e hhmm 1200`,
 `notifications -e visible false`, `network -e wifi show -e level 4 -e fully true` (without
 `fully` the Wi-Fi icon shows "!"), then `exit` and the setting back to 0). `README.md` embeds
-the screenshot.
+the screenshot. **Retaken 2026-10-02 for 0.1.1** (with the ▾), again with 1 October's picture
+(landscape, so the whole page fits): debug build installed over, `am kill`, backed up
+`files/apod.jpg` and `shared_prefs/apodroid.xml` inside the app with `run-as`, wrote 1 October's
+picture, `fallback.jpg` and prefs (data from `private/last100.json`, `videoDays` `MINE`), blocked
+the app's network so it couldn't fetch today's (`cmd connectivity set-chain3-enabled true` +
+`set-package-networking-enabled false <pkg>`), took the shot, then restored all of it.
 
 Fastlane metadata and screenshots, first tag, F-Droid recipe. Decided 2026-10-01: 0.1.0
 after step 4; the user makes the icon; a new APODroid keystore (see `CLAUDE.md`, "Setup and

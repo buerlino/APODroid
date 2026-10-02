@@ -180,6 +180,25 @@ picture, `fallback.jpg` and prefs (data from `private/last100.json`, `videoDays`
 the app's network so it couldn't fetch today's (`cmd connectivity set-chain3-enabled true` +
 `set-package-networking-enabled false <pkg>`), took the shot, then restored all of it.
 
+**F-Droid (submitted 2026-10-02, in review):** merge request
+https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 (API:
+`/api/v4/projects/36528/merge_requests/50926`), commit `80afecc61` on the fork. The push was
+first rejected ("shallow update not allowed"): the branch sat on a depth-1 fetch of upstream;
+`git fetch --shallow-since=2026-09-20 upstream master` (older than the fork, made 2026-09-29)
+fixed it. Pipelines: the branch pipeline (2906755276) passed in full (`fdroid build`, lint,
+checkupdates, check apk); the merge request's (2906778335) was still running at the commit.
+Next: tick the two pipeline boxes once it's green, then answer reviewer comments (the user
+posts; Claude drafts, as for gridload). Recipe
+`metadata/io.github.buerlino.apodroid.yml` in `../fdroiddata` (the gridload fork clone), new
+branch `io.github.buerlino.apodroid` made from upstream `master` (remote `upstream`), not from the
+gridload branch. 0.1.1 (versionCode 2, full commit hash), `Binaries` + `AllowedAPKSigningKeys`
+as gridload; categories Science & Education + Wallpaper, `NonFreeNet` for science.nasa.gov
+(user's choices). Checked: the GitHub 0.1.1 APK's signer is the release key, and its contents
+equal an unsigned build of the tag in another folder (21 entries outside `META-INF/`);
+`fdroid lint` passes and `fdroid rewritemeta` changes nothing (fdroidserver from pip in a venv).
+`fdroid build` not run locally; the merge request pipeline does it. Merge request title "New
+app: APODroid", description as gridload's (checklist + reproducible-build note).
+
 Fastlane metadata and screenshots, first tag, F-Droid recipe. Decided 2026-10-01: 0.1.0
 after step 4; the user makes the icon; a new APODroid keystore (see `CLAUDE.md`, "Setup and
 distribution").

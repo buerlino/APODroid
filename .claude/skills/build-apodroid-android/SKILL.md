@@ -205,8 +205,10 @@ distribution").
 
 ## Open tasks (small, not a roadmap step)
 
-- ~~Add a `User-Agent` header~~ **done 2026-10-02** (not yet released; details and what was
-  tested in `CLAUDE.md`, Data source, "User-Agent"). To test, the GitHub 0.1.1 APK the user had
+- ~~Add a `User-Agent` header~~ **done 2026-10-02** (commit `e0b33f8`; details and what was
+  tested in `CLAUDE.md`, Data source, "User-Agent"). **Not released, on purpose** (user,
+  2026-10-02): no visible change for users, and F-Droid is reviewing 0.1.1, so it ships with the
+  next user-visible change (then 0.1.2, versionCode 3; mention it in that changelog). To test, the GitHub 0.1.1 APK the user had
   installed (13:08) was uninstalled for the debug build. **State left on the phone (23:41):** that
   debug build, fresh: today's picture loaded, switch off, defaults. Back to a release-key APK
   needs another uninstall.

@@ -25,7 +25,10 @@ as far as later work needs it; the history is in git.
 
 - Build and test: `ANDROID_HOME=~/Android/Sdk ./gradlew :core:test :app:assembleDebug`.
 - Real phone over USB (in gridload a Fairphone 6), no emulator. If `adb devices` is empty and
-  `lsusb` shows `18d1:4ee1` (MTP only), USB debugging is off or not authorised: ask the user. `adb` isn't on PATH:
+  `lsusb` shows `18d1:4ee1` (MTP only), USB debugging is off or not authorised: ask the user.
+  If adb says "no permissions" and `lsusb` shows `05c6:9024` (Qualcomm), the phone is in
+  "Charging only" USB mode (so after each reboot; replugging doesn't change it): ask the user to
+  set the USB notification to "File transfer" (then `18d1:4ee2`, MTP + debug). `adb` isn't on PATH:
   `~/Android/Sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk`.
   Debug and release builds are signed with different keys, so switching needs an uninstall.
 - The phone (LineageOS) blocks network access for new apps (restricted networking mode,
@@ -92,7 +95,7 @@ Tested on the phone: fetch and display, browser, picker, set now with each "wher
 (faked by editing `isVideo` in the prefs with `run-as ... sed`) with both choices, and the R8
 release build after `pm clear`. A real video day is still untested.
 
-### Step 4: daily update [built 2026-10-01; waiting for a real day]
+### Step 4: daily update [done 2026-10-02; a real video day untested]
 
 The `JobScheduler` job (`DailyJob.kt`, id 1) and the "Change wallpaper daily" switch; details in
 `CLAUDE.md`, Background update. Tested on the phone: switch on schedules it (6 h, network,
@@ -101,14 +104,18 @@ persisted) and it runs at once; forced run with the app process killed and its U
 gets the network; a second run the same day does nothing; switch off/on; R8 release build
 (after `pm clear`: job gone, switch on, picture set). Debug builds: fake an old day with
 `adb shell run-as io.github.buerlino.apodroid sed -i -e 's/<today>/<yesterday>/g' shared_prefs/apodroid.xml`
-after `am kill` (run-as doesn't work on release builds). Not tested yet: an unforced run on a
-real new day, a reboot, a real video day.
+after `am kill` (run-as doesn't work on release builds).
 
-State left on the phone (2026-10-01, ~10:40): the R8 release build signed with the debug key
-(installs over debug builds; `run-as` doesn't work on it), data cleared, switch on, today's
-picture set. Next (user): on 2026-10-02 after ~06:05 check whether the wallpaper changed on its
-own (`adb logcat -d -s APODroid`; the buffer may have rolled over by then). Then reboot and check
-the job is still listed. After that, step 5.
+**2026-10-02: the unforced run on a real new day worked.** `dumpsys jobscheduler` showed
+`Last successful run: 2026-10-02 07:03:40` (05:03 UTC, about an hour after the 04:05 UTC
+release), next run in 6 h; home and lock screen and the page showed the new picture ("The
+Complete Sharpless Catalog: 313 Nebulas"). The `APODroid` logcat line had rolled over by 07:48,
+so check `Last successful run` in `dumpsys jobscheduler` instead. **Reboot tested the same
+day:** after `adb reboot` the job was listed again (periodic 6 h, persisted, network), with the
+same run window and last run. Still untested: a real video day.
+
+State left on the phone (2026-10-02, ~08:00): the R8 release build 0.1.0 signed with the debug
+key (installs over debug builds; `run-as` doesn't work on it), switch on, today's picture set.
 
 An ANR showed once in step 4, on a tap right after the `ACCESS_NETWORK_STATE` crash relaunched
 the app; not seen again after the fix.

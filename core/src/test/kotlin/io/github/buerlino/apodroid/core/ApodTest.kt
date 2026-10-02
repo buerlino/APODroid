@@ -21,7 +21,7 @@ class ApodTest {
     ) = """[{"id":1,"date":"2026-03-03T00:05:00","date_gmt":"2026-03-03T05:05:00",
         "link":"https://science.nasa.gov/image-article/apod-2026-march-3-a-made-up-nebula/",
         "title":{"rendered":"$title"},
-        "content":{"rendered":"<p>Discover the cosmos!</p><div class='media-detail-hero__media'>$hero</div><h1>Title</h1><p><strong>Explanation:</strong> $explanation</p>"},
+        "content":{"rendered":"<p>Discover the cosmos!</p><div class='media-detail-hero__media'>$hero</div><h1>Title</h1><p class='p-md media-detail-hero__description'><strong>Explanation:</strong> $explanation</p>"},
         "featured_image_url":"https://assets.example/apod/2026/march/nebula.jpg?w=1600",
         "featured_image":$image}]"""
 
@@ -33,6 +33,21 @@ class ApodTest {
         assertEquals("https://assets.example/apod/2026/march/nebula.jpg", apod.imageUrl)
         assertEquals("https://science.nasa.gov/image-article/apod-2026-march-3-a-made-up-nebula/", apod.pageUrl)
         assertFalse(apod.isVideo)
+        assertEquals("a mission", apod.explanation)
+    }
+
+    @Test
+    fun cleansTheExplanation() {
+        val html = """
+            A <a href='https://example.org/'>nebula</a> &amp; its <em>stars</em>&#8217;
+            light.<br><br><strong>APOD&#8217;s site has moved</strong><br><strong>Tomorrow&#8217;s picture:</strong> dust
+        """
+        assertEquals("A nebula & its stars’ light.", parseLatest(post(explanation = html)).explanation)
+        // Some posts have the label as plain text, some none.
+        val hero = "<p class='media-detail-hero__description'>"
+        assertEquals("Plain label.", explanation("$hero Explanation: Plain label.</p>"))
+        assertEquals("No label.", explanation("$hero No label.</p>"))
+        assertEquals("", explanation("<p>No hero description</p>"))
     }
 
     @Test

@@ -20,6 +20,8 @@ data class Apod(
     /** The post on science.nasa.gov. */
     val pageUrl: String,
     val isVideo: Boolean,
+    /** The astronomer's paragraph about the picture, plain text; empty if not found. */
+    val explanation: String = "",
 ) {
     /**
      * A name for the saved picture, without extension: `APOD_2026-10-01_Harvest_Moon_with_Mount_Etna`.
@@ -82,6 +84,7 @@ fun parseLatest(body: String): Apod {
         imageUrl = p.featured_image?.file ?: throw IOException("No image"),
         pageUrl = p.link,
         isVideo = isVideo(p.content?.rendered.orEmpty()),
+        explanation = explanation(p.content?.rendered.orEmpty()),
     )
 }
 
@@ -99,6 +102,22 @@ internal fun isVideo(content: String): Boolean {
     val hero = content.substring(start, end)
     return "<video" in hero || "<iframe" in hero
 }
+
+/**
+ * The hero's `media-detail-hero__description` paragraph up to its first `<br>` (after it come
+ * site notes and "Tomorrow's picture"), as plain text without the "Explanation:" label.
+ */
+internal fun explanation(content: String): String {
+    val start = content.indexOf("media-detail-hero__description").takeIf { it >= 0 } ?: return ""
+    val from = content.indexOf('>', start) + 1
+    val end = content.indexOf("</p>", from).takeIf { it >= 0 } ?: content.length
+    val html = content.substring(from, end).split(lineBreak, limit = 2)[0]
+    return decodeEntities(html.replace(tag, "")).replace(space, " ").trim().removePrefix("Explanation:").trim()
+}
+
+private val lineBreak = Regex("""<br\s*/?>""")
+private val tag = Regex("<[^>]*>")
+private val space = Regex("""\s+""")
 
 private val entity = Regex("""&(#\d+|#[xX][0-9a-fA-F]+|amp|lt|gt|quot|apos|nbsp);""")
 private val named = mapOf("amp" to "&", "lt" to "<", "gt" to ">", "quot" to "\"", "apos" to "'", "nbsp" to " ")

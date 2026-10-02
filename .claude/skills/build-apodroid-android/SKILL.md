@@ -114,8 +114,7 @@ so check `Last successful run` in `dumpsys jobscheduler` instead. **Reboot teste
 day:** after `adb reboot` the job was listed again (periodic 6 h, persisted, network), with the
 same run window and last run. Still untested: a real video day.
 
-State left on the phone (2026-10-02, ~08:00): the R8 release build 0.1.0 signed with the debug
-key (installs over debug builds; `run-as` doesn't work on it), switch on, today's picture set.
+State left on the phone: see step 5 (the GitHub release APK since 2026-10-02 12:34).
 
 An ANR showed once in step 4, on a tap right after the `ACCESS_NETWORK_STATE` crash relaunched
 the app; not seen again after the fix.
@@ -132,7 +131,29 @@ saving again after a reinstall (MediaStore would add ` (1)`, as the app no longe
 **`am force-stop` cancels the app's jobs** (the switch then shows off); use `am kill` to restart
 the app without losing the daily job. Happened here; the switch was turned back on.
 
-### Step 5: release setup [icon, store listing, README done 2026-10-01; keystore, tag, F-Droid open]
+### Step 5: release setup [0.1.0 released 2026-10-02; F-Droid open]
+
+**0.1.0 (2026-10-02):** tag pushed by the user; the workflow signed and published
+`apodroid-v0.1.0.apk` (details in `CLAUDE.md`). Tested on the phone: uninstalled the debug-key
+build, `adb install` of the APK downloaded from the release (`apksigner verify --print-certs`
+shows the release key). Network wasn't blocked this time after the uninstall (`dumpsys
+netpolicy`: `effective=NONE`), unlike before. The page loaded today's picture, a 37.7 MB PNG
+(about 6 min on mobile data; see `CLAUDE.md`, open question 3); the switch scheduled the job
+(6 h, persisted, network), which ran at once: `Daily job: 2026-10-02, wallpaper set`.
+Not tested: installing or updating through Obtainium.
+
+**Large-picture fix (2026-10-02, for 0.1.1; `CLAUDE.md`, Data source):** tested with the R8
+release build signed with the debug key (after an uninstall of the release-key APK): today's
+PNG shows sharp, `dumpsys meminfo` native heap 37 MB instead of 109 MB; switch on, job ran,
+wallpaper set. Not tested on the phone: a normal 1280 px JPEG (sample 1, decoded as before).
+**Explanation and long press (2026-10-02, for 0.1.1; `CLAUDE.md`, First version):** tests in
+`:core`; on the phone (R8 build, debug key, installed over the previous one): the ▾ appeared
+after the one-time refetch, the explanation shows and hides via ▾ and via a tap on the title, a
+long press on the title opens today's page in the browser. Not tested: a day without an
+explanation (no ▾).
+**State left on the phone (12:50):** that debug-key-signed release build, switch on, defaults
+(both screens, keep on video days), nothing saved. The GitHub 0.1.1 APK won't install over it:
+uninstall first (loses settings and the job).
 
 **Icon:** the user's SVGs in `logo/` (108×108: `APODroid_back.svg` black, `APODroid_front.svg`
 rays, stars, "APOD"/"Droid") converted to `res/drawable/ic_launcher_{background,foreground}.xml`,

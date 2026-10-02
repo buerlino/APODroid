@@ -47,6 +47,7 @@ class Store(private val context: Context) {
                 imageUrl = prefs.getString("imageUrl", null).orEmpty(),
                 pageUrl = prefs.getString("pageUrl", null).orEmpty(),
                 isVideo = prefs.getBoolean("isVideo", false),
+                explanation = prefs.getString("explanation", null).orEmpty(),
             )
         }
         private set(value) {
@@ -56,6 +57,7 @@ class Store(private val context: Context) {
                 .putString("imageUrl", value?.imageUrl)
                 .putString("pageUrl", value?.pageUrl)
                 .putBoolean("isVideo", value?.isVideo ?: false)
+                .putString("explanation", value?.explanation)
                 .apply()
         }
 
@@ -64,9 +66,13 @@ class Store(private val context: Context) {
         get() = prefs.getString("wallpaperDate", null)?.let(LocalDate::parse)
         private set(value) = prefs.edit().putString("wallpaperDate", value?.toString()).apply()
 
-    /** True when the stored APOD is today's (APOD dates are US Eastern). */
+    /**
+     * True when the stored APOD is today's (APOD dates are US Eastern). One stored by 0.1.0 has
+     * no explanation yet, so it's fetched again once.
+     */
     val isCurrent: Boolean
-        get() = apod?.date == LocalDate.now(ZoneId.of("America/New_York")) && imageFile.exists()
+        get() = apod?.date == LocalDate.now(ZoneId.of("America/New_York")) && imageFile.exists() &&
+            prefs.contains("explanation")
 
     /**
      * Blocking. Asks for the newest APOD and, when its date is new, downloads its picture. The

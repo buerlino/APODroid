@@ -2,6 +2,7 @@ package io.github.buerlino.apodroid
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
@@ -16,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +52,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +68,7 @@ import io.github.buerlino.apodroid.core.Apod
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -122,8 +126,23 @@ class MainActivity : ComponentActivity() {
     private suspend fun show() {
         apod = store.apod
         picture = withContext(Dispatchers.IO) {
-            store.imageFile.takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.path) }?.asImageBitmap()
+            store.imageFile.takeIf { it.exists() }?.let { decodeForScreen(it) }?.asImageBitmap()
         }
+    }
+
+    /**
+     * Decodes [file] halved as often as it stays at least screen-wide, and to at most 8 MP. Full
+     * size can be too large to draw (2 Oct 2026: a 4455×5592 PNG, 99.6 MB as a bitmap).
+     */
+    private fun decodeForScreen(file: File): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.path, bounds)
+        val width = bounds.outWidth.toLong()
+        val pixels = width * bounds.outHeight
+        val screen = resources.displayMetrics.widthPixels
+        var sample = 1
+        while (width / (sample * 2) >= screen || pixels / (sample * sample) > 8_000_000) sample *= 2
+        return BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
     }
 
     private fun switchDaily(on: Boolean) {
@@ -216,12 +235,17 @@ class MainActivity : ComponentActivity() {
             }
             return
         }
-        Column(Modifier.clickable { openPage(apod.pageUrl) }) {
+        var expanded by rememberSaveable(apod.date) { mutableStateOf(false) }
+        val hasExplanation = apod.explanation.isNotEmpty()
+        Column {
             Box(contentAlignment = Alignment.BottomEnd) {
                 Image(
                     bitmap = picture,
                     contentDescription = apod.title,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(picture.width.toFloat() / picture.height),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(picture.width.toFloat() / picture.height)
+                        .clickable { openPage(apod.pageUrl) },
                     contentScale = ContentScale.FillWidth,
                 )
                 // Saving a video day's still frame isn't worth it: often it's a generic NASA image.
@@ -234,12 +258,34 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-            Column(Modifier.padding(16.dp)) {
-                Text(apod.title, style = MaterialTheme.typography.titleLarge)
+            Row(
+                Modifier
+                    .combinedClickable(
+                        onClick = { if (hasExplanation) expanded = !expanded },
+                        onLongClick = { openPage(apod.pageUrl) },
+                    )
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(apod.title, style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        apod.date.format(dateFormat) + if (apod.isVideo) " · Video" else "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (hasExplanation) {
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Text(if (expanded) "▴" else "▾", fontSize = 24.sp)
+                    }
+                }
+            }
+            if (expanded) {
                 Text(
-                    apod.date.format(dateFormat) + if (apod.isVideo) " · Video" else "",
+                    apod.explanation,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 )
             }
         }

@@ -80,8 +80,13 @@ change is the app's point. The user made the icon (`logo/`; skill, step 5). Sign
 new keystore just for APODroid (not gridload's), made with `keytool` outside the repo; the user
 sets the passwords, backs it up and adds the CI secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
 `KEY_ALIAS`, `KEY_PASSWORD`). Done 2026-10-01: alias `apodroid`, PKCS12, RSA 4096, 10000 days,
-one password for store and key; the secrets are set. They are first tested by the `v0.1.0` tag. The GitHub repo had an "Initial commit" (LICENSE only) on
+one password for store and key; the secrets are set. The GitHub repo had an "Initial commit" (LICENSE only) on
 `master`; local history is built on it, remote `origin`.
+
+**0.1.0 released 2026-10-02:** tag `v0.1.0` on `6954492`; the Release workflow built and signed
+`apodroid-v0.1.0.apk` (1.77 MB, signer `CN=Norman Bürli`, SHA-256
+`b7dd5ace7b317f91cd347d147b88205dd9a52d1c1e36a40c5996d670b00dc538`) and published the GitHub
+Release. That APK is installed on the phone and works (see the skill, step 5). F-Droid is next.
 
 ## Data source (checked 2026-10-01)
 
@@ -121,6 +126,13 @@ GET https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_pa
   `https://assets.science.nasa.gov/content/dam/<same path>` → the original, 1600×1067 (1.1 MB);
   `?w=4096` → 4096×2730, but only upscaled. The file name ends in `LD`, so a larger HD original
   may exist somewhere (open question).
+- **Not always a small JPEG:** on 2 Oct 2026 `featured_image.file` was `sharpless_catalog.png`,
+  a 37.7 MB PNG, 4455×5592, served whole without parameters (`?w=1600` → 5.3 MB PNG, still PNG).
+  The app handled it (download about 6 min on mobile data, page, wallpaper), but decoded in full
+  it's a 99.6 MB bitmap, just under Android's 100 MB limit for drawing one. **Fixed (user,
+  2026-10-02, for 0.1.1):** the page decodes with `inSampleSize`, halved as often as it stays
+  screen-wide and to at most 8 MP (`decodeForScreen`; today: 2227×2796, about 25 MB). The
+  download, the wallpaper and the saved copy stay full size.
 - **Video days** (about 1 in 6 posts mention a video; e.g. 9 Sep `<video>` with an `.mp4`, many
   others link YouTube in the explanation): `featured_image` is still there, a still frame
   (`xz_and_frame.jpg`). The Tasker task skipped videos and kept the old wallpaper.
@@ -179,6 +191,13 @@ It was started by a Tasker profile that isn't in the export (presumably once a d
   none is there "Couldn't load today's picture." + "Try again". "Set as wallpaper now" reports
   with a Toast ("Wallpaper set", "Video today: wallpaper kept"). Video days show "· Video" after
   the date (not in the original plan; easy to drop).
+- **Explanation (user, 2026-10-02, for 0.1.1):** a ▾ (text glyph) right of the title shows
+  APOD's explanation below it, ▴ hides it; tapping the title row does the same, a long press on
+  it opens the APOD page (so does tapping the picture, as before). `Apod.explanation` in `:core`:
+  the hero's `media-detail-hero__description` paragraph up to its first `<br>` (after it come
+  site notes and "Tomorrow's picture"), tags stripped, without the "Explanation:" label. Checked
+  on all 100 posts 24 Jun to 1 Oct 2026: always present, 660 to 1323 characters. No ▾ if empty.
+  An entry stored by 0.1.0 has no explanation, so the page fetches the JSON again once.
 - **No help texts for the settings** (user, 2026-10-01: they explain themselves). Labels only.
 - **No notification** (user, 2026-10-01). Why: it would need the `POST_NOTIFICATIONS` runtime
   permission on Android 13+, and the page shows the title.
@@ -225,7 +244,8 @@ at once.
 
 ## Open questions
 
-1. Show APOD's own explanation (the astronomer's paragraph about the picture) below the title,
-   or only title and date? (Asked 2026-10-01; the answer given was about the settings.)
+1. (Answered 2026-10-02: the explanation shows on demand, see First version.)
 2. Is there a higher resolution than the 1600 px original (the `LD` file name)? Check later; not
    needed for the first version.
+3. Huge pictures (2 Oct 2026, 37.7 MB PNG, see Data source) cost mobile data. The crash risk is
+   fixed; limiting the download isn't decided.

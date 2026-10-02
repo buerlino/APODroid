@@ -86,7 +86,9 @@ one password for store and key; the secrets are set. The GitHub repo had an "Ini
 **0.1.0 released 2026-10-02:** tag `v0.1.0` on `6954492`; the Release workflow built and signed
 `apodroid-v0.1.0.apk` (1.77 MB, signer `CN=Norman Bürli`, SHA-256
 `b7dd5ace7b317f91cd347d147b88205dd9a52d1c1e36a40c5996d670b00dc538`) and published the GitHub
-Release. That APK is installed on the phone and works (see the skill, step 5). F-Droid is next.
+Release. That APK is installed on the phone and works (see the skill, step 5).
+**0.1.1 tagged 2026-10-02** (versionCode 2): the large-picture fix and the explanation. F-Droid
+is next.
 
 ## Data source (checked 2026-10-01)
 

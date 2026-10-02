@@ -1,0 +1,2 @@
+- Tap the title (or ▾) to read the astronomer's explanation; long-press it to open NASA's page
+- Fix: very large pictures could crash the page

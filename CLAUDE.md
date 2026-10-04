@@ -235,7 +235,10 @@ wake and fail offline).
   a failing job looks like a working one.
 - **Wi-Fi only:** a switch for the job, default off.
 - **Hibernation:** check on the phone whether Android pauses the unused app; only if so, a hint
-  with a button to the system setting. No battery-optimisation permission.
+  with a button to the system setting. No battery-optimisation permission. **Checked
+  2026-10-04: it does, twice** (restricted bucket after 8 days, hibernation deletes the job
+  after about 3 months; the job doesn't count as use). Report and options:
+  [keep-running.md](.claude/skills/build-apodroid-android/keep-running.md). Not decided yet.
 - **Share:** title and page link via the share sheet; not the picture file.
 - **Image credit** under the date, parsed in `:core` (on all 100 posts checked).
 - **Save every picture:** a switch for the job, default off, with a small ⓘ next to it: saved

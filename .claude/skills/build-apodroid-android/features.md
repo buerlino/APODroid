@@ -100,6 +100,11 @@ Decided (user, 2026-10-04): a switch, **default off** (today's behaviour).
 
 ### [ ] 5. Keep working when the app isn't opened
 
+**Checked on the phone 2026-10-04: both problems are real; see `keep-running.md`** (findings,
+options, adb recipes). It supersedes the guesses below: restricted bucket after 8 days (job only
+while charging and idle), hibernation deletes the job; the fix needs battery "Unrestricted" as
+well as "Manage app if unused" off.
+
 Android 12+ hibernates apps unused for about 3 months (force-stopped, so the job is cancelled
 and the switch shows off), and App Standby buckets throttle jobs well before that (rare bucket:
 about one job a day). A set-and-forget app is exactly what gets hit.

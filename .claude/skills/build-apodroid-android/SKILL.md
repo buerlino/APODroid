@@ -55,16 +55,25 @@ with a checklist: `features.md` next to this file.
 
 - A real video day (only faked via prefs), with both video-day settings; no star then.
 - A day without an explanation (no ▾).
-- Installing or updating through Obtainium.
-- Saving again after a reinstall (MediaStore would add ` (1)`, the app no longer owns the file).
-- A huge picture (like 2 Oct's 37 MB PNG) on an R8 build.
-- Offline: a failed fetch with a stored picture (kept) and without one (error, "Try again").
-- Process death or a rotation during a download (see `declutter.md`, Review of 0.1.2, 1.1).
-- The review fixes of 0.1.2 (`declutter.md`): the page redraw after another refresh, and ☆
-  during a download ("Not saved: a new picture came in").
+- Installing through Obtainium. (`adb install -r` over the old version keeps the job: tested
+  2026-10-04.)
+- A huge picture on an R8 build (on the debug build 2026-10-04: the 37 MB PNG set as wallpaper
+  in about 3 s, the page shows it).
+- The review fixes of 0.1.2 (`declutter.md`): page and job fetching at once ended right in 4
+  runs, rotation and a kill during a load recover, but on Wi-Fi the download always finished
+  before the race window, so neither the redraw path nor ☆ during a download ("Not saved: a new
+  picture came in") was really hit.
+- A reboot (the persisted job surviving it).
 - The themed icon in a launcher that shows themed icons (Niagara doesn't, App info shows the
   normal icon); only checked as a render and in the APK.
-- The screen-reader labels with TalkBack.
+- TalkBack itself (the labels are in the accessibility tree: `uiautomator dump`, 2026-10-04).
+
+Tested 2026-10-04 (full phone pass): offline with and without a stored picture, the switch
+turned on offline (the job waits, then sets the wallpaper), faked video days with both settings
+and a picked picture, font scale 2.0 (usable), landscape (the picture fills the width; scroll to
+the title). Saving after "Clear storage" (or a reinstall) adds a second copy `… (1).jpg`: the
+app can't see the old, now unowned file without a permission; left. The app stopping when
+it isn't opened: `keep-running.md`.
 
 ## Releasing (as in gridload)
 

@@ -400,9 +400,15 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun PauseHint() {
         var confirm by rememberSaveable { mutableStateOf(false) }
-        val battery = "Battery: Unrestricted"
+        // Android 15+ hides the choice behind a switch whose row has to be tapped; the choice stays
+        // greyed out until the switch is on, and a fresh install shows it off (keep-running.md).
+        val battery = if (Build.VERSION.SDK_INT >= 35) {
+            "App battery usage → tap \"Allow background usage\" → turn it on → Unrestricted"
+        } else {
+            "App battery usage → Unrestricted"
+        }
         // Stock Android 12–14: "Pause app activity if unused"; the test phone (Android 16): "Manage app if unused".
-        val unused = "Pause or manage app if unused: off"
+        val unused = "Unused app settings → \"Pause or manage app if unused\": off"
         val (missing, effect) = when {
             batteryLimited && mayHibernate -> listOf(battery, unused) to
                 "after about 8 days the wallpaper only changes while the phone charges, and after about 3 months it stops"
@@ -410,7 +416,7 @@ class MainActivity : ComponentActivity() {
             else -> listOf(unused) to "after about 3 months the wallpaper stops changing"
         }
         Column {
-            Text("Android pauses apps you don't open.", style = MaterialTheme.typography.bodyMedium)
+            Text("Android pauses apps you don't open. In App info:", style = MaterialTheme.typography.bodyMedium)
             missing.forEach {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

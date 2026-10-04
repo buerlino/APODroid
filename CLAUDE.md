@@ -94,7 +94,8 @@ file). Tagged `v0.1.2` on the commit with the review fixes (moved from b243c43 b
 pushed, user 2026-10-04). The R8 build of b243c43 was tested on the phone; the review fixes
 later that day, except what the skill lists under Still untested. 0.2.0 (versionCode 4,
 2026-10-04, user: release keep running now, the planned features follow in 0.3.0): keep
-running and the fixes of the evening declutter pass.
+running and the fixes of the evening declutter pass. 0.2.1 (versionCode 5, 2026-10-04): the hint names the
+path to each setting in App info; its R8 build tested on the phone.
 
 ## Data source (checked 2026-10-01)
 
@@ -229,7 +230,9 @@ that isn't opened, and the job doesn't count as use: the restricted bucket after
 (Android 13+; later or never before) and hibernation after about 3 months (12+), which deletes
 the job. While the switch is on, a hint under it names only what's missing, one line each:
 battery Unrestricted (checked on API 33+ only, 2026-10-04 evening: on 10–12 the 8 days aren't
-true) and "pause/manage app if unused" off (API 31+). With "App info"
+true) and "pause/manage app if unused" off (API 31+). Each line is the path in App info (user, 2026-10-04:
+"Unrestricted" alone didn't say where): on API 35+ the battery line says to tap "Allow
+background usage" and turn it on first (Unrestricted is greyed out until then), on 33–34 it doesn't (no such row there, not checked on a phone). With "App info"
 (`ACTION_APPLICATION_DETAILS_SETTINGS`) and "Don't show again". The latter asks first in a dialog
 saying what will happen ("the user has all power"); the pref `pauseHintHidden` keeps it hidden
 for good, also when the switch is turned on again (user: it's the user's choice; only clearing

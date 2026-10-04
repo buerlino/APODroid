@@ -59,8 +59,9 @@ with a checklist: `features.md` next to this file.
 
 - A real video day (only faked via prefs), with both video-day settings; no star then.
 - A day without an explanation (no ▾).
-- Installing through Obtainium. (`adb install -r` over the old version keeps the job: tested
-  2026-10-04.)
+- Updating through Obtainium (0.2.0 was installed with it on the phone, 2026-10-04; `adb
+  install -r` over the old version keeps the job). That install blocks debug builds: switching
+  needs an uninstall, which loses the user's settings, so ask first.
 - A huge picture on an R8 build (on the debug build 2026-10-04: the 37 MB PNG set as wallpaper
   in about 3 s, the page shows it).
 - The review fixes of 0.1.2 (`declutter.md`): page and job fetching at once ended right in 4

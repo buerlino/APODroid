@@ -1,0 +1,1 @@
+- The hint about Android pausing the app now spells out where each setting is in App info

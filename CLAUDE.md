@@ -89,7 +89,9 @@ one password for store and key; the secrets are set. The GitHub repo had an "Ini
 Release. That APK is installed on the phone and works (see the skill, step 5).
 **0.1.1 tagged 2026-10-02** (versionCode 2): the large-picture fix and the explanation. F-Droid:
 merge request https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 for 0.1.1, submitted
-2026-10-02, in review (skill, step 5).
+2026-10-02. As of 2026-10-04: two testers passed it (the F-Droid build is reproducible), all
+threads resolved, waiting for a maintainer to test and merge; if a new version is tagged first,
+update the merge request (skill, step 5).
 **Feature graphic (2026-10-03):** a tester on the MR noted `featureGraphic.png` was missing (the
 banner F-Droid clients show). Added, 1024×500, laid out as gridload's (user, after first choosing
 the logo alone): the icon's foreground left on black, "APODroid" (Inter Bold 100 px, white) and

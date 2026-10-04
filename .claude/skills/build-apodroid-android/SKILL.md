@@ -188,7 +188,15 @@ first rejected ("shallow update not allowed"): the branch sat on a depth-1 fetch
 fixed it. Pipelines: the branch pipeline (2906755276) passed in full (`fdroid build`, lint,
 checkupdates, check apk); the merge request's (2906778335) was still running at the commit.
 Next: tick the two pipeline boxes once it's green, then answer reviewer comments (the user
-posts; Claude drafts, as for gridload). Recipe
+posts; Claude drafts, as for gridload). **Review so far (checked 2026-10-04):** linsui (F-Droid,
+2 Oct) labelled it `review-requested`: mostly ready, they test and merge later, the queue is long,
+and update the merge request if a new version comes out first. Two testers passed it on 3 Oct:
+foysalkazimd01 (Android 13, PCAPdroid, VirusTotal clean) and nyusternie (Android 14; only
+`science.nasa.gov` and `assets.science.nasa.gov`; the pipeline's `fdroid build` of 0.1.1 matched
+the reference APK and its signer). nyusternie's one nit, the missing `featureGraphic.png`, was
+answered (added in `cfca533`, ships with the next release) and all threads were resolved on
+4 Oct. Pipeline green, the user ticked the pipeline box. Waiting on a maintainer; nothing open
+for us. If 0.1.2 is tagged before the merge, bump the recipe in this merge request. Recipe
 `metadata/io.github.buerlino.apodroid.yml` in `../fdroiddata` (the gridload fork clone), new
 branch `io.github.buerlino.apodroid` made from upstream `master` (remote `upstream`), not from the
 gridload branch. 0.1.1 (versionCode 2, full commit hash), `Binaries` + `AllowedAPKSigningKeys`

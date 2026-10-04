@@ -60,6 +60,8 @@ with a checklist: `features.md` next to this file.
 - A huge picture (like 2 Oct's 37 MB PNG) on an R8 build.
 - Offline: a failed fetch with a stored picture (kept) and without one (error, "Try again").
 - Process death or a rotation during a download (see `declutter.md`, Review of 0.1.2, 1.1).
+- The review fixes of 0.1.2 (`declutter.md`): the page redraw after another refresh, and ☆
+  during a download ("Not saved: a new picture came in").
 - The themed icon in a launcher that shows themed icons (Niagara doesn't, App info shows the
   normal icon); only checked as a render and in the APK.
 - The screen-reader labels with TalkBack.
@@ -72,20 +74,23 @@ with a checklist: `features.md` next to this file.
    GitHub Release for Obtainium.
 4. F-Droid rebuilds the tag and must get a byte-identical APK apart from the signature. For
    build-only changes, compare the unsigned release APK's sha256 before and after.
-5. While the F-Droid merge request (below) is open, bump its recipe to the new version.
+5. Push order: `master`, then the tag. F-Droid's bot (`UpdateCheckMode: Tags`,
+   `AutoUpdateMode: Version`) finds the new tag on its own, usually within a day or two, adds a
+   build to the recipe and builds it. Its `Binaries:` check needs `apodroid-vX.Y.Z.apk` in the
+   GitHub Release, so the Release workflow must succeed. No merge request for a new version.
 
 ## F-Droid
 
-Merge request https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 (API:
-`/api/v4/projects/36528/merge_requests/50926`), state in `CLAUDE.md`. Recipe
-`metadata/io.github.buerlino.apodroid.yml` in `../fdroiddata` (the gridload fork clone), branch
-`io.github.buerlino.apodroid` made from upstream `master` (remote `upstream`). 0.1.1
-(versionCode 2, full commit hash), `Binaries` + `AllowedAPKSigningKeys` as gridload; categories
-Science & Education + Wallpaper, `NonFreeNet` for science.nasa.gov (user's choices). Check with
-`fdroid lint` and `fdroid rewritemeta` (fdroidserver from pip in a venv); the merge request
-pipeline runs `fdroid build`. If a push is rejected with "shallow update not allowed", deepen
-the upstream fetch: `git fetch --shallow-since=<date before the fork> upstream master`. Reviewer
-comments: Claude drafts, the user posts.
+Recipe `metadata/io.github.buerlino.apodroid.yml` in fdroiddata, added by merge request
+https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 (merged 2026-10-04 with 0.1.1).
+`Binaries` + `AllowedAPKSigningKeys` as gridload; categories Science & Education + Wallpaper,
+`NonFreeNet` for science.nasa.gov (user's choices). New versions need no merge request
+(Releasing, step 5). Only a change to the recipe itself does: a branch in `../fdroiddata` (the
+gridload fork clone) from upstream `master` (remote `upstream`), checked with `fdroid lint` and
+`fdroid rewritemeta` (fdroidserver from pip in a venv); the pipeline runs `fdroid build`. If a
+push is rejected with "shallow update not allowed", deepen the upstream fetch:
+`git fetch --shallow-since=<date before the fork> upstream master`. Reviewer comments: Claude
+drafts, the user posts.
 
 ## Store listing
 

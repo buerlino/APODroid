@@ -119,10 +119,11 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             if (picture == null || store.apod != apod) show()
             if (!store.isCurrent) {
-                val changed = withContext(Dispatchers.IO) { runCatching { store.refresh() } }
-                changed.onSuccess { if (it || picture == null) show() else apod = store.apod }
-                changed.onFailure { Log.w("APODroid", "Refresh failed: $it", it) }
-                failed = changed.isFailure && picture == null
+                val result = withContext(Dispatchers.IO) { runCatching { store.refresh() } }
+                // Also when this refresh found nothing new: another one (the job's) may have.
+                result.onSuccess { if (picture == null || store.apod != apod) show() }
+                result.onFailure { Log.w("APODroid", "Refresh failed: $it", it) }
+                failed = result.isFailure && picture == null
             }
             saved = withContext(Dispatchers.IO) { store.isSaved }
             loading = false
@@ -176,9 +177,15 @@ class MainActivity : ComponentActivity() {
             toast("Already saved")
             return
         }
+        val date = apod?.date ?: return
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { store.save() } }
+            val result = withContext(Dispatchers.IO) { runCatching { store.save(date) } }
             result.onFailure { Log.w("APODroid", "Save failed: $it", it) }
+            if (result.getOrNull() == false) {
+                toast("Not saved: a new picture came in")
+                load()
+                return@launch
+            }
             saved = result.isSuccess
             toast(if (result.isSuccess) "Saved to Pictures/APODroid" else "Couldn't save the picture")
         }

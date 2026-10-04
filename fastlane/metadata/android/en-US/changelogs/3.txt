@@ -1,5 +1,5 @@
-- Fix: after the daily change, the page could still show yesterday's picture
-- Fix: a quick double tap on the star saved the picture twice
+- Fix: after the daily change, the page could still show yesterday's picture, sometimes under today's title
+- Fix: the star could save the picture twice, or a newer one than shown
 - Fix: a failed pick no longer removes your own video-day picture
 - Themed icon on Android 13+
 - Screen reader labels for the star and the explanation button

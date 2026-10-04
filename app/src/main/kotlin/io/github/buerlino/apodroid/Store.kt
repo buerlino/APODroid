@@ -76,16 +76,15 @@ class Store(private val context: Context) {
 
     /**
      * Blocking. Asks for the newest APOD and, when its date is new, downloads its picture. The
-     * stored APOD only changes once the picture is complete and decodable. Returns true when
-     * it changed. An older post than the stored one (a stale cache) is ignored. The page and the
-     * daily job may call it at the same time, hence the lock.
+     * stored APOD only changes once the picture is complete and decodable. An older post than
+     * the stored one (a stale cache) is ignored. The page and the daily job may call it at the
+     * same time, hence the lock.
      */
-    fun refresh(): Boolean = synchronized(refreshLock) {
+    fun refresh(): Unit = synchronized(refreshLock) {
         val latest = fetchLatest(userAgent)
         val stored = apod
-        if (stored != null && latest.date < stored.date && imageFile.exists()) return false
-        val changed = latest.date != stored?.date || !imageFile.exists()
-        if (changed) {
+        if (stored != null && latest.date < stored.date && imageFile.exists()) return
+        if (latest.date != stored?.date || !imageFile.exists()) {
             val part = File(context.filesDir, "apod.part")
             download(latest.imageUrl, part, userAgent)
             if (!isImage(part) || !part.renameTo(imageFile)) {
@@ -94,7 +93,6 @@ class Store(private val context: Context) {
             }
         }
         store(latest)
-        changed
     }
 
     /** The picture to set as wallpaper, or null to keep the current one (video day). */
@@ -124,11 +122,14 @@ class Store(private val context: Context) {
 
     /**
      * Blocking. Copies the stored APOD's picture to Pictures/APODroid (no permission on Android
-     * 10+), unless it's there already (a quick double tap).
+     * 10+), unless it's there already (a quick double tap). Returns false and saves nothing when
+     * the stored APOD isn't [date]'s any more: a refresh stored a new one while this waited for
+     * the lock.
      */
-    fun save(): Unit = synchronized(refreshLock) {
-        if (isSaved) return
+    fun save(date: LocalDate): Boolean = synchronized(refreshLock) {
         val apod = apod ?: throw IOException("Nothing to save")
+        if (apod.date != date) return false
+        if (isSaved) return true
         val type = imageType(imageFile) ?: throw IOException("Not an image")
         val resolver = context.contentResolver
         val values = ContentValues().apply {
@@ -150,6 +151,7 @@ class Store(private val context: Context) {
             putString("savedDate", apod.date.toString())
             putString("savedUri", uri.toString())
         }
+        true
     }
 }
 

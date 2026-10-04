@@ -24,8 +24,9 @@ data class Apod(
     val explanation: String = "",
 ) {
     /**
-     * A name for the saved picture, without extension: `APOD_2026-10-01_Harvest_Moon_with_Mount_Etna`.
-     * Unique per APOD (the date), only letters, digits, `-` and `_`.
+     * A name for the saved picture, without extension:
+     * `APOD_2026-10-01_Harvest_Moon_with_Erupting_Mount_Etna`. Unique per APOD (the date), only
+     * letters, digits, `-` and `_`.
      */
     val fileName: String
         get() {

@@ -72,7 +72,7 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
   it and the passwords); the CI secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`,
   `KEY_PASSWORD` are set.
 - `.github/workflows/release.yml` builds a signed APK on a `vX.Y.Z` tag and attaches it to a
-  GitHub Release (Obtainium); `test.yml` runs the `:core` tests on every push.
+  GitHub Release (Obtainium); `test.yml` runs the `:core` tests on branch pushes and pull requests.
   `fastlane/metadata/android/en-US/` for F-Droid, with `changelogs/<versionCode>.txt`.
 - Release build uses R8 (minify + shrinkResources). The build must be reproducible: no
   timestamps, build paths or machine-specific values in the APK; `dependenciesInfo` off. Unit
@@ -81,14 +81,14 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
 - Git branch `master`, remote `origin`.
 
 **Releases:** 0.1.0 (2026-10-02, GitHub only). 0.1.1 (versionCode 2, 2026-10-02): the
-large-picture fix and the explanation. F-Droid merge request
-https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 for 0.1.1: as of 2026-10-04 two
-testers passed it (the F-Droid build is reproducible), all threads resolved, waiting for a
-maintainer; if a new version is tagged first, update the merge request (skill, Releasing).
-0.1.2 (versionCode 3, tagged 2026-10-04): the declutter fixes of 2026-10-04, the themed icon,
-screen-reader labels, the User-Agent and the feature graphic. The commit is on GitHub, the tag
-isn't pushed yet. Its R8 build was tested on the phone after the tag; the review's open findings
-(a bug, risks, release order, docs) are in the declutter file, "Review of 0.1.2".
+large-picture fix and the explanation; on F-Droid since merge request
+https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 was merged (2026-10-04). New
+versions reach F-Droid by themselves: its bot builds each new `vX.Y.Z` tag (skill, Releasing).
+0.1.2 (versionCode 3): the declutter fixes of 2026-10-04, the themed icon, screen-reader
+labels, the User-Agent, the feature graphic and the fixes from the review of 0.1.2 (declutter
+file). Tagged `v0.1.2` on the commit with the review fixes (moved from b243c43 before it was
+pushed, user 2026-10-04). The R8 build of b243c43 was tested on the phone; the review fixes
+weren't (no phone).
 
 ## Data source (checked 2026-10-01)
 
@@ -106,7 +106,8 @@ GET https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_pa
 
 - Category 22766 is APOD (the whole archive, 11465 posts). Newest first.
 - Fields used (all present on every post checked, 24 Jun to 1 Oct 2026):
-  - `date`: e.g. `2026-10-01T00:05:00` (US Eastern). A new picture appears at about 04:05 UTC.
+  - `date`: e.g. `2026-10-01T00:05:00` (US Eastern). A new picture appears at about 00:05 US Eastern
+    (04:05 UTC in summer time, 05:05 UTC in winter).
   - `title.rendered`: `APOD: 2026 October 1 &#8211; Harvest Moon with Erupting Mount Etna`. The
     `APOD: <date> – ` prefix is stripped and HTML entities decoded (`&#8211;`, `&#8217;`; some
     titles have a plain `–`, one had `-` with no space after it).
@@ -138,7 +139,7 @@ fields), and fail without touching the current wallpaper.
 
 **Traffic (checked 2026-10-02):** one JSON GET per device per day (`Store.isCurrent`), plus the
 image. The job's period starts at each device's own enable time, so there's no shared burst at
-04:05 UTC. 1000 users ≈ 1000–2000 requests a day, like 1000 Tasker tasks against `api.nasa.gov`.
+00:05 US Eastern. 1000 users ≈ 1000–2000 requests a day, like 1000 Tasker tasks against `api.nasa.gov`.
 The risk is fragility, not load.
 
 **User-Agent (2026-10-02):** both requests send
@@ -166,7 +167,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
   The image goes to `files/apod.jpg` (whatever its format; no storage permission), via a `.part`
   file, and replaces the old one only when complete and decodable. Decoded with `BitmapFactory`
   (no image library). The current entry's fields in SharedPreferences. A post older than the
-  stored one is ignored (2026-10-04, a guard against a stale cache; never seen).
+  stored one is ignored (2026-10-04, a guard against a stale cache; never seen). Known gap, left
+  (user, 2026-10-04): the picture is renamed a few ms before the prefs are written; death in
+  between leaves today's picture under yesterday's entry until the next refresh fetches it again
+  (declutter file, Review of 0.1.2, 2.2).
 - **The page** refreshes on each `onResume` unless the stored APOD is today's (US Eastern); it
   also redraws when the job stored a new one in the background. A failed refresh keeps the
   stored picture; only with none is there an error with a retry button. Video days show "Video"
@@ -191,7 +195,10 @@ a second tap (or a quick double tap) doesn't save again. Text glyphs, no icon li
 with `MediaStore` (`IS_PENDING`), which needs no permission on Android 10+, hence `minSdk 29`
 (user chose that over `WRITE_EXTERNAL_STORAGE` for Android 8–9, or a "Save as" dialog each
 time). The saved date and `content://` URI are in the prefs; the star checks the URI still
-exists, so deleting the file in the gallery empties it again. No star on video days.
+exists, so deleting the file in the gallery empties it again. No star on video days. A tap that
+waited for a download (shared lock, see Background update) and finds a newer APOD stored saves
+nothing, says "Not saved: a new picture came in" and redraws the page (user, 2026-10-04: simpler
+than a lock of its own; "Sharper wallpaper" changes `save()` anyway).
 
 ### Background update
 

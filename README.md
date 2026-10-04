@@ -10,7 +10,7 @@ An Android app that sets NASA's [Astronomy Picture of the Day](https://science.n
 One page: today's picture with its title and date, and the settings below it.
 
 - **Change wallpaper daily:** a background job checks for the new picture every few hours, only
-  with a network, and sets it once it's out (about 04:05 UTC).
+  with a network, and sets it once it's out (about 00:05 US Eastern time).
 - **Where:** home screen, lock screen, or both.
 - **Video days:** keep the previous wallpaper, or use a picture of your own.
 - **Set as wallpaper now.**

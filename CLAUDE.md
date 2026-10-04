@@ -210,8 +210,11 @@ the stored APOD is today's, then set the wallpaper if the stored APOD's date isn
 because opening the page also downloads the new picture; the job must still set it. On a video
 day with "keep" nothing is saved, so switching to "my picture" later that day takes effect on
 the next run. `refresh()` and `save()` hold one lock, as the page and the job can run at once.
-Failures return `needsReschedule` (30 s exponential backoff). The switch's state is whether the
-job is scheduled (`getPendingJob`), no pref; turning it on runs the job at once.
+Failures return `needsReschedule` (30 s exponential backoff). Turning the switch on runs the job
+at once. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
+`getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
+schedules it again when `daily` is on and the job is missing. Migration: the first read of
+`daily` takes it from `getPendingJob`.
 
 Permissions (user approved, 2026-10-01), all granted at install with no prompt: `INTERNET`,
 `SET_WALLPAPER`, `RECEIVE_BOOT_COMPLETED` (for `setPersisted`), `ACCESS_NETWORK_STATE` (Android
@@ -234,11 +237,16 @@ wake and fail offline).
   changed, or since when no check has worked (more than a day). Why: the endpoint is fragile and
   a failing job looks like a working one.
 - **Wi-Fi only:** a switch for the job, default off.
-- **Hibernation:** check on the phone whether Android pauses the unused app; only if so, a hint
-  with a button to the system setting. No battery-optimisation permission. **Checked
-  2026-10-04: it does, twice** (restricted bucket after 8 days, hibernation deletes the job
-  after about 3 months; the job doesn't count as use). Report and options:
-  [keep-running.md](.claude/skills/build-apodroid-android/keep-running.md). Not decided yet.
+- **Keep running (built 2026-10-04):** Android pauses the unused app twice (restricted bucket
+  after 8 days, hibernation deletes the job after about 3 months; the job doesn't count as
+  use; report: [keep-running.md](.claude/skills/build-apodroid-android/keep-running.md)).
+  Decided (user, 2026-10-04): while the switch is on and battery isn't Unrestricted or
+  "pause when unused" (API 31+) is still on, a hint under the switch names only what's
+  missing, with "App info" (`ACTION_APPLICATION_DETAILS_SETTINGS`) and "Don't show again".
+  The latter asks first in a dialog saying what will happen ("the user has all power");
+  the pref `pauseHintHidden` keeps it hidden for good, also when the switch is turned on
+  again (user: it's the user's choice; only clearing storage brings it back). Plus the `daily` pref (Background
+  update). No battery-optimisation permission.
 - **Share:** title and page link via the share sheet; not the picture file.
 - **Image credit** under the date, parsed in `:core` (on all 100 posts checked).
 - **Save every picture:** a switch for the job, default off, with a small ⓘ next to it: saved

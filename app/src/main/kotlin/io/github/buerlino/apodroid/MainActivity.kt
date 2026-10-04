@@ -5,7 +5,9 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -34,6 +36,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -87,11 +90,15 @@ class MainActivity : ComponentActivity() {
     private var where by mutableStateOf(Where.BOTH)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
     private var hasFallback by mutableStateOf(false)
+    private var batteryLimited by mutableStateOf(false)
+    private var mayHibernate by mutableStateOf(false)
+    private var pauseHintHidden by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = Store(this)
-        daily = DailyJob.isScheduled(this)
+        daily = store.daily
+        pauseHintHidden = store.pauseHintHidden
         where = store.where
         videoDays = store.videoDays
         hasFallback = store.fallbackFile.exists()
@@ -105,7 +112,22 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Hibernation or a force stop deleted the job; scheduling runs it at once.
+        if (daily && !DailyJob.isScheduled(this) && !DailyJob.schedule(this)) {
+            Log.w("APODroid", "Couldn't schedule the daily job again")
+        }
+        checkPausing()
         load()
+    }
+
+    /**
+     * Whether Android may pause the job of an app that isn't opened (keep-running.md in the
+     * skill): the restricted standby bucket unless battery use is Unrestricted, and hibernation
+     * (Android 12+) unless the user turned it off for this app.
+     */
+    private fun checkPausing() {
+        batteryLimited = !getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
+        mayHibernate = Build.VERSION.SDK_INT >= 31 && !packageManager.isAutoRevokeWhitelisted
     }
 
     /**
@@ -158,6 +180,16 @@ class MainActivity : ComponentActivity() {
         }
         if (!on) DailyJob.cancel(this)
         daily = on
+        store.daily = on
+    }
+
+    private fun openAppInfo() {
+        startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri()))
+    }
+
+    private fun hidePauseHint() {
+        pauseHintHidden = true
+        store.pauseHintHidden = true
     }
 
     private fun setWallpaperNow() {
@@ -324,6 +356,7 @@ class MainActivity : ComponentActivity() {
                 Text("Change wallpaper daily", Modifier.weight(1f))
                 Switch(checked = daily, onCheckedChange = null)
             }
+            if (daily && (batteryLimited || mayHibernate) && !pauseHintHidden) PauseHint()
 
             Heading("Wallpaper on")
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
@@ -356,6 +389,47 @@ class MainActivity : ComponentActivity() {
                 enabled = apod != null,
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             ) { Text("Set as wallpaper now") }
+        }
+    }
+
+    /** Names only the settings still missing; hiding it asks first, with what will happen. */
+    @Composable
+    private fun PauseHint() {
+        var confirm by rememberSaveable { mutableStateOf(false) }
+        Column {
+            Text("Android pauses apps you don't open.", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                when {
+                    batteryLimited && mayHibernate -> "Set battery use to Unrestricted and turn off pausing when unused."
+                    batteryLimited -> "Set battery use to Unrestricted."
+                    else -> "Turn off pausing when unused."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row {
+                TextButton(onClick = ::openAppInfo) { Text("App info") }
+                TextButton(onClick = { confirm = true }) { Text("Don't show again") }
+            }
+        }
+        if (confirm) {
+            AlertDialog(
+                onDismissRequest = { confirm = false },
+                confirmButton = { TextButton(onClick = { confirm = false; hidePauseHint() }) { Text("Hide") } },
+                dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } },
+                title = { Text("Hide this hint?") },
+                text = {
+                    Text(
+                        when {
+                            batteryLimited && mayHibernate -> "If you don't open APODroid, after about 8 days the wallpaper " +
+                                "only changes while the phone charges, and after about 3 months it stops."
+                            batteryLimited -> "If you don't open APODroid, after about 8 days the wallpaper " +
+                                "only changes while the phone charges."
+                            else -> "If you don't open APODroid for about 3 months, the wallpaper stops changing."
+                        }
+                    )
+                },
+            )
         }
     }
 

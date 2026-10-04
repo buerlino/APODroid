@@ -42,6 +42,23 @@ class Store(private val context: Context) {
         get() = enumValue(prefs.getString("videoDays", null)) ?: VideoDays.KEEP
         set(value) = prefs.edit { putString("videoDays", value.name) }
 
+    /**
+     * Whether the user turned the daily change on. Hibernation or a force stop deletes the job,
+     * so the page schedules it again when this is on. Until 0.1.2 the switch was only the
+     * scheduled job, so the first read takes it from there (migration).
+     */
+    var daily: Boolean
+        get() {
+            if (!prefs.contains("daily")) daily = DailyJob.isScheduled(context)
+            return prefs.getBoolean("daily", false)
+        }
+        set(value) = prefs.edit { putBoolean("daily", value) }
+
+    /** The user hid the hint about Android pausing the app, accepting the warning. */
+    var pauseHintHidden: Boolean
+        get() = prefs.getBoolean("pauseHintHidden", false)
+        set(value) = prefs.edit { putBoolean("pauseHintHidden", value) }
+
     /** The APOD whose picture is in [imageFile]. */
     val apod: Apod?
         get() {

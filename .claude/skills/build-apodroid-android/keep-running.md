@@ -147,6 +147,9 @@ usage". It must name the target state, **Unrestricted**. It's now set to Optimiz
 Recommendation: 1, plus 3 if the user agrees. Then the hint covers new installs, and 3 repairs
 the switch for anyone who got hibernated anyway.
 
+**Decided and built (user, 2026-10-04):** 1 and 3, and the hint can be hidden for good after a
+warning dialog. See `CLAUDE.md` and `features.md`, item 5.
+
 ## Open points
 
 - Whether "Unrestricted" alone also prevents hibernation. Unknown; probably not, they're separate

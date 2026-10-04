@@ -15,7 +15,7 @@ releasing).
 ```
 [switch] Change wallpaper daily
          Wallpaper changed 4 Oct, 06:12        ← status line (3)
-         Android may pause … [button]          ← only when not exempt (5)
+         Android pauses apps … [App info] [Don't show again]  ← only when not exempt (5)
          [switch] Wi-Fi only                   ← (4)
          [switch] Save every picture ⓘ         ← (8)
 Wallpaper on   [Home | Lock | Both]
@@ -98,28 +98,22 @@ Decided (user, 2026-10-04): a switch, **default off** (today's behaviour).
 - Answers the mobile-data half of open question 2 (huge pictures) without limiting picture size.
 - Test: `dumpsys jobscheduler` shows the constraint; with Wi-Fi off the job waits.
 
-### [ ] 5. Keep working when the app isn't opened
+### [x] 5. Keep working when the app isn't opened
 
-**Checked on the phone 2026-10-04: both problems are real; see `keep-running.md`** (findings,
-options, adb recipes). It supersedes the guesses below: restricted bucket after 8 days (job only
-while charging and idle), hibernation deletes the job; the fix needs battery "Unrestricted" as
-well as "Manage app if unused" off.
-
-Android 12+ hibernates apps unused for about 3 months (force-stopped, so the job is cancelled
-and the switch shows off), and App Standby buckets throttle jobs well before that (rare bucket:
-about one job a day). A set-and-forget app is exactly what gets hit.
-
-Decided (user, 2026-10-04): **check first, then add a hint only if needed.**
-- Find out on the phone whether the app is exempt by default and whether setting the wallpaper
-  counts as use. `PackageManagerCompat.getUnusedAppRestrictionsStatus` (androidx.core, already
-  there via core-ktx); simulate hibernation with `adb shell cmd app_hibernation set-state
-  io.github.buerlino.apodroid true` (check the exact command on the phone); the standby bucket
-  with `adb shell am get-standby-bucket io.github.buerlino.apodroid`.
-- If not exempt: while the switch is on, one line ("Android may pause this app if you don't open
-  it") with a button to `IntentCompat.createManageUnusedAppRestrictionsIntent`. It disappears
-  once the user turns "Pause app activity if unused" off.
-- No battery-optimisation exemption (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is a permission
-  and F-Droid flags it); ask the user if the buckets turn out to be a real problem.
+Built 2026-10-04 (findings and adb recipes: `keep-running.md`; decisions: `CLAUDE.md`, Next
+features). Differs from the plan above it: the button opens App info, not
+`createManageUnusedAppRestrictionsIntent` (both settings live there), and battery
+"Unrestricted" is checked too.
+- `MainActivity.checkPausing()` on each `onResume`: `isIgnoringBatteryOptimizations` and, on
+  API 31+, `isAutoRevokeWhitelisted`. The hint (`PauseHint`) names only what's missing.
+- "Don't show again" → dialog with what will happen → pref `pauseHintHidden`.
+- Pref `daily` (`Store.daily`), and `onResume` schedules the job again when it's missing.
+- Tested on the phone (debug build, adb for the two settings): hint with both missing, battery
+  only, none (gone); App info opens; dialog Cancel and Hide, hidden after a restart; the
+  migration writes `daily=true` from the scheduled job; hibernation (`set-state true`) and
+  force stop delete the job, opening the page brings it back with the switch on; switch off
+  stays off after a restart. Not tested: the two settings changed in the real Settings
+  screens with this build, an R8 build, Android 10–11 (no hibernation check there).
 
 ### [ ] 6. Share
 

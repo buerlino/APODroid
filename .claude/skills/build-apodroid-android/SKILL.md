@@ -39,8 +39,11 @@ with a checklist: `features.md` next to this file.
   run` outlives logcat). The job logs `Daily job: <date>, wallpaper set` (or `video, wallpaper
   kept`) and `Daily job failed` under `adb logcat -d -s APODroid`. Crashes:
   `adb logcat -d | grep AndroidRuntime`.
-- `am force-stop` cancels the app's jobs (the switch then shows off); use `am kill` to restart
-  the app and keep the job. `pm clear` cancels it too.
+- `am force-stop` cancels the app's jobs; opening the page schedules it again (pref `daily`).
+  Use `am kill` to restart the app and keep the job. `pm clear` cancels it and the pref.
+- The hint about Android pausing the app: undo "Don't show again" with
+  `adb shell run-as io.github.buerlino.apodroid sed -i '/pauseHintHidden/d' shared_prefs/apodroid.xml`
+  (after `am kill`). The two settings by adb: `keep-running.md`, How to test.
 - Fake an old day (debug builds only; `run-as` doesn't work on release builds), after `am kill`:
   `adb shell run-as io.github.buerlino.apodroid sed -i -e 's/<today>/<yesterday>/g' shared_prefs/apodroid.xml`.
   A video day the same way, by setting `isVideo` to true.

@@ -57,9 +57,12 @@ with a checklist: `features.md` next to this file.
 - A day without an explanation (no ▾).
 - Installing or updating through Obtainium.
 - Saving again after a reinstall (MediaStore would add ` (1)`, the app no longer owns the file).
-- A normal 1280 px JPEG on the R8 build since the `decodeForScreen` change (sample 1).
-- On the phone: 0.1.2 as a whole (the R8 build, the 2026-10-04 declutter changes in
-  `declutter.md`, the themed icon, the labels with TalkBack).
+- A huge picture (like 2 Oct's 37 MB PNG) on an R8 build.
+- Offline: a failed fetch with a stored picture (kept) and without one (error, "Try again").
+- Process death or a rotation during a download (see `declutter.md`, Review of 0.1.2, 1.1).
+- The themed icon in a launcher that shows themed icons (Niagara doesn't, App info shows the
+  normal icon); only checked as a render and in the APK.
+- The screen-reader labels with TalkBack.
 
 ## Releasing (as in gridload)
 

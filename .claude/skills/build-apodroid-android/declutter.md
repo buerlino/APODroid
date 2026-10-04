@@ -72,3 +72,50 @@ Where the work differed from the report:
 - **1.4:** the guard also requires `apod.jpg` to exist, so a lost picture is still fetched again.
 - **5.5:** the plain mask merged the letters into blobs, so the outlines are cut out instead
   (grown by 0.4 units, readable at launcher size).
+
+## Review of 0.1.2 (2026-10-04)
+
+A report-only bug review of b243c43 (tag `v0.1.2`) before pushing. Open; to be worked through
+in a new session, the user picks the items.
+
+Ran: `:core:test :app:lintDebug :app:lintAnalyzeDebug --rerun :app:assembleRelease` (13 tests
+green, lint no issues, no `w:` lines after a forced Kotlin recompile); core-ktx 1.18.0 is what
+other libraries already resolve; the monochrome icon rendered (rsvg-convert) matches the
+foreground's shapes (only the soft glow at the centre is missing) and is in the R8 APK.
+On the phone, the R8 build signed with the debug key: the page loads and fetches (after faking
+yesterday with the debug build), ▾/▴, a quick double tap on ☆ saves one copy, "Set as wallpaper
+now", a forced job run sets the wallpaper, the switch off removes the job and on runs it at once.
+Not tested: see the skill, Still untested.
+
+### Bugs
+- [ ] 1.1 `MainActivity.kt` `load()`: the page can show today's title and date over yesterday's
+  picture. `show()` draws the stored (old) APOD, then `refresh()` waits for the lock while
+  another refresh downloads (the daily job, or the old activity's after a rotation: its
+  blocking refresh keeps running). That one stores today's, so this one returns false and the
+  `else apod = store.apod` branch sets the new title over the old bitmap; the next `onResume`
+  doesn't redraw (`store.apod == apod`, `isCurrent`). Found by reading, not reproduced. Fix:
+  `changed.onSuccess { if (picture == null || store.apod != apod) show() }`.
+
+### Risks
+- [ ] 2.1 `Store.save()` shares the lock with `refresh()`: a tap on ☆ during a long download
+  (the 37 MB PNG) gives no feedback for minutes, then saves the new picture instead of the one
+  shown. Already so in 0.1.1. No deadlock (no nested locks; the `return` inside the inline
+  `synchronized` releases it). Fix: pass the shown date to `save()` and skip if it differs, or
+  give `save()` its own lock (it only guards the double tap).
+- [ ] 2.2 `Store.refresh()` renames the picture before `store(latest)`: death in between leaves
+  today's file under yesterday's title (and a save's name) until the next refresh. A window of
+  milliseconds; probably leave.
+
+### Build and release
+- [ ] 3.1 `master` (b243c43) is already on GitHub, only the tag isn't: fixes can't go into
+  b243c43 any more. Either move the unpushed `v0.1.2` tag to a new commit (and update the
+  fdroiddata recipe's hash) or ship them as 0.1.3.
+- [ ] 3.2 Push order: the recipe's `Binaries:` needs `apodroid-v0.1.2.apk` on GitHub, so push
+  the tag, wait for the Release workflow, then push the fdroiddata branch (remote still has the
+  0.1.1 recipe, 80afecc61; local 48874ac7b has the right hash).
+
+### Docs
+- [ ] 4.1 "About 04:05 UTC" (`CLAUDE.md` Data source and Traffic, `README.md`) holds only in US
+  summer time; from 1 Nov it's 05:05 UTC. Say "00:05 US Eastern".
+- [ ] 4.2 `CLAUDE.md`: `test.yml` runs on branch pushes and pull requests, not "every push" (tags
+  go to `release.yml`). `Apod.kt` `fileName` KDoc example drops "Erupting".

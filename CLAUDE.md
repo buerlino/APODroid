@@ -86,8 +86,9 @@ https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 for 0.1.1: as of 202
 testers passed it (the F-Droid build is reproducible), all threads resolved, waiting for a
 maintainer; if a new version is tagged first, update the merge request (skill, Releasing).
 0.1.2 (versionCode 3, tagged 2026-10-04): the declutter fixes of 2026-10-04, the themed icon,
-screen-reader labels, the User-Agent and the feature graphic. Its R8 build wasn't tested on the
-phone before the tag (the phone wasn't available).
+screen-reader labels, the User-Agent and the feature graphic. The commit is on GitHub, the tag
+isn't pushed yet. Its R8 build was tested on the phone after the tag; the review's open findings
+(a bug, risks, release order, docs) are in the declutter file, "Review of 0.1.2".
 
 ## Data source (checked 2026-10-01)
 

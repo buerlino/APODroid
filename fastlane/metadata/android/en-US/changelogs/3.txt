@@ -1,0 +1,6 @@
+- Fix: after the daily change, the page could still show yesterday's picture
+- Fix: a quick double tap on the star saved the picture twice
+- Fix: a failed pick no longer removes your own video-day picture
+- Themed icon on Android 13+
+- Screen reader labels for the star and the explanation button
+- Requests now identify the app to science.nasa.gov

@@ -1,55 +1,64 @@
 ---
 name: build-apodroid-android
-description: Execution brief for building APODroid (io.github.buerlino.apodroid) — a native Kotlin/Jetpack Compose app that sets NASA's Astronomy Picture of the Day as the wallpaper once a day, with one page showing today's picture and its settings, distributed via F-Droid and Obtainium. Use this skill whenever working in the FOSS_APOD repo: the APOD fetch and parsing in :core, the Compose page, the wallpaper and the daily background job, building/installing on the phone, and releases. The stack (native Android, no Flutter/React Native/KMP) is already decided — do not re-open it; just execute.
+description: Execution brief for building APODroid (io.github.buerlino.apodroid) — a native Kotlin/Jetpack Compose app that sets NASA's Astronomy Picture of the Day as the wallpaper once a day, with one page showing today's picture and its settings, distributed via F-Droid and Obtainium. Use this skill whenever working in the APODroid repo: the APOD fetch and parsing in :core, the Compose page, the wallpaper and the daily background job, building/installing on the phone, and releases. The stack (native Android, no Flutter/React Native/KMP) is already decided — do not re-open it; just execute.
 ---
 
 # Build APODroid
 
-Roadmap, status and practical know-how. `CLAUDE.md` at the repo root is the source of truth for
-the stack, the data source, decisions and open questions. Read it first. If this skill and
-`CLAUDE.md` disagree, `CLAUDE.md` wins; update this skill to match. Keep finished work here only
-as far as later work needs it; the history is in git.
+How-tos and what's still untested. `CLAUDE.md` at the repo root is the source of truth for the
+stack, the data source and the decisions. Read it first. If this skill and `CLAUDE.md` disagree,
+`CLAUDE.md` wins; update this skill to match. The history is in git.
 
-## Settled (don't relitigate)
+## Where things are
 
-- **Native Android, Kotlin + Jetpack Compose**, single Activity. `:core` (plain Kotlin/JVM)
-  holds the APOD client and parsing, unit-tested with made-up JSON. `:app` holds the one page,
-  the wallpaper call and the background job.
-- **Build setup is copied from `~/Documents/source99/gridload`**, not re-derived (see
-  `CLAUDE.md`, "Setup and distribution").
-- **No proprietary dependencies.** kotlinx.serialization, `HttpURLConnection`, Compose. Image
-  decoding with `BitmapFactory`, not Coil/Glide.
-- **Scope:** one page (today's picture + settings). No gallery, archive, favourites, accounts.
+- `core/.../Apod.kt`: `fetchLatest(userAgent)`, `parseLatest`, `download(url, to, userAgent)`,
+  title, video and explanation parsing, `Apod.fileName`. Tests with made-up JSON shaped like the
+  real response. Real responses for manual checks in `private/` (`latest.json`, `last100.json`).
+- `app/.../Store.kt`: prefs, `refresh()`, `wallpaperFile()` (which picture, or null on a video
+  day with "keep"), `setWallpaper`, `save`, `imageBounds`.
+- `app/.../MainActivity.kt`: the page. `app/.../DailyJob.kt`: the job (id 1).
 
 ## Working on the phone
 
 - Build and test: `ANDROID_HOME=~/Android/Sdk ./gradlew :core:test :app:assembleDebug`.
-- Real phone over USB (in gridload a Fairphone 6), no emulator. If `adb devices` is empty and
-  `lsusb` shows `18d1:4ee1` (MTP only), USB debugging is off or not authorised: ask the user.
-  If adb says "no permissions" and `lsusb` shows `05c6:9024` (Qualcomm), the phone is in
-  "Charging only" USB mode (so after each reboot; replugging doesn't change it): ask the user to
-  set the USB notification to "File transfer" (then `18d1:4ee2`, MTP + debug). `adb` isn't on PATH:
+- Real phone over USB, no emulator. If `adb devices` is empty and `lsusb` shows `18d1:4ee1` (MTP
+  only), USB debugging is off or not authorised: ask the user. If adb says "no permissions" and
+  `lsusb` shows `05c6:9024` (Qualcomm), the phone is in "Charging only" USB mode (so after each
+  reboot): ask the user to set it to "File transfer". `adb` isn't on PATH:
   `~/Android/Sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk`.
   Debug and release builds are signed with different keys, so switching needs an uninstall.
-- The phone (LineageOS) blocks network access for new apps (restricted networking mode,
-  `dumpsys netpolicy` shows the UID with `REJECT_ALL`; in the app it's an
-  `UnknownHostException`). The user allows it in App info → Mobile data & Wi-Fi → Network
-  access. An uninstall gives a new UID, so it's blocked again.
+- The phone (LineageOS) may block network access for a new install (`dumpsys netpolicy` shows
+  the UID with `REJECT_ALL`; in the app an `UnknownHostException`). The user allows it in App
+  info → Mobile data & Wi-Fi → Network access. Not every uninstall triggers it.
 - Release build on the phone (R8 isn't covered by unit tests): sign the unsigned release APK
   with `~/.android/debug.keystore` via `zipalign -p 4` + `apksigner`; that installs over debug
   builds.
-- Background job: force a run with `adb shell cmd jobscheduler run -f io.github.buerlino.apodroid <jobId>`, list
-  with `adb shell dumpsys jobscheduler | grep io.github.buerlino.apodroid`.
-- The job logs one line per run that has a new date: `adb logcat -d -s APODroid` shows
-  `Daily job: <date>, wallpaper set` (or `video, wallpaper kept`); failures as `Daily job failed`.
-  Crashes: `adb logcat -d | grep AndroidRuntime`.
+- Job: force a run with `adb shell cmd jobscheduler run -f io.github.buerlino.apodroid 1`, list
+  with `adb shell dumpsys jobscheduler | grep io.github.buerlino.apodroid` (`Last successful
+  run` outlives logcat). The job logs `Daily job: <date>, wallpaper set` (or `video, wallpaper
+  kept`) and `Daily job failed` under `adb logcat -d -s APODroid`. Crashes:
+  `adb logcat -d | grep AndroidRuntime`.
+- `am force-stop` cancels the app's jobs (the switch then shows off); use `am kill` to restart
+  the app and keep the job. `pm clear` cancels it too.
+- Fake an old day (debug builds only; `run-as` doesn't work on release builds), after `am kill`:
+  `adb shell run-as io.github.buerlino.apodroid sed -i -e 's/<today>/<yesterday>/g' shared_prefs/apodroid.xml`.
+  A video day the same way, by setting `isVideo` to true.
+- Delete a saved picture: `adb shell content delete --uri content://media/external/images/media/<id>`.
 - Don't pipe Gradle into `tail` before `&& adb install`: the pipe hides a failed build and the old
-  APK gets installed (happened in step 4).
+  APK gets installed.
 - Taps: `adb shell input tap X Y` in physical pixels (screen 1116×2484; screenshots are shown
-  scaled, ×1.24). The "Change wallpaper daily" switch is at 988 1275 when the page is scrolled
-  to the top.
-- Screenshots: `adb exec-out screencap -p > file.png`. If the phone is locked, ask the user;
-  don't try to unlock it.
+  scaled, ×1.24). Screenshots: `adb exec-out screencap -p > file.png`. If the phone is locked,
+  ask the user; don't try to unlock it.
+
+## Still untested
+
+- A real video day (only faked via prefs), with both video-day settings; no star then.
+- A day without an explanation (no ▾).
+- Installing or updating through Obtainium.
+- Saving again after a reinstall (MediaStore would add ` (1)`, the app no longer owns the file).
+- A normal 1280 px JPEG on the R8 build since the `decodeForScreen` change (sample 1).
+- On the phone: 0.1.2 as a whole (the R8 build, the 2026-10-04 declutter changes in
+  `declutter.md`, the themed icon, the labels with TalkBack).
 
 ## Releasing (as in gridload)
 
@@ -57,166 +66,56 @@ as far as later work needs it; the history is in git.
 2. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` (max 500 characters).
 3. Commit and tag `vX.Y.Z` only when the user asks; the user pushes. The tag builds the signed
    GitHub Release for Obtainium.
-4. F-Droid rebuilds the tag and must get a byte-identical APK apart from the signature.
+4. F-Droid rebuilds the tag and must get a byte-identical APK apart from the signature. For
+   build-only changes, compare the unsigned release APK's sha256 before and after.
+5. While the F-Droid merge request (below) is open, bump its recipe to the new version.
 
-## Roadmap (proposed 2026-10-01, waiting for the user)
+## F-Droid
 
-Work one step at a time; show each working on the phone, then wait. Update the status in brackets.
+Merge request https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 (API:
+`/api/v4/projects/36528/merge_requests/50926`), state in `CLAUDE.md`. Recipe
+`metadata/io.github.buerlino.apodroid.yml` in `../fdroiddata` (the gridload fork clone), branch
+`io.github.buerlino.apodroid` made from upstream `master` (remote `upstream`). 0.1.1
+(versionCode 2, full commit hash), `Binaries` + `AllowedAPKSigningKeys` as gridload; categories
+Science & Education + Wallpaper, `NonFreeNet` for science.nasa.gov (user's choices). Check with
+`fdroid lint` and `fdroid rewritemeta` (fdroidserver from pip in a venv); the merge request
+pipeline runs `fdroid build`. If a push is rejected with "shallow update not allowed", deepen
+the upstream fetch: `git fetch --shallow-since=<date before the fork> upstream master`. Reviewer
+comments: Claude drafts, the user posts.
 
-### Step 0: decisions [done 2026-10-01, except APOD's explanation text]
+## Store listing
 
-Name APODroid; WordPress API as the only source; `JobScheduler` with `INTERNET`,
-`SET_WALLPAPER`, `RECEIVE_BOOT_COMPLETED`; settings for home/lock/both and for video days; no
-notification. Details in `CLAUDE.md`.
+`fastlane/metadata/android/en-US/`: title, short and full description, changelogs, `icon.png`,
+`featureGraphic.png`, `phoneScreenshots/1.png` (the whole page on one screen; `README.md` embeds
+it).
+- Screenshot with SystemUI demo mode, as in gridload: `settings put global sysui_demo_allowed 1`,
+  broadcasts `enter`, `clock -e hhmm 1200`, `notifications -e visible false`,
+  `network -e wifi show -e level 4 -e fully true` (without `fully` the Wi-Fi icon shows "!"),
+  then `exit` and the setting back to 0. It shows 1 October's picture (landscape, so the page
+  fits): debug build, `am kill`, back up `files/apod.jpg` and `shared_prefs/apodroid.xml` with
+  `run-as`, write 1 October's picture, `fallback.jpg` and prefs (data from
+  `private/last100.json`, `videoDays` `MINE`), block the app's network so it can't fetch today's
+  (`cmd connectivity set-chain3-enabled true` + `set-package-networking-enabled false <pkg>`),
+  take the shot, then restore all of it.
+- Feature graphic: source `logo/featureGraphic.svg`, render command in its header comment.
 
-### Step 1: project skeleton [done 2026-10-01]
+## Icon
 
-`git init`, copy the gridload build setup (wrapper, version catalog, daemon JVM, signing,
-release workflow, LICENSE), empty `:core` and `:app` with a Compose page that says hello. Build
-debug and release, install on the phone.
+The user's SVGs in `logo/` (108×108: `APODroid_back.svg` black, `APODroid_front.svg` rays,
+stars, "APOD"/"Droid") as `res/drawable/ic_launcher_{background,foreground}.xml`, combined in
+`res/mipmap-anydpi/ic_launcher.xml`. The front's `matrix()` transforms are flattened into the
+coordinates, ellipses became two arcs, the guide `<circle>` and transparent `<rect>` skipped.
+Check: the drawable turned back into SVG renders identical to the original (rsvg-convert +
+`magick compare`). `fastlane/.../images/icon.png` is a 512 px render of both SVGs
+(`rsvg-convert` + `magick -composite`).
 
-### Step 2: fetch in `:core` [done 2026-10-01]
-
-`fetchLatest(): Apod` (date, title, imageUrl, pageUrl, isVideo) from the WordPress API; title clean-up
-(prefix, HTML entities); tests with made-up JSON shaped like the real response (including a
-video day, a YouTube link in the explanation of an image day, and the odd `-Shadow` title).
-Done in `core/.../Apod.kt` (`fetchLatest`, `parseLatest`); video detection in `CLAUDE.md`, Data
-source. Real responses for manual checks are in `private/` (`latest.json`, `last100.json`); a
-throwaway test that parsed all 100 matched an independent Python check.
-
-### Step 3: the page [done 2026-10-01]
-
-On open (each `onResume`): show the stored APOD, fetch unless its date is today's US Eastern
-date, download the image to `files/`, show it with title and date. Tap → the APOD page in the
-browser. The settings: where (home/lock/both), video days (keep previous/my picture, picked with
-the photo picker), "Set as wallpaper now". `Store.kt` holds prefs, `refresh()`, the wallpaper
-call and `wallpaperFile()` (which picture, or null on a video day with "keep"); step 4 reuses it.
-Tested on the phone: fetch and display, browser, picker, set now with each "where", a video day
-(faked by editing `isVideo` in the prefs with `run-as ... sed`) with both choices, and the R8
-release build after `pm clear`. A real video day is still untested.
-
-### Step 4: daily update [done 2026-10-02; a real video day untested]
-
-The `JobScheduler` job (`DailyJob.kt`, id 1) and the "Change wallpaper daily" switch; details in
-`CLAUDE.md`, Background update. Tested on the phone: switch on schedules it (6 h, network,
-persisted) and it runs at once; forced run with the app process killed and its UID blocked
-(`APP_BACKGROUND` in `dumpsys netpolicy`) fetched, downloaded and set the wallpaper, so the job
-gets the network; a second run the same day does nothing; switch off/on; R8 release build
-(after `pm clear`: job gone, switch on, picture set). Debug builds: fake an old day with
-`adb shell run-as io.github.buerlino.apodroid sed -i -e 's/<today>/<yesterday>/g' shared_prefs/apodroid.xml`
-after `am kill` (run-as doesn't work on release builds).
-
-**2026-10-02: the unforced run on a real new day worked.** `dumpsys jobscheduler` showed
-`Last successful run: 2026-10-02 07:03:40` (05:03 UTC, about an hour after the 04:05 UTC
-release), next run in 6 h; home and lock screen and the page showed the new picture ("The
-Complete Sharpless Catalog: 313 Nebulas"). The `APODroid` logcat line had rolled over by 07:48,
-so check `Last successful run` in `dumpsys jobscheduler` instead. **Reboot tested the same
-day:** after `adb reboot` the job was listed again (periodic 6 h, persisted, network), with the
-same run window and last run. Still untested: a real video day.
-
-State left on the phone: see step 5 (the GitHub release APK since 2026-10-02 12:34).
-
-An ANR showed once in step 4, on a tap right after the `ACCESS_NETWORK_STATE` crash relaunched
-the app; not seen again after the fix.
-
-### Step 4b: save to the gallery [done 2026-10-01]
-
-The ☆/★ on the picture; details in `CLAUDE.md`, Save. Tested on the phone (Android 16): debug
-build saves `APOD_2026-10-01_Harvest_Moon_with_Erupting_Mount_Etna.jpg` (1280×853, image/jpeg)
-to `Pictures/APODroid/`, star fills; second tap makes no duplicate; star stays filled after a
-restart; deleting the file (`adb shell content delete --uri content://media/external/images/media/<id>`)
-empties it on the next resume; R8 release build saves too. Not tested: a video day (no star),
-saving again after a reinstall (MediaStore would add ` (1)`, as the app no longer owns the old file).
-
-**`am force-stop` cancels the app's jobs** (the switch then shows off); use `am kill` to restart
-the app without losing the daily job. Happened here; the switch was turned back on.
-
-### Step 5: release setup [0.1.0 released 2026-10-02; F-Droid open]
-
-**0.1.0 (2026-10-02):** tag pushed by the user; the workflow signed and published
-`apodroid-v0.1.0.apk` (details in `CLAUDE.md`). Tested on the phone: uninstalled the debug-key
-build, `adb install` of the APK downloaded from the release (`apksigner verify --print-certs`
-shows the release key). Network wasn't blocked this time after the uninstall (`dumpsys
-netpolicy`: `effective=NONE`), unlike before. The page loaded today's picture, a 37.7 MB PNG
-(about 6 min on mobile data; see `CLAUDE.md`, open question 3); the switch scheduled the job
-(6 h, persisted, network), which ran at once: `Daily job: 2026-10-02, wallpaper set`.
-Not tested: installing or updating through Obtainium.
-
-**Large-picture fix (2026-10-02, for 0.1.1; `CLAUDE.md`, Data source):** tested with the R8
-release build signed with the debug key (after an uninstall of the release-key APK): today's
-PNG shows sharp, `dumpsys meminfo` native heap 37 MB instead of 109 MB; switch on, job ran,
-wallpaper set. Not tested on the phone: a normal 1280 px JPEG (sample 1, decoded as before).
-**Explanation and long press (2026-10-02, for 0.1.1; `CLAUDE.md`, First version):** tests in
-`:core`; on the phone (R8 build, debug key, installed over the previous one): the ▾ appeared
-after the one-time refetch, the explanation shows and hides via ▾ and via a tap on the title, a
-long press on the title opens today's page in the browser. Not tested: a day without an
-explanation (no ▾).
-**State left on the phone (12:50):** that debug-key-signed release build, switch on, defaults
-(both screens, keep on video days), nothing saved. The GitHub 0.1.1 APK won't install over it:
-uninstall first (loses settings and the job).
-
-**Icon:** the user's SVGs in `logo/` (108×108: `APODroid_back.svg` black, `APODroid_front.svg`
-rays, stars, "APOD"/"Droid") converted to `res/drawable/ic_launcher_{background,foreground}.xml`,
-combined in `res/mipmap-anydpi/ic_launcher.xml` (adaptive icon, as gridload; no monochrome
-layer). The front's `matrix()` transforms are flattened into the coordinates, ellipses became
-two arcs, the guide `<circle>` and transparent `<rect>` skipped. Check: the drawable turned back
-into SVG renders identical to the original (rsvg-convert + `magick compare`). If the SVGs
-change, regenerate the XML. The user's launcher (Niagara, `bitpit.launcher`) shows apps as
-coloured dots; see the icon in App info
+The themed layer `ic_launcher_monochrome.xml` (2026-10-04) is computed from
+`ic_launcher_foreground.xml` with shapely (in a venv, with svgelements to flatten the curves):
+the white shapes keep their alpha (faint rays 0.18, the rest opaque), merged per alpha; each
+letter's black outline, grown by 0.4 units, is cut out of everything drawn before it, and the
+letter's visible fill (the glyph shrunk by half the stroke) is added; simplified at 0.03,
+pieces under 0.05 units² dropped, one even-odd path per piece. Using the foreground itself as
+the mask turns "APOD" into blobs (the outlines become opaque too). The user's launcher (Niagara)
+shows apps as dots; see the icon in App info
 (`adb shell am start -a android.settings.APPLICATION_DETAILS_SETTINGS -d package:io.github.buerlino.apodroid`).
-`fastlane/.../images/icon.png` is a 512 px render of both SVGs (`rsvg-convert` + `magick
--composite`); regenerate it too if they change.
-
-**Store listing (2026-10-01):** `fastlane/metadata/android/en-US/` with title, short and full
-description, `changelogs/1.txt`, and one screenshot (`phoneScreenshots/1.png`; the whole page
-fits on one screen). Taken with SystemUI demo mode as in gridload
-(`settings put global sysui_demo_allowed 1`, broadcasts `enter`, `clock -e hhmm 1200`,
-`notifications -e visible false`, `network -e wifi show -e level 4 -e fully true` (without
-`fully` the Wi-Fi icon shows "!"), then `exit` and the setting back to 0). `README.md` embeds
-the screenshot. **Retaken 2026-10-02 for 0.1.1** (with the ▾), again with 1 October's picture
-(landscape, so the whole page fits): debug build installed over, `am kill`, backed up
-`files/apod.jpg` and `shared_prefs/apodroid.xml` inside the app with `run-as`, wrote 1 October's
-picture, `fallback.jpg` and prefs (data from `private/last100.json`, `videoDays` `MINE`), blocked
-the app's network so it couldn't fetch today's (`cmd connectivity set-chain3-enabled true` +
-`set-package-networking-enabled false <pkg>`), took the shot, then restored all of it.
-
-**F-Droid (submitted 2026-10-02, in review):** merge request
-https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 (API:
-`/api/v4/projects/36528/merge_requests/50926`), commit `80afecc61` on the fork. The push was
-first rejected ("shallow update not allowed"): the branch sat on a depth-1 fetch of upstream;
-`git fetch --shallow-since=2026-09-20 upstream master` (older than the fork, made 2026-09-29)
-fixed it. Pipelines: the branch pipeline (2906755276) passed in full (`fdroid build`, lint,
-checkupdates, check apk); the merge request's (2906778335) was still running at the commit.
-Next: tick the two pipeline boxes once it's green, then answer reviewer comments (the user
-posts; Claude drafts, as for gridload). **Review so far (checked 2026-10-04):** linsui (F-Droid,
-2 Oct) labelled it `review-requested`: mostly ready, they test and merge later, the queue is long,
-and update the merge request if a new version comes out first. Two testers passed it on 3 Oct:
-foysalkazimd01 (Android 13, PCAPdroid, VirusTotal clean) and nyusternie (Android 14; only
-`science.nasa.gov` and `assets.science.nasa.gov`; the pipeline's `fdroid build` of 0.1.1 matched
-the reference APK and its signer). nyusternie's one nit, the missing `featureGraphic.png`, was
-answered (added in `cfca533`, ships with the next release) and all threads were resolved on
-4 Oct. Pipeline green, the user ticked the pipeline box. Waiting on a maintainer; nothing open
-for us. If 0.1.2 is tagged before the merge, bump the recipe in this merge request. Recipe
-`metadata/io.github.buerlino.apodroid.yml` in `../fdroiddata` (the gridload fork clone), new
-branch `io.github.buerlino.apodroid` made from upstream `master` (remote `upstream`), not from the
-gridload branch. 0.1.1 (versionCode 2, full commit hash), `Binaries` + `AllowedAPKSigningKeys`
-as gridload; categories Science & Education + Wallpaper, `NonFreeNet` for science.nasa.gov
-(user's choices). Checked: the GitHub 0.1.1 APK's signer is the release key, and its contents
-equal an unsigned build of the tag in another folder (21 entries outside `META-INF/`);
-`fdroid lint` passes and `fdroid rewritemeta` changes nothing (fdroidserver from pip in a venv).
-`fdroid build` not run locally; the merge request pipeline does it. Merge request title "New
-app: APODroid", description as gridload's (checklist + reproducible-build note).
-
-Fastlane metadata and screenshots, first tag, F-Droid recipe. Decided 2026-10-01: 0.1.0
-after step 4; the user makes the icon; a new APODroid keystore (see `CLAUDE.md`, "Setup and
-distribution").
-
-## Open tasks (small, not a roadmap step)
-
-- ~~Add a `User-Agent` header~~ **done 2026-10-02** (commit `e0b33f8`; details and what was
-  tested in `CLAUDE.md`, Data source, "User-Agent"). **Not released, on purpose** (user,
-  2026-10-02): no visible change for users, and F-Droid is reviewing 0.1.1, so it ships with the
-  next user-visible change (then 0.1.2, versionCode 3; mention it in that changelog). To test, the GitHub 0.1.1 APK the user had
-  installed (13:08) was uninstalled for the debug build. **State left on the phone (23:41):** that
-  debug build, fresh: today's picture loaded, switch off, defaults. Back to a release-key APK
-  needs another uninstall.
+If the SVGs change, regenerate all of these.

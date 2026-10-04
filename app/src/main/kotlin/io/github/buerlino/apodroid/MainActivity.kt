@@ -61,8 +61,11 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import io.github.buerlino.apodroid.core.Apod
 import kotlinx.coroutines.Dispatchers
@@ -105,13 +108,16 @@ class MainActivity : ComponentActivity() {
         load()
     }
 
-    /** Shows the stored APOD, then fetches the newest one unless the stored one is today's. */
+    /**
+     * Shows the stored APOD (also when the daily job stored a new one while the page was in the
+     * background), then fetches the newest one unless the stored one is today's.
+     */
     private fun load() {
         if (loading) return
         loading = true
         failed = false
         lifecycleScope.launch {
-            if (picture == null) show()
+            if (picture == null || store.apod != apod) show()
             if (!store.isCurrent) {
                 val changed = withContext(Dispatchers.IO) { runCatching { store.refresh() } }
                 changed.onSuccess { if (it || picture == null) show() else apod = store.apod }
@@ -135,8 +141,7 @@ class MainActivity : ComponentActivity() {
      * size can be too large to draw (2 Oct 2026: a 4455×5592 PNG, 99.6 MB as a bitmap).
      */
     private fun decodeForScreen(file: File): Bitmap? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.path, bounds)
+        val bounds = imageBounds(file) ?: return null
         val width = bounds.outWidth.toLong()
         val pixels = width * bounds.outHeight
         val screen = resources.displayMetrics.widthPixels
@@ -179,26 +184,25 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Copies the picked picture to [Store.fallbackFile]; a failed pick keeps the previous one. */
     private fun saveFallback(uri: Uri) {
         lifecycleScope.launch {
             val ok = withContext(Dispatchers.IO) {
-                runCatching {
-                    contentResolver.openInputStream(uri)!!.use { input ->
-                        store.fallbackFile.outputStream().use { input.copyTo(it) }
-                    }
-                }.isSuccess && isImage(store.fallbackFile)
+                val part = File(filesDir, "fallback.part")
+                val ok = runCatching {
+                    contentResolver.openInputStream(uri)!!.use { input -> part.outputStream().use { input.copyTo(it) } }
+                }.isSuccess && isImage(part) && part.renameTo(store.fallbackFile)
+                part.delete()
+                ok
             }
-            if (!ok) {
-                store.fallbackFile.delete()
-                toast("Couldn't use that picture")
-            }
-            hasFallback = ok
+            if (!ok) toast("Couldn't use that picture")
+            hasFallback = store.fallbackFile.exists()
         }
     }
 
     private fun openPage(url: String) {
         try {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
         } catch (_: ActivityNotFoundException) {
             toast("No browser")
         }
@@ -254,7 +258,12 @@ class MainActivity : ComponentActivity() {
                         onClick = ::savePicture,
                         modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
                     ) {
-                        Text(if (saved) "★" else "☆", color = Color.White, fontSize = 24.sp)
+                        Text(
+                            if (saved) "★" else "☆",
+                            Modifier.clearAndSetSemantics { contentDescription = if (saved) "Saved" else "Save" },
+                            color = Color.White,
+                            fontSize = 24.sp,
+                        )
                     }
                 }
             }
@@ -277,7 +286,13 @@ class MainActivity : ComponentActivity() {
                 }
                 if (hasExplanation) {
                     IconButton(onClick = { expanded = !expanded }) {
-                        Text(if (expanded) "▴" else "▾", fontSize = 24.sp)
+                        Text(
+                            if (expanded) "▴" else "▾",
+                            Modifier.clearAndSetSemantics {
+                                contentDescription = if (expanded) "Hide explanation" else "Show explanation"
+                            },
+                            fontSize = 24.sp,
+                        )
                     }
                 }
             }

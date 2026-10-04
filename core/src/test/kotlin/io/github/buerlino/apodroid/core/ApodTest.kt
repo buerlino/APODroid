@@ -82,6 +82,14 @@ class ApodTest {
     }
 
     @Test
+    fun withoutTheHeroMarkerLooksAboveTheTitle() {
+        val youtube = "<iframe src='https://www.youtube.com/embed/abc'></iframe>"
+        assertFalse(isVideo("<p>Discover the cosmos!</p><img src='x.jpg'><h1>Title</h1><p>$youtube</p>"))
+        assertTrue(isVideo("<p>Discover the cosmos!</p>$youtube<h1>Title</h1>"))
+        assertEquals("", explanation("<h1>Title</h1><p>Explanation: no marker</p>"))
+    }
+
+    @Test
     fun failsWithoutAPostOrAnImage() {
         assertFailsWith<IOException> { parseLatest("[]") }
         assertFailsWith<IOException> { parseLatest(post(image = "null")) }
@@ -122,16 +130,24 @@ class ApodTest {
         assertFalse(file.exists())
     }
 
+    @Test
+    fun deletesTheFileWhenTheDownloadIsIncomplete() = withServer(200, "made-up", announced = 100) { url ->
+        val file = File.createTempFile("apod", ".jpg")
+        assertFailsWith<IOException> { download(url, file, UA) }
+        assertFalse(file.exists())
+    }
+
     private val UA = "APODroid/0.0.0 (+https://example.org)"
     private var userAgent: String? = null
 
-    private fun withServer(status: Int, body: String, block: (String) -> Unit) {
+    /** [announced] is the Content-Length sent, by default the body's. */
+    private fun withServer(status: Int, body: String, announced: Long? = null, block: (String) -> Unit) {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/") { ex ->
             userAgent = ex.requestHeaders.getFirst("User-Agent")
             val bytes = body.toByteArray()
-            ex.sendResponseHeaders(status, if (bytes.isEmpty()) -1 else bytes.size.toLong())
-            ex.responseBody.use { it.write(bytes) }
+            ex.sendResponseHeaders(status, announced ?: if (bytes.isEmpty()) -1 else bytes.size.toLong())
+            runCatching { ex.responseBody.use { it.write(bytes) } } // Too few bytes: closing throws.
         }
         server.start()
         try {

@@ -4,9 +4,10 @@ import android.app.WallpaperManager
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import io.github.buerlino.apodroid.core.Apod
 import io.github.buerlino.apodroid.core.download
 import io.github.buerlino.apodroid.core.fetchLatest
@@ -35,14 +36,14 @@ class Store(private val context: Context) {
 
     var where: Where
         get() = enumValue(prefs.getString("where", null)) ?: Where.BOTH
-        set(value) = prefs.edit().putString("where", value.name).apply()
+        set(value) = prefs.edit { putString("where", value.name) }
 
     var videoDays: VideoDays
         get() = enumValue(prefs.getString("videoDays", null)) ?: VideoDays.KEEP
-        set(value) = prefs.edit().putString("videoDays", value.name).apply()
+        set(value) = prefs.edit { putString("videoDays", value.name) }
 
     /** The APOD whose picture is in [imageFile]. */
-    var apod: Apod?
+    val apod: Apod?
         get() {
             val date = prefs.getString("date", null) ?: return null
             return Apod(
@@ -54,38 +55,36 @@ class Store(private val context: Context) {
                 explanation = prefs.getString("explanation", null).orEmpty(),
             )
         }
-        private set(value) {
-            prefs.edit()
-                .putString("date", value?.date?.toString())
-                .putString("title", value?.title)
-                .putString("imageUrl", value?.imageUrl)
-                .putString("pageUrl", value?.pageUrl)
-                .putBoolean("isVideo", value?.isVideo ?: false)
-                .putString("explanation", value?.explanation)
-                .apply()
-        }
+
+    private fun store(apod: Apod) = prefs.edit {
+        putString("date", apod.date.toString())
+        putString("title", apod.title)
+        putString("imageUrl", apod.imageUrl)
+        putString("pageUrl", apod.pageUrl)
+        putBoolean("isVideo", apod.isVideo)
+        putString("explanation", apod.explanation)
+    }
 
     /** The date of the APOD last set as wallpaper, so the daily job sets each one once. */
     var wallpaperDate: LocalDate?
         get() = prefs.getString("wallpaperDate", null)?.let(LocalDate::parse)
-        private set(value) = prefs.edit().putString("wallpaperDate", value?.toString()).apply()
+        private set(value) = prefs.edit { putString("wallpaperDate", value?.toString()) }
 
-    /**
-     * True when the stored APOD is today's (APOD dates are US Eastern). One stored by 0.1.0 has
-     * no explanation yet, so it's fetched again once.
-     */
+    /** True when the stored APOD is today's (APOD dates are US Eastern). */
     val isCurrent: Boolean
-        get() = apod?.date == LocalDate.now(ZoneId.of("America/New_York")) && imageFile.exists() &&
-            prefs.contains("explanation")
+        get() = apod?.date == LocalDate.now(ZoneId.of("America/New_York")) && imageFile.exists()
 
     /**
      * Blocking. Asks for the newest APOD and, when its date is new, downloads its picture. The
      * stored APOD only changes once the picture is complete and decodable. Returns true when
-     * it changed. The page and the daily job may call it at the same time, hence the lock.
+     * it changed. An older post than the stored one (a stale cache) is ignored. The page and the
+     * daily job may call it at the same time, hence the lock.
      */
     fun refresh(): Boolean = synchronized(refreshLock) {
         val latest = fetchLatest(userAgent)
-        val changed = latest.date != apod?.date || !imageFile.exists()
+        val stored = apod
+        if (stored != null && latest.date < stored.date && imageFile.exists()) return false
+        val changed = latest.date != stored?.date || !imageFile.exists()
         if (changed) {
             val part = File(context.filesDir, "apod.part")
             download(latest.imageUrl, part, userAgent)
@@ -94,7 +93,7 @@ class Store(private val context: Context) {
                 throw IOException("Not an image: ${latest.imageUrl}")
             }
         }
-        apod = latest
+        store(latest)
         changed
     }
 
@@ -116,15 +115,19 @@ class Store(private val context: Context) {
         get() {
             val date = apod?.date ?: return false
             if (prefs.getString("savedDate", null) != date.toString()) return false
-            val uri = prefs.getString("savedUri", null)?.let(Uri::parse) ?: return false
+            val uri = prefs.getString("savedUri", null)?.toUri() ?: return false
             return runCatching {
                 context.contentResolver.query(uri, arrayOf(MediaStore.Images.Media._ID), null, null, null)
                     ?.use { it.count > 0 } == true
             }.getOrDefault(false)
         }
 
-    /** Blocking. Copies the stored APOD's picture to Pictures/APODroid (no permission on Android 10+). */
-    fun save() = synchronized(refreshLock) {
+    /**
+     * Blocking. Copies the stored APOD's picture to Pictures/APODroid (no permission on Android
+     * 10+), unless it's there already (a quick double tap).
+     */
+    fun save(): Unit = synchronized(refreshLock) {
+        if (isSaved) return
         val apod = apod ?: throw IOException("Nothing to save")
         val type = imageType(imageFile) ?: throw IOException("Not an image")
         val resolver = context.contentResolver
@@ -143,19 +146,25 @@ class Store(private val context: Context) {
             resolver.delete(uri, null, null)
             throw e
         }
-        prefs.edit().putString("savedDate", apod.date.toString()).putString("savedUri", uri.toString()).apply()
+        prefs.edit {
+            putString("savedDate", apod.date.toString())
+            putString("savedUri", uri.toString())
+        }
     }
 }
 
 private val refreshLock = Any()
 
-fun isImage(file: File): Boolean = imageType(file) != null
+fun isImage(file: File): Boolean = imageBounds(file) != null
 
 /** The MIME type of a decodable image, e.g. `image/jpeg`, or null. */
-private fun imageType(file: File): String? {
+private fun imageType(file: File): String? = imageBounds(file)?.outMimeType
+
+/** Size and MIME type of a decodable image (`outWidth`, `outHeight`, `outMimeType`), or null. */
+fun imageBounds(file: File): BitmapFactory.Options? {
     val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(file.path, options)
-    return options.outMimeType.takeIf { options.outWidth > 0 && options.outHeight > 0 }
+    return options.takeIf { it.outWidth > 0 && it.outHeight > 0 && it.outMimeType != null }
 }
 
 private inline fun <reified T : Enum<T>> enumValue(name: String?): T? =

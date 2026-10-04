@@ -1,0 +1,3 @@
+- The daily change now survives Android pausing the app: open the page and it's back on
+- A hint under the switch names the two settings that keep Android from pausing it; it can be hidden
+- Fix: "Set as wallpaper now" during a download could make the daily change skip a day

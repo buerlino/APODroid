@@ -7,8 +7,8 @@ has the how. Work through it step by step, as always: one item, show it on the p
 Tick items off and note where the work differed from the plan.
 
 Suggested order: the `:core` items first (testable without the phone), then the job and its
-settings, then the small UI items. Next version: 0.2.0 (new features; confirm with the user when
-releasing).
+settings, then the small UI items. Next version: 0.3.0 (0.2.0 shipped keep running alone, user
+2026-10-04; confirm with the user when releasing).
 
 ## Settings layout afterwards
 
@@ -27,7 +27,7 @@ Video days     ( ) keep  ( ) my picture
 The three lines under the switch show only while it's on: they only affect the job. Labels are
 placeholders; show the user before settling them. The defaults here (both switches off, settings
 shown only while the daily switch is on, Fill/Fit not re-setting the wallpaper, hibernation
-checked before any hint, version 0.2.0) were proposed and confirmed by the user, 2026-10-04.
+checked before any hint, the version number) were proposed and confirmed by the user, 2026-10-04.
 
 ## Items
 
@@ -95,7 +95,7 @@ Decided (user, 2026-10-04): a switch, **default off** (today's behaviour).
 - On: the job uses `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY` (`DailyJob.kt`);
   toggling it reschedules the job if it's on. The page and the buttons still use any network
   (the user's own action).
-- Answers the mobile-data half of open question 2 (huge pictures) without limiting picture size.
+- Answers the mobile-data half of the open question on huge pictures without limiting picture size.
 - Test: `dumpsys jobscheduler` shows the constraint; with Wi-Fi off the job waits.
 
 ### [x] 5. Keep working when the app isn't opened
@@ -104,16 +104,17 @@ Built 2026-10-04 (findings and adb recipes: `keep-running.md`; decisions: `CLAUD
 features). Differs from the plan above it: the button opens App info, not
 `createManageUnusedAppRestrictionsIntent` (both settings live there), and battery
 "Unrestricted" is checked too.
-- `MainActivity.checkPausing()` on each `onResume`: `isIgnoringBatteryOptimizations` and, on
-  API 31+, `isAutoRevokeWhitelisted`. The hint (`PauseHint`) names only what's missing.
+- `MainActivity.checkPausing()` on each `onResume`: on API 33+ `isIgnoringBatteryOptimizations`
+  (declutter pass of the evening: the 8 days only hold from 13) and, on API 31+,
+  `isAutoRevokeWhitelisted`. The hint (`PauseHint`) names only what's missing, one line each.
 - "Don't show again" → dialog with what will happen → pref `pauseHintHidden`.
 - Pref `daily` (`Store.daily`), and `onResume` schedules the job again when it's missing.
 - Tested on the phone (debug build, adb for the two settings): hint with both missing, battery
   only, none (gone); App info opens; dialog Cancel and Hide, hidden after a restart; the
   migration writes `daily=true` from the scheduled job; hibernation (`set-state true`) and
   force stop delete the job, opening the page brings it back with the switch on; switch off
-  stays off after a restart. Not tested: the two settings changed in the real Settings
-  screens with this build, an R8 build, Android 10–11 (no hibernation check there).
+  stays off after a restart. The R8 build and the real Settings screens in the evening
+  (`declutter.md`). What's still untested: the skill, Still untested.
 
 ### [ ] 6. Share
 
@@ -153,7 +154,7 @@ Decided (user, 2026-10-04): a switch under the daily switch, **default off**.
 - Info button (user, 2026-10-04): a **small** ⓘ (text glyph) right of the switch's label.
   Tapping it shows a short text: saved pictures are full resolution, and saving every day can
   take a lot of space (originals are 2–10 MB, so about 100–300 MB a month). A small dialog or a
-  Toast; show the user. Screen-reader label "About saving". The one exception to "no help texts".
+  Toast; show the user. Screen-reader label "About saving".
 - The job's time limit (about 10 minutes) now covers two downloads; if the original's download
   fails, the wallpaper is still set and the next run tries saving again.
 

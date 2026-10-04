@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -122,11 +124,13 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Whether Android may pause the job of an app that isn't opened (keep-running.md in the
-     * skill): the restricted standby bucket unless battery use is Unrestricted, and hibernation
-     * (Android 12+) unless the user turned it off for this app.
+     * skill): the restricted standby bucket after about 8 days (Android 13+; later or never
+     * before) unless battery use is Unrestricted, and hibernation (Android 12+) unless the user
+     * turned it off for this app.
      */
     private fun checkPausing() {
-        batteryLimited = !getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
+        batteryLimited = Build.VERSION.SDK_INT >= 33 &&
+            !getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
         mayHibernate = Build.VERSION.SDK_INT >= 31 && !packageManager.isAutoRevokeWhitelisted
     }
 
@@ -184,7 +188,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openAppInfo() {
-        startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri()))
+        startActivity(Intent(ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri()))
     }
 
     private fun hidePauseHint() {
@@ -396,18 +400,22 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun PauseHint() {
         var confirm by rememberSaveable { mutableStateOf(false) }
+        val battery = "Battery: Unrestricted"
+        // Stock Android 12–14: "Pause app activity if unused"; the test phone (Android 16): "Manage app if unused".
+        val unused = "Pause or manage app if unused: off"
+        val (missing, effect) = when {
+            batteryLimited && mayHibernate -> listOf(battery, unused) to
+                "after about 8 days the wallpaper only changes while the phone charges, and after about 3 months it stops"
+            batteryLimited -> listOf(battery) to "after about 8 days the wallpaper only changes while the phone charges"
+            else -> listOf(unused) to "after about 3 months the wallpaper stops changing"
+        }
         Column {
             Text("Android pauses apps you don't open.", style = MaterialTheme.typography.bodyMedium)
-            Text(
-                when {
-                    batteryLimited && mayHibernate -> "Set battery use to Unrestricted and turn off pausing when unused."
-                    batteryLimited -> "Set battery use to Unrestricted."
-                    else -> "Turn off pausing when unused."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row {
+            missing.forEach {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            // TextButton's content padding; the offset lines its text up with the text above.
+            Row(Modifier.offset(x = (-12).dp)) {
                 TextButton(onClick = ::openAppInfo) { Text("App info") }
                 TextButton(onClick = { confirm = true }) { Text("Don't show again") }
             }
@@ -418,17 +426,7 @@ class MainActivity : ComponentActivity() {
                 confirmButton = { TextButton(onClick = { confirm = false; hidePauseHint() }) { Text("Hide") } },
                 dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } },
                 title = { Text("Hide this hint?") },
-                text = {
-                    Text(
-                        when {
-                            batteryLimited && mayHibernate -> "If you don't open APODroid, after about 8 days the wallpaper " +
-                                "only changes while the phone charges, and after about 3 months it stops."
-                            batteryLimited -> "If you don't open APODroid, after about 8 days the wallpaper " +
-                                "only changes while the phone charges."
-                            else -> "If you don't open APODroid for about 3 months, the wallpaper stops changing."
-                        }
-                    )
-                },
+                text = { Text("If you don't open APODroid, $effect.") },
             )
         }
     }

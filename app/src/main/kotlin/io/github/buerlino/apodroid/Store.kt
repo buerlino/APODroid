@@ -119,10 +119,14 @@ class Store(private val context: Context) {
         else -> null
     }
 
-    /** Blocking. */
+    /**
+     * Blocking. The date is read first: setting takes seconds, and a refresh storing a new APOD
+     * meanwhile must not mark the new one as set.
+     */
     fun setWallpaper(file: File) {
+        val date = apod?.date
         file.inputStream().use { WallpaperManager.getInstance(context).setStream(it, null, true, where.flags) }
-        wallpaperDate = apod?.date
+        wallpaperDate = date
     }
 
     /** True when the stored APOD's picture is in the gallery (saved and not deleted since). */

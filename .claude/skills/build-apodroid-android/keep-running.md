@@ -1,7 +1,6 @@
 # Keep working when the app isn't opened
 
-Report of a phone test, 2026-10-04 evening. It replaces the guesses in `features.md`, item 5.
-Phone: Fairphone 6, Android 16 (`BP2A.250805.005`, ROM `4.3-a16-…-official-FP6`), APODroid 0.1.2
+Report of a phone test, 2026-10-04 evening. Phone: Fairphone 6, Android 16 (`BP2A.250805.005`, ROM `4.3-a16-…-official-FP6`), APODroid 0.1.2
 (commit 3c5548e), R8 and debug builds.
 
 ## Summary
@@ -9,12 +8,14 @@ Phone: Fairphone 6, Android 16 (`BP2A.250805.005`, ROM `4.3-a16-…-official-FP6
 APODroid is meant to be installed and forgotten, and that is exactly the pattern Android punishes.
 Two separate mechanisms, both confirmed on the phone:
 
-1. **After 8 days without opening the app**, Android puts it in the *restricted* standby bucket.
+1. **After 8 days without opening the app** (Android 13+, see Android versions), Android puts it
+   in the *restricted* standby bucket.
    The daily job then also needs **charging + idle + battery not low**. The wallpaper only
    changes while the phone sits on the charger, unused.
 2. **After about 3 months without opening it** (Android 12+), hibernation force-stops the app.
-   That **deletes the job**. Nothing changes any more. When the user opens the app again, the
-   switch shows **off**, with no explanation.
+   That **deletes the job**. Nothing changes any more. In 0.1.2, when the user opened the app
+   again, the switch showed **off**, with no explanation (since 7d73bc2 the page schedules it
+   again).
 
 The cause of both: **the daily job doesn't count as using the app.** Only opening the page does.
 
@@ -87,9 +88,10 @@ default, which is on (hibernation is on, see below).
 - `dumpsys package … | grep stopped=` → `stopped=true` (as after "Force stop").
 - The job is gone (`dumpsys jobscheduler | grep -c "JOB #u0a309/1"` → 0). A stopped app gets
   no jobs, and the stop deletes the scheduled ones.
-- Opening the app un-hibernates it (`get-state` → false), but the job stays gone. The page shows
-  the switch **off** (its state is `getPendingJob`). The wallpaper silently stopped weeks ago,
-  and the user has to notice and turn the switch on again.
+- Opening the app un-hibernates it (`get-state` → false), but the job stays gone. In 0.1.2 the
+  page then showed the switch **off** (its state was `getPendingJob`): the wallpaper silently
+  stopped weeks ago, and the user had to notice and turn the switch on again. Since 7d73bc2 the
+  page schedules it again (option 3).
 
 The same happens on any "Force stop" in App info, and on `pm clear`/"Clear storage".
 
@@ -102,9 +104,18 @@ setting is the app op `AUTO_REVOKE_PERMISSIONS_IF_UNUSED`
 user turned it off) or androidx `PackageManagerCompat.getUnusedAppRestrictionsStatus()`
 (`DISABLED` = exempt).
 
-**Android versions:** hibernation exists from Android 12 (API 31). Android 11 only resets
-runtime permissions of unused apps; APODroid has none, so 11 is not affected. Android 10 has
-neither. minSdk is 29.
+## Android versions
+
+minSdk is 29. Read from AOSP's `AppStandbyController` and `Settings` for Android 10–15 and
+`main` (android.googlesource.com, declutter pass of 2026-10-04 evening; no phone with 10–12):
+- **Restricted bucket:** Android 10 has none (rare is the last bucket). Android 11 has it but
+  switched off by default (`DEFAULT_ENABLE_RESTRICTED_BUCKET = 0`; 30 days when on). Android 12:
+  after 45 days. Android 13+: after 8 days. Hence the app checks battery only on API 33+.
+- **"Unrestricted"** doesn't exist in App info on 10–11; there it's Battery optimization → Not
+  optimized, in a list of all apps. `isIgnoringBatteryOptimizations` is false by default on all
+  versions.
+- **Hibernation** exists from Android 12 (API 31). Android 11 only resets runtime permissions of
+  unused apps; APODroid has none, so 11 is not affected. Android 10 has neither.
 
 ## Settings quirk on this phone
 
@@ -115,6 +126,16 @@ the switch on showed "Optimized" with no change in the system. So the Settings a
 app that never had a battery mode chosen as "off". A hint text must not say "turn on background
 usage". It must name the target state, **Unrestricted**. It's now set to Optimized explicitly
 (system state as before).
+
+More, from the declutter pass the same evening:
+- After `adb install -r` the battery page showed "Allow background usage" off again, though it
+  had been set to Optimized. Its radio buttons (Optimized, Unrestricted) are disabled until that
+  switch is on, so the user turns it on first.
+- App info didn't redraw "Manage app if unused" after a second tap; a freshly opened App info
+  showed it right.
+- The Settings screen writes the op's *uid* mode (`appops get` → `Uid mode: … ignore`; turned
+  back on, it stays an explicit `allow` where it had been unset), while How to test sets the
+  package mode. Both work, and the app reads them alike.
 
 ## Options for the fix
 
@@ -137,8 +158,9 @@ usage". It must name the target state, **Unrestricted**. It's now set to Optimiz
    either way. It doesn't help with hibernation.
 3. **Remember the switch in a pref** and schedule the job again in `onCreate` when the pref is on
    but `getPendingJob` is null. Small; it repairs the state as soon as the user opens the app
-   after a hibernation or force stop. It changes the decision "the switch's state is whether the
-   job is scheduled, no pref", so ask the user. It doesn't help a user who never opens the app.
+   after a hibernation or force stop. It changed the decision "the switch's state is whether the
+   job is scheduled, no pref" (the user agreed, below). It doesn't help a user who never opens
+   the app.
 4. **Status line** (`features.md`, item 3): makes a stalled job visible, but only to someone who
    opens the page. Opening the page also resets both timers.
 5. Out of scope: a live wallpaper (`WallpaperService`, exempt while active, but a rewrite of how
@@ -148,7 +170,8 @@ Recommendation: 1, plus 3 if the user agrees. Then the hint covers new installs,
 the switch for anyone who got hibernated anyway.
 
 **Decided and built (user, 2026-10-04):** 1 and 3, and the hint can be hidden for good after a
-warning dialog. See `CLAUDE.md` and `features.md`, item 5.
+warning dialog. Unlike option 1, hibernation is checked from API 31 and battery from API 33
+(Android versions). See `CLAUDE.md` and `features.md`, item 5.
 
 ## Open points
 
@@ -179,4 +202,5 @@ warning dialog. See `CLAUDE.md` and `features.md`, item 5.
 - Use: `$A shell dumpsys usagestats | grep "package=$P totalTime"`.
 - `am force-stop` and `pm clear` also delete the job; use `am kill` to restart the app.
 - Restore after testing: bucket via opening the app, allowlist `-$P`, battery back to
-  Optimized, the switch on.
+  Optimized, "Manage app if unused" on, `pauseHintHidden` removed (skill, Working on the phone),
+  the switch on.

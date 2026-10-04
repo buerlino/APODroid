@@ -14,13 +14,16 @@ One page: today's picture with its title and date, and the settings below it.
 - **Where:** home screen, lock screen, or both.
 - **Video days:** keep the previous wallpaper, or use a picture of your own.
 - **Set as wallpaper now.**
+- If Android would pause the app because you don't open it, a hint under the switch names the
+  settings in App info that prevent it.
 - Tap the picture to open it on NASA's website; tap the star to save it to your gallery
   (`Pictures/APODroid/`).
 - Tap the title to read the astronomer's explanation; long-press it to open NASA's page.
 
 ## Install
 
-Download the APK from [Releases](https://github.com/buerlino/APODroid/releases), or add
+Get it on [F-Droid](https://f-droid.org/packages/io.github.buerlino.apodroid/), download the APK
+from [Releases](https://github.com/buerlino/APODroid/releases), or add
 `https://github.com/buerlino/APODroid` to [Obtainium](https://github.com/ImranR98/Obtainium) to
 get updates. Android 10 or newer.
 

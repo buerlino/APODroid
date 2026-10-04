@@ -50,7 +50,9 @@ named `apodroid-vX.Y.Z.apk`.
 - English UI, short texts: one idea per line, drop what the screen already shows, explain each
   concept in one place only.
 - Migrations: remove migration code two releases after F-Droid has shipped past the version that
-  needed it (gridload's rule, 2026-10-02).
+  needed it (gridload's rule, 2026-10-02). Current ones: `Store.daily` taking its first value
+  from `getPendingJob` (0.1.2 → 0.2.0); remove it in the second release after F-Droid ships
+  0.2.0.
 
 ## Setup and distribution (copied from gridload)
 
@@ -82,13 +84,17 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
 
 **Releases:** 0.1.0 (2026-10-02, GitHub only). 0.1.1 (versionCode 2, 2026-10-02): the
 large-picture fix and the explanation; on F-Droid since merge request
-https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 was merged (2026-10-04). New
+https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 was merged (2026-10-04; the page
+https://f-droid.org/packages/io.github.buerlino.apodroid/ was still 404 that evening, README
+links it already). New
 versions reach F-Droid by themselves: its bot builds each new `vX.Y.Z` tag (skill, Releasing).
 0.1.2 (versionCode 3): the declutter fixes of 2026-10-04, the themed icon, screen-reader
 labels, the User-Agent, the feature graphic and the fixes from the review of 0.1.2 (declutter
 file). Tagged `v0.1.2` on the commit with the review fixes (moved from b243c43 before it was
 pushed, user 2026-10-04). The R8 build of b243c43 was tested on the phone; the review fixes
-weren't (no phone).
+later that day, except what the skill lists under Still untested. 0.2.0 (versionCode 4,
+2026-10-04, user: release keep running now, the planned features follow in 0.3.0): keep
+running and the fixes of the evening declutter pass.
 
 ## Data source (checked 2026-10-01)
 
@@ -162,7 +168,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picked once with the system photo picker (`PickVisualMedia`, no permission) and copied to
     `files/fallback.jpg`; chosen but nothing picked → keep.
   - A button to set the wallpaper now, with the same two settings.
-  - No help texts (user: the labels explain themselves).
+  - No help texts (user: the labels explain themselves), except the pause hint (Background
+    update) and the planned ⓘ (Save every picture).
 - **Fetch** in `:core`: newest post → `Apod(date, title, imageUrl, pageUrl, isVideo, explanation)`.
   The image goes to `files/apod.jpg` (whatever its format; no storage permission), via a `.part`
   file, and replaces the old one only when complete and decodable. Decoded with `BitmapFactory`
@@ -197,8 +204,8 @@ with `MediaStore` (`IS_PENDING`), which needs no permission on Android 10+, henc
 time). The saved date and `content://` URI are in the prefs; the star checks the URI still
 exists, so deleting the file in the gallery empties it again. No star on video days. A tap that
 waited for a download (shared lock, see Background update) and finds a newer APOD stored saves
-nothing, says "Not saved: a new picture came in" and redraws the page (user, 2026-10-04: simpler
-than a lock of its own; "Sharper wallpaper" changes `save()` anyway).
+nothing, says so and redraws the page (user, 2026-10-04: simpler than a lock of its own;
+"Sharper wallpaper" changes `save()` anyway).
 
 ### Background update
 
@@ -216,6 +223,18 @@ at once. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 i
 schedules it again when `daily` is on and the job is missing. Migration: the first read of
 `daily` takes it from `getPendingJob`.
 
+**Keep running** (user, 2026-10-04; report:
+[keep-running.md](.claude/skills/build-apodroid-android/keep-running.md)). Android pauses an app
+that isn't opened, and the job doesn't count as use: the restricted bucket after about 8 days
+(Android 13+; later or never before) and hibernation after about 3 months (12+), which deletes
+the job. While the switch is on, a hint under it names only what's missing, one line each:
+battery Unrestricted (checked on API 33+ only, 2026-10-04 evening: on 10–12 the 8 days aren't
+true) and "pause/manage app if unused" off (API 31+). With "App info"
+(`ACTION_APPLICATION_DETAILS_SETTINGS`) and "Don't show again". The latter asks first in a dialog
+saying what will happen ("the user has all power"); the pref `pauseHintHidden` keeps it hidden
+for good, also when the switch is turned on again (user: it's the user's choice; only clearing
+storage brings it back). No battery-optimisation permission.
+
 Permissions (user approved, 2026-10-01), all granted at install with no prompt: `INTERNET`,
 `SET_WALLPAPER`, `RECEIVE_BOOT_COMPLETED` (for `setPersisted`), `ACCESS_NETWORK_STATE` (Android
 14+ throws on `schedule()` for a job with a network constraint without it; no constraint would
@@ -224,8 +243,8 @@ wake and fail offline).
 ## Next features
 
 (User, 2026-10-04, from a review of 0.1.1 for features users would expect; the review is
-`private/APODroid missing features users might expect.md`. Not built yet; plan and checklist in
-`features.md` in the skill.)
+`private/APODroid missing features users might expect.md`. Not built yet (keep running is, see
+Background update); plan and checklist in `features.md` in the skill.)
 
 - **Sharper wallpaper:** the daily download becomes a rendition the screen's height
   (`featured_image.file?h=<px>`, 0.3–1.2 MB on the posts checked) instead of the 1280 px file.
@@ -237,21 +256,10 @@ wake and fail offline).
   changed, or since when no check has worked (more than a day). Why: the endpoint is fragile and
   a failing job looks like a working one.
 - **Wi-Fi only:** a switch for the job, default off.
-- **Keep running (built 2026-10-04):** Android pauses the unused app twice (restricted bucket
-  after 8 days, hibernation deletes the job after about 3 months; the job doesn't count as
-  use; report: [keep-running.md](.claude/skills/build-apodroid-android/keep-running.md)).
-  Decided (user, 2026-10-04): while the switch is on and battery isn't Unrestricted or
-  "pause when unused" (API 31+) is still on, a hint under the switch names only what's
-  missing, with "App info" (`ACTION_APPLICATION_DETAILS_SETTINGS`) and "Don't show again".
-  The latter asks first in a dialog saying what will happen ("the user has all power");
-  the pref `pauseHintHidden` keeps it hidden for good, also when the switch is turned on
-  again (user: it's the user's choice; only clearing storage brings it back). Plus the `daily` pref (Background
-  update). No battery-optimisation permission.
 - **Share:** title and page link via the share sheet; not the picture file.
 - **Image credit** under the date, parsed in `:core` (on all 100 posts checked).
 - **Save every picture:** a switch for the job, default off, with a small ⓘ next to it: saved
-  pictures are full resolution, and saving every day takes a lot of space. The only exception
-  to "no help texts" (user, 2026-10-04).
+  pictures are full resolution, and saving every day takes a lot of space (user, 2026-10-04).
 - **Video marker** ▶ on video days; **selectable explanation** (copy).
 - **Left out:** previous days (not one page any more), full-screen view, home-screen widget,
   Quick Settings tile (rarely used), translations (English UI stays), sharing the picture file
@@ -260,8 +268,7 @@ wake and fail offline).
 
 ## Open questions
 
-1. (Answered 2026-10-04: the `content/dam` originals go up to 5815 px, see Next features.)
-2. Huge pictures (2 Oct 2026, 37.7 MB PNG) cost mobile data, and on a slow connection the
+1. Huge pictures (2 Oct 2026, 37.7 MB PNG) cost mobile data, and on a slow connection the
    download may not finish within the roughly 10 minutes Android gives a job (each retry starts
    over). Left open (user, 2026-10-04): it happened once. The planned rendition and Wi-Fi only
    switch cover most of it.

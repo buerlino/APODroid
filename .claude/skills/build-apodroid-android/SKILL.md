@@ -15,9 +15,10 @@ with a checklist: `features.md` next to this file.
 - `core/.../Apod.kt`: `fetchLatest(userAgent)`, `parseLatest`, `download(url, to, userAgent)`,
   title, video and explanation parsing, `Apod.fileName`. Tests with made-up JSON shaped like the
   real response. Real responses for manual checks in `private/` (`latest.json`, `last100.json`).
-- `app/.../Store.kt`: prefs, `refresh()`, `wallpaperFile()` (which picture, or null on a video
-  day with "keep"), `setWallpaper`, `save`, `imageBounds`.
-- `app/.../MainActivity.kt`: the page. `app/.../DailyJob.kt`: the job (id 1).
+- `app/.../Store.kt`: prefs (also `daily`, `pauseHintHidden`), `refresh()`, `wallpaperFile()`
+  (which picture, or null on a video day with "keep"), `setWallpaper`, `save`, `imageBounds`.
+- `app/.../MainActivity.kt`: the page, with `checkPausing()` and the `PauseHint` under the switch.
+  `app/.../DailyJob.kt`: the job (id 1).
 
 ## Working on the phone
 
@@ -70,13 +71,18 @@ with a checklist: `features.md` next to this file.
 - The themed icon in a launcher that shows themed icons (Niagara doesn't, App info shows the
   normal icon); only checked as a render and in the APK.
 - TalkBack itself (the labels are in the accessibility tree: `uiautomator dump`, 2026-10-04).
+- Keep running (`keep-running.md`) on Android 10–12 (no such phone; AOSP source only), the real
+  90-day hibernation (only `cmd app_hibernation` simulated), and archiving on Android 15+.
+- The `setWallpaper` race fixed in 0.2.0 (`declutter.md`, evening pass, 1.1): found by reading,
+  not reproduced.
 
 Tested 2026-10-04 (full phone pass): offline with and without a stored picture, the switch
 turned on offline (the job waits, then sets the wallpaper), faked video days with both settings
 and a picked picture, font scale 2.0 (usable), landscape (the picture fills the width; scroll to
 the title). Saving after "Clear storage" (or a reinstall) adds a second copy `… (1).jpg`: the
 app can't see the old, now unowned file without a permission; left. The app stopping when
-it isn't opened: `keep-running.md`.
+it isn't opened: `keep-running.md`; its hint, App info, the dialog, the real Settings screens,
+hibernation and force stop on the R8 build of 7d73bc2 (`declutter.md`, evening pass).
 
 ## Releasing (as in gridload)
 
@@ -112,6 +118,7 @@ it).
 - Screenshot with SystemUI demo mode, as in gridload: `settings put global sysui_demo_allowed 1`,
   broadcasts `enter`, `clock -e hhmm 1200`, `notifications -e visible false`,
   `network -e wifi show -e level 4 -e fully true` (without `fully` the Wi-Fi icon shows "!"),
+  `battery -e level 100 -e plugged false` (else a charging phone shows ⚡),
   then `exit` and the setting back to 0. It shows 1 October's picture (landscape, so the page
   fits): debug build, `am kill`, back up `files/apod.jpg` and `shared_prefs/apodroid.xml` with
   `run-as`, write 1 October's picture, `fallback.jpg` and prefs (data from

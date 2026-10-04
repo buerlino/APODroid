@@ -7,7 +7,8 @@ description: Execution brief for building APODroid (io.github.buerlino.apodroid)
 
 How-tos and what's still untested. `CLAUDE.md` at the repo root is the source of truth for the
 stack, the data source and the decisions. Read it first. If this skill and `CLAUDE.md` disagree,
-`CLAUDE.md` wins; update this skill to match. The history is in git.
+`CLAUDE.md` wins; update this skill to match. The history is in git. The next features to build,
+with a checklist: `features.md` next to this file.
 
 ## Where things are
 

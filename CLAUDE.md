@@ -19,6 +19,8 @@ named `apodroid-vX.Y.Z.apk`.
 - How-tos, phone testing and what's still untested: [.claude/skills/build-apodroid-android/SKILL.md](.claude/skills/build-apodroid-android/SKILL.md).
   Where it and this file disagree, this file wins.
 - Declutter passes: [.claude/skills/build-apodroid-android/declutter.md](.claude/skills/build-apodroid-android/declutter.md).
+- Planned features, how and checklist: [.claude/skills/build-apodroid-android/features.md](.claude/skills/build-apodroid-android/features.md)
+  (decisions in [Next features](#next-features)).
 
 ## How the user works (2026-10-01)
 
@@ -113,8 +115,8 @@ GET https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_pa
 - The full response (about 21 KB per post), not `_fields=` (which drops `featured_image`).
 - Image sizes for 1 Oct: `featured_image.file` → 1280×853 (115 KB);
   `https://assets.science.nasa.gov/content/dam/<same path>` → the original, 1600×1067 (1.1 MB);
-  `?w=4096` only upscales. The file name ends in `LD`, so a larger original may exist (open
-  question).
+  `?w=4096` only upscales. On other days the original is much larger (2026-10-04, 20 posts:
+  54 KB to 10 MB, up to 5815 px), and `?h=` gives a screen-sized rendition (see Next features).
 - **Not always a small JPEG:** on 2 Oct 2026 it was a 37.7 MB PNG, 4455×5592 (`?w=1600` → 5.3 MB,
   still PNG); about 6 min on mobile data. Decoded in full it's a 99.6 MB bitmap, just under
   Android's 100 MB drawing limit, so the page decodes with `inSampleSize` (`decodeForScreen`,
@@ -208,9 +210,39 @@ Permissions (user approved, 2026-10-01), all granted at install with no prompt: 
 14+ throws on `schedule()` for a job with a network constraint without it; no constraint would
 wake and fail offline).
 
+## Next features
+
+(User, 2026-10-04, from a review of 0.1.1 for features users would expect; the review is
+`private/APODroid missing features users might expect.md`. Not built yet; plan and checklist in
+`features.md` in the skill.)
+
+- **Sharper wallpaper:** the daily download becomes a rendition the screen's height
+  (`featured_image.file?h=<px>`, 0.3–1.2 MB on the posts checked) instead of the 1280 px file.
+  ★ saves the full original (`content/dam`, 2–10 MB) instead of the daily file. Why: the
+  originals load on 20 of 20 posts checked, but downloading them daily costs about 10× the data.
+- **Fill / Fit:** a setting next to "Wallpaper on", default Fill (today). Fit puts the whole
+  picture on black.
+- **Status line** under the daily switch, always while it's on: when the wallpaper last
+  changed, or since when no check has worked (more than a day). Why: the endpoint is fragile and
+  a failing job looks like a working one.
+- **Wi-Fi only:** a switch for the job, default off.
+- **Hibernation:** check on the phone whether Android pauses the unused app; only if so, a hint
+  with a button to the system setting. No battery-optimisation permission.
+- **Share:** title and page link via the share sheet; not the picture file.
+- **Image credit** under the date, parsed in `:core` (on all 100 posts checked).
+- **Save every picture:** a switch for the job, default off, with a small ⓘ next to it: saved
+  pictures are full resolution, and saving every day takes a lot of space. The only exception
+  to "no help texts" (user, 2026-10-04).
+- **Video marker** ▶ on video days; **selectable explanation** (copy).
+- **Left out:** previous days (not one page any more), full-screen view, home-screen widget,
+  Quick Settings tile (rarely used), translations (English UI stays), sharing the picture file
+  (needs a `FileProvider`). Still out, as above: a notification, the still frame on video days,
+  help texts, choosing the check time, `api.nasa.gov` as a fallback.
+
 ## Open questions
 
-1. Is there a higher resolution than the 1600 px original (the `LD` file name)? Not needed so far.
+1. (Answered 2026-10-04: the `content/dam` originals go up to 5815 px, see Next features.)
 2. Huge pictures (2 Oct 2026, 37.7 MB PNG) cost mobile data, and on a slow connection the
    download may not finish within the roughly 10 minutes Android gives a job (each retry starts
-   over). Left open (user, 2026-10-04): it happened once.
+   over). Left open (user, 2026-10-04): it happened once. The planned rendition and Wi-Fi only
+   switch cover most of it.

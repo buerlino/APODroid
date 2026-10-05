@@ -93,9 +93,12 @@ labels, the User-Agent, the feature graphic and the fixes from the review of 0.1
 file). Tagged `v0.1.2` on the commit with the review fixes (moved from b243c43 before it was
 pushed, user 2026-10-04). The R8 build of b243c43 was tested on the phone; the review fixes
 later that day, except what the skill lists under Still untested. 0.2.0 (versionCode 4,
-2026-10-04, user: release keep running now, the planned features follow in 0.3.0): keep
-running and the fixes of the evening declutter pass. 0.2.1 (versionCode 5, 2026-10-04): the hint names the
-path to each setting in App info; its R8 build tested on the phone.
+2026-10-04, user: release keep running now): keep running and the fixes of the evening
+declutter pass. 0.2.1 (versionCode 5, 2026-10-04): the hint names the path to each setting in
+App info; its R8 build tested on the phone. 0.3.0 (versionCode 6, 2026-10-05, user: release
+the crop now, the planned features follow in 0.4.0): choosing the part (⛶), the middle by
+default (Android 15+ showed the left part), camera photos set upright; its R8 build tested on
+the phone.
 
 ## Data source (checked 2026-10-01)
 

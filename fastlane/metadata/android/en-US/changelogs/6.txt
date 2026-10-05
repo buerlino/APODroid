@@ -1,0 +1,3 @@
+- Choose which part of the picture becomes the wallpaper: tap ⛶ on the picture and drag the frame
+- Fix: on Android 15+ the wallpaper showed the left part of a wide picture; now it's the middle unless you choose
+- Fix: a camera photo as your own video-day picture could come out stretched

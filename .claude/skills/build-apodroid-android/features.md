@@ -7,8 +7,8 @@ has the how. Work through it step by step, as always: one item, show it on the p
 Tick items off and note where the work differed from the plan.
 
 Suggested order: the `:core` items first (testable without the phone), then the job and its
-settings, then the small UI items. Next version: 0.3.0 (0.2.0 shipped keep running alone, user
-2026-10-04; confirm with the user when releasing).
+settings, then the small UI items. Next version: 0.4.0 (0.3.0 shipped the crop alone, user
+2026-10-05; confirm with the user when releasing).
 
 ## Settings layout afterwards
 

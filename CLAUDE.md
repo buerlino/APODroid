@@ -186,8 +186,21 @@ set it as wallpaper, and on video days kept the old wallpaper.
 - **Explanation (user, 2026-10-02):** a ▾ right of the title shows it, ▴ hides it; tapping the
   title row does the same, a long press opens the APOD page. No ▾ if empty. The glyphs have
   screen-reader labels (2026-10-04).
-- **Wallpaper:** `WallpaperManager.setStream(stream, null, true, which)`; Android centre-crops.
-  Only changed when the date is new and the download is a complete, decodable image.
+- **Wallpaper:** `WallpaperManager.setStream(stream, crop, true, which)`. `crop` is the part of
+  the picture in the screen's portrait shape (`wallpaperFrame` in `:core`), by default the
+  middle (2026-10-05): with `null`, Android 15+ shows the left part of a wide picture (seen on
+  the phone, API 36). A picture with an EXIF orientation (a camera photo as "my picture") is
+  decoded upright with `ImageDecoder`, halved while it still fills the screen, and set with
+  `setBitmap` (user, 2026-10-05): Android 16 measures it unturned but draws it turned, so it
+  came out stretched, with or without a crop. Only changed when the date is new and the
+  download is a complete, decodable image.
+- **Choosing the part (user, 2026-10-05):** a ⛶ at the bottom left of the picture (mirroring
+  the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
+  along the one direction it can move (left–right; up–down on a picture taller than the
+  screen, none of 85 posts checked was). While it shows, a tap doesn't open the page; ✓ or "Set as
+  wallpaper now" hides it. The position (0–1) is in the prefs for that date only, so each new
+  picture starts centred; the job uses it too. The user's own picture (video days) is always
+  centred.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title.
 - **Icon:** the user's SVGs in `logo/` as an adaptive icon; a monochrome layer for themed icons
@@ -254,7 +267,7 @@ Background update); plan and checklist in `features.md` in the skill.)
   ★ saves the full original (`content/dam`, 2–10 MB) instead of the daily file. Why: the
   originals load on 20 of 20 posts checked, but downloading them daily costs about 10× the data.
 - **Fill / Fit:** a setting next to "Wallpaper on", default Fill (today). Fit puts the whole
-  picture on black.
+  picture on black; no ⛶ with Fit (user, 2026-10-05).
 - **Status line** under the daily switch, always while it's on: when the wallpaper last
   changed, or since when no check has worked (more than a day). Why: the endpoint is fragile and
   a failing job looks like a working one.

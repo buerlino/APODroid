@@ -268,3 +268,115 @@ Where the work differed from the report:
 - **4.1:** keep running moved to `CLAUDE.md`, Background update; Next features says it's built.
 - **4.3:** decided by the user; the list is in `CLAUDE.md`, Stack. **5.1:** `git gc` run.
 - Also (user): README links F-Droid and, with the store description, mentions the hint.
+
+## Pass 2026-10-05 (crop)
+
+A check of the crop (⛶, uncommitted on top of a242c1e), then the full list above. The user
+decided on each item; done below.
+
+Ran: 13 tests green, no `w:` lines, the only deprecation `Configuration.setVisible` (plugin);
+lint 0 errors, 0 warnings, 1 hint (2.1). Two clean unsigned `assembleRelease` builds from copies
+with `.git`: same sha256 (`c6403def…`, also the repo's own build).
+
+On the phone (debug build, API 36, today's picture 1280×854): the centred frame at x 390–724 px
+on the page (448–831 of 1280); fully left stores 0.0, fully right 1.0, a 200 px drag 0.224; a
+vertical drag in crop mode scrolls the page; set at 1.0: `mCropHint=Rect(897, 1 - 1280, 854)`,
+the home screen matched, crop mode closed; a tap in crop mode stays on the page, outside it
+opens the browser; rotating closes crop mode and keeps the position, in landscape the frame
+stays portrait-shaped and drags; the job with position 0.081 and `wallpaperDate` faked to
+yesterday: `Rect(72, 1 - 455, 854)`. Android cuts the top row in every hint (rows 1–854); a
+383 px wide frame matches the screen's shape at 853 rows, so harmless. Restored: picture
+byte-identical, wallpaper centred (`Rect(449, 1 - 832, 854)`), prefs as backed up minus the
+test position, portrait, job scheduled.
+
+### Checked, no change needed
+- **`wallpaperFrame` rounding:** position 0 gives left 0, 1 exactly width − frame width; the
+  frame can't leave the picture; the position stays 0–1 (`coerceIn`, default 0.5); the
+  products are `Long`, no overflow.
+- **Exact screen shape:** the frame is the whole picture, so no drag handler; ⛶ still shows a
+  frame round everything. Left.
+- **Tiny pictures** (under about 2.2 px on the short side) give an empty frame, on which
+  `setStream` may throw (not verified). Never with real pictures; left.
+- **Page vs wallpaper:** the same position; the down-sampled shape differs by at most one
+  sampled pixel, under 1 px on the page.
+- **Races:** `setWallpaper` reads the size before opening the file, so a refresh renaming the
+  picture in between can put the old size and position on the new picture, under the old date;
+  the job sets it again (as 1.1 of the evening pass). A drag in the ~16 ms after `show()` reset
+  the position nudges the page's value, but its write carries the old date and is ignored. The
+  job storing a new APOD while the page is open: the page shows yesterday's until `onResume`
+  (as before), drags write yesterday's date (ignored), "Set as wallpaper now" sets the new
+  picture centred. Left.
+- **`setCropPosition`** with an old date can't overwrite a newer date's position (one page
+  shows one date). `cropFrame`'s keys and `onDragCancel` saving are right.
+- **Drag vs scroll on a tall picture:** a vertical drag moves the frame, so the page can't be
+  scrolled by dragging the picture; ✓ stays reachable. Already "left as is" (skill).
+- **`Store.screen`** is the panel's display mode: a lower resolution keeps the shape, display
+  size and font size only change the density; on a foldable it's the panel in use.
+- **Video days:** ⛶ only when `!apod.isVideo`; `file == imageFile` keeps "my picture" centred.
+- `centreCrop` fully gone; the new imports are used.
+
+### Risks
+- [x] 1.1 EXIF orientation: `imageBounds` gives the stored, unrotated size, so a camera photo
+  picked as "my picture" may get its centred frame for the wrong shape. Test on a faked video
+  day with a rotated test JPEG (user, 2026-10-05).
+
+### Code
+- [x] 2.1 Lint hint: `mutableFloatStateOf(0.5f)` for `cropPosition`.
+- [x] 2.2 `decodeForScreen`'s local `screen` shadows the new `screen` property: `screenWidth`.
+- [x] 2.3 `cropPosition(date)` instead of the property: `setWallpaper` reads the APOD once, the
+  page passes the date it shows.
+- [x] 2.4 The frame maths to `:core` (user, 2026-10-05): `Frame` and `wallpaperFrame`, tested
+  with 0, 0.5 and 1 on wide and tall pictures, the exact shape, 1×1 and 100000×1, 448.5 → 449;
+  `:app` wraps it in a `Rect` (a stub in JVM tests).
+
+### Docs
+- [x] 4.1 `features.md` item 1: "`WindowManager.maximumWindowMetrics` … centre-crop" is stale:
+  `Store.screen.height` (works in the job, which has no window). The crop carries over: the
+  frame comes from the downloaded file's size, the position is 0–1; ★ saves the uncropped
+  original.
+- [x] 4.2 `features.md` item 2: "Fill: … Android centre-crops" is stale: Fill is the chosen
+  part. ⛶ hidden with Fit (user, 2026-10-05), also in `CLAUDE.md` Next features; Fit's
+  screen-shaped bitmap with a null crop is fine.
+- [x] 4.3 Skill, Still untested: drop "through the daily job" (tested); add the down-sampled
+  path, "my picture" centred, EXIF (1.1), the R8 build (5.1).
+- [x] 4.4 Skill, adb notes: a `>` in a `sed` pattern becomes a redirect in the phone's shell;
+  use an address. The job with a position: fake only `wallpaperDate`, then `run -f`.
+- [x] 4.5 `CLAUDE.md` Wallpaper: "`wallpaperFrame` in `Store.kt`" → `:core` (2.4).
+- [x] 4.6 README and `full_description.txt`: one line each about choosing the part (user,
+  2026-10-05).
+
+### Repo, build and CI
+- [x] 5.1 The R8 build on the phone, signed with the debug key over the debug build; the debug
+  build back afterwards (user, 2026-10-05).
+
+### Not done (user, 2026-10-05)
+- Screen-reader actions "Move left"/"Move right" in crop mode: a screen-reader user can't judge
+  the part anyway. Stays under Still untested.
+- Crop mode across rotation: stays closed (one tap reopens it, the position is kept).
+
+### Done (2026-10-05)
+
+Verified: `:core:test :app:lintDebug :app:lintAnalyzeDebug :app:assembleDebug
+:app:assembleRelease --rerun --warning-mode all`: 18 tests green (5 new in `FrameTest`), lint
+"No issues found", no `w:` lines. Reproducibility not rechecked (no build change).
+Where the work differed from the report:
+- **1.1 was a bug, older than the crop.** A made-up JPEG (1600×1200 stored, EXIF orientation
+  6, so 1200×1600 upright; numbered columns) as "my picture" on a faked video day: with no crop
+  (as 0.2.1) the home screen showed it upright but stretched sideways; with the crop computed on
+  the stored size, the wrong part, zoomed; with it computed on the upright size, Android
+  rejected the hint (`mCropHint` became the whole stored picture) and stretched it again.
+  Android 16 measures the file unturned but draws it turned. Fix (user, 2026-10-05): a file
+  with an EXIF orientation is decoded upright with `ImageDecoder`, halved while it still fills
+  the screen, and set with `setBitmap` and the centred frame; others go through `setStream` as
+  before. Tested with a 48 MP one (8000×6000 stored, so it's halved): `Rect(602, 0 - 2399,
+  4000)` on the 3000×4000 bitmap, upright, centred, top and bottom shown. `android.media.ExifInterface` (not androidx): lint's `ExifInterface`
+  warning is suppressed at `needsTurning`, its security bugs were in Android 7.0 and older.
+- **2.4:** the `:app` wrapper keeps the name `wallpaperFrame` (returns a `Rect`), so the page's
+  code didn't change; `:core`'s is imported as `coreWallpaperFrame`.
+- **5.1:** the R8 build (debug key, over the debug build): page, ⛶, a drag to 0.15 →
+  `Rect(135, 1 - 518, 854)` set, a forced job run succeeded (it had nothing to do), and the
+  EXIF picture as above. Afterwards the debug build again; prefs and `files/apod.jpg` identical
+  to the backup, no `fallback.jpg`, the wallpaper centred (`Rect(449, 1 - 832, 854)`), the job
+  scheduled.
+- Not tested: a real camera photo (only the made-up JPEGs), Android 10–14 with either path,
+  a picture the page down-samples, TalkBack (skill, Still untested).

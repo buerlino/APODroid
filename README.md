@@ -18,6 +18,7 @@ One page: today's picture with its title and date, and the settings below it.
   settings in App info that prevent it.
 - Tap the picture to open it on NASA's website; tap the star to save it to your gallery
   (`Pictures/APODroid/`).
+- Tap ⛶ to choose which part of the picture becomes the wallpaper.
 - Tap the title to read the astronomer's explanation; long-press it to open NASA's page.
 
 ## Install

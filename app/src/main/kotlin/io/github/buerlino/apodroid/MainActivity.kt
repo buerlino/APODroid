@@ -21,6 +21,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,14 +58,22 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -77,6 +87,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -95,6 +106,9 @@ class MainActivity : ComponentActivity() {
     private var batteryLimited by mutableStateOf(false)
     private var mayHibernate by mutableStateOf(false)
     private var pauseHintHidden by mutableStateOf(false)
+    private var cropping by mutableStateOf(false)
+    private var cropPosition by mutableFloatStateOf(0.5f)
+    private val screen by lazy { store.screen }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -158,6 +172,8 @@ class MainActivity : ComponentActivity() {
 
     private suspend fun show() {
         apod = store.apod
+        cropping = false
+        cropPosition = store.cropPosition(apod?.date)
         picture = withContext(Dispatchers.IO) {
             store.imageFile.takeIf { it.exists() }?.let { decodeForScreen(it) }?.asImageBitmap()
         }
@@ -171,9 +187,9 @@ class MainActivity : ComponentActivity() {
         val bounds = imageBounds(file) ?: return null
         val width = bounds.outWidth.toLong()
         val pixels = width * bounds.outHeight
-        val screen = resources.displayMetrics.widthPixels
+        val screenWidth = resources.displayMetrics.widthPixels
         var sample = 1
-        while (width / (sample * 2) >= screen || pixels / (sample * sample) > 8_000_000) sample *= 2
+        while (width / (sample * 2) >= screenWidth || pixels / (sample * sample) > 8_000_000) sample *= 2
         return BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
     }
 
@@ -202,6 +218,7 @@ class MainActivity : ComponentActivity() {
             toast("Video today: wallpaper kept")
             return
         }
+        cropping = false
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching { store.setWallpaper(file) } }
             toast(if (result.isSuccess) "Wallpaper set" else "Couldn't set the wallpaper")
@@ -292,11 +309,28 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(picture.width.toFloat() / picture.height)
-                        .clickable { openPage(apod.pageUrl) },
+                        .then(if (cropping) Modifier.cropFrame(picture, apod.date) else Modifier.clickable { openPage(apod.pageUrl) }),
                     contentScale = ContentScale.FillWidth,
                 )
                 // Saving a video day's still frame isn't worth it: often it's a generic NASA image.
+                // On a video day the wallpaper is the previous picture or the user's own.
                 if (!apod.isVideo) {
+                    IconButton(
+                        onClick = { cropping = !cropping },
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(8.dp)
+                            .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                    ) {
+                        Text(
+                            if (cropping) "✓" else "⛶",
+                            Modifier.clearAndSetSemantics {
+                                contentDescription = if (cropping) "Done" else "Choose the wallpaper's part"
+                            },
+                            color = Color.White,
+                            fontSize = 24.sp,
+                        )
+                    }
                     IconButton(
                         onClick = ::savePicture,
                         modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
@@ -345,6 +379,41 @@ class MainActivity : ComponentActivity() {
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 )
+            }
+        }
+    }
+
+    /**
+     * Dims what the wallpaper leaves out; dragging moves the frame along the picture's longer
+     * side (relative to the screen's shape), the other drags still scroll the page.
+     */
+    private fun Modifier.cropFrame(picture: ImageBitmap, date: LocalDate): Modifier {
+        val full = wallpaperFrame(picture.width, picture.height, screen, 0f)
+        val horizontal = full.width() < picture.width
+        return drawWithContent {
+            drawContent()
+            val scale = size.width / picture.width
+            val frame = wallpaperFrame(picture.width, picture.height, screen, cropPosition)
+            val topLeft = Offset(frame.left * scale, frame.top * scale)
+            val frameSize = Size(frame.width() * scale, frame.height() * scale)
+            clipRect(topLeft.x, topLeft.y, topLeft.x + frameSize.width, topLeft.y + frameSize.height, ClipOp.Difference) {
+                drawRect(Color.Black.copy(alpha = 0.6f))
+            }
+            drawRect(Color.White, topLeft, frameSize, style = Stroke(1.dp.toPx()))
+        }.pointerInput(picture, date) {
+            // The distance the frame can travel, in pixels on the page.
+            val travel = if (horizontal) {
+                size.width * (1 - full.width().toFloat() / picture.width)
+            } else {
+                size.height * (1 - full.height().toFloat() / picture.height)
+            }
+            if (travel <= 0f) return@pointerInput
+            val move = { delta: Float -> cropPosition = (cropPosition + delta / travel).coerceIn(0f, 1f) }
+            val end = { store.setCropPosition(date, cropPosition) }
+            if (horizontal) {
+                detectHorizontalDragGestures(onDragEnd = end, onDragCancel = end) { change, delta -> change.consume(); move(delta) }
+            } else {
+                detectVerticalDragGestures(onDragEnd = end, onDragCancel = end) { change, delta -> change.consume(); move(delta) }
             }
         }
     }

@@ -15,8 +15,12 @@ with a checklist: `features.md` next to this file.
 - `core/.../Apod.kt`: `fetchLatest(userAgent)`, `parseLatest`, `download(url, to, userAgent)`,
   title, video and explanation parsing, `Apod.fileName`. Tests with made-up JSON shaped like the
   real response. Real responses for manual checks in `private/` (`latest.json`, `last100.json`).
+  `core/.../Frame.kt`: `wallpaperFrame`, the part of the picture the wallpaper shows (tests in
+  `FrameTest`).
 - `app/.../Store.kt`: prefs (also `daily`, `pauseHintHidden`), `refresh()`, `wallpaperFile()`
-  (which picture, or null on a video day with "keep"), `setWallpaper`, `save`, `imageBounds`.
+  (which picture, or null on a video day with "keep"), `setWallpaper` (a photo with an EXIF
+  orientation goes upright through `setBitmap`), `cropPosition(date)`, `save`, `imageBounds`,
+  `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page, with `checkPausing()` and the `PauseHint` under the switch.
   `app/.../DailyJob.kt`: the job (id 1).
 
@@ -45,9 +49,20 @@ with a checklist: `features.md` next to this file.
 - The hint about Android pausing the app: undo "Don't show again" with
   `adb shell run-as io.github.buerlino.apodroid sed -i '/pauseHintHidden/d' shared_prefs/apodroid.xml`
   (after `am kill`). The two settings by adb: `keep-running.md`, How to test.
+- The phone's `sed` (toybox) doesn't know `\|`: use one `-e '/x/d'` per pattern. Edit prefs
+  only after `am kill`, and `am kill` only kills an app in the background (press Home first);
+  else the running app keeps and later writes back its old values. `adb shell` hands the
+  command to the phone's shell as one line, so a `>` in a `sed` pattern becomes a redirect
+  there: match the line by an address instead, `-e '/wallpaperDate/s/<today>/<yesterday>/'`.
 - Fake an old day (debug builds only; `run-as` doesn't work on release builds), after `am kill`:
   `adb shell run-as io.github.buerlino.apodroid sed -i -e 's/<today>/<yesterday>/g' shared_prefs/apodroid.xml`.
-  A video day the same way, by setting `isVideo` to true.
+  A video day the same way, by setting `isVideo` to true. To run the job on the stored picture
+  (e.g. with a moved position), fake only `wallpaperDate`, then `run -f`; faking all dates moves
+  `cropDate` too, which is right.
+- Put a file in place (debug builds), e.g. "my picture":
+  `cat x.jpg | adb shell "run-as io.github.buerlino.apodroid sh -c 'cat > files/fallback.jpg'"`.
+  The R8 build keeps the data of the debug build it's installed over, so set up a state with
+  `run-as` first, then install the R8 build.
 - Delete a saved picture: `adb shell content delete --uri content://media/external/images/media/<id>`.
 - Don't pipe Gradle into `tail` before `&& adb install`: the pipe hides a failed build and the old
   APK gets installed.
@@ -74,6 +89,15 @@ with a checklist: `features.md` next to this file.
 - TalkBack itself (the labels are in the accessibility tree: `uiautomator dump`, 2026-10-04).
 - Keep running (`keep-running.md`) on Android 10–12 (no such phone; AOSP source only), the real
   90-day hibernation (only `cmd app_hibernation` simulated), and archiving on Android 15+.
+- The crop (2026-10-05) on a real tall picture (only a made-up 400×1200 one swapped into
+  `files/apod.jpg`), on a picture the page down-samples, with a real camera photo as "my
+  picture" (only made-up JPEGs with EXIF orientation 6), with TalkBack (dragging has no
+  screen-reader action), and on Android 10–14 (there the system crops the stored file to the
+  hint itself). Tested on API 36, debug and R8 builds: `dumpsys wallpaper` shows the hint as
+  `mCropHint`, centred, dragged and through the daily job; the home screen matched the chosen
+  part; an EXIF-rotated "my picture" is upright and centred (`declutter.md`, crop pass). On a
+  tall picture the frame is taller than the page, so only one of its edges shows while
+  dragging; left as is, as such pictures are rare.
 - The `setWallpaper` race fixed in 0.2.0 (`declutter.md`, evening pass, 1.1): found by reading,
   not reproduced.
 

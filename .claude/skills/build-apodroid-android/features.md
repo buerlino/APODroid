@@ -50,9 +50,11 @@ Decided (user, 2026-10-04): **the daily download is a rendition, ★ saves the o
 - `:core`: from `featured_image.file`, build the rendition URL (`?h=<px>`, the height passed in)
   and the original URL (`content/dam`). Unit tests for both, including a file name with `%20`
   and one that already has a query string (strip it first).
-- `Store`: `<px>` = the screen's long side in pixels (`WindowManager.maximumWindowMetrics`), so
-  centre-crop fills it without upscaling. If the rendition fails, fall back to the plain
-  `featured_image.file` (what 0.1.x downloads).
+- `Store`: `<px>` = `Store.screen.height` (the screen's long side in pixels; it works in the
+  job, which has no window), so the frame fills the screen without upscaling. If the rendition
+  fails, fall back to the plain `featured_image.file` (what 0.1.x downloads).
+- The crop (⛶) carries over unchanged: the frame comes from the downloaded file's size and the
+  position is 0–1. ★ saves the uncropped original.
 - ★: downloads the original (`content/dam`) to a `.part` file in `cacheDir`, writes it to the
   gallery, deletes it. Falls back to `files/apod.jpg` (the rendition) if the original fails.
   It now needs the network and can take a while (10 MB): the star shows it's busy (for example
@@ -66,10 +68,12 @@ Decided (user, 2026-10-04): **the daily download is a rendition, ★ saves the o
 
 Decided (user, 2026-10-04): a setting **Fill | Fit** (segmented button, as "Wallpaper on"),
 default Fill, today's behaviour.
-- Fill: as now, `setStream`, Android centre-crops.
-- Fit: decode sampled to the screen size (as `decodeForScreen`), draw it centred on a black
-  bitmap of the screen size, `setBitmap(bitmap, null, true, which)`. 1116×2484 ARGB is about
-  11 MB, fine. Applies to the APOD and to "my picture"; to home and lock alike.
+- Fill: as now, `setStream` with the chosen part (⛶).
+- Fit: decode upright and sampled (as `decodeUpright` in `Store.kt`, which also turns camera
+  photos by their EXIF orientation), draw it centred on a black bitmap of the screen size,
+  `setBitmap(bitmap, null, true, which)`. 1116×2484 ARGB is about 11 MB, fine. Applies to the
+  APOD and to "my picture"; to home and lock alike.
+- No ⛶ with Fit: the whole picture shows, so there's no part to choose (user, 2026-10-05).
 - Changing it doesn't set the wallpaper again (as "Wallpaper on"); the next change or "Set as
   wallpaper now" uses it.
 - Test on the phone: a landscape and a portrait picture, home and lock, both modes.

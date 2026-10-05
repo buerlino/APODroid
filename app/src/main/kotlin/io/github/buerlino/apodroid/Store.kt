@@ -1,16 +1,24 @@
 package io.github.buerlino.apodroid
 
+import android.annotation.SuppressLint
 import android.app.WallpaperManager
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.graphics.Rect
+import android.hardware.display.DisplayManager
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Size
+import android.view.Display
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import io.github.buerlino.apodroid.core.Apod
 import io.github.buerlino.apodroid.core.download
 import io.github.buerlino.apodroid.core.fetchLatest
+import io.github.buerlino.apodroid.core.wallpaperFrame as coreWallpaperFrame
 import java.io.File
 import java.io.IOException
 import java.time.LocalDate
@@ -119,13 +127,42 @@ class Store(private val context: Context) {
         else -> null
     }
 
+    /** The screen's size in portrait, the shape of the wallpaper. */
+    val screen: Size
+        get() {
+            val mode = context.getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY).mode
+            return Size(minOf(mode.physicalWidth, mode.physicalHeight), maxOf(mode.physicalWidth, mode.physicalHeight))
+        }
+
+    /**
+     * Where the wallpaper sits on [date]'s picture, from 0 (left or top edge) to 1 (right or
+     * bottom edge): the middle unless the user moved it for this date.
+     */
+    fun cropPosition(date: LocalDate?): Float =
+        if (prefs.getString("cropDate", null) == date?.toString()) prefs.getFloat("cropPosition", 0.5f) else 0.5f
+
+    fun setCropPosition(date: LocalDate, position: Float) = prefs.edit {
+        putString("cropDate", date.toString())
+        putFloat("cropPosition", position)
+    }
+
     /**
      * Blocking. The date is read first: setting takes seconds, and a refresh storing a new APOD
-     * meanwhile must not mark the new one as set.
+     * meanwhile must not mark the new one as set. Without a crop, Android 15+ shows the left
+     * part of a wide picture. The user's own picture (video days) is always centred.
      */
     fun setWallpaper(file: File) {
         val date = apod?.date
-        file.inputStream().use { WallpaperManager.getInstance(context).setStream(it, null, true, where.flags) }
+        val position = if (file == imageFile) cropPosition(date) else 0.5f
+        val manager = WallpaperManager.getInstance(context)
+        if (needsTurning(file)) {
+            // Android would measure it unturned but draw it turned, stretching it (seen on API 36).
+            val bitmap = decodeUpright(file, screen)
+            manager.setBitmap(bitmap, wallpaperFrame(bitmap.width, bitmap.height, screen, position), true, where.flags)
+        } else {
+            val crop = imageBounds(file)?.let { wallpaperFrame(it.outWidth, it.outHeight, screen, position) }
+            file.inputStream().use { manager.setStream(it, crop, true, where.flags) }
+        }
         wallpaperDate = date
     }
 
@@ -180,6 +217,21 @@ private val refreshLock = Any()
 
 fun isImage(file: File): Boolean = imageBounds(file) != null
 
+/** True when the picture's EXIF orientation (2 to 8) says to turn or flip it, as camera photos often do. */
+@SuppressLint("ExifInterface") // Its security bugs were in Android 7.0 and older; minSdk is 29.
+private fun needsTurning(file: File): Boolean = runCatching {
+    android.media.ExifInterface(file).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, 1) > 1
+}.getOrDefault(false)
+
+/** [file] turned upright, halved as often as it still fills the [screen]. */
+private fun decodeUpright(file: File, screen: Size): Bitmap =
+    ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
+        var sample = 1
+        while (info.size.width / (sample * 2) >= screen.width && info.size.height / (sample * 2) >= screen.height) sample *= 2
+        decoder.setTargetSampleSize(sample)
+        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+    }
+
 /** The MIME type of a decodable image, e.g. `image/jpeg`, or null. */
 private fun imageType(file: File): String? = imageBounds(file)?.outMimeType
 
@@ -189,6 +241,10 @@ fun imageBounds(file: File): BitmapFactory.Options? {
     BitmapFactory.decodeFile(file.path, options)
     return options.takeIf { it.outWidth > 0 && it.outHeight > 0 && it.outMimeType != null }
 }
+
+/** The part of a [width]×[height] picture the wallpaper shows on [screen] (`:core`'s maths). */
+fun wallpaperFrame(width: Int, height: Int, screen: Size, position: Float): Rect =
+    coreWallpaperFrame(width, height, screen.width, screen.height, position).run { Rect(left, top, right, bottom) }
 
 private inline fun <reified T : Enum<T>> enumValue(name: String?): T? =
     enumValues<T>().firstOrNull { it.name == name }

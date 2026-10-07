@@ -168,10 +168,10 @@ A ▶ (text glyph) centred on the picture on video days, so it's clear that tapp
 video on the web. Screen-reader label "Play video on the web" (or keep it out of the tree and
 let the picture's label say it).
 
-### [ ] 10. Selectable explanation
+### [x] 10. Selectable explanation
 
-Wrap the explanation `Text` in `SelectionContainer` so it can be copied. Check that tapping the
-title row still toggles it and that selecting text doesn't open the page.
+Done differently (user, 2026-10-07): a long press on the explanation copies all of it (and on the
+title row, the page link); no `SelectionContainer`, whose long press would select instead.
 
 ## Left out (user, 2026-10-04)
 

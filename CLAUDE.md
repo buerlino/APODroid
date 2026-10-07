@@ -187,8 +187,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
   stored picture; only with none is there an error with a retry button. Video days show "Video"
   after the date. The page shows the still frame on video days either way.
 - **Explanation (user, 2026-10-02):** a ▾ right of the title shows it, ▴ hides it; tapping the
-  title row does the same, a long press opens the APOD page. No ▾ if empty. The glyphs have
-  screen-reader labels (2026-10-04).
+  title row does the same. No ▾ if empty. The glyphs have screen-reader labels (2026-10-04).
+  Long press (user, 2026-10-07; the picture already opens the page): on the title row copies
+  the page link, on the explanation its text; a tap on the explanation hides it. A toast says
+  "Copied" only below Android 13, which shows its own confirmation. No `SelectionContainer`:
+  its long press would select instead.
 - **Wallpaper:** `WallpaperManager.setStream(stream, crop, true, which)`. `crop` is the part of
   the picture in the screen's portrait shape (`wallpaperFrame` in `:core`), by default the
   middle (2026-10-05): with `null`, Android 15+ shows the left part of a wide picture (seen on
@@ -200,8 +203,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
 - **Choosing the part (user, 2026-10-05):** a ⛶ at the bottom left of the picture (mirroring
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the
-  screen, none of 85 posts checked was). While it shows, a tap doesn't open the page; ✓ or "Set as
-  wallpaper now" hides it. The position (0–1) is in the prefs for that date only, so each new
+  screen, none of 85 posts checked was). While it shows, a tap doesn't open the page; ✓ sets the
+  wallpaper at once, as "Set as wallpaper now" does (user, 2026-10-07), and both hide it. The position (0–1) is in the prefs for that date only, so each new
   picture starts centred; the job uses it too. The user's own picture (video days) is always
   centred.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
@@ -279,7 +282,7 @@ Background update); plan and checklist in `features.md` in the skill.)
 - **Image credit** under the date, parsed in `:core` (on all 100 posts checked).
 - **Save every picture:** a switch for the job, default off, with a small ⓘ next to it: saved
   pictures are full resolution, and saving every day takes a lot of space (user, 2026-10-04).
-- **Video marker** ▶ on video days; **selectable explanation** (copy).
+- **Video marker** ▶ on video days. (Copying the explanation: done by long press, 2026-10-07.)
 - **Left out:** previous days (not one page any more), full-screen view, home-screen widget,
   Quick Settings tile (rarely used), translations (English UI stays), sharing the picture file
   (needs a `FileProvider`). Still out, as above: a notification, the still frame on video days,

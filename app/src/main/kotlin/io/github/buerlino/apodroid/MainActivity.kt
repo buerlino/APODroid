@@ -1,6 +1,8 @@
 package io.github.buerlino.apodroid
 
 import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -268,6 +270,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Android 13+ confirms a copy itself. */
+    private fun copy(label: String, text: String) {
+        getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(label, text))
+        if (Build.VERSION.SDK_INT < 33) toast("Copied")
+    }
+
     private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
 
     @Composable
@@ -316,7 +324,8 @@ class MainActivity : ComponentActivity() {
                 // On a video day the wallpaper is the previous picture or the user's own.
                 if (!apod.isVideo) {
                     IconButton(
-                        onClick = { cropping = !cropping },
+                        // ✓ sets the chosen part at once.
+                        onClick = { if (cropping) setWallpaperNow() else cropping = true },
                         modifier = Modifier
                             .align(Alignment.BottomStart)
                             .padding(8.dp)
@@ -325,7 +334,7 @@ class MainActivity : ComponentActivity() {
                         Text(
                             if (cropping) "✓" else "⛶",
                             Modifier.clearAndSetSemantics {
-                                contentDescription = if (cropping) "Done" else "Choose the wallpaper's part"
+                                contentDescription = if (cropping) "Set as wallpaper" else "Choose the wallpaper's part"
                             },
                             color = Color.White,
                             fontSize = 24.sp,
@@ -348,7 +357,7 @@ class MainActivity : ComponentActivity() {
                 Modifier
                     .combinedClickable(
                         onClick = { if (hasExplanation) expanded = !expanded },
-                        onLongClick = { openPage(apod.pageUrl) },
+                        onLongClick = { copy("Link", apod.pageUrl) },
                     )
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -377,7 +386,9 @@ class MainActivity : ComponentActivity() {
                 Text(
                     apod.explanation,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    modifier = Modifier
+                        .combinedClickable(onClick = { expanded = false }, onLongClick = { copy("Explanation", apod.explanation) })
+                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 )
             }
         }

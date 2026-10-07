@@ -1,0 +1,3 @@
+- Long-press the title to copy the link, or the explanation to copy its text
+- ✓ in the frame sets the chosen part as wallpaper at once; Back leaves without setting
+- Screen-reader labels for the long presses

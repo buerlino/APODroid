@@ -92,6 +92,8 @@ checked 2026-10-07; its bot finds new tags by itself, skill, Releasing):
 - 0.2.1 (versionCode 5, 2026-10-04): the hint names the path to each setting in App info.
 - 0.3.0 (versionCode 6, 2026-10-05): choosing the part (⛶), centred by default, camera photos
   upright. The planned features follow in 0.4.0 (user).
+- 0.3.1 (versionCode 7, 2026-10-07): long press copies the link or the explanation, ✓ sets the
+  chosen part, Back leaves crop mode, screen-reader labels for the long presses.
 
 ## Data source (checked 2026-10-01)
 

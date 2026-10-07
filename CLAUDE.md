@@ -11,10 +11,10 @@ once a day, on its own. It replaces the user's Tasker task `APOD` (`private/APOD
 gitignored because it holds the user's NASA API key). The app is one page: today's picture
 (title, date), and a few settings below it. No other features.
 
-App name: **APODroid** (user, 2026-10-01). applicationId and namespace `io.github.buerlino.apodroid`;
-Kotlin packages `io.github.buerlino.apodroid` (app) and `io.github.buerlino.apodroid.core`.
-Repo: https://github.com/buerlino/APODroid (GPLv3); local folder `APODroid`. Release APKs are
-named `apodroid-vX.Y.Z.apk`.
+App name: **APODroid** (user, 2026-10-01). applicationId and namespace
+`io.github.buerlino.apodroid`; Kotlin packages `io.github.buerlino.apodroid` (app) and
+`io.github.buerlino.apodroid.core`. Repo: https://github.com/buerlino/APODroid (GPLv3); local
+folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 
 - How-tos, phone testing and what's still untested: [.claude/skills/build-apodroid-android/SKILL.md](.claude/skills/build-apodroid-android/SKILL.md).
   Where it and this file disagree, this file wins.
@@ -51,8 +51,8 @@ named `apodroid-vX.Y.Z.apk`.
   concept in one place only.
 - Migrations: remove migration code two releases after F-Droid has shipped past the version that
   needed it (gridload's rule, 2026-10-02). Current ones: `Store.daily` taking its first value
-  from `getPendingJob` (0.1.2 → 0.2.0); remove it in the second release after F-Droid ships
-  0.2.0.
+  from `getPendingJob` (0.1.2 → 0.2.0). F-Droid skipped 0.2.0 and shipped 0.2.1, so remove it
+  in 0.4.0.
 
 ## Setup and distribution (copied from gridload)
 
@@ -82,23 +82,16 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
 - Android SDK in `~/Android/Sdk`. The user tests on a real phone over adb, no emulator.
 - Git branch `master`, remote `origin`.
 
-**Releases:** 0.1.0 (2026-10-02, GitHub only). 0.1.1 (versionCode 2, 2026-10-02): the
-large-picture fix and the explanation; on F-Droid since merge request
-https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 was merged (2026-10-04; the page
-https://f-droid.org/packages/io.github.buerlino.apodroid/ was still 404 that evening, README
-links it already). New
-versions reach F-Droid by themselves: its bot builds each new `vX.Y.Z` tag (skill, Releasing).
-0.1.2 (versionCode 3): the declutter fixes of 2026-10-04, the themed icon, screen-reader
-labels, the User-Agent, the feature graphic and the fixes from the review of 0.1.2 (declutter
-file). Tagged `v0.1.2` on the commit with the review fixes (moved from b243c43 before it was
-pushed, user 2026-10-04). The R8 build of b243c43 was tested on the phone; the review fixes
-later that day, except what the skill lists under Still untested. 0.2.0 (versionCode 4,
-2026-10-04, user: release keep running now): keep running and the fixes of the evening
-declutter pass. 0.2.1 (versionCode 5, 2026-10-04): the hint names the path to each setting in
-App info; its R8 build tested on the phone. 0.3.0 (versionCode 6, 2026-10-05, user: release
-the crop now, the planned features follow in 0.4.0): choosing the part (⛶), the middle by
-default (Android 15+ showed the left part), camera photos set upright; its R8 build tested on
-the phone.
+**Releases** (F-Droid builds only the newest tag: it skipped 0.1.2 and 0.2.0 and ships 0.2.1,
+checked 2026-10-07; its bot finds new tags by itself, skill, Releasing):
+- 0.1.0 (2026-10-02): GitHub only.
+- 0.1.1 (versionCode 2, 2026-10-02): the large-picture fix and the explanation; first on F-Droid.
+- 0.1.2 (versionCode 3, 2026-10-04): declutter fixes, themed icon, screen-reader labels,
+  User-Agent, feature graphic.
+- 0.2.0 (versionCode 4, 2026-10-04): keep running.
+- 0.2.1 (versionCode 5, 2026-10-04): the hint names the path to each setting in App info.
+- 0.3.0 (versionCode 6, 2026-10-05): choosing the part (⛶), centred by default, camera photos
+  upright. The planned features follow in 0.4.0 (user).
 
 ## Data source (checked 2026-10-01)
 
@@ -149,8 +142,8 @@ fields), and fail without touching the current wallpaper.
 
 **Traffic (checked 2026-10-02):** one JSON GET per device per day (`Store.isCurrent`), plus the
 image. The job's period starts at each device's own enable time, so there's no shared burst at
-00:05 US Eastern. 1000 users ≈ 1000–2000 requests a day, like 1000 Tasker tasks against `api.nasa.gov`.
-The risk is fragility, not load.
+00:05 US Eastern. 1000 users ≈ 1000–2000 requests a day, like 1000 Tasker tasks against
+`api.nasa.gov`. The risk is fragility, not load.
 
 **User-Agent (2026-10-02):** both requests send
 `APODroid/<versionName> (+https://github.com/buerlino/APODroid)`, so the site can tell this app
@@ -189,9 +182,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
 - **Explanation (user, 2026-10-02):** a ▾ right of the title shows it, ▴ hides it; tapping the
   title row does the same. No ▾ if empty. The glyphs have screen-reader labels (2026-10-04).
   Long press (user, 2026-10-07; the picture already opens the page): on the title row copies
-  the page link, on the explanation its text; a tap on the explanation hides it. A toast says
-  "Copied" only below Android 13, which shows its own confirmation. No `SelectionContainer`:
-  its long press would select instead.
+  the page link, on the explanation its text; a tap on the explanation hides it. A toast confirms
+  it only below Android 13, which shows its own confirmation. No `SelectionContainer`: its long
+  press would select instead.
 - **Wallpaper:** `WallpaperManager.setStream(stream, crop, true, which)`. `crop` is the part of
   the picture in the screen's portrait shape (`wallpaperFrame` in `:core`), by default the
   middle (2026-10-05): with `null`, Android 15+ shows the left part of a wide picture (seen on
@@ -204,9 +197,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the
   screen, none of 85 posts checked was). While it shows, a tap doesn't open the page; ✓ sets the
-  wallpaper at once, as "Set as wallpaper now" does (user, 2026-10-07), and both hide it. The position (0–1) is in the prefs for that date only, so each new
-  picture starts centred; the job uses it too. The user's own picture (video days) is always
-  centred.
+  wallpaper at once, as "Set as wallpaper now" does (user, 2026-10-07); Back closes it without
+  setting. The position (0–1) is in the prefs for that date only, so each new picture starts
+  centred; the job uses it too. The user's own picture (video days) is always centred.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title.
 - **Icon:** the user's SVGs in `logo/` as an adaptive icon; a monochrome layer for themed icons
@@ -249,9 +242,10 @@ that isn't opened, and the job doesn't count as use: the restricted bucket after
 (Android 13+; later or never before) and hibernation after about 3 months (12+), which deletes
 the job. While the switch is on, a hint under it names only what's missing, one line each:
 battery Unrestricted (checked on API 33+ only, 2026-10-04 evening: on 10–12 the 8 days aren't
-true) and "pause/manage app if unused" off (API 31+). Each line is the path in App info (user, 2026-10-04:
-"Unrestricted" alone didn't say where): on API 35+ the battery line says to tap "Allow
-background usage" and turn it on first (Unrestricted is greyed out until then), on 33–34 it doesn't (no such row there, not checked on a phone). With "App info"
+true) and "pause/manage app if unused" off (API 31+). Each line is the path in App info (user,
+2026-10-04: "Unrestricted" alone didn't say where): on API 35+ the battery line says to tap
+"Allow background usage" and turn it on first (Unrestricted is greyed out until then), on 33–34
+it doesn't (no such row there, not checked on a phone). With "App info"
 (`ACTION_APPLICATION_DETAILS_SETTINGS`) and "Don't show again". The latter asks first in a dialog
 saying what will happen ("the user has all power"); the pref `pauseHintHidden` keeps it hidden
 for good, also when the switch is turned on again (user: it's the user's choice; only clearing
@@ -293,4 +287,6 @@ Background update); plan and checklist in `features.md` in the skill.)
 1. Huge pictures (2 Oct 2026, 37.7 MB PNG) cost mobile data, and on a slow connection the
    download may not finish within the roughly 10 minutes Android gives a job (each retry starts
    over). Left open (user, 2026-10-04): it happened once. The planned rendition and Wi-Fi only
-   switch cover most of it.
+   switch cover most of it. Seen on 2026-10-07 (`cmd jobscheduler timeout`): a stopped job's
+   partial download is thrown away and the retry starts from zero. An HTTP `Range` resume would
+   keep it; left.

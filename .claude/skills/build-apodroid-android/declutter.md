@@ -380,3 +380,106 @@ Where the work differed from the report:
   scheduled.
 - Not tested: a real camera photo (only the made-up JPEGs), Android 10–14 with either path,
   a picture the page down-samples, TalkBack (skill, Still untested).
+
+## Pass 2026-10-07 (long press, ✓, reliability)
+
+A check of the uncommitted long press (copy link and explanation) and ✓ (sets the wallpaper),
+then the full list above, with edge-case and reliability tests on the phone. Report only; the
+user decides.
+
+Ran: `:core:test :app:lintDebug :app:lintAnalyzeDebug :app:assembleDebug :app:assembleRelease
+--rerun --warning-mode all`: 18 tests green, lint "No issues found", no `w:` lines after a
+forced Kotlin recompile, the only deprecation `Configuration.setVisible` (plugin). Two clean
+unsigned `assembleRelease` builds from copies with `.git`: same sha256 (`7164818f…`, also the
+repo's own build). F-Droid ships 0.2.1 and 0.1.1 (it skipped 0.1.2 and 0.2.0); its page is live.
+
+On the phone (debug build of the working tree, API 36). Slow and broken downloads through a
+throttling proxy on the desktop (gleiswechsel's method; how-to in 4.3):
+- Long press on the title row copies the link, on the explanation its text (Android's own
+  preview); a tap on the explanation hides it.
+- ⛶, a drag to 0.471, ✓: `mCropHint=Rect(297, 0 - 872, 1280)`, crop mode closes. A quick
+  double tap on ✓ sets it and reopens crop mode. A double tap on "Set as wallpaper now": both
+  run, no crash, the right crop.
+- ☆ during a slow download: no feedback until it ends, then "Not saved: a new picture came in"
+  and the page redraws to the new date. First time this path was hit.
+- Rotating to landscape and back during a download: the page that only waited redraws (6 → 7
+  October), one download in all. First time hit (review of 0.1.2, 1.1).
+- Force stop mid-download: `apod.part` stays, `apod.jpg` and the prefs untouched; reopening
+  downloads again and the `.part` is gone. Connection cut after 100 KB: `ProtocolException:
+  unexpected end of stream`, `.part` deleted, stored picture kept, no error (a picture shows).
+  Stalled: `SocketTimeoutException` after 30 s, `.part` deleted.
+- Switch on: the job runs at once and sets the wallpaper centred. Page and job at once over a
+  slow download: one download, the job waits, then sets the wallpaper; the page redraws.
+- App's network blocked (firewall chain), forced job run: `UnknownHostException`, backoff;
+  network back: the job ran by itself 45 s after the failure and set the wallpaper.
+- The job stopped by the system mid-download (`cmd jobscheduler timeout`): the process is
+  frozen with the download thread holding the lock; at the retry (~45 s later) the old thread
+  fails (`SocketTimeoutException`) and the retry downloads from zero, then sets the wallpaper.
+  So every stop throws the partial download away (open question 1, now seen).
+- Restored afterwards: prefs and `files/apod.jpg` byte-identical to the backup, the wallpaper
+  at the position found (`Rect(0, 0 - 575, 1280)`), switch off and no job (as found: the app
+  was freshly installed at 20:30), rotation auto.
+Not tested: offline page with and without a picture (2026-10-04, not repeated), a reboot, a real
+video day, TalkBack, Android 10–14. A proxy refusing the connection can't fake offline: Android's
+HTTP client then goes direct.
+
+### Bugs and design
+- [x] 1.1 Crop mode has no way out without setting the wallpaper: ✓ sets it, Back leaves the app,
+  reopening keeps crop mode. Someone who only wants to look (or has the switch off) must set
+  the wallpaper or rotate. Fix (recommended): system Back closes crop mode,
+  `BackHandler(enabled = cropping) { cropping = false }` (activity-compose, already there); the
+  dragged position stays, as before 2026-10-07 (the job uses it). Alternative: a ✕ beside ✓.
+- [x] 1.2 The long presses have no screen-reader labels: TalkBack says only "double-tap and hold
+  to long press". Fix: `onLongClickLabel` "Copy link" / "Copy explanation" (and `onClickLabel`
+  "Hide explanation" on the explanation).
+- [x] 1.3 A stored picture whose header decodes but whose pixels don't: the page shows an empty
+  box, no error, no retry, until the next picture (`isCurrent` only checks the file exists).
+  Found by reading, never seen: `refresh()` checks the header only. Recommended: leave.
+  Left (user, 2026-10-07).
+
+### Reliability (seen, no change proposed)
+- The job's download isn't interrupted by `onStopJob`; frozen, it holds the lock until it times
+  out after waking. Harmless (the retry waited a moment). Resuming with an HTTP `Range` request
+  would keep the partial download across stops (about 10 lines in `download()`); the planned
+  rendition makes it mostly moot. Recommended: leave, note it in open question 1 (4.2).
+
+### Migrations
+- [x] 3.1 `Store.daily`'s `getPendingJob` fallback: "remove in the second release after F-Droid
+  ships 0.2.0", but F-Droid skipped 0.2.0 and shipped 0.2.1. Proposed reading: 0.3.0 is the
+  first release after it, so remove it in the next one (0.4.0). Fix the line in `CLAUDE.md`.
+
+### Docs
+- [x] 4.1 `README.md`: "long-press it to open NASA's page" is now wrong (it copies the link).
+  E.g. "Tap the title to read the astronomer's explanation; long-press the title or the
+  explanation to copy the link or the text." Maybe also "✓ sets it" after the ⛶ line.
+- [x] 4.2 `CLAUDE.md`: Releases is a narrative (the moved tag, which build was tested when, the
+  404): one line per version, plus "F-Droid builds only the newest tag (skipped 0.1.2, 0.2.0)".
+  Open question 1: add what was seen (each stop discards the partial download). Rewrap the
+  prose lines over 100 characters (152, 207 from today's edit, 252, 254). "A toast says
+  "Copied"" → "a toast confirms it" (UI text in docs). With 1.1: "Back closes it".
+- [x] 4.3 Skill: Still untested drops ☆ during a download and the redraw path (tested), adds
+  the job stopped mid-download as seen. Working on the phone gets the proxy how-to: Python
+  CONNECT proxy, `adb reverse tcp:8899 tcp:8899`, `settings put global http_proxy
+  127.0.0.1:8899`; undo with `settings put global http_proxy :0` (then delete the key):
+  deleting it alone leaves the proxy active. With a second device attached, `adb -s 4d42e62f`.
+
+### Repo
+- [ ] 5.1 99 loose objects (472 KB). Optional: `git gc`. Not decided, open.
+- Nothing else: no unused files, changelogs 2–6 are for released versions, actions current.
+
+### Done (2026-10-07)
+1.1 (`BackHandler` in `Picture()`), 1.2 (the three labels), 1.3 left; 3.1, 4.1, 4.2 and 4.3 in
+`CLAUDE.md`, `README.md` and the skill. 5.1 left open. Checks: `:core:test :app:lintDebug
+:app:lintAnalyzeDebug :app:assembleDebug --rerun --warning-mode all`: 18 tests green, lint "No
+issues found", no `w:` lines (`MainActivity.kt` changed, so the Kotlin compile ran).
+
+On the phone (debug build, API 36): ⛶, a drag (position 0.644 in the prefs), Back: crop mode
+closes, the app stays in front, `mCropHint` unchanged (`Rect(0, 0 - 575, 1280)`); a second Back
+leaves the app; no crash. Afterwards prefs and `files/apod.jpg` restored byte-identical, switch
+off and no job, as found.
+
+Not tested: the 1.2 labels. uiautomator doesn't show action labels, and TalkBack (FOSS, installed
+but off) wasn't turned on, as other sessions share the phone. Where the work differed: the
+long-press / ✓ change was already committed (6c25ac4), not in the working tree. In 4.2 the
+Releases paragraph also lost the F-Droid merge request link (it's in the skill, F-Droid), and
+line 14 (101 characters) was rewrapped too; the four link lines in the list at the top stay long.

@@ -69,6 +69,19 @@ with a checklist: `features.md` next to this file.
 - Taps: `adb shell input tap X Y` in physical pixels (screen 1116×2484; screenshots are shown
   scaled, ×1.24). Screenshots: `adb exec-out screencap -p > file.png`. If the phone is locked,
   ask the user; don't try to unlock it.
+- With a second adb device attached, use `adb -s 4d42e62f`.
+- Slow or broken downloads (2026-10-07): a Python asyncio CONNECT proxy on the desktop that
+  throttles one host (`assets.science.nasa.gov` for the picture) and passes the rest.
+  `adb reverse tcp:8899 tcp:8899`, then `adb shell settings put global http_proxy 127.0.0.1:8899`.
+  Force-stop the app first: a process reads the proxy when it starts. Undo:
+  `settings put global http_proxy :0`, then `settings delete global http_proxy` and
+  `adb reverse --remove tcp:8899`; check that `settings get global global_http_proxy_host` is
+  empty. Deleting the key alone leaves the proxy active, which cuts the whole phone off once the
+  proxy stops. A proxy that refuses connections can't fake offline (Android's HTTP client then
+  goes direct): use the firewall chain (Store listing). A script that worked may still be at
+  `/tmp/claude-1000/-home-nordmu-Documents-source99-APODroid/1a6e4cbb-b3a6-4dc2-af09-5524f487d931/scratchpad/proxy.py`.
+- Stop a running job as the system would: `adb shell cmd jobscheduler timeout
+  io.github.buerlino.apodroid 1`.
 
 ## Still untested
 
@@ -79,10 +92,11 @@ with a checklist: `features.md` next to this file.
   needs an uninstall, which loses the user's settings, so ask first.
 - A huge picture on an R8 build (on the debug build 2026-10-04: the 37 MB PNG set as wallpaper
   in about 3 s, the page shows it).
-- The review fixes of 0.1.2 (`declutter.md`): page and job fetching at once ended right in 4
-  runs, rotation and a kill during a load recover, but on Wi-Fi the download always finished
-  before the race window, so neither the redraw path nor ☆ during a download ("Not saved: a new
-  picture came in") was really hit.
+- The review fixes of 0.1.2 (`declutter.md`) on an R8 build or below API 36: the redraw path
+  and ☆ during a download were tested on 2026-10-07 on a debug build (through the throttling
+  proxy).
+- A job stopped mid-download restarts the download from zero (seen 2026-10-07; `CLAUDE.md`,
+  open question 1).
 - A reboot (the persisted job surviving it).
 - The themed icon in a launcher that shows themed icons (Niagara doesn't, App info shows the
   normal icon); only checked as a render and in the APK.

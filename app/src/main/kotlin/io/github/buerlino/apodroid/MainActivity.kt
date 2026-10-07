@@ -14,6 +14,7 @@ import android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -309,6 +310,8 @@ class MainActivity : ComponentActivity() {
         }
         var expanded by rememberSaveable(apod.date) { mutableStateOf(false) }
         val hasExplanation = apod.explanation.isNotEmpty()
+        // Back leaves crop mode without setting; the dragged position stays for the job.
+        BackHandler(enabled = cropping) { cropping = false }
         Column {
             Box(contentAlignment = Alignment.BottomEnd) {
                 Image(
@@ -357,6 +360,7 @@ class MainActivity : ComponentActivity() {
                 Modifier
                     .combinedClickable(
                         onClick = { if (hasExplanation) expanded = !expanded },
+                        onLongClickLabel = "Copy link",
                         onLongClick = { copy("Link", apod.pageUrl) },
                     )
                     .padding(16.dp),
@@ -387,7 +391,12 @@ class MainActivity : ComponentActivity() {
                     apod.explanation,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier
-                        .combinedClickable(onClick = { expanded = false }, onLongClick = { copy("Explanation", apod.explanation) })
+                        .combinedClickable(
+                            onClickLabel = "Hide explanation",
+                            onClick = { expanded = false },
+                            onLongClickLabel = "Copy explanation",
+                            onLongClick = { copy("Explanation", apod.explanation) },
+                        )
                         .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 )
             }

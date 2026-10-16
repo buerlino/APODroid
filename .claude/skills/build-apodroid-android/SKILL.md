@@ -8,7 +8,7 @@ description: Execution brief for building APODroid (io.github.buerlino.apodroid)
 How-tos and what's still untested. `CLAUDE.md` at the repo root is the source of truth for the
 stack, the data source and the decisions. Read it first. If this skill and `CLAUDE.md` disagree,
 `CLAUDE.md` wins; update this skill to match. The history is in git. The next features to build,
-with a checklist: `features.md` next to this file.
+with a checklist: `features.md` next to this file. The work for 0.4.0: `plan-0.4.0.md`.
 
 ## Where things are
 
@@ -17,11 +17,13 @@ with a checklist: `features.md` next to this file.
   real response. Real responses for manual checks in `private/` (`latest.json`, `last100.json`).
   `core/.../Frame.kt`: `wallpaperFrame`, the part of the picture the wallpaper shows (tests in
   `FrameTest`).
-- `app/.../Store.kt`: prefs (also `daily`, `pauseHintHidden`), `refresh()`, `wallpaperFile()`
+- `app/.../Store.kt`: prefs (also `daily`, `pauseHintHidden`; `checkedAt`, `problem`, `httpCode`,
+  `wallpaperSetAt` for the problem and status lines), `update(force)` (what the page, the pull
+  and the job run: refresh, noting how the check went, then set while `daily` is on), `refresh()`, `wallpaperFile()`
   (which picture, or null on a video day with "keep"), `setWallpaper` (a photo with an EXIF
   orientation goes upright through `setBitmap`), `cropPosition(date)`, `save`, `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
-- `app/.../MainActivity.kt`: the page, with `checkPausing()` and the `PauseHint` under the switch.
+- `app/.../MainActivity.kt`: the page, with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture.
   `app/.../DailyJob.kt`: the job (id 1).
 
 ## Working on the phone
@@ -42,8 +44,13 @@ with a checklist: `features.md` next to this file.
 - Job: force a run with `adb shell cmd jobscheduler run -f io.github.buerlino.apodroid 1`, list
   with `adb shell dumpsys jobscheduler | grep io.github.buerlino.apodroid` (`Last successful
   run` outlives logcat). The job logs `Daily job: <date>, wallpaper set` (or `video, wallpaper
-  kept`) and `Daily job failed` under `adb logcat -d -s APODroid`. Crashes:
-  `adb logcat -d | grep AndroidRuntime`.
+  kept`) and `Daily job failed` under `adb logcat -d -s APODroid`; the page the same as `Page:
+  …` and `Update failed`. Nothing is logged when there was nothing to set. Pull to refresh:
+  `adb shell input swipe 400 300 400 1100 600` (tablet coordinates). Crashes:
+  `adb logcat -d | grep 'E AndroidRuntime'` (the `I AndroidRuntime` lines are adb's `content`
+  and `am` tools starting); after `logcat -c`,
+  `adb shell dumpsys activity exit-info io.github.buerlino.apodroid` still lists each exit's
+  reason (a crash is `CRASH`).
 - `am force-stop` cancels the app's jobs; opening the page schedules it again (pref `daily`).
   Use `am kill` to restart the app and keep the job. `pm clear` cancels it and the pref.
 - The hint about Android pausing the app: undo "Don't show again" with
@@ -54,6 +61,14 @@ with a checklist: `features.md` next to this file.
   else the running app keeps and later writes back its old values. `adb shell` hands the
   command to the phone's shell as one line, so a `>` in a `sed` pattern becomes a redirect
   there: match the line by an address instead, `-e '/wallpaperDate/s/<today>/<yesterday>/'`.
+  The phone's shell also strips double quotes, and a broken line makes Android drop the whole
+  prefs file: match `name="date"` as `/name=.date/`, keep the pattern in single quotes, and
+  `cat` the file before and after. The desktop shell strips those single quotes first, so a `|`
+  in the pattern becomes a pipe on the phone: wrap the whole command in double quotes,
+  `adb shell "run-as <pkg> sed -i -e '/x/s,a,b,' shared_prefs/apodroid.xml"`.
+- Fake "nothing has worked for two days" (the problem line's "since"): offline, after `am kill`,
+  `checkedAt` minus 172800000 and the stored `date` one day back (a page open on a current day
+  counts as a working check and resets it).
 - Fake an old day (debug builds only; `run-as` doesn't work on release builds), after `am kill`:
   `adb shell run-as io.github.buerlino.apodroid sed -i -e 's/<today>/<yesterday>/g' shared_prefs/apodroid.xml`.
   A video day the same way, by setting `isVideo` to true. To run the job on the stored picture
@@ -85,13 +100,15 @@ with a checklist: `features.md` next to this file.
 
 ## Still untested
 
-- A real video day (only faked via prefs), with both video-day settings; no star then.
+- 0.4.0 on the LineageOS phone beyond the update and a quick pass (2026-10-16: the release-signed
+  build over Obtainium's 0.3.1 on the real video day, the boxes offline; WP6's full pass ran on
+  the tablet).
+- 0.4.0's picture download failing (throttled or cut, a job timeout mid-download: the problem
+  box and the kept picture) and crop mode kept during a same-date pull: WP6 had only a video day.
 - A day without an explanation (no ▾).
 - Updating through Obtainium (0.2.0 was installed with it on the phone, 2026-10-04; `adb
   install -r` over the old version keeps the job). That install blocks debug builds: switching
   needs an uninstall, which loses the user's settings, so ask first.
-- A huge picture on an R8 build (on the debug build 2026-10-04: the 37 MB PNG set as wallpaper
-  in about 3 s, the page shows it).
 - The review fixes of 0.1.2 (`declutter.md`) on an R8 build or below API 36: the redraw path
   and ☆ during a download were tested on 2026-10-07 on a debug build (through the throttling
   proxy).

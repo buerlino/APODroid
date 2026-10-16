@@ -1,16 +1,16 @@
 APODroid sets NASA's Astronomy Picture of the Day (APOD) as your wallpaper. A new picture comes out every day, and the app picks it up on its own.
 
-The app is one page: today's picture with its title and date. Tap the picture to open it on NASA's website, or tap the star to save it to your gallery. Tap the frame button to choose which part of the picture becomes the wallpaper. Tap the title to read the astronomer's explanation.
+The app is one page: today's picture with its title and date. Pull down to refresh. Tap the picture to open it on NASA's website, or tap the star to save it to your gallery. Tap the frame button to choose which part of the picture becomes the wallpaper. Tap the title to read the astronomer's explanation.
 
 <b>Settings:</b>
 <ul>
 <li><b>Change wallpaper daily:</b> checks for the new picture a few times a day, only when there is a network.</li>
 <li><b>Where:</b> home screen, lock screen, or both.</li>
-<li><b>Video days:</b> some days APOD is a video. Keep the previous wallpaper, or use a picture of your own.</li>
-<li><b>Set as wallpaper now.</b></li>
+<li><b>Video days:</b> some days APOD is a video. Keep the previous wallpaper, or use a picture of your own. The page shows a ▶ tile that opens the video on NASA's website.</li>
+<li><b>Set as wallpaper now:</b> shown while the daily change is off. With it on, the app keeps the wallpaper current.</li>
 </ul>
 
-If Android would pause the app because you don't open it, a hint under the switch names the settings in App info that prevent it.
+If Android would pause the app because you don't open it, a note below the picture names the settings in App info that prevent it. Notes also tell you when the check fails.
 
 <b>Privacy:</b> no account, no ads, no tracking. The app talks only to science.nasa.gov. Permissions: internet access, setting the wallpaper, network state and starting after a reboot (both for the daily update). Saving to the gallery needs no permission.
 

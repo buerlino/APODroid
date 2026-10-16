@@ -12,9 +12,12 @@ One page: today's picture with its title and date, and the settings below it.
 - **Change wallpaper daily:** a background job checks for the new picture every few hours, only
   with a network, and sets it once it's out (about 00:05 US Eastern time).
 - **Where:** home screen, lock screen, or both.
-- **Video days:** keep the previous wallpaper, or use a picture of your own.
-- **Set as wallpaper now.**
-- If Android would pause the app because you don't open it, a hint under the switch names the
+- **Video days:** keep the previous wallpaper, or use a picture of your own. The page shows a ▶ tile that
+  opens the video on NASA's website.
+- **Set as wallpaper now:** shown while the daily change is off; with it on, the app keeps the
+  wallpaper current.
+- Pull down to refresh. Notes below the picture say when the check fails.
+- If Android would pause the app because you don't open it, a note below the picture names the
   settings in App info that prevent it.
 - Tap the picture to open it on NASA's website; tap the star to save it to your gallery
   (`Pictures/APODroid/`).

@@ -8,6 +8,7 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URI
 import java.time.LocalDate
+import java.time.format.DateTimeParseException
 
 /** One APOD post, only what the app uses. */
 data class Apod(
@@ -15,8 +16,8 @@ data class Apod(
     val date: LocalDate,
     /** Without the `APOD: 2026 October 1 – ` prefix, entities decoded. */
     val title: String,
-    /** The picture; on video days a still frame or a generic NASA image. */
-    val imageUrl: String,
+    /** The picture; null on video days (their still frame is often a generic NASA image, or missing). */
+    val imageUrl: String?,
     /** The post on science.nasa.gov. */
     val pageUrl: String,
     val isVideo: Boolean,
@@ -42,15 +43,25 @@ data class Apod(
 const val LATEST_URL = "https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_page=1"
 
 /**
- * Blocking fetch of the newest APOD. Call off the main thread. Throws on network or format errors.
+ * The site answered, but not as expected: not the JSON this app reads, no post, a bad date, an
+ * image day without a picture, a picture that isn't one. An app update may be needed.
+ */
+class SiteChanged(message: String, cause: Throwable? = null) : IOException(message, cause)
+
+/** The site answered with [code] instead of 200. */
+class HttpStatus(val code: Int) : IOException("HTTP $code")
+
+/**
+ * Blocking fetch of the newest APOD. Call off the main thread. Throws [SiteChanged],
+ * [HttpStatus], or another [IOException] for a network failure.
  * [userAgent] goes with the request so the site can tell this app apart (see CLAUDE.md).
  */
 fun fetchLatest(userAgent: String, url: String = LATEST_URL): Apod =
     get(url, "application/json", userAgent) { parseLatest(it.bufferedReader().readText()) }
 
 /**
- * Blocking download of [url] to [to]. Throws on network errors and when fewer bytes arrive than
- * announced; [to] is then deleted.
+ * Blocking download of [url] to [to]. Throws [HttpStatus], or an [IOException] for a network
+ * failure, also when fewer bytes arrive than announced; [to] is then deleted.
  */
 fun download(url: String, to: File, userAgent: String) {
     try {
@@ -72,7 +83,7 @@ private fun <T> get(url: String, accept: String, userAgent: String, read: HttpUR
         conn.readTimeout = 30_000
         conn.setRequestProperty("Accept", accept)
         conn.setRequestProperty("User-Agent", userAgent)
-        if (conn.responseCode != HttpURLConnection.HTTP_OK) throw IOException("HTTP ${conn.responseCode}")
+        if (conn.responseCode != HttpURLConnection.HTTP_OK) throw HttpStatus(conn.responseCode)
         return conn.inputStream.use { conn.read(it) }
     } finally {
         conn.disconnect()
@@ -81,19 +92,30 @@ private fun <T> get(url: String, accept: String, userAgent: String, read: HttpUR
 
 private val json = Json { ignoreUnknownKeys = true }
 
+/** Throws [SiteChanged] for anything it can't read. */
 fun parseLatest(body: String): Apod {
-    val p = json.decodeFromString<List<Post>>(body).firstOrNull() ?: throw IOException("No post")
+    val p = try {
+        json.decodeFromString<List<Post>>(body).firstOrNull()
+    } catch (e: IllegalArgumentException) { // SerializationException: not the JSON expected
+        throw SiteChanged("Unexpected JSON", e)
+    } ?: throw SiteChanged("No post")
+    // Video days may have no featured_image at all (16 Oct 2026).
+    val isVideo = isVideo(p.content?.rendered.orEmpty())
     return Apod(
-        date = LocalDate.parse(p.date.take(10)),
+        date = try {
+            LocalDate.parse(p.date.take(10))
+        } catch (e: DateTimeParseException) {
+            throw SiteChanged("Bad date: ${p.date}", e)
+        },
         title = cleanTitle(p.title?.rendered.orEmpty()),
-        imageUrl = p.featured_image?.file ?: throw IOException("No image"),
+        imageUrl = if (isVideo) null else p.featured_image?.file ?: throw SiteChanged("No image"),
         pageUrl = p.link,
-        isVideo = isVideo(p.content?.rendered.orEmpty()),
+        isVideo = isVideo,
         explanation = explanation(p.content?.rendered.orEmpty()),
     )
 }
 
-private val titlePrefix = Regex("""^APOD:\s*\d{4}\s+\p{L}+\s+\d{1,2}\s*[-–—]\s*""")
+private val titlePrefix = Regex("""^APOD:\s*\d{4}\s+\p{L}+(?:\s+\d{1,2})?\s*[-–—]\s*""")
 
 internal fun cleanTitle(rendered: String): String = decodeEntities(rendered).replace(titlePrefix, "").trim()
 

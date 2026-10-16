@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+import android.text.format.DateFormat
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -22,6 +23,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -29,7 +31,9 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +46,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -59,6 +64,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -81,6 +87,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -90,7 +97,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -100,7 +110,11 @@ class MainActivity : ComponentActivity() {
     private var apod by mutableStateOf<Apod?>(null)
     private var picture by mutableStateOf<ImageBitmap?>(null)
     private var loading by mutableStateOf(false)
+    private var refreshing by mutableStateOf(false)
     private var failed by mutableStateOf(false)
+    private var problem by mutableStateOf<Problem?>(null)
+    private var checkedAt by mutableStateOf<Instant?>(null)
+    private var wallpaperSetAt by mutableStateOf<Instant?>(null)
     private var saved by mutableStateOf(false)
     private var daily by mutableStateOf(false)
     private var where by mutableStateOf(Where.BOTH)
@@ -109,6 +123,9 @@ class MainActivity : ComponentActivity() {
     private var batteryLimited by mutableStateOf(false)
     private var mayHibernate by mutableStateOf(false)
     private var pauseHintHidden by mutableStateOf(false)
+    private var videoNoticeDate by mutableStateOf<String?>(null)
+    private var videoNoticeHidden by mutableStateOf(false)
+    private var problemNoticeKey by mutableStateOf<String?>(null)
     private var cropping by mutableStateOf(false)
     private var cropPosition by mutableFloatStateOf(0.5f)
     private val screen by lazy { store.screen }
@@ -118,6 +135,9 @@ class MainActivity : ComponentActivity() {
         store = Store(this)
         daily = store.daily
         pauseHintHidden = store.pauseHintHidden
+        videoNoticeDate = store.videoNoticeDate
+        videoNoticeHidden = store.videoNoticeHidden
+        problemNoticeKey = store.problemNoticeKey
         where = store.where
         videoDays = store.videoDays
         hasFallback = store.fallbackFile.exists()
@@ -153,31 +173,76 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Shows the stored APOD (also when the daily job stored a new one while the page was in the
-     * background), then fetches the newest one unless the stored one is today's.
+     * background), then runs [Store.update]: fetches the newest one unless the stored one is
+     * today's (always with [force], pull to refresh) and sets it while the daily change is on.
      */
-    private fun load() {
+    private fun load(force: Boolean = false) {
         if (loading) return
         loading = true
         failed = false
         lifecycleScope.launch {
             if (picture == null || store.apod != apod) show()
-            if (!store.isCurrent) {
-                val result = withContext(Dispatchers.IO) { runCatching { store.refresh() } }
-                // Also when this refresh found nothing new: another one (the job's) may have.
-                result.onSuccess { if (picture == null || store.apod != apod) show() }
-                result.onFailure { Log.w("APODroid", "Refresh failed: $it", it) }
-                failed = result.isFailure && picture == null
-            }
+            readStatus()
+            val result = withContext(Dispatchers.IO) { runCatching { store.update(force) } }
+            // Also when this update found nothing new: another one (the job's) may have.
+            if (picture == null || store.apod != apod) show()
+            readStatus()
+            result.onSuccess { if (it != null) Log.i("APODroid", "Page: $it") }
+            result.onFailure { Log.w("APODroid", "Update failed: $it", it) }
+            failed = result.isFailure && picture == null && apod?.isVideo != true
             saved = withContext(Dispatchers.IO) { store.isSaved }
             loading = false
+            refreshing = false
         }
     }
 
+    /** What the last check and the last set stored (also the job's). */
+    private fun readStatus() {
+        problem = store.problem
+        checkedAt = store.checkedAt
+        wallpaperSetAt = store.wallpaperSetAt
+    }
+
+    /** The cause in a sentence, with since when nothing has worked once that's more than a day. */
+    private fun problemText(problem: Problem): String {
+        val since = checkedAt?.takeIf { it < Instant.now().minus(1, ChronoUnit.DAYS) }
+            ?.let { " since " + it.atZone(ZoneId.systemDefault()).format(dayFormat) }
+        return when (problem) {
+            Problem.Network -> "Couldn't reach NASA's site${since.orEmpty()}. Check the connection."
+            is Problem.Http -> if (since == null) {
+                "NASA's site answered with an error (${problem.code}). The app tries again later."
+            } else {
+                "NASA's site has answered with an error (${problem.code})$since. The app tries again later."
+            }
+            Problem.SiteChanged -> "NASA's site has changed${since?.let { "; nothing new$it" }.orEmpty()}. " +
+                "An app update may be needed."
+        }
+    }
+
+    /** Under the daily switch: when the wallpaper last changed, or that a video day kept it. */
+    private fun statusText(): String? = when {
+        apod?.isVideo == true && !(videoDays == VideoDays.MINE && hasFallback) -> "Video day, wallpaper kept"
+        else -> wallpaperSetAt?.let {
+            val time = if (DateFormat.is24HourFormat(this)) "d MMM, HH:mm" else "d MMM, h:mm a"
+            "Wallpaper changed " + it.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern(time, Locale.ENGLISH))
+        }
+    }
+
+    private fun pullToRefresh() {
+        refreshing = true
+        load(force = true)
+    }
+
+    /** A new date closes crop mode; a changed title or explanation for the same date doesn't. */
     private suspend fun show() {
-        apod = store.apod
-        cropping = false
-        cropPosition = store.cropPosition(apod?.date)
-        picture = withContext(Dispatchers.IO) {
+        val stored = store.apod
+        if (stored?.date != apod?.date) {
+            cropping = false
+            cropPosition = store.cropPosition(stored?.date)
+        }
+        apod = stored
+        // Video days have no picture (an entry stored by 0.3.1 may still have a still frame).
+        picture = if (apod?.isVideo == true) null else withContext(Dispatchers.IO) {
             store.imageFile.takeIf { it.exists() }?.let { decodeForScreen(it) }?.asImageBitmap()
         }
     }
@@ -204,6 +269,11 @@ class MainActivity : ComponentActivity() {
         if (!on) DailyJob.cancel(this)
         daily = on
         store.daily = on
+        // Sets today's picture again, also when it was set before (the wallpaper may have changed since).
+        if (on) {
+            store.forgetWallpaper()
+            load()
+        }
     }
 
     private fun openAppInfo() {
@@ -215,17 +285,60 @@ class MainActivity : ComponentActivity() {
         store.pauseHintHidden = true
     }
 
+    private fun dismissVideoNotice(forever: Boolean) {
+        if (forever) {
+            videoNoticeHidden = true
+            store.videoNoticeHidden = true
+        } else {
+            val date = apod?.date?.toString()
+            videoNoticeDate = date
+            store.videoNoticeDate = date
+        }
+    }
+
+    /** Kind, code and day: what [dismissProblem] hides until one of them changes. */
+    private fun problemKey(problem: Problem): String {
+        val kind = when (problem) {
+            Problem.Network -> "network"
+            is Problem.Http -> "http:${problem.code}"
+            Problem.SiteChanged -> "site"
+        }
+        return "$kind:${LocalDate.now()}"
+    }
+
+    private fun dismissProblem(problem: Problem) {
+        val key = problemKey(problem)
+        problemNoticeKey = key
+        store.problemNoticeKey = key
+    }
+
     private fun setWallpaperNow() {
         val file = store.wallpaperFile()
         if (file == null) {
-            toast("Video today: wallpaper kept")
+            toast("Video day: wallpaper kept")
             return
         }
         cropping = false
+        set(file)
+    }
+
+    private fun set(file: File) {
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching { store.setWallpaper(file) } }
+            result.onFailure { Log.w("APODroid", "Set failed: $it", it) }
+            readStatus()
             toast(if (result.isSuccess) "Wallpaper set" else "Couldn't set the wallpaper")
         }
+    }
+
+    /**
+     * A setting changed: while the daily change is on, the wallpaper follows at once (the button
+     * is only there while it's off). [videoOnly] for the video-day settings, which change nothing
+     * on an image day.
+     */
+    private fun applyNow(videoOnly: Boolean = false) {
+        if (!daily || (videoOnly && apod?.isVideo != true)) return
+        store.wallpaperFile()?.let(::set)
     }
 
     private fun savePicture() {
@@ -260,6 +373,7 @@ class MainActivity : ComponentActivity() {
             }
             if (!ok) toast("Couldn't use that picture")
             hasFallback = store.fallbackFile.exists()
+            if (ok && videoDays == VideoDays.MINE) applyNow(videoOnly = true)
         }
     }
 
@@ -281,14 +395,16 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun Page() {
-        Column(
-            Modifier
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .verticalScroll(rememberScrollState())
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = ::pullToRefresh,
+            modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
-            Picture()
-            HorizontalDivider()
-            Settings()
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                Picture()
+                HorizontalDivider()
+                Settings()
+            }
         }
     }
 
@@ -296,15 +412,18 @@ class MainActivity : ComponentActivity() {
     private fun Picture() {
         val apod = apod
         val picture = picture
-        if (apod == null || picture == null) {
-            Box(Modifier.fillMaxWidth().aspectRatio(3f / 2f), contentAlignment = Alignment.Center) {
-                when {
-                    loading -> CircularProgressIndicator()
-                    failed -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Couldn't load today's picture.")
-                        TextButton(onClick = ::load) { Text("Try again") }
+        if (apod == null || (picture == null && !apod.isVideo)) {
+            Column {
+                Box(Modifier.fillMaxWidth().aspectRatio(3f / 2f), contentAlignment = Alignment.Center) {
+                    when {
+                        loading -> CircularProgressIndicator()
+                        failed -> Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(problem?.let(::problemText) ?: "Couldn't load today's picture.", textAlign = TextAlign.Center)
+                            TextButton(onClick = ::load) { Text("Try again") }
+                        }
                     }
                 }
+                BatteryNotice()
             }
             return
         }
@@ -313,7 +432,9 @@ class MainActivity : ComponentActivity() {
         // Back leaves crop mode without setting; the dragged position stays for the job.
         BackHandler(enabled = cropping) { cropping = false }
         Column {
-            Box(contentAlignment = Alignment.BottomEnd) {
+            // Every box that applies shows: problem, video notice, battery hint.
+            val shownProblem = problem?.takeIf { problemKey(it) != problemNoticeKey }
+            if (picture == null) VideoTile(apod) else Box(contentAlignment = Alignment.BottomEnd) {
                 Image(
                     bitmap = picture,
                     contentDescription = apod.title,
@@ -323,39 +444,42 @@ class MainActivity : ComponentActivity() {
                         .then(if (cropping) Modifier.cropFrame(picture, apod.date) else Modifier.clickable { openPage(apod.pageUrl) }),
                     contentScale = ContentScale.FillWidth,
                 )
-                // Saving a video day's still frame isn't worth it: often it's a generic NASA image.
-                // On a video day the wallpaper is the previous picture or the user's own.
-                if (!apod.isVideo) {
-                    IconButton(
-                        // ✓ sets the chosen part at once.
-                        onClick = { if (cropping) setWallpaperNow() else cropping = true },
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(8.dp)
-                            .background(Color.Black.copy(alpha = 0.4f), CircleShape),
-                    ) {
-                        Text(
-                            if (cropping) "✓" else "⛶",
-                            Modifier.clearAndSetSemantics {
-                                contentDescription = if (cropping) "Set as wallpaper" else "Choose the wallpaper's part"
-                            },
-                            color = Color.White,
-                            fontSize = 24.sp,
-                        )
-                    }
-                    IconButton(
-                        onClick = ::savePicture,
-                        modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
-                    ) {
-                        Text(
-                            if (saved) "★" else "☆",
-                            Modifier.clearAndSetSemantics { contentDescription = if (saved) "Saved" else "Save" },
-                            color = Color.White,
-                            fontSize = 24.sp,
-                        )
-                    }
+                IconButton(
+                    // ✓ sets the chosen part at once.
+                    onClick = { if (cropping) setWallpaperNow() else cropping = true },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                        .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                ) {
+                    Text(
+                        if (cropping) "✓" else "⛶",
+                        Modifier.clearAndSetSemantics {
+                            contentDescription = if (cropping) "Set as wallpaper" else "Choose the wallpaper's part"
+                        },
+                        color = Color.White,
+                        fontSize = 24.sp,
+                    )
+                }
+                IconButton(
+                    onClick = ::savePicture,
+                    modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                ) {
+                    Text(
+                        if (saved) "★" else "☆",
+                        Modifier.clearAndSetSemantics { contentDescription = if (saved) "Saved" else "Save" },
+                        color = Color.White,
+                        fontSize = 24.sp,
+                    )
                 }
             }
+            if (shownProblem != null) {
+                NoticeBox({ TextButton(onClick = { dismissProblem(shownProblem) }) { Text("Dismiss") } }) {
+                    Text(problemText(shownProblem), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            if (picture == null && !videoNoticeHidden && videoNoticeDate != apod.date.toString()) VideoNotice()
+            BatteryNotice()
             Row(
                 Modifier
                     .combinedClickable(
@@ -400,6 +524,66 @@ class MainActivity : ComponentActivity() {
                         .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 )
             }
+        }
+    }
+
+    /**
+     * Video days: no picture (the still frame is often a generic NASA image, or missing), so no
+     * ⛶ or ★. Tapping plays the video on the APOD page. The wallpaper is the previous picture or
+     * the user's own.
+     */
+    @Composable
+    private fun VideoTile(apod: Apod) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(3f / 2f)
+                .background(Color.Black)
+                .clickable { openPage(apod.pageUrl) },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "▶",
+                Modifier.clearAndSetSemantics { contentDescription = "Play video on the web" },
+                color = Color.White,
+                fontSize = 48.sp,
+            )
+        }
+    }
+
+    /** Says why the wallpaper didn't change on a video day and what the user can do; follows the settings. */
+    @Composable
+    private fun VideoNotice() {
+        val watch = "Tap ▶ to watch it on NASA's site."
+        val kept = "This APOD is a video, so your wallpaper stays as it was."
+        val text = when {
+            !daily -> "This APOD is a video. $watch"
+            videoDays == VideoDays.MINE && hasFallback ->
+                "This APOD is a video, so your own picture is the wallpaper. $watch"
+            videoDays == VideoDays.MINE -> "$kept $watch Pick a picture below to use it on video days."
+            else -> "$kept $watch To use your own picture on video days, choose \"Use my picture\" below."
+        }
+        NoticeBox({
+            TextButton(onClick = { dismissVideoNotice(forever = false) }) { Text("Dismiss") }
+            TextButton(onClick = { dismissVideoNotice(forever = true) }) { Text("Don't show again") }
+        }) { Text(text, style = MaterialTheme.typography.bodyMedium) }
+    }
+
+    /** The orange box below the picture or tile, for problems, the video notice and the battery hint. */
+    @Composable
+    private fun NoticeBox(buttons: @Composable RowScope.() -> Unit, content: @Composable ColumnScope.() -> Unit) {
+        val orange = Color(0xFFFF9800)
+        Column(
+            Modifier
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                .fillMaxWidth()
+                .background(orange.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                .border(1.dp, orange, RoundedCornerShape(4.dp))
+                .padding(12.dp),
+        ) {
+            content()
+            // TextButton's content padding; the offset lines its text up with the text above.
+            Row(Modifier.offset(x = (-12).dp), content = buttons)
         }
     }
 
@@ -449,7 +633,9 @@ class MainActivity : ComponentActivity() {
                 Text("Change wallpaper daily", Modifier.weight(1f))
                 Switch(checked = daily, onCheckedChange = null)
             }
-            if (daily && (batteryLimited || mayHibernate) && !pauseHintHidden) PauseHint()
+            if (daily) statusText()?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
 
             Heading("Wallpaper on")
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
@@ -457,7 +643,12 @@ class MainActivity : ComponentActivity() {
                 Where.entries.forEachIndexed { i, w ->
                     SegmentedButton(
                         selected = where == w,
-                        onClick = { where = w; store.where = w },
+                        onClick = {
+                            if (where != w) {
+                                where = w; store.where = w
+                                applyNow()
+                            }
+                        },
                         shape = SegmentedButtonDefaults.itemShape(i, Where.entries.size),
                     ) { Text(labels.getValue(w)) }
                 }
@@ -468,7 +659,10 @@ class MainActivity : ComponentActivity() {
                 videoDays = VideoDays.KEEP; store.videoDays = VideoDays.KEEP
             }
             Choice("Use my picture", videoDays == VideoDays.MINE) {
-                videoDays = VideoDays.MINE; store.videoDays = VideoDays.MINE
+                if (videoDays != VideoDays.MINE) {
+                    videoDays = VideoDays.MINE; store.videoDays = VideoDays.MINE
+                    applyNow(videoOnly = true)
+                }
             }
             if (videoDays == VideoDays.MINE) {
                 OutlinedButton(
@@ -477,12 +671,20 @@ class MainActivity : ComponentActivity() {
                 ) { Text(if (hasFallback) "Change picture" else "Pick picture") }
             }
 
-            Button(
-                onClick = ::setWallpaperNow,
-                enabled = apod != null,
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) { Text("Set as wallpaper now") }
+            // While the daily change is on, the app keeps the wallpaper current.
+            if (!daily) {
+                Button(
+                    onClick = ::setWallpaperNow,
+                    enabled = apod != null,
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                ) { Text("Set as wallpaper now") }
+            }
         }
+    }
+
+    @Composable
+    private fun BatteryNotice() {
+        if (daily && (batteryLimited || mayHibernate) && !pauseHintHidden) PauseHint()
     }
 
     /** Names only the settings still missing; hiding it asks first, with what will happen. */
@@ -504,15 +706,13 @@ class MainActivity : ComponentActivity() {
             batteryLimited -> listOf(battery) to "after about 8 days the wallpaper only changes while the phone charges"
             else -> listOf(unused) to "after about 3 months the wallpaper stops changing"
         }
-        Column {
+        NoticeBox({
+            TextButton(onClick = ::openAppInfo) { Text("App info") }
+            TextButton(onClick = { confirm = true }) { Text("Don't show again") }
+        }) {
             Text("Android pauses apps you don't open. In App info:", style = MaterialTheme.typography.bodyMedium)
             missing.forEach {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            // TextButton's content padding; the offset lines its text up with the text above.
-            Row(Modifier.offset(x = (-12).dp)) {
-                TextButton(onClick = ::openAppInfo) { Text("App info") }
-                TextButton(onClick = { confirm = true }) { Text("Don't show again") }
             }
         }
         if (confirm) {
@@ -549,3 +749,4 @@ class MainActivity : ComponentActivity() {
 }
 
 private val dateFormat = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH)
+private val dayFormat = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)

@@ -17,13 +17,14 @@ class ApodTest {
         title: String = "APOD: 2026 March 3 &#8211; A Made&#8217;Up Nebula",
         hero: String = "<figure><a href='https://assets.example/x.jpg'><img src='https://assets.example/x.jpg?w=1600'></a></figure>",
         explanation: String = "<a href='https://science.nasa.gov/mission/x/'>a mission</a>",
-        image: String = """{"id":7,"file":"https://assets.example/apod/2026/march/nebula.jpg","title":"Nebula"}""",
+        // null leaves the key out, as on 16 Oct 2026 (a video day).
+        image: String? = """{"id":7,"file":"https://assets.example/apod/2026/march/nebula.jpg","title":"Nebula"}""",
     ) = """[{"id":1,"date":"2026-03-03T00:05:00","date_gmt":"2026-03-03T05:05:00",
         "link":"https://science.nasa.gov/image-article/apod-2026-march-3-a-made-up-nebula/",
         "title":{"rendered":"$title"},
         "content":{"rendered":"<p>Discover the cosmos!</p><div class='media-detail-hero__media'>$hero</div><h1>Title</h1><p class='p-md media-detail-hero__description'><strong>Explanation:</strong> $explanation</p>"},
-        "featured_image_url":"https://assets.example/apod/2026/march/nebula.jpg?w=1600",
-        "featured_image":$image}]"""
+        "featured_image_url":"https://assets.example/apod/2026/march/nebula.jpg?w=1600"
+        ${image?.let { ",\"featured_image\":$it" }.orEmpty()}}]"""
 
     @Test
     fun parsesTheFieldsTheAppUses() {
@@ -56,6 +57,7 @@ class ApodTest {
         assertEquals("Galaxy in Aries", cleanTitle("APOD: 2026 September 30 – Galaxy in Aries"))
         assertEquals("Shadow and Rainbow", cleanTitle("APOD: 2026 July 18 -Shadow and Rainbow"))
         assertEquals("Stars & Dust", cleanTitle("APOD: 2026 July 2 &#x2013; Stars &amp; Dust"))
+        assertEquals("Caught in the Web", cleanTitle("APOD: 2026 April &#8211; Caught in the Web")) // no day, 3 Apr 2026
         assertEquals("No Prefix &#99999999;", cleanTitle("No Prefix &#99999999;"))
     }
 
@@ -77,6 +79,10 @@ class ApodTest {
         val youtube = "<figure class='is-provider-youtube'><iframe src='https://www.youtube.com/embed/abc'></iframe></figure>"
         assertTrue(parseLatest(post(hero = mp4)).isVideo)
         assertTrue(parseLatest(post(hero = youtube)).isVideo)
+        // No still frame on video days, also when the post has one.
+        assertEquals(null, parseLatest(post(hero = mp4)).imageUrl)
+        assertEquals(null, parseLatest(post(hero = mp4, image = null)).imageUrl)
+        assertEquals(null, parseLatest(post(hero = youtube, image = "{\"id\":0}")).imageUrl)
         // An image day that links (or even embeds) a video in the explanation.
         assertFalse(parseLatest(post(explanation = "<a href='https://youtu.be/abc'>video</a>$youtube")).isVideo)
     }
@@ -91,9 +97,18 @@ class ApodTest {
 
     @Test
     fun failsWithoutAPostOrAnImage() {
-        assertFailsWith<IOException> { parseLatest("[]") }
-        assertFailsWith<IOException> { parseLatest(post(image = "null")) }
-        assertFailsWith<IOException> { parseLatest(post(image = "{\"id\":0}")) }
+        assertFailsWith<SiteChanged> { parseLatest("[]") }
+        assertFailsWith<SiteChanged> { parseLatest(post(image = "null")) }
+        assertFailsWith<SiteChanged> { parseLatest(post(image = null)) }
+        assertFailsWith<SiteChanged> { parseLatest(post(image = "{\"id\":0}")) }
+    }
+
+    @Test
+    fun failsWhenTheSiteChanged() {
+        assertFailsWith<SiteChanged> { parseLatest("<html>Moved</html>") }
+        assertFailsWith<SiteChanged> { parseLatest("""{"code":"rest_no_route"}""") }
+        assertFailsWith<SiteChanged> { parseLatest("""[{"date":"2026-03-03T00:05:00"}]""") } // no link
+        assertFailsWith<SiteChanged> { parseLatest(post().replace("2026-03-03T00:05:00", "3 March 2026")) }
     }
 
     @Test
@@ -109,7 +124,15 @@ class ApodTest {
 
     @Test
     fun failsOnHttpErrors() = withServer(503, "") { url ->
-        assertFailsWith<IOException> { fetchLatest(UA, url) }
+        assertEquals(503, assertFailsWith<HttpStatus> { fetchLatest(UA, url) }.code)
+    }
+
+    @Test
+    fun failsWithoutTheServer() {
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        val url = "http://127.0.0.1:${server.address.port}/"
+        server.stop(0)
+        assertNetworkFailure(assertFailsWith<IOException> { fetchLatest(UA, url) })
     }
 
     @Test
@@ -126,15 +149,20 @@ class ApodTest {
     @Test
     fun deletesTheFileOnHttpErrors() = withServer(404, "") { url ->
         val file = File.createTempFile("apod", ".jpg")
-        assertFailsWith<IOException> { download(url, file, UA) }
+        assertEquals(404, assertFailsWith<HttpStatus> { download(url, file, UA) }.code)
         assertFalse(file.exists())
     }
 
     @Test
     fun deletesTheFileWhenTheDownloadIsIncomplete() = withServer(200, "made-up", announced = 100) { url ->
         val file = File.createTempFile("apod", ".jpg")
-        assertFailsWith<IOException> { download(url, file, UA) }
+        assertNetworkFailure(assertFailsWith<IOException> { download(url, file, UA) })
         assertFalse(file.exists())
+    }
+
+    /** Neither of the typed failures: the app calls the rest a network failure. */
+    private fun assertNetworkFailure(e: IOException) {
+        assertFalse(e is SiteChanged || e is HttpStatus, "$e")
     }
 
     private val UA = "APODroid/0.0.0 (+https://example.org)"

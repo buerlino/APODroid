@@ -16,11 +16,14 @@ import android.view.Display
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import io.github.buerlino.apodroid.core.Apod
+import io.github.buerlino.apodroid.core.HttpStatus
+import io.github.buerlino.apodroid.core.SiteChanged
 import io.github.buerlino.apodroid.core.download
 import io.github.buerlino.apodroid.core.fetchLatest
 import io.github.buerlino.apodroid.core.wallpaperFrame as coreWallpaperFrame
 import java.io.File
 import java.io.IOException
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -31,6 +34,13 @@ enum class Where(val flags: Int) {
 }
 
 enum class VideoDays { KEEP, MINE }
+
+/** Why the last check failed, for the page to name. */
+sealed interface Problem {
+    data object Network : Problem
+    data class Http(val code: Int) : Problem
+    data object SiteChanged : Problem
+}
 
 /** Settings and the current APOD in SharedPreferences, the pictures in the app's private files. */
 class Store(private val context: Context) {
@@ -52,14 +62,10 @@ class Store(private val context: Context) {
 
     /**
      * Whether the user turned the daily change on. Hibernation or a force stop deletes the job,
-     * so the page schedules it again when this is on. Until 0.1.2 the switch was only the
-     * scheduled job, so the first read takes it from there (migration).
+     * so the page schedules it again when this is on.
      */
     var daily: Boolean
-        get() {
-            if (!prefs.contains("daily")) daily = DailyJob.isScheduled(context)
-            return prefs.getBoolean("daily", false)
-        }
+        get() = prefs.getBoolean("daily", false)
         set(value) = prefs.edit { putBoolean("daily", value) }
 
     /** The user hid the hint about Android pausing the app, accepting the warning. */
@@ -67,14 +73,29 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("pauseHintHidden", false)
         set(value) = prefs.edit { putBoolean("pauseHintHidden", value) }
 
-    /** The APOD whose picture is in [imageFile]. */
+    /** The video-day notice was dismissed for this date (stored as text), and it's back on the next video day. */
+    var videoNoticeDate: String?
+        get() = prefs.getString("videoNoticeDate", null)
+        set(value) = prefs.edit { putString("videoNoticeDate", value) }
+
+    /** The user hid the video-day notice for good. */
+    var videoNoticeHidden: Boolean
+        get() = prefs.getBoolean("videoNoticeHidden", false)
+        set(value) = prefs.edit { putBoolean("videoNoticeHidden", value) }
+
+    /** The problem the user dismissed, as kind and day (`http:503:2026-10-16`); a different kind, code or day shows it again. */
+    var problemNoticeKey: String?
+        get() = prefs.getString("problemNoticeKey", null)
+        set(value) = prefs.edit { putString("problemNoticeKey", value) }
+
+    /** The APOD whose picture is in [imageFile]; on video days there's none. */
     val apod: Apod?
         get() {
             val date = prefs.getString("date", null) ?: return null
             return Apod(
                 date = LocalDate.parse(date),
                 title = prefs.getString("title", null).orEmpty(),
-                imageUrl = prefs.getString("imageUrl", null).orEmpty(),
+                imageUrl = prefs.getString("imageUrl", null),
                 pageUrl = prefs.getString("pageUrl", null).orEmpty(),
                 isVideo = prefs.getBoolean("isVideo", false),
                 explanation = prefs.getString("explanation", null).orEmpty(),
@@ -95,29 +116,102 @@ class Store(private val context: Context) {
         get() = prefs.getString("wallpaperDate", null)?.let(LocalDate::parse)
         private set(value) = prefs.edit { putString("wallpaperDate", value?.toString()) }
 
+    /** When [setWallpaper] last worked (the job, the page or a button). */
+    var wallpaperSetAt: Instant?
+        get() = instant("wallpaperSetAt")
+        private set(value) = prefs.edit { putLong("wallpaperSetAt", value?.toEpochMilli() ?: 0) }
+
+    /** When a check last worked: a refresh, or finding today's APOD already stored. */
+    val checkedAt: Instant?
+        get() = instant("checkedAt")
+
+    /** What the last check ran into, or null when it worked. */
+    val problem: Problem?
+        get() = when (prefs.getString("problem", null)) {
+            "network" -> Problem.Network
+            "http" -> Problem.Http(prefs.getInt("httpCode", 0))
+            "site" -> Problem.SiteChanged
+            else -> null
+        }
+
+    private fun instant(key: String) = prefs.getLong(key, 0).takeIf { it > 0 }?.let(Instant::ofEpochMilli)
+
+    /** Makes the next [update] set the stored APOD again (the daily switch turned on). */
+    fun forgetWallpaper() { wallpaperDate = null }
+
     /** True when the stored APOD is today's (APOD dates are US Eastern). */
     val isCurrent: Boolean
-        get() = apod?.date == LocalDate.now(ZoneId.of("America/New_York")) && imageFile.exists()
+        get() = apod?.let { it.date == LocalDate.now(ZoneId.of("America/New_York")) && isComplete(it) } == true
+
+    /** Its picture is there, or it needs none (a video day). */
+    private fun isComplete(apod: Apod) = apod.isVideo || imageFile.exists()
 
     /**
      * Blocking. Asks for the newest APOD and, when its date is new, downloads its picture. The
-     * stored APOD only changes once the picture is complete and decodable. An older post than
-     * the stored one (a stale cache) is ignored. The page and the daily job may call it at the
-     * same time, hence the lock.
+     * stored APOD only changes once the picture is complete and decodable. A video day has no
+     * picture: the previous one is deleted. An older post than the stored one (a stale cache) is
+     * ignored. The page and the daily job may call it at the same time, hence the lock.
      */
     fun refresh(): Unit = synchronized(refreshLock) {
         val latest = fetchLatest(userAgent)
         val stored = apod
-        if (stored != null && latest.date < stored.date && imageFile.exists()) return
-        if (latest.date != stored?.date || !imageFile.exists()) {
+        if (stored != null && latest.date < stored.date && isComplete(stored)) return
+        val url = latest.imageUrl
+        if (url != null && (latest.date != stored?.date || !imageFile.exists())) {
             val part = File(context.filesDir, "apod.part")
-            download(latest.imageUrl, part, userAgent)
+            download(url, part, userAgent)
             if (!isImage(part) || !part.renameTo(imageFile)) {
                 part.delete()
-                throw IOException("Not an image: ${latest.imageUrl}")
+                throw SiteChanged("Not an image: $url")
             }
         }
         store(latest)
+        // After storing: a page drawing meanwhile shows the video entry, never the old picture under it.
+        if (url == null) imageFile.delete()
+    }
+
+    /**
+     * Blocking. What the page and the daily job both run: [refresh] unless the stored APOD is
+     * today's (always with [force], pull to refresh), then, while the daily change is on, sets the
+     * stored APOD as wallpaper once per date. Returns what it did for the log, or null when there
+     * was nothing to set.
+     */
+    fun update(force: Boolean): String? {
+        checkSite(force)
+        if (!daily) return null
+        // Checked and set under one lock: the page and the job may both get here.
+        return synchronized(wallpaperLock) {
+            val date = apod?.date ?: return null
+            if (date == wallpaperDate) return null
+            val file = wallpaperFile()
+            if (file != null) setWallpaper(file)
+            "$date, ${if (file != null) "wallpaper set" else "video, wallpaper kept"}"
+        }
+    }
+
+    /**
+     * [refresh] unless the stored APOD is today's (always with [force]), noting how it went for
+     * the page: a success sets [checkedAt] and clears [problem], a failure names it. Anything but
+     * the two typed failures counts as the network.
+     */
+    private fun checkSite(force: Boolean) {
+        try {
+            if (force || !isCurrent) refresh()
+        } catch (e: Exception) {
+            prefs.edit {
+                when (e) {
+                    is SiteChanged -> putString("problem", "site")
+                    is HttpStatus -> putString("problem", "http").putInt("httpCode", e.code)
+                    else -> putString("problem", "network")
+                }
+            }
+            throw e
+        }
+        prefs.edit {
+            putLong("checkedAt", System.currentTimeMillis())
+            remove("problem")
+            remove("httpCode")
+        }
     }
 
     /** The picture to set as wallpaper, or null to keep the current one (video day). */
@@ -151,7 +245,7 @@ class Store(private val context: Context) {
      * meanwhile must not mark the new one as set. Without a crop, Android 15+ shows the left
      * part of a wide picture. The user's own picture (video days) is always centred.
      */
-    fun setWallpaper(file: File) {
+    fun setWallpaper(file: File): Unit = synchronized(wallpaperLock) {
         val date = apod?.date
         val position = if (file == imageFile) cropPosition(date) else 0.5f
         val manager = WallpaperManager.getInstance(context)
@@ -164,6 +258,7 @@ class Store(private val context: Context) {
             file.inputStream().use { manager.setStream(it, crop, true, where.flags) }
         }
         wallpaperDate = date
+        wallpaperSetAt = Instant.now()
     }
 
     /** True when the stored APOD's picture is in the gallery (saved and not deleted since). */
@@ -214,6 +309,9 @@ class Store(private val context: Context) {
 }
 
 private val refreshLock = Any()
+
+/** Not [refreshLock]: holding that during a set would make ★ wait for seconds. */
+private val wallpaperLock = Any()
 
 fun isImage(file: File): Boolean = imageBounds(file) != null
 

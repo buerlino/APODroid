@@ -1,0 +1,4 @@
+- Video days work: a ▶ tile that opens the page on NASA's site, with a note on what happens to the wallpaper (fixes the app not updating when the video post has no picture)
+- Pull down to refresh
+- Notes below the picture when the check fails, and "Wallpaper changed …" under the switch
+- While the daily switch is on, settings apply at once and "Set as wallpaper now" is hidden

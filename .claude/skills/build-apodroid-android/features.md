@@ -7,8 +7,7 @@ has the how. Work through it step by step, as always: one item, show it on the p
 Tick items off and note where the work differed from the plan.
 
 Suggested order: the `:core` items first (testable without the phone), then the job and its
-settings, then the small UI items. Next version: 0.4.0 (0.3.0 shipped the crop alone, user
-2026-10-05; confirm with the user when releasing).
+settings, then the small UI items. 0.4.0 shipped items 3 and 9 with the video-day work; the rest are for 0.5.0 (user, 2026-10-16).
 
 ## Settings layout afterwards
 
@@ -78,7 +77,7 @@ default Fill, today's behaviour.
   wallpaper now" uses it.
 - Test on the phone: a landscape and a portrait picture, home and lock, both modes.
 
-### [ ] 3. Status line under the daily switch
+### [x] 3. Status line (done in 0.4.0, WP4; see CLAUDE.md for what it became) under the daily switch
 
 Decided (user, 2026-10-04): **always shown** while the switch is on.
 - Two prefs: `checkedAt` (time of the last successful check: a `refresh()` that worked, or a job
@@ -162,7 +161,7 @@ Decided (user, 2026-10-04): a switch under the daily switch, **default off**.
 - The job's time limit (about 10 minutes) now covers two downloads; if the original's download
   fails, the wallpaper is still set and the next run tries saving again.
 
-### [ ] 9. Video marker
+### [x] 9. Video marker (done in 0.4.0, WP1: the ▶ tile)
 
 A ▶ (text glyph) centred on the picture on video days, so it's clear that tapping it opens the
 video on the web. Screen-reader label "Play video on the web" (or keep it out of the tree and

@@ -17,7 +17,8 @@ import kotlin.concurrent.thread
 class DailyJob : JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
         thread {
-            val result = runCatching { update(Store(this)) }
+            val result = runCatching { Store(this).update(force = false) }
+            result.onSuccess { if (it != null) Log.i("APODroid", "Daily job: $it") }
             result.onFailure { Log.w("APODroid", "Daily job failed: $it", it) }
             jobFinished(params, result.isFailure)
         }
@@ -25,15 +26,6 @@ class DailyJob : JobService() {
     }
 
     override fun onStopJob(params: JobParameters) = true
-
-    private fun update(store: Store) {
-        if (!store.isCurrent) store.refresh()
-        val apod = store.apod ?: return
-        if (apod.date == store.wallpaperDate) return
-        val file = store.wallpaperFile()
-        if (file != null) store.setWallpaper(file)
-        Log.i("APODroid", "Daily job: ${apod.date}, ${if (file != null) "wallpaper set" else "video, wallpaper kept"}")
-    }
 
     companion object {
         private const val ID = 1

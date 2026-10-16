@@ -21,6 +21,8 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - Declutter passes: [.claude/skills/build-apodroid-android/declutter.md](.claude/skills/build-apodroid-android/declutter.md).
 - Planned features, how and checklist: [.claude/skills/build-apodroid-android/features.md](.claude/skills/build-apodroid-android/features.md)
   (decisions in [Next features](#next-features)).
+- Work for 0.4.0 (video days, pull to refresh, problems shown; 2026-10-16), packages with model
+  and effort: [.claude/skills/build-apodroid-android/plan-0.4.0.md](.claude/skills/build-apodroid-android/plan-0.4.0.md).
 
 ## How the user works (2026-10-01)
 
@@ -50,9 +52,8 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - English UI, short texts: one idea per line, drop what the screen already shows, explain each
   concept in one place only.
 - Migrations: remove migration code two releases after F-Droid has shipped past the version that
-  needed it (gridload's rule, 2026-10-02). Current ones: `Store.daily` taking its first value
-  from `getPendingJob` (0.1.2 → 0.2.0). F-Droid skipped 0.2.0 and shipped 0.2.1, so remove it
-  in 0.4.0.
+  needed it (gridload's rule, 2026-10-02). Current ones: none (`Store.daily` taking its first
+  value from `getPendingJob`, 0.1.2 → 0.2.0, was removed in 0.4.0).
 
 ## Setup and distribution (copied from gridload)
 
@@ -94,6 +95,9 @@ checked 2026-10-07; its bot finds new tags by itself, skill, Releasing):
   upright. The planned features follow in 0.4.0 (user).
 - 0.3.1 (versionCode 7, 2026-10-07): long press copies the link or the explanation, ✓ sets the
   chosen part, Back leaves crop mode, screen-reader labels for the long presses.
+- 0.4.0 (versionCode 8, 2026-10-16): video days without a still frame (a ▶ tile; the 16 Oct post
+  had no picture and broke 0.3.1), pull to refresh, the wallpaper set when the page opens, the
+  button only while the switch is off, notes for problems and video days, the status line.
 
 ## Data source (checked 2026-10-01)
 
@@ -115,8 +119,8 @@ GET https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_pa
     (04:05 UTC in summer time, 05:05 UTC in winter).
   - `title.rendered`: `APOD: 2026 October 1 &#8211; Harvest Moon with Erupting Mount Etna`. The
     `APOD: <date> – ` prefix is stripped and HTML entities decoded (`&#8211;`, `&#8217;`; some
-    titles have a plain `–`, one had `-` with no space after it).
-  - `featured_image.file`: the picture.
+    titles have a plain `–`, one had `-` with no space after it, 3 Apr 2026 had no day number).
+  - `featured_image.file`: the picture (image days only; missing on the video day 16 Oct 2026).
   - `link`: the post's page, for "open on the web".
   - `content.rendered`: for the video check and the explanation.
 - The full response (about 21 KB per post), not `_fields=` (which drops `featured_image`).
@@ -128,8 +132,10 @@ GET https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_pa
   still PNG); about 6 min on mobile data. Decoded in full it's a 99.6 MB bitmap, just under
   Android's 100 MB drawing limit, so the page decodes with `inSampleSize` (`decodeForScreen`,
   user 2026-10-02). The download, the wallpaper and the saved copy stay full size.
-- **Video days** (about 1 in 9 posts): `featured_image` is still there, but on 4 of 11 video days
-  checked it's a generic NASA image, not a still frame. **Detection (2026-10-01):** the hero
+- **Video days** (about 1 in 9 posts): `featured_image` is usually there, but on 4 of 11 video
+  days checked it's a generic NASA image, not a still frame, and on 16 Oct 2026 (the first real
+  video day after the release) it was missing; 0.3.1 failed on it all day. So no still frame
+  (user, 2026-10-16): `imageUrl` is null on video days and nothing is downloaded. **Detection (2026-10-01):** the hero
   block, from `media-detail-hero__media` to the next `<h1` (the title), holds `<img>` on image
   days and `<video>` (mp4) or `<iframe>` (YouTube) on video days. Checked on all 100 posts 24 Jun
   to 1 Oct 2026: never both, never neither. YouTube links in the explanation (about 1 in 3 image
@@ -166,9 +172,20 @@ set it as wallpaper, and on video days kept the old wallpaper.
     the Tasker task did. No still-frame option (often a generic NASA image). "My picture" is
     picked once with the system photo picker (`PickVisualMedia`, no permission) and copied to
     `files/fallback.jpg`; chosen but nothing picked → keep.
-  - A button to set the wallpaper now, with the same two settings.
+  - A button to set the wallpaper now, with the same two settings. **Only while the switch is
+    off** (user, 2026-10-16): with it on the app keeps the wallpaper current. Changing "Wallpaper
+    on", picking or changing "my picture" or choosing "Use my picture" (on a video day) sets it at
+    once; turning the switch on sets today's picture again (`forgetWallpaper`), which also puts
+    APOD back after another wallpaper. "Keep" on a video day sets nothing.
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update) and the planned ⓘ (Save every picture).
+    update), the video-day notice and the planned ⓘ (Save every picture).
+- **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
+  tapping opens the APOD page in the browser (no player). No ⛶, no ★. A box below the tile
+  (user, 2026-10-16; translucent orange, solid orange border) says why the wallpaper didn't change
+  and what to do; the text follows the settings (daily off / keep / my picture with or without a
+  picture). "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
+  (`videoNoticeHidden`, no confirmation). The second help text besides the pause hint (the problem box is a status, not help). `refresh()` stores the
+  entry without a picture and deletes the previous `apod.jpg`; `isCurrent` doesn't need one.
 - **Fetch** in `:core`: newest post → `Apod(date, title, imageUrl, pageUrl, isVideo, explanation)`.
   The image goes to `files/apod.jpg` (whatever its format; no storage permission), via a `.part`
   file, and replaces the old one only when complete and decodable. Decoded with `BitmapFactory`
@@ -177,10 +194,32 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (user, 2026-10-04): the picture is renamed a few ms before the prefs are written; death in
   between leaves today's picture under yesterday's entry until the next refresh fetches it again
   (declutter file, Review of 0.1.2, 2.2).
-- **The page** refreshes on each `onResume` unless the stored APOD is today's (US Eastern); it
-  also redraws when the job stored a new one in the background. A failed refresh keeps the
+- **The page** runs `Store.update` on each `onResume` (see Background update): fetches unless
+  the stored APOD is today's (US Eastern) and, while the switch is on, sets a new one at once; it
+  also redraws when the job stored a new one in the background. **Pull to refresh** (user,
+  2026-10-16; material3's `PullToRefreshBox`) always fetches; a new picture is set at once while
+  the switch is on, nothing is set while it's off. A changed title or explanation for the same
+  date is stored. A new date closes crop mode, a same-date change doesn't. A failed refresh keeps the
   stored picture; only with none is there an error with a retry button. Video days show "Video"
-  after the date. The page shows the still frame on video days either way.
+  after the date.
+- **Problems and status line (2026-10-16, placeholder texts until the user has seen them):**
+  `:core` throws `SiteChanged` (not the JSON expected, no post, a bad date, an image day without
+  a picture; `Store` adds a download that isn't an image) and `HttpStatus(code)`; any other
+  failure counts as the network. Each `Store.update` (page, pull, job) stores how its check
+  went: a success (a refresh, or today's APOD already stored) sets `checkedAt` and clears
+  `problem`; a failure stores `problem` (and `httpCode`). A failed set isn't a problem (the
+  toasts and the job's retry cover it). While `problem` is set, it shows in the orange box
+  below the picture or tile (user, 2026-10-16; the video notice's box), with "since <day>" when `checkedAt` is more than a day old. Only "Dismiss":
+  it hides that problem until its kind or HTTP code changes or a new day starts
+  (`problemNoticeKey`, e.g. `http:503:2026-10-16`); no "Don't show again", a failing app must
+  not look like a working one. **All boxes that apply show at once** (user, 2026-10-16), stacked
+  below the picture or tile, above the title: problem, video notice, battery hint (Background
+  update), each with its own buttons. The empty state shows the text above "Try again", no
+  problem box, but the battery hint below it. So on a day whose APOD is stored, opening the page clears a pull's failure:
+  nothing is wrong until the next picture is due. Under the switch, while it's on:
+  "Wallpaper changed 16 Oct, 06:12" (`wallpaperSetAt`, any successful set; 12/24 h as the
+  system), or "Video day, wallpaper kept"; before the first set nothing. The page re-reads both
+  around each update and after a set.
 - **Explanation (user, 2026-10-02):** a ▾ right of the title shows it, ▴ hides it; tapping the
   title row does the same. No ▾ if empty. The glyphs have screen-reader labels (2026-10-04).
   Long press (user, 2026-10-07; the picture already opens the page): on the title row copies
@@ -226,23 +265,25 @@ nothing, says so and redraws the page (user, 2026-10-04: simpler than a lock of 
 
 (Decided 2026-10-01.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
 AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
-periodic, every ~6 hours, only with network, `setPersisted(true)`. Each run: `refresh()` unless
-the stored APOD is today's, then set the wallpaper if the stored APOD's date isn't
-`wallpaperDate` (the date last set, also by the set-now button). A separate date is needed
-because opening the page also downloads the new picture; the job must still set it. On a video
+periodic, every ~6 hours, only with network, `setPersisted(true)`. Each run, and each page
+open or pull (2026-10-16, one path): `Store.update(force)`, `refresh()` unless the stored APOD
+is today's (always with `force`), then, while `daily` is on, set the wallpaper if the stored
+APOD's date isn't `wallpaperDate` (the date last set, also by the set-now button). A separate
+date is needed because a refresh with the switch off downloads without setting. On a video
 day with "keep" nothing is saved, so switching to "my picture" later that day takes effect on
-the next run. `refresh()` and `save()` hold one lock, as the page and the job can run at once.
+the next run or page open. `refresh()` and `save()` hold one lock, as the page and the job can
+run at once; the `wallpaperDate` check and every set hold another (not the refresh lock: ★
+would wait seconds for a set), so a page and a job running at once set once.
 Failures return `needsReschedule` (30 s exponential backoff). Turning the switch on runs the job
 at once. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
-schedules it again when `daily` is on and the job is missing. Migration: the first read of
-`daily` takes it from `getPendingJob`.
+schedules it again when `daily` is on and the job is missing.
 
 **Keep running** (user, 2026-10-04; report:
 [keep-running.md](.claude/skills/build-apodroid-android/keep-running.md)). Android pauses an app
 that isn't opened, and the job doesn't count as use: the restricted bucket after about 8 days
 (Android 13+; later or never before) and hibernation after about 3 months (12+), which deletes
-the job. While the switch is on, a hint under it names only what's missing, one line each:
+the job. While the switch is on, a hint in an orange box below the picture (user, 2026-10-16) names only what's missing, one line each:
 battery Unrestricted (checked on API 33+ only, 2026-10-04 evening: on 10–12 the 8 days aren't
 true) and "pause/manage app if unused" off (API 31+). Each line is the path in App info (user,
 2026-10-04: "Unrestricted" alone didn't say where): on API 35+ the battery line says to tap
@@ -261,8 +302,8 @@ wake and fail offline).
 ## Next features
 
 (User, 2026-10-04, from a review of 0.1.1 for features users would expect; the review is
-`private/APODroid missing features users might expect.md`. Not built yet (keep running is, see
-Background update); plan and checklist in `features.md` in the skill.)
+`private/APODroid missing features users might expect.md`. Not built yet (keep running, the status line and the video marker are, see
+Background update and The app); plan and checklist in `features.md` in the skill.)
 
 - **Sharper wallpaper:** the daily download becomes a rendition the screen's height
   (`featured_image.file?h=<px>`, 0.3–1.2 MB on the posts checked) instead of the 1280 px file.
@@ -270,15 +311,11 @@ Background update); plan and checklist in `features.md` in the skill.)
   originals load on 20 of 20 posts checked, but downloading them daily costs about 10× the data.
 - **Fill / Fit:** a setting next to "Wallpaper on", default Fill (today). Fit puts the whole
   picture on black; no ⛶ with Fit (user, 2026-10-05).
-- **Status line** under the daily switch, always while it's on: when the wallpaper last
-  changed, or since when no check has worked (more than a day). Why: the endpoint is fragile and
-  a failing job looks like a working one.
 - **Wi-Fi only:** a switch for the job, default off.
 - **Share:** title and page link via the share sheet; not the picture file.
 - **Image credit** under the date, parsed in `:core` (on all 100 posts checked).
 - **Save every picture:** a switch for the job, default off, with a small ⓘ next to it: saved
   pictures are full resolution, and saving every day takes a lot of space (user, 2026-10-04).
-- **Video marker** ▶ on video days. (Copying the explanation: done by long press, 2026-10-07.)
 - **Left out:** previous days (not one page any more), full-screen view, home-screen widget,
   Quick Settings tile (rarely used), translations (English UI stays), sharing the picture file
   (needs a `FileProvider`). Still out, as above: a notification, the still frame on video days,

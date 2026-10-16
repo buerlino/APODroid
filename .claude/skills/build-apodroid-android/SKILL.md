@@ -84,7 +84,22 @@ with a checklist: `features.md` next to this file. The work for 0.4.0: `plan-0.4
 - Taps: `adb shell input tap X Y` in physical pixels (screen 1116×2484; screenshots are shown
   scaled, ×1.24). Screenshots: `adb exec-out screencap -p > file.png`. If the phone is locked,
   ask the user; don't try to unlock it.
-- With a second adb device attached, use `adb -s 4d42e62f`.
+- Devices (2026-10-16): the phone is a Fairphone 6 (`adb -s 4d42e62f`, LineageOS, Android 16,
+  1116×2484), the user's own, with APODroid from Obtainium (release key) and their settings. A
+  Lenovo tablet TB305FU (`adb -s HA24BZ2Y`, Android 15, 800×1340 at 180 dpi) is free for
+  testing. A Samsung SM-G955F (Android 9) is below minSdk: don't use. With more than one
+  attached, always pass `-s`.
+- Leave the devices as found: before changing a system setting with adb (`screen_off_timeout`,
+  `font_scale`, proxy, demo mode, firewall chain), read and note its value, and set it back after.
+- Testing an update on the user's phone without losing their settings (2026-10-16): the R8 build
+  signed with the release key goes over the Obtainium install with `adb install -r`. The user
+  signs it in their own terminal (apksigner asks for the password, which never reaches Claude):
+  `zipalign -p 4` the unsigned APK into `app/build/` (gitignored; Claude's `/tmp` scratchpad
+  isn't visible there), then give the user the full command with absolute paths:
+  `~/Android/Sdk/build-tools/37.0.0/apksigner sign --ks <keystore> --ks-key-alias apodroid --out
+  <repo>/app/build/apodroid-vX.Y.Z.apk <repo>/app/build/apodroid-aligned.apk`. The keystore's
+  place is in Claude's memory, not here (public repo). Afterwards the installer shows as none;
+  whether Obtainium still tracks the app is unchecked.
 - Slow or broken downloads (2026-10-07): a Python asyncio CONNECT proxy on the desktop that
   throttles one host (`assets.science.nasa.gov` for the picture) and passes the rest.
   `adb reverse tcp:8899 tcp:8899`, then `adb shell settings put global http_proxy 127.0.0.1:8899`.
@@ -180,7 +195,11 @@ it).
   `run-as`, write 1 October's picture, `fallback.jpg` and prefs (data from
   `private/last100.json`, `videoDays` `MINE`), block the app's network so it can't fetch today's
   (`cmd connectivity set-chain3-enabled true` + `set-package-networking-enabled false <pkg>`),
-  take the shot, then restore all of it.
+  take the shot, then restore all of it. Since 0.4.0 also set, so the page shows no box and sets
+  no wallpaper: `problemNoticeKey` `network:<today>` (offline is a problem now),
+  `pauseHintHidden` true, `wallpaperDate` and `daily` as the shot needs, `wallpaperSetAt` (epoch
+  ms, 1 Oct 06:12 local) for the status line. On a fresh debug install the prefs and files can
+  be written before the first start (`run-as <pkg> mkdir -p shared_prefs files`).
 - Feature graphic: source `logo/featureGraphic.svg`, render command in its header comment.
 
 ## Icon

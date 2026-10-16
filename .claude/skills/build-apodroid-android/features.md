@@ -172,6 +172,11 @@ let the picture's label say it).
 Done differently (user, 2026-10-07): a long press on the explanation copies all of it (and on the
 title row, the page link); no `SelectionContainer`, whose long press would select instead.
 
+## Small things seen (2026-10-16)
+
+- The orange boxes (`NoticeBox`) have more space below their buttons than above their text
+  (`TextButton`'s minimum height). Cosmetic; seen on the FP6 and the tablet, left for after 0.4.0.
+
 ## Left out (user, 2026-10-04)
 
 Previous days, full-screen view, home-screen widget, Quick Settings tile, translations, sharing

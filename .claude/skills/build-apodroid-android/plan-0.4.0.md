@@ -430,7 +430,7 @@ offline the problem box and the battery hint on an image day, and all three boxe
 video day. Then the release-signed 0.4.0 again, fresh: it fetched today's post. No
 `E AndroidRuntime` lines. The user sets the phone up again (switch, my picture, battery).
 
-### [ ] WP7. Commit and tag (Sonnet, low)
+### [x] WP7. Commit and tag (Sonnet, low)
 
 Only when the user says so: commit, tag `v0.4.0`. The user pushes `master`, then the tag
 (skill, Releasing).

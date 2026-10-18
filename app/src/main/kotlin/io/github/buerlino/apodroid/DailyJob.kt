@@ -11,12 +11,16 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 /**
- * Runs every ~6 hours with network: fetches the newest APOD unless it's already stored, and sets
- * it as wallpaper once per date. A failed run is retried with the job's backoff.
+ * Runs every ~6 hours with network (with turns of 3 hours, every 3): [Store.update], which fetches
+ * the newest post of each source in use unless already stored, and sets the wallpaper once per
+ * post and turn. A failed run is retried with the job's backoff.
  */
 class DailyJob : JobService() {
+    @Volatile
+    private var worker: Thread? = null
+
     override fun onStartJob(params: JobParameters): Boolean {
-        thread {
+        worker = thread {
             val result = runCatching { Store(this).update(force = false) }
             result.onSuccess { if (it != null) Log.i("APODroid", "Daily job: $it") }
             result.onFailure { Log.w("APODroid", "Daily job failed: $it", it) }
@@ -25,20 +29,48 @@ class DailyJob : JobService() {
         return true
     }
 
-    override fun onStopJob(params: JobParameters) = true
+    /** Android's deadline or conditions ended the run: interrupt it (see [Store.update]), then retry. */
+    override fun onStopJob(params: JobParameters): Boolean {
+        worker?.interrupt()
+        return true
+    }
 
     companion object {
         private const val ID = 1
 
-        fun isScheduled(context: Context) = scheduler(context).getPendingJob(ID) != null
+        fun schedule(context: Context): Boolean =
+            scheduler(context).schedule(job(context)) == JobScheduler.RESULT_SUCCESS
 
-        fun schedule(context: Context): Boolean {
-            val job = JobInfo.Builder(ID, ComponentName(context, DailyJob::class.java))
-                .setPeriodic(TimeUnit.HOURS.toMillis(6))
+        /**
+         * Schedules the job unless it's there with the right timing: hibernation or a force stop
+         * deletes it, and the sources or the interval may change it. Not always: scheduling the
+         * same id again stops a running job.
+         */
+        fun ensure(context: Context): Boolean {
+            val pending = scheduler(context).getPendingJob(ID)
+            val job = job(context)
+            return pending != null && pending.intervalMillis == job.intervalMillis && pending.flexMillis == job.flexMillis ||
+                scheduler(context).schedule(job) == JobScheduler.RESULT_SUCCESS
+        }
+
+        /**
+         * Every 6 hours, with any flex (so scheduling runs it at once). With turns, as often as a
+         * turn lasts, up to 6 hours, with a short flex so the turns come at even times.
+         */
+        private fun job(context: Context): JobInfo {
+            val store = Store(context)
+            val sixHours = TimeUnit.HOURS.toMillis(6)
+            return JobInfo.Builder(ID, ComponentName(context, DailyJob::class.java))
+                .apply {
+                    if (store.sources.size < 2) {
+                        setPeriodic(sixHours)
+                    } else {
+                        setPeriodic(minOf(TimeUnit.HOURS.toMillis(store.interval.hours), sixHours), TimeUnit.MINUTES.toMillis(15))
+                    }
+                }
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .setPersisted(true)
                 .build()
-            return scheduler(context).schedule(job) == JobScheduler.RESULT_SUCCESS
         }
 
         fun cancel(context: Context) = scheduler(context).cancel(ID)

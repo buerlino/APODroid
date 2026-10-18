@@ -3,6 +3,7 @@ package io.github.buerlino.apodroid.core
 import com.sun.net.httpserver.HttpServer
 import java.io.File
 import java.io.IOException
+import java.io.InterruptedIOException
 import java.net.InetSocketAddress
 import java.time.LocalDate
 import kotlin.test.Test
@@ -28,7 +29,7 @@ class ApodTest {
 
     @Test
     fun parsesTheFieldsTheAppUses() {
-        val apod = parseLatest(post())
+        val apod = parseApod(post())
         assertEquals(LocalDate.of(2026, 3, 3), apod.date)
         assertEquals("A Made’Up Nebula", apod.title)
         assertEquals("https://assets.example/apod/2026/march/nebula.jpg", apod.imageUrl)
@@ -43,7 +44,7 @@ class ApodTest {
             A <a href='https://example.org/'>nebula</a> &amp; its <em>stars</em>&#8217;
             light.<br><br><strong>APOD&#8217;s site has moved</strong><br><strong>Tomorrow&#8217;s picture:</strong> dust
         """
-        assertEquals("A nebula & its stars’ light.", parseLatest(post(explanation = html)).explanation)
+        assertEquals("A nebula & its stars’ light.", parseApod(post(explanation = html)).explanation)
         // Some posts have the label as plain text, some none.
         val hero = "<p class='media-detail-hero__description'>"
         assertEquals("Plain label.", explanation("$hero Explanation: Plain label.</p>"))
@@ -63,7 +64,7 @@ class ApodTest {
 
     @Test
     fun makesSafeFileNames() {
-        fun name(title: String) = Apod(LocalDate.of(2026, 3, 3), title, "", "", false).fileName
+        fun name(title: String) = Post(Source.APOD, LocalDate.of(2026, 3, 3), title, "", "", false).fileName
         assertEquals("APOD_2026-03-03_A_MadeUp_Nebula", name("A Made’Up Nebula"))
         assertEquals("APOD_2026-03-03_M31_Andromeda_Stars_Dust", name("M31: Andromeda / Stars & Dust?"))
         assertEquals("APOD_2026-03-03_Comète_Ōmura", name("Comète  Ōmura!"))
@@ -74,17 +75,30 @@ class ApodTest {
     }
 
     @Test
+    fun aSecondPictureOnTheSameDateIsAnotherPost() {
+        val day = LocalDate.of(2026, 3, 3)
+        val post = Post(Source.NASA, day, "Second", "https://example.org/b.jpg", "", false)
+        assertTrue(post.isNoted(day, "https://example.org/b.jpg"))
+        assertFalse(post.isNoted(day, "https://example.org/a.jpg"))
+        assertFalse(post.isNoted(day.minusDays(1), "https://example.org/b.jpg"))
+        assertFalse(post.isNoted(null, null))
+        // Noted without a URL: 0.4.0's prefs, or the user's own picture.
+        assertTrue(post.isNoted(day, null))
+        assertTrue(post.copy(imageUrl = null, isVideo = true).isNoted(day, null))
+    }
+
+    @Test
     fun detectsVideoDaysFromTheHeroOnly() {
         val mp4 = "<video class='video-js'><source src='https://assets.example/x.mp4' type='video/mp4'></video>"
         val youtube = "<figure class='is-provider-youtube'><iframe src='https://www.youtube.com/embed/abc'></iframe></figure>"
-        assertTrue(parseLatest(post(hero = mp4)).isVideo)
-        assertTrue(parseLatest(post(hero = youtube)).isVideo)
+        assertTrue(parseApod(post(hero = mp4)).isVideo)
+        assertTrue(parseApod(post(hero = youtube)).isVideo)
         // No still frame on video days, also when the post has one.
-        assertEquals(null, parseLatest(post(hero = mp4)).imageUrl)
-        assertEquals(null, parseLatest(post(hero = mp4, image = null)).imageUrl)
-        assertEquals(null, parseLatest(post(hero = youtube, image = "{\"id\":0}")).imageUrl)
+        assertEquals(null, parseApod(post(hero = mp4)).imageUrl)
+        assertEquals(null, parseApod(post(hero = mp4, image = null)).imageUrl)
+        assertEquals(null, parseApod(post(hero = youtube, image = "{\"id\":0}")).imageUrl)
         // An image day that links (or even embeds) a video in the explanation.
-        assertFalse(parseLatest(post(explanation = "<a href='https://youtu.be/abc'>video</a>$youtube")).isVideo)
+        assertFalse(parseApod(post(explanation = "<a href='https://youtu.be/abc'>video</a>$youtube")).isVideo)
     }
 
     @Test
@@ -97,34 +111,34 @@ class ApodTest {
 
     @Test
     fun failsWithoutAPostOrAnImage() {
-        assertFailsWith<SiteChanged> { parseLatest("[]") }
-        assertFailsWith<SiteChanged> { parseLatest(post(image = "null")) }
-        assertFailsWith<SiteChanged> { parseLatest(post(image = null)) }
-        assertFailsWith<SiteChanged> { parseLatest(post(image = "{\"id\":0}")) }
+        assertFailsWith<SiteChanged> { parseApod("[]") }
+        assertFailsWith<SiteChanged> { parseApod(post(image = "null")) }
+        assertFailsWith<SiteChanged> { parseApod(post(image = null)) }
+        assertFailsWith<SiteChanged> { parseApod(post(image = "{\"id\":0}")) }
     }
 
     @Test
     fun failsWhenTheSiteChanged() {
-        assertFailsWith<SiteChanged> { parseLatest("<html>Moved</html>") }
-        assertFailsWith<SiteChanged> { parseLatest("""{"code":"rest_no_route"}""") }
-        assertFailsWith<SiteChanged> { parseLatest("""[{"date":"2026-03-03T00:05:00"}]""") } // no link
-        assertFailsWith<SiteChanged> { parseLatest(post().replace("2026-03-03T00:05:00", "3 March 2026")) }
+        assertFailsWith<SiteChanged> { parseApod("<html>Moved</html>") }
+        assertFailsWith<SiteChanged> { parseApod("""{"code":"rest_no_route"}""") }
+        assertFailsWith<SiteChanged> { parseApod("""[{"date":"2026-03-03T00:05:00"}]""") } // no link
+        assertFailsWith<SiteChanged> { parseApod(post().replace("2026-03-03T00:05:00", "3 March 2026")) }
     }
 
     @Test
     fun fetchesFromTheServer() = withServer(200, post()) { url ->
-        assertEquals("A Made’Up Nebula", fetchLatest(UA, url).title)
+        assertEquals("A Made’Up Nebula", fetchLatest(Source.APOD, UA, url).title)
     }
 
     @Test
     fun sendsTheUserAgent() = withServer(200, post()) { url ->
-        fetchLatest(UA, url)
+        fetchLatest(Source.APOD, UA, url)
         assertEquals(UA, userAgent)
     }
 
     @Test
     fun failsOnHttpErrors() = withServer(503, "") { url ->
-        assertEquals(503, assertFailsWith<HttpStatus> { fetchLatest(UA, url) }.code)
+        assertEquals(503, assertFailsWith<HttpStatus> { fetchLatest(Source.APOD, UA, url) }.code)
     }
 
     @Test
@@ -132,7 +146,7 @@ class ApodTest {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         val url = "http://127.0.0.1:${server.address.port}/"
         server.stop(0)
-        assertNetworkFailure(assertFailsWith<IOException> { fetchLatest(UA, url) })
+        assertNetworkFailure(assertFailsWith<IOException> { fetchLatest(Source.APOD, UA, url) })
     }
 
     @Test
@@ -157,6 +171,35 @@ class ApodTest {
     fun deletesTheFileWhenTheDownloadIsIncomplete() = withServer(200, "made-up", announced = 100) { url ->
         val file = File.createTempFile("apod", ".jpg")
         assertNetworkFailure(assertFailsWith<IOException> { download(url, file, UA) })
+        assertFalse(file.exists())
+    }
+
+    @Test
+    fun aFileThatCantBeWrittenIsAStorageFailureAfterTheRequest() = withServer(200, "made-up picture bytes") { url ->
+        userAgent = null
+        val file = File(File.createTempFile("apod", "").also { it.delete() }, "missing-folder/a.jpg")
+        assertFailsWith<StorageFailed> { download(url, file, UA) }
+        assertEquals(UA, userAgent)
+        assertFalse(file.exists())
+    }
+
+    @Test
+    fun anInterruptedThreadEndsTheDownload() = withServer(200, "made-up picture bytes") { url ->
+        userAgent = null
+        val file = File.createTempFile("apod", ".jpg")
+        Thread.currentThread().interrupt()
+        assertFailsWith<InterruptedIOException> { download(url, file, UA) }
+        assertEquals(UA, userAgent)
+        assertFalse(file.exists())
+    }
+
+    @Test
+    fun aBadUrlIsASiteChangeAndNeverConnects() = withServer(200, "made-up picture bytes") { url ->
+        val file = File.createTempFile("apod", ".jpg")
+        userAgent = null
+        assertFailsWith<SiteChanged> { download("$url/a b.jpg", file, UA) }
+        assertFailsWith<SiteChanged> { download("example.org/a.jpg", file, UA) }
+        assertEquals(null, userAgent)
         assertFalse(file.exists())
     }
 

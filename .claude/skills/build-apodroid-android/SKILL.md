@@ -8,23 +8,35 @@ description: Execution brief for building APODroid (io.github.buerlino.apodroid)
 How-tos and what's still untested. `CLAUDE.md` at the repo root is the source of truth for the
 stack, the data source and the decisions. Read it first. If this skill and `CLAUDE.md` disagree,
 `CLAUDE.md` wins; update this skill to match. The history is in git. The next features to build,
-with a checklist: `features.md` next to this file. The work for 0.4.0: `plan-0.4.0.md`.
+with a checklist: `features.md` next to this file. The work for 0.5.0: `plan-0.5.0.md` (0.4.0's,
+done: `plan-0.4.0.md`).
 
 ## Where things are
 
-- `core/.../Apod.kt`: `fetchLatest(userAgent)`, `parseLatest`, `download(url, to, userAgent)`,
-  title, video and explanation parsing, `Apod.fileName`. Tests with made-up JSON shaped like the
-  real response. Real responses for manual checks in `private/` (`latest.json`, `last100.json`).
-  `core/.../Frame.kt`: `wallpaperFrame`, the part of the picture the wallpaper shows (tests in
-  `FrameTest`).
-- `app/.../Store.kt`: prefs (also `daily`, `pauseHintHidden`; `checkedAt`, `problem`, `httpCode`,
+- `core/.../Post.kt`: `Source`, `Post`, `fetchLatest(source, userAgent)`, `parseLatest`
+  (`parseApod`, `nasaPosts`, `earthPosts`), `download(url, to, userAgent)`, `renditionUrl`,
+  `originalUrl`, title, video and explanation parsing, `Post.fileName`. Tests with made-up data
+  shaped like the real responses: APOD in `ApodTest` (also the HTTP part), NASA, Earth and the
+  URLs in `SourcesTest`, whose `readsEveryRealPost` reads `private/` when it's there. Real
+  responses in `private/` (`latest.json`, `last100.json`, `iotd-feed-2026-10-16.xml`,
+  `eo-last40-2026-10-16.json`).
+  `core/.../Frame.kt`: `wallpaperFrame`, the part of the picture the wallpaper shows, which is
+  also the crop hint (tests in `FrameTest`; a hint widened for landscape was tried and dropped,
+  `CLAUDE.md`, Wallpaper).
+  `core/.../Turn.kt`: `nextTurn`, whose turn it is with two or more sources, and `turnSlack`
+  (tests in `TurnTest`).
+- `app/.../Store.kt`: per source (`post(source)`, `imageFile(source)`; APOD's keys unprefixed
+  and `apod.jpg`, the others `nasa.<key>` / `earth.<key>` and `nasa.jpg` / `earth.jpg`) prefs (also `daily`, `pauseHintHidden`; `checkedAt`, `problem`, `httpCode`,
   `wallpaperSetAt` for the problem and status lines), `update(force)` (what the page, the pull
-  and the job run: refresh, noting how the check went, then set while `daily` is on), `refresh()`, `wallpaperFile()`
+  and the job run: refresh, noting how the check went, then set while `daily` is on), `refresh(source)`
+  (the picture through `downloadPicture`: the rendition, else the plain URL), `wallpaperFile()`
   (which picture, or null on a video day with "keep"), `setWallpaper` (a photo with an EXIF
-  orientation goes upright through `setBitmap`), `cropPosition(date)`, `save`, `imageBounds`,
+  orientation goes upright through `setBitmap`), `sources`/`interval`/`turnStartedAt` and
+  `turn()` (gathers the prefs and files for `:core`'s `nextTurn`), `setDue()` (the set, under the wallpaper lock), `cropPosition(post)`, `save` (the original, else the stored picture; returns `Saved`), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
-- `app/.../MainActivity.kt`: the page, with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture.
-  `app/.../DailyJob.kt`: the job (id 1).
+- `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
+  `follow()` redraws while resumed when `Store.watch` sees the job set or store a post.
+  `app/.../DailyJob.kt`: the job (id 1); `ensure` reschedules it only when its timing changes.
 
 ## Working on the phone
 
@@ -43,8 +55,8 @@ with a checklist: `features.md` next to this file. The work for 0.4.0: `plan-0.4
   builds.
 - Job: force a run with `adb shell cmd jobscheduler run -f io.github.buerlino.apodroid 1`, list
   with `adb shell dumpsys jobscheduler | grep io.github.buerlino.apodroid` (`Last successful
-  run` outlives logcat). The job logs `Daily job: <date>, wallpaper set` (or `video, wallpaper
-  kept`) and `Daily job failed` under `adb logcat -d -s APODroid`; the page the same as `Page:
+  run` outlives logcat). The job logs `Daily job: <SOURCE> <date>, wallpaper set` (or `video, wallpaper
+  kept`; SOURCE is APOD also for "my picture") and `Daily job failed` under `adb logcat -d -s APODroid`; the page the same as `Page:
   …` and `Update failed`. Nothing is logged when there was nothing to set. Pull to refresh:
   `adb shell input swipe 400 300 400 1100 600` (tablet coordinates). Crashes:
   `adb logcat -d | grep 'E AndroidRuntime'` (the `I AndroidRuntime` lines are adb's `content`
@@ -74,6 +86,13 @@ with a checklist: `features.md` next to this file. The work for 0.4.0: `plan-0.4
   A video day the same way, by setting `isVideo` to true. To run the job on the stored picture
   (e.g. with a moved position), fake only `wallpaperDate`, then `run -f`; faking all dates moves
   `cropDate` too, which is right.
+- End a turn (debug builds, 2026-10-16): after `am kill`, read `turnStartedAt`, then
+  `sed -i -e '/turnStartedAt/s,<value>,<value - 10800000>,'` (3 h back) and `run -f`. A script
+  that does it: `turn.sh [ms back]` in `private/wp7-handoff/` (gitignored; `W=<s>` waits longer, e.g. 45 for a
+  read timeout), with `swap.sh debug|r8 [sed args]` (install a build, fake prefs) and `ui.sh` (the
+  page's nodes with their tap coordinates: rows move when a tick changes).
+  Each `run -f` pushes the periodic job's next window a period further; change the interval
+  (or the switch) to schedule it afresh.
 - Put a file in place (debug builds), e.g. "my picture":
   `cat x.jpg | adb shell "run-as io.github.buerlino.apodroid sh -c 'cat > files/fallback.jpg'"`.
   The R8 build keeps the data of the debug build it's installed over, so set up a state with
@@ -108,28 +127,72 @@ with a checklist: `features.md` next to this file. The work for 0.4.0: `plan-0.4
   `adb reverse --remove tcp:8899`; check that `settings get global global_http_proxy_host` is
   empty. Deleting the key alone leaves the proxy active, which cuts the whole phone off once the
   proxy stops. A proxy that refuses connections can't fake offline (Android's HTTP client then
-  goes direct): use the firewall chain (Store listing). A script that worked may still be at
-  `/tmp/claude-1000/-home-nordmu-Documents-source99-APODroid/1a6e4cbb-b3a6-4dc2-af09-5524f487d931/scratchpad/proxy.py`.
+  goes direct): use the firewall chain (Store listing). The script: `proxy/proxy.py` in `private/wp7-handoff/` (run it from a folder of its own; it
+  reads `rules.txt` and writes `proxy.log` there). `slow` below about 800 B/s fails the TLS handshake
+  (the server gives up), so use 800 or more. A `cut` or `refuse` rule doesn't fail a check
+  either (the client retries the route directly); `stall` part-way through the response does
+  (`www.nasa.gov stall 10000`: the NASA feed is about 16.8 KB on the wire; 30 s read timeout).
+- A made-up feed (2026-10-18, WP7c): a temporary debug build with the source's URL in `Source`
+  set to `http://127.0.0.1:8897/feed.xml` and `android:usesCleartextTraffic="true"`, a
+  `python3 -m http.server 8897` in a scratch folder (its log counts the requests) and `adb
+  reverse tcp:8897 tcp:8897`. Copy both files aside first and back after (uncommitted work).
+- Make the next download fail once (the rendition, so the plain URL follows): rule
+  `<host> cutonce <bytes>`, which empties `rules.txt` after the cut (2026-10-16).
+  The app pools connections: `am force-stop` after changing a rule. Don't stop the proxy with
+  `pkill -f <path>` in a command that contains the path: it kills that shell too.
+- A phone's width on the tablet (for font scale 2.0 checks): `wm density 344` (the FP6's 372 dp:
+  1116 px at 480 dpi, measured 2026-10-18; 425 dp, used until then, was too wide and hid the
+  chips wrapping), `wm density reset` after; the tablet's font scale is 1.1 (2026-10-17).
+- Whether Android 15+ holds a job back for charging or idle: `Num Required Flexible
+  constraints` in its `dumpsys jobscheduler` entry (0 on the tablet, 2026-10-17).
 - Stop a running job as the system would: `adb shell cmd jobscheduler timeout
-  io.github.buerlino.apodroid 1`.
+  io.github.buerlino.apodroid 1`. Its retry may come minutes late (6½ min on the tablet, U7:
+  Android batches ready jobs); `Last successful run` in `dumpsys jobscheduler` shows it.
+- A full disk (tablet only, never the FP6; U7): note `df /data`, `dd` into `/data/local/tmp`
+  slows to a crawl after ~25 GB, so `fallocate -l <size> /data/local/tmp/fill2` the rest at
+  once, then a small file to leave about 200 KB (less than the picture to download; fake its
+  source's date back first). `rm` the files after; Android clears caches meanwhile.
+- Offline with the test proxy still set: the app connects to the proxy and waits for its
+  timeouts (about 30 s per source) instead of failing on DNS; remove the proxy first for quick
+  offline checks.
 
 ## Still untested
 
+- 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
+  device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
+  for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked
+  after). Not rerun since their packages: the bad picture (WP7c, a made-up feed) and WP7a–7d's
+  own checks (debug builds only; the 1 h rule seen in passing). Not on any device: TalkBack on
+  the chips, the greyed radios and the explanation. WP8b's stop fix (a stop during a rendition
+  download) found by reading only: on a device a stop can't be timed into the download.
+- The FP6 (WP8, 2026-10-18, the release-signed final build): the update over 0.4.0 kept the
+  settings; `Num Required Flexible constraints: 0` (Android 16); two panes in landscape (828 dp);
+  the video day with each choice; the own picture centred; tabs, chip, ⛶ with ✓ and Back, long
+  presses, "more", pull, ★ (the original), the chips with the weekday dialog across a rotation,
+  the job's periods, offline with the box, font scale 1.5 and 2.0 (the chips two per line,
+  WP8c), "Where" one height in landscape; no crash. Not there: turns over hours (the tablet's
+  only), a tab switch or rotation during a save (too quick), the empty state, the home screen
+  in landscape (Niagara stays portrait).
+- Dynamic colour (U1) changing with a set wallpaper: the tablet's ZUI keeps a fixed palette
+  (wallpaper colours off) and the FP6's LineageOS has Monet off (`mIsMonetEnabled=false`), so
+  whether a set recreates the page is unchecked;
+  Android 10–11 (the stock palette) not on any device.
 - 0.4.0 on the LineageOS phone beyond the update and a quick pass (2026-10-16: the release-signed
   build over Obtainium's 0.3.1 on the real video day, the boxes offline; WP6's full pass ran on
   the tablet).
-- 0.4.0's picture download failing (throttled or cut, a job timeout mid-download: the problem
-  box and the kept picture) and crop mode kept during a same-date pull: WP6 had only a video day.
-- A day without an explanation (no ▾).
+- Crop mode kept during a same-date pull. (A picture download failing, the box and the kept
+  picture: tested in 0.5.0's WP7.)
+- A day without an explanation (no preview).
 - Updating through Obtainium (0.2.0 was installed with it on the phone, 2026-10-04; `adb
   install -r` over the old version keeps the job). That install blocks debug builds: switching
   needs an uninstall, which loses the user's settings, so ask first.
 - The review fixes of 0.1.2 (`declutter.md`) on an R8 build or below API 36: the redraw path
   and ☆ during a download were tested on 2026-10-07 on a debug build (through the throttling
   proxy).
-- A job stopped mid-download restarts the download from zero (seen 2026-10-07; `CLAUDE.md`,
-  open question 1).
-- A reboot (the persisted job surviving it).
+- A job stopped by the system (`cmd jobscheduler timeout`): while the process lives the run
+  goes on and finishes (WP7, 2026-10-17); frozen, it holds the lock until its socket times out
+  and the retry downloads from zero (2026-10-07; `CLAUDE.md`, open question 1). Since WP7g a
+  stop interrupts the run (tablet, U7: ends within a second); a frozen process not checked.
 - The themed icon in a launcher that shows themed icons (Niagara doesn't, App info shows the
   normal icon); only checked as a render and in the APK.
 - TalkBack itself (the labels are in the accessibility tree: `uiautomator dump`, 2026-10-04).
@@ -173,7 +236,7 @@ hibernation and force stop on the R8 build of 7d73bc2 (`declutter.md`, evening p
 Recipe `metadata/io.github.buerlino.apodroid.yml` in fdroiddata, added by merge request
 https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50926 (merged 2026-10-04 with 0.1.1).
 `Binaries` + `AllowedAPKSigningKeys` as gridload; categories Science & Education + Wallpaper,
-`NonFreeNet` for science.nasa.gov (user's choices). New versions need no merge request
+`NonFreeNet` for science.nasa.gov and, from 0.5.0, www.nasa.gov (user's choices). New versions need no merge request
 (Releasing, step 5). Only a change to the recipe itself does: a branch in `../fdroiddata` (the
 gridload fork clone) from upstream `master` (remote `upstream`), checked with `fdroid lint` and
 `fdroid rewritemeta` (fdroidserver from pip in a venv); the pipeline runs `fdroid build`. If a
@@ -186,6 +249,10 @@ drafts, the user posts.
 `fastlane/metadata/android/en-US/`: title, short and full description, changelogs, `icon.png`,
 `featureGraphic.png`, `phoneScreenshots/1.png` (the whole page on one screen; `README.md` embeds
 it).
+- For 0.5.0 `1.png` still shows 0.4.0's page: the user takes new ones on the FP6 after WP8 (U7,
+  2026-10-18), in this order: 1. the page with tabs on NASA's tab, the "On wallpaper" chip on
+  it, no box; 2. the explanation expanded; 3. the settings with the source chips (two or three
+  picked) and "Change every". `README.md` embeds `1.png`, so 1 is the one that matters most.
 - Screenshot with SystemUI demo mode, as in gridload: `settings put global sysui_demo_allowed 1`,
   broadcasts `enter`, `clock -e hhmm 1200`, `notifications -e visible false`,
   `network -e wifi show -e level 4 -e fully true` (without `fully` the Wi-Fi icon shows "!"),

@@ -1,17 +1,18 @@
-APODroid sets NASA's Astronomy Picture of the Day (APOD) as your wallpaper. A new picture comes out every day, and the app picks it up on its own.
+APODroid sets NASA's Astronomy Picture of the Day (APOD) as your wallpaper. A new picture comes out every day, and the app picks it up on its own. You can add NASA's Image of the Day and the Earth Observatory's Image of the Day.
 
-The app is one page: today's picture with its title and date. Pull down to refresh. Tap the picture to open it on NASA's website, or tap the star to save it to your gallery. Tap the frame button to choose which part of the picture becomes the wallpaper. Tap the title to read the astronomer's explanation.
+The app is one page: today's picture with its title and date. With more than one source, a tab per source sits above the picture. On tablets and in landscape the settings sit beside it. Pull down to refresh. Tap the picture to open it on NASA's website, or tap the star to save it to your gallery. Tap the frame button to choose which part of the picture becomes the wallpaper. The astronomer's explanation starts under the title; tap it to read it all.
 
 <b>Settings:</b>
 <ul>
-<li><b>Change wallpaper daily:</b> checks for the new picture a few times a day, only when there is a network.</li>
+<li><b>Change wallpaper automatically:</b> checks for the new picture a few times a day, only when there is a network.</li>
+<li><b>Pictures from:</b> pick the sources you want. With two or more they take turns: change every day, 12, 6 or 3 hours. NASA and Earth Observatory post on weekdays only.</li>
 <li><b>Where:</b> home screen, lock screen, or both.</li>
-<li><b>Video days:</b> some days APOD is a video. Keep the previous wallpaper, or use a picture of your own. The page shows a ▶ tile that opens the video on NASA's website.</li>
-<li><b>Set as wallpaper now:</b> shown while the daily change is off. With it on, the app keeps the wallpaper current.</li>
+<li><b>If APOD is a video:</b> some days it is. Keep the previous wallpaper, use NASA's or Earth Observatory's picture, or a picture of your own. The page shows a ▶ tile that opens the video on NASA's website.</li>
+<li><b>Set as wallpaper now:</b> sets the picture shown. With two or more sources, its turn starts.</li>
 </ul>
 
 If Android would pause the app because you don't open it, a note below the picture names the settings in App info that prevent it. Notes also tell you when the check fails.
 
-<b>Privacy:</b> no account, no ads, no tracking. The app talks only to science.nasa.gov. Permissions: internet access, setting the wallpaper, network state and starting after a reboot (both for the daily update). Saving to the gallery needs no permission.
+<b>Privacy:</b> no account, no ads, no tracking. The app talks only to NASA's websites (nasa.gov). Permissions: internet access, setting the wallpaper, network state and starting after a reboot (both for the daily update). Saving to the gallery needs no permission.
 
 APODroid is not made by or affiliated with NASA.

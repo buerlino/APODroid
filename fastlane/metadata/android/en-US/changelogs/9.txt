@@ -1,0 +1,5 @@
+- More pictures: pick NASA Image of the Day and Earth Observatory besides APOD. With two or more, they take turns every day, 12, 6 or 3 hours
+- Tabs above the picture, one per source, each with its own crop, save and explanation
+- On APOD video days, NASA's or Earth Observatory's picture can be the wallpaper
+- Sharper wallpaper: the picture is downloaded as tall as your screen; the star saves the original
+- A new look: your system's colours on Android 12+, two panes on tablets and in landscape

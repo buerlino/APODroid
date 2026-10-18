@@ -7,30 +7,42 @@ has the how. Work through it step by step, as always: one item, show it on the p
 Tick items off and note where the work differed from the plan.
 
 Suggested order: the `:core` items first (testable without the phone), then the job and its
-settings, then the small UI items. 0.4.0 shipped items 3 and 9 with the video-day work; the rest are for 0.5.0 (user, 2026-10-16).
+settings, then the small UI items. 0.4.0 shipped items 3 and 9 with the video-day work. 0.5.0 is
+about more NASA sources (`plan-0.5.0.md`) and takes item 1 (its WP2); 2, 4, 6, 7 and 8 move to
+0.6.0 (user, 2026-10-16).
 
 ## Settings layout afterwards
 
 ```
-[switch] Change wallpaper daily
+Wallpaper
+[switch] Change wallpaper automatically
          Wallpaper changed 4 Oct, 06:12        ← status line (3)
-         Android pauses apps … [App info] [Don't show again]  ← only when not exempt (5)
          [switch] Wi-Fi only                   ← (4)
          [switch] Save every picture ⓘ         ← (8)
-Wallpaper on   [Home | Lock | Both]
+Where          [Home screen | Lock screen | Both]
 Fit            [Fill | Fit]                    ← (2)
-Video days     ( ) keep  ( ) my picture
 [Set as wallpaper now]
+──────────
+Pictures from  [✓ APOD] [ NASA ] [ Earth ]     ← chips, 0.5.0
+Change every   [Day | 12 h | 6 h | 3 h]        ← 0.5.0, with 2+ ticked
+If APOD is a video  ( ) keep  ( ) NASA  ( ) Earth  ( ) my picture   ← greyed with 2+ ticked
 ```
 
-The three lines under the switch show only while it's on: they only affect the job. Labels are
+The battery hint (5) moved into a box below the picture in 0.4.0 (neutral colours since 0.5.0). The lines under the
+switch show only while it's on: they only affect the job. Labels are
 placeholders; show the user before settling them. The defaults here (both switches off, settings
 shown only while the daily switch is on, Fill/Fit not re-setting the wallpaper, hibernation
 checked before any hint, the version number) were proposed and confirmed by the user, 2026-10-04.
 
 ## Items
 
-### [ ] 1. Sharper wallpaper (rendition), original for the gallery
+### [x] 1. Sharper wallpaper (rendition), original for the gallery (0.5.0)
+
+Built 2026-10-16 (`plan-0.5.0.md` WP2; `CLAUDE.md`, The app, Fetch and Save).
+
+In 0.5.0 as `plan-0.5.0.md` WP2, which also covers the new sources: NASA Image of the Day
+originals are 4.7 MB typically and up to 97 MB, so a rendition is needed there (hosts and sizes
+in `CLAUDE.md`, Other sources).
 
 Today the app downloads `featured_image.file` as is: 1280 px, which Android scales up 2–3× to
 fill a 1116×2484 screen.
@@ -63,9 +75,12 @@ Decided (user, 2026-10-04): **the daily download is a rendition, ★ saves the o
 - Test on the phone: today's picture sharper as wallpaper (compare with a 0.1.2 screenshot), ★
   file in the gallery at the original size, ★ with the network off (falls back or says so).
 
-### [ ] 2. Fill / Fit
+### [ ] 2. Fill / Fit (0.6.0)
 
-Decided (user, 2026-10-04): a setting **Fill | Fit** (segmented button, as "Wallpaper on"),
+With 0.5.0's sources: Earth Observatory has some wide maps (one of 10 checked was 1440×600),
+where Fill shows a narrow slice and Fit would help.
+
+Decided (user, 2026-10-04): a setting **Fill | Fit** (segmented button, as "Where"),
 default Fill, today's behaviour.
 - Fill: as now, `setStream` with the chosen part (⛶).
 - Fit: decode upright and sampled (as `decodeUpright` in `Store.kt`, which also turns camera
@@ -73,7 +88,8 @@ default Fill, today's behaviour.
   `setBitmap(bitmap, null, true, which)`. 1116×2484 ARGB is about 11 MB, fine. Applies to the
   APOD and to "my picture"; to home and lock alike.
 - No ⛶ with Fit: the whole picture shows, so there's no part to choose (user, 2026-10-05).
-- Changing it doesn't set the wallpaper again (as "Wallpaper on"); the next change or "Set as
+- Changing it doesn't set the wallpaper again (2026-10-04; since 0.4.0 "Where" does while the
+  switch is on: ask the user whether Fit should too); the next change or "Set as
   wallpaper now" uses it.
 - Test on the phone: a landscape and a portrait picture, home and lock, both modes.
 
@@ -92,7 +108,10 @@ Decided (user, 2026-10-04): **always shown** while the switch is on.
 - Covers a broken endpoint, an app that Android has stopped (5), and no network for days.
 - Test: fake `checkedAt` two days back with `run-as sed` (skill, Fake an old day).
 
-### [ ] 4. Wi-Fi only
+### [ ] 4. Wi-Fi only (0.6.0)
+
+With 0.5.0's sources there are up to three pictures a day to download (about 1 MB each as
+renditions).
 
 Decided (user, 2026-10-04): a switch, **default off** (today's behaviour).
 - On: the job uses `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY` (`DailyJob.kt`);
@@ -119,7 +138,7 @@ features). Differs from the plan above it: the button opens App info, not
   stays off after a restart. The R8 build and the real Settings screens in the evening
   (`declutter.md`). What's still untested: the skill, Still untested.
 
-### [ ] 6. Share
+### [ ] 6. Share (0.6.0)
 
 Decided (user, 2026-10-04): share **title and page link** with `ACTION_SEND` (text), through
 the system share sheet. No `FileProvider`, no picture file.
@@ -128,7 +147,10 @@ the system share sheet. No `FileProvider`, no picture file.
   link works). There's no clear share glyph in Unicode; show the user two or three candidates on
   the phone. Screen-reader label "Share".
 
-### [ ] 7. Image credit
+### [ ] 7. Image credit (0.6.0)
+
+Checked for APOD only. NASA Image of the Day and Earth Observatory (0.5.0) weren't checked:
+parse theirs too, or show the credit on APOD only (ask the user).
 
 Decided (user, 2026-10-04): show the credit under the date.
 
@@ -148,7 +170,9 @@ stripped they run together: "…NSF/AURAImage Processing: …") and sometimes st
 - An entry stored by 0.1.x has no credit: show nothing until the next day's post (no refetch;
   see the migration rule in `CLAUDE.md`).
 
-### [ ] 8. Save every picture
+### [ ] 8. Save every picture (0.6.0)
+
+With 0.5.0's sources: every source in use, or APOD only? Ask the user.
 
 Decided (user, 2026-10-04): a switch under the daily switch, **default off**.
 - On: after a successful run, the job also saves today's picture (as ★: the original, see 1)
@@ -174,7 +198,7 @@ title row, the page link); no `SelectionContainer`, whose long press would selec
 
 ## Small things seen (2026-10-16)
 
-- The orange boxes (`NoticeBox`) have more space below their buttons than above their text
+- The boxes (`NoticeBox`) have more space below their buttons than above their text
   (`TextButton`'s minimum height). Cosmetic; seen on the FP6 and the tablet, left for after 0.4.0.
 
 ## Left out (user, 2026-10-04)

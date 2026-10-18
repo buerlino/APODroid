@@ -535,3 +535,13 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
    ends the run too (WP8b, 2026-10-18, found by reading: `Thread.interrupted()` clears the
    flag, so `downloadPicture` fell through to the plain 1280 px picture, downloaded it whole and
    set it). An HTTP `Range` resume would keep it; left.
+2. A picture instead of the black ▶ tile on video days (user, 2026-10-18: a black tile isn't
+   nice; the user chose "note it down for future", nothing built). Checked on the 13 video
+   posts in `private/` (24 Jun to 16 Oct 2026): 11 are NASA's own `<video>` with an mp4 on
+   `assets.science.nasa.gov` (no `poster`), 2 are YouTube embeds. So a YouTube thumbnail
+   (`img.youtube.com/vi/<id>/hqdefault.jpg`, a new host) covers about 1 in 6; not worth it
+   alone. Idea: `MediaMetadataRetriever` on the mp4 URL (Android, no library, no new host),
+   a frame a few seconds in, shown dimmed behind ▶ on the page only, never the wallpaper,
+   black tile on any failure. The 16 Oct mp4: 25.7 MB, `accept-ranges: bytes`, `moov` at the
+   start (so a few hundred KB should do); untested on the phone, other files' layout unknown.
+   Fallback if it fails: a local tile (star field or logo), no network.

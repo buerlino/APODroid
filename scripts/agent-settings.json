@@ -6,7 +6,7 @@
     ],
     "deny": [
       "Bash(git push:*)",
-      "Bash(git -C * push:*)",
+      "Bash(git -C * push*)",
       "Bash(adb -s 4d42e62f:*)",
       "Bash(*adb -s 4d42e62f*)"
     ]

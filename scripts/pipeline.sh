@@ -3,24 +3,27 @@
 # (.claude/skills/build-apodroid-android/night.md; adapted from pascaline's scripts/pipeline.sh).
 #
 #   scripts/pipeline.sh <ID> [options] ["<task text>"]
-#       A queue package: its row in night.md's queue gives model, effort, tablet and spec.
+#       A queue package: its row in night.md's queue gives agent, model, effort, tablet and spec.
 #       A fix package (<ID>f1, <ID>f2, ...): the task text is the fix; the defaults come from <ID>'s row.
-#       --model M         winston's model: opus or sonnet
+#       --agent A         the worker: winston (code), or rosie (a device package such as M0: she runs it on the tablet)
+#       --model M         the worker's model: opus or sonnet
 #       --effort E        low, medium or high
 #       --tablet T        yes or no: rosie runs the tablet checks before the merge
 #       --branch B        the branch (default wp/<id>); an existing one is resumed from its last commit
-#       --audit-model M   susanna's model: auto (default: opus when winston runs opus or the diff touches
+#       --audit-model M   susanna's model: auto (default: opus when the worker runs opus or the diff touches
 #                         core/src/main/, Store.kt or DailyJob.kt, else sonnet; a floor), sonnet or opus
 #       --no-worker       review-only: the branch exists; dev is merged into it first (a conflict is a fix round)
 #       --no-merge        stop after the checks; print the merge command
 #       --dry-run         print the bundle and the plan; start nothing, make no worktree
 #   scripts/pipeline.sh pass       an Opus pass by susanna on dev over the packages since the last pass
 #   scripts/pipeline.sh report     the night's report, written by susanna to .coord/reports/
+#   APODROID_TEST_MODEL=haiku ...  every agent on that model (to test the pipeline cheaply)
 #
-# Lifecycle: bundle → winston in his own worktree from dev → the Gradle check (:core tests, lint, the R8
+# Lifecycle: bundle → the worker (winston) in his own worktree from dev → the Gradle check (:core tests, lint, the R8
 # release build) → susanna audits the diff → rosie checks the tablet (when the row says so and the tablet is
 # attached) → merge of the audited commit into dev → worktree and branch removed. The check, the audit and the
-# tablet share at most two fix rounds by winston, each fed only the failing part.
+# tablet share at most two fix rounds by the worker, each fed only the failing part. A device package (agent rosie)
+# has rosie as its worker on the tablet; anything but her PASS leaves it unmerged.
 # Output: one RESULT line on stdout (also in .coord/log.md), on every exit. Exit 0 merged, 1 not merged,
 # 2 not started or failed early, 75 usage limit (night.sh waits and retries).
 set -euo pipefail
@@ -48,7 +51,7 @@ result() { [[ "${dry:-0}" -eq 1 ]] || log "RESULT $*"; echo "RESULT $*"; }
 runno=""; id=""
 die() {
   echo "pipeline: $*" >&2
-  if [[ -n "$runno" ]]; then result "#$runno $id: NOT MERGED ($*)"; else result "-: NOT STARTED ($*)"; fi
+  if [[ -n "$runno" ]]; then result "#$runno $id: NOT MERGED ($*)"; else result "- ${id:+$id}: NOT STARTED ($*)"; fi
   exit 2
 }
 
@@ -62,6 +65,9 @@ ensure_integ() {
     git worktree add "$integ" dev >/dev/null 2>&1 || die "cannot add the dev worktree at $integ"
   fi
   [[ -z "$(git -C "$integ" status --porcelain --untracked-files=no)" ]] || die "the dev worktree $integ is not clean"
+  [[ "${dry:-0}" -eq 1 ]] && return 0
+  local synced; synced="$(sync_dev "$integ")" || die "$synced"
+  [[ -z "$synced" ]] || log "pipeline: $synced"
 }
 # The gitignored private/ (real responses for SourcesTest, the tablet scripts) is linked into a worktree.
 link_shared() { [[ -e "$1/private" || ! -d "$main/private" ]] || ln -s "$main/private" "$1/private"; }
@@ -79,7 +85,7 @@ if [[ "${1:-}" == "pass" ]]; then
   log "Opus pass $n: susanna (opus) on: $since"
   set +e
   (cd "$integ" && timeout 7200 claude -p --disallowedTools Agent --add-dir "$coord" \
-    --agent susanna --model opus --effort medium "${claude_common[@]}" "$prompt") > "$run/reply.md" 2> "$run/stderr.log"
+    --agent susanna --model "${APODROID_TEST_MODEL:-opus}" --effort medium "${claude_common[@]}" "$prompt") > "$run/reply.md" 2> "$run/stderr.log"
   rc=$?; set -e
   if is_limit "$rc" "$run/stderr.log" "$run/reply.md"; then result "pass $n: LIMIT"; exit 75; fi
   { echo "- $(date +%H:%M) Opus pass $n reply:"; from_opus_pass "$run/reply.md" | sed 's/^/    /'; } >> "$coord/log.md"
@@ -89,14 +95,14 @@ fi
 # ---------- report ----------
 if [[ "${1:-}" == "report" ]]; then
   ensure_integ
-  night_date="$(grep -oE '^## [0-9-]+ night' "$coord/log.md" | tail -n1 | cut -d' ' -f2)"
+  night_date="$(grep -oE '^## [0-9-]+ night' "$coord/log.md" 2>/dev/null | tail -n1 | cut -d' ' -f2 || true)"
   out="$coord/reports/${night_date:-$(date +%F)}-night.md"; run="$coord/reports/.${night_date:-$(date +%F)}"; mkdir -p "$run"
   log "Shift report: susanna (sonnet) writes $out"
   prompt="Write the shift report of $skill/night.md (\"The shift report\") to $out, from the night's part of .coord/log.md on stdin. You run in the dev worktree $integ; the run folders are in $coord/runs/ and the pass replies in $coord/passes/. Never commit, never push. Reply with the file's path only."
   set +e
   awk '/^## [0-9-]+ night/ { buf = "" } { buf = buf $0 "\n" } END { printf "%s", buf }' "$coord/log.md" |
     (cd "$integ" && timeout 1800 claude -p --disallowedTools Agent --add-dir "$coord" \
-      --agent susanna --model sonnet --effort medium "${claude_common[@]}" "$prompt") > "$run/reply.md" 2> "$run/stderr.log"
+      --agent susanna --model "${APODROID_TEST_MODEL:-sonnet}" --effort medium "${claude_common[@]}" "$prompt") > "$run/reply.md" 2> "$run/stderr.log"
   rc=$?; set -e
   if is_limit "$rc" "$run/stderr.log" "$run/reply.md"; then result "report: LIMIT"; exit 75; fi
   [[ -s "$out" ]] && result "report: $out" || result "report: FAILED (exit $rc; see $run/stderr.log)"
@@ -107,10 +113,10 @@ fi
 [[ $# -ge 1 ]] || die "usage: pipeline.sh <ID> [options] [\"<task text>\"] | pass | report"
 id="$1"; shift
 [[ "$id" =~ ^[A-Z][A-Za-z0-9]*$ ]] || die "bad package ID '$id'"
-model=""; effort=""; tablet=""; branch=""; audit_model="auto"; nowork=0; merge=1; dry=0; task=""
+agent=""; model=""; effort=""; tablet=""; branch=""; audit_model="auto"; nowork=0; merge=1; dry=0; task=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --model) model="$2"; shift 2;; --effort) effort="$2"; shift 2;; --tablet) tablet="$2"; shift 2;;
+    --agent) agent="$2"; shift 2;; --model) model="$2"; shift 2;; --effort) effort="$2"; shift 2;; --tablet) tablet="$2"; shift 2;;
     --branch) branch="$2"; shift 2;; --audit-model) audit_model="$2"; shift 2;;
     --no-worker) nowork=1; shift;; --no-merge) merge=0; shift;; --dry-run) dry=1; shift;;
     --*) die "unknown option $1";;
@@ -126,14 +132,19 @@ features="$integ/$skill/features.md"
 base="$(sed -E 's/f[0-9]+$//' <<<"$id")"
 row="$(queue_row "$night" "$base")"
 [[ -n "$row" || -n "$task" ]] || die "package $id is not in the queue of night.md and has no task text"
-r_model=""; r_effort=""; r_tablet=""; r_after=""; r_spec=""
-[[ -z "$row" ]] || IFS='|' read -r r_model r_effort r_tablet r_after r_spec <<<"$row"
-model="${model:-${r_model:-sonnet}}"; effort="${effort:-${r_effort:-medium}}"; tablet="${tablet:-${r_tablet:-no}}"
+r_agent=""; r_model=""; r_effort=""; r_tablet=""; r_after=""; r_spec=""
+[[ -z "$row" ]] || IFS='|' read -r r_agent r_model r_effort r_tablet r_after r_spec <<<"$row"
+agent="${agent:-${r_agent:-winston}}"; model="${model:-${r_model:-sonnet}}"; effort="${effort:-${r_effort:-medium}}"; tablet="${tablet:-${r_tablet:-no}}"
+[[ "$agent" =~ ^(winston|rosie)$ ]] || die "agent '$agent' (winston, rosie)"
 [[ "$model" =~ ^(opus|sonnet|haiku)$ ]] || die "model '$model' (opus, sonnet)"
 [[ "$effort" =~ ^(low|medium|high)$ ]] || die "effort '$effort' (low, medium, high)"
 [[ "$tablet" =~ ^(yes|no)$ ]] || die "tablet '$tablet' (yes, no)"
 [[ "$audit_model" =~ ^(auto|sonnet|opus|haiku)$ ]] || die "audit model '$audit_model'"
 branch="${branch:-wp/${id,,}}"
+if [[ $dry -eq 0 && $nowork -eq 0 && "$agent" == rosie ]]; then  # a device package needs the tablet
+  state="$("$adb" -s "$TABLET" get-state 2>/dev/null || true)"
+  [[ "$state" == device ]] || die "device package: the tablet $TABLET is ${state:-not attached}"
+fi
 
 git worktree prune
 dverdict=""
@@ -155,14 +166,15 @@ spec="$run/task.md"
   fi
 } > "$spec" || die "package $id: its spec '$r_spec' does not resolve (see the message above)"
 
-# The bundle for winston and the criteria for susanna.
+# The bundle for the worker and the criteria for susanna.
 bundle="$run/spec.md"
+rules="For winston"; [[ "$agent" == winston ]] || rules="For rosie: the tablet checks"
 {
-  echo "# Pipeline run $n: $id for winston ($model, $effort) on branch $branch"; echo
+  echo "# Pipeline run $n: $id for $agent ($model, $effort) on branch $branch"; echo
   cat "$spec"
   echo "## The plan's decisions and layout (the top of $(basename "$plan"), before its package list)"; echo
   plan_preamble "$plan"; echo
-  echo "## For winston (night.md)"; h2 "$night" "For winston"
+  echo "## $rules (night.md)"; h2 "$night" "$rules"
   echo "## Your report (night.md)"; h2 "$night" "Your report"
   echo "## Definition of done (night.md)"; h2 "$night" "Definition of done"
 } > "$bundle"
@@ -174,7 +186,7 @@ bundle="$run/spec.md"
 
 wt="$main/.claude/worktrees/wp-$(printf '%03d' "$n")-${id,,}"
 if [[ $dry -eq 1 ]]; then
-  echo "DRY RUN: pipeline run $n, package $id: winston ($model, $effort), branch $branch, tablet $tablet, audit $audit_model"
+  echo "DRY RUN: pipeline run $n, package $id: $agent ($model, $effort), branch $branch, tablet $tablet, audit $audit_model"
   echo "dev worktree: $integ; worker worktree: $wt (from dev, or the existing branch)"
   echo "spec: ${r_spec:-the task text}; after: ${r_after:-—}"
   echo "check: ./gradlew --console=plain ${gradle_check[*]}  (ANDROID_HOME=$ANDROID_HOME, under the host-cpu lock)"
@@ -186,7 +198,7 @@ fi
 
 if [[ $nowork -eq 1 ]]; then git show-ref --verify --quiet "refs/heads/$branch" || die "--no-worker: branch $branch does not exist"; fi
 echo "$n" > "$counter"; runno="$n"
-log "pipeline #$n $id (winston, $model, $effort; tablet $tablet) on $branch: started"
+log "pipeline #$n $id ($agent, $model, $effort; tablet $tablet) on $branch: started"
 runlog "start $id $model $effort $branch tablet=$tablet"
 
 # The worktree: fresh from dev, or the existing branch resumed from its last commit.
@@ -206,12 +218,22 @@ run_agent() {  # <name> <log> <agent> <model> <effort> <stdin file> <timeout s> 
   local name="$1" out="$2" ag="$3" mdl="$4" eff="$5" input="$6" secs="$7" prompt="$8"; shift 8
   local rc
   set +e
-  (cd "$wt" && env "${agent_env[@]}" timeout "$secs" claude -p "$@" --agent "$ag" --model "$mdl" --effort "$eff" \
+  (cd "$wt" && env "${agent_env[@]}" timeout "$secs" claude -p "$@" --agent "$ag" --model "${APODROID_TEST_MODEL:-$mdl}" --effort "$eff" \
     "${claude_common[@]}" "$prompt") < "$input" > "$out" 2> "$out.err"
   rc=$?; set -e
   if is_limit "$rc" "$out" "$out.err"; then log "pipeline #$n $id: LIMIT during $name (claude exit $rc)"; result "#$n $id: LIMIT"; exit 75; fi
   runlog "$name: claude exit $rc; reply: $(tail -n 3 "$out" | tr '\n' ' ' | cut -c1-200)"
   return 0
+}
+# The package's worker: winston, or rosie with the tablet (her adb, the tablet lock, her folder).
+run_worker() {  # <name> <log> <stdin file> <timeout s> <prompt>
+  if [[ "$agent" == winston ]]; then run_agent "$1" "$2" winston "$model" "$effort" "$3" "$4" "$5" --disallowedTools Agent; return 0; fi
+  mkdir -p "$run/tablet"
+  lock acquire tablet "pipeline-$n" 1800 || die "tablet lock busy"
+  agent_env=("ANDROID_SERIAL=$TABLET" "PATH=$ANDROID_HOME/platform-tools:$PATH")
+  run_agent "$1" "$2" rosie "$model" "$effort" "$3" "$4" "$5" --disallowedTools Agent,NotebookEdit --add-dir "$run"
+  agent_env=()
+  lock release tablet "pipeline-$n" || true
 }
 
 # The Gradle check: a clean worktree, then the :core tests, lint and the R8 release build.
@@ -244,7 +266,7 @@ run_check() {  # <round>; on a failure writes fail-<round>.txt and returns 1
 changed() { git -C "$wt" diff --name-only "dev...HEAD"; }
 resolve_audit_model() {
   local why=""
-  if [[ "$model" == "opus" ]]; then why="winston ran opus"
+  if [[ "$model" == "opus" ]]; then why="the worker ran opus"
   elif changed | grep -qE '^(core/src/main/|app/src/main/kotlin/.*/(Store|DailyJob)\.kt$)'; then why="the diff touches core, Store.kt or DailyJob.kt"; fi
   if [[ "$audit_model" == "opus" ]]; then echo opus
   elif [[ -n "$why" ]]; then
@@ -284,9 +306,22 @@ tablet_check() {  # <round>
 
 # Round 0: winston (or, review-only, dev merged into the branch).
 rounds=0
-if [[ $nowork -eq 0 ]]; then
+if [[ $nowork -eq 0 && "$agent" == rosie ]]; then
+  # A device package: rosie is the worker; anything but PASS leaves it unmerged (what follows rests on it).
+  apk="$run/app-debug.apk"
+  lock acquire host-cpu "pipeline-$n" 1800 || die "host-cpu lock busy"
+  (cd "$wt" && timeout 1800 ./gradlew --console=plain :app:assembleDebug) > "$run/debug.log" 2>&1 && cp "$wt/app/build/outputs/apk/debug/app-debug.apk" "$apk" || true
+  lock release host-cpu "pipeline-$n" || true
+  prompt="You are rosie in pipeline run $n for the device package $id, the worker this time. The bundle is on stdin (also at $bundle). Run the package's steps on the tablet $TABLET as its text and \"For rosie: the tablet checks\" say, with what is installed there, or with $apk (the debug build of dev) when the package needs our app and none is installed. Put screenshots, dumps and the backup in $run/tablet/. Then, in your worktree $wt on branch $branch, write the results where the package's Done when says, commit them with your model's trailer, and end with the report commit (\"Your report\"). Never switch branches. Reply with PASS, FIX, STOP or NOT RUN alone on the first line, then the lines that section asks for."
+  run_worker "pl-$n-rosie" "$run/worker-0.log" "$bundle" 3600 "$prompt"
+  wverdict="$(grep -m1 -oE '^(PASS|FIX|STOP|NOT RUN)' "$run/worker-0.log" || true)"
+  log "pipeline #$n $id: rosie ${wverdict:-unclear}, $(git -C "$wt" log -1 --format=%h) — $(grep -vE '^(PASS|FIX|STOP|NOT RUN)?$' "$run/worker-0.log" | head -n 1 | cut -c1-140)"
+  if [[ "$wverdict" != PASS ]]; then
+    result "#$n $id: NOT MERGED (device package: rosie ${wverdict:-gave no verdict}, needs the user: see $run/worker-0.log; branch $branch, worktree $wt kept)"; exit 1
+  fi
+elif [[ $nowork -eq 0 ]]; then
   prompt="You are winston in pipeline run $n for package $id. The bundle is on stdin (also at $bundle). You run in your own worktree $wt on branch $branch from dev: never switch branches and never commit anywhere else. Follow the bundle's \"For winston\" rules. Run ./gradlew :core:test (and :app:compileDebugKotlin when app/ changed) while you work; the pipeline runs the full check afterwards. Commit small, each commit with the Co-Authored-By trailer of your model, leave the worktree clean, and end with the report commit. Never start a background loop that waits for a process; run each command in the foreground with a timeout. Reply in at most five lines: last commit, done or not done, open questions."
-  run_agent "pl-$n-winston" "$run/worker-0.log" winston "$model" "$effort" "$bundle" 10800 "$prompt" --disallowedTools Agent
+  run_worker "pl-$n-winston" "$run/worker-0.log" "$bundle" 10800 "$prompt"
   log "pipeline #$n $id: winston done, $(git -C "$wt" log -1 --format=%h) — $(tail -n 1 "$run/worker-0.log" | cut -c1-140)"
 else
   log "pipeline #$n $id: review-only; merging dev into $branch"
@@ -295,13 +330,13 @@ else
     [[ -n "$conflicts" ]] || { git -C "$wt" merge --abort >/dev/null 2>&1 || true; die "merging dev into $branch failed: $(tail -n 1 "$run/premerge.log")"; }
     { echo "## Merging dev into $branch conflicts in:"; echo "$conflicts"; } > "$run/fail-1.txt"
     rounds=1
-    run_agent "fix-$n-1" "$run/fix-1.log" winston "$model" "$effort" "$run/fail-1.txt" 3600 \
-      "You are winston on branch $branch in your own worktree; a merge of dev is in progress with conflicts (files on stdin) for package $id. Resolve each conflict keeping both sides' intent, git add the files and finish the merge with git commit (with your model's trailer). Run ./gradlew :core:test. Reply in at most three lines." --disallowedTools Agent
+    run_worker "fix-$n-1" "$run/fix-1.log" "$run/fail-1.txt" 3600 \
+      "You are $agent on branch $branch in your own worktree; a merge of dev is in progress with conflicts (files on stdin) for package $id. Resolve each conflict keeping both sides' intent, git add the files and finish the merge with git commit (with your model's trailer). Run ./gradlew :core:test. Reply in at most three lines."
     if git -C "$wt" rev-parse -q --verify MERGE_HEAD >/dev/null || [[ -n "$(git -C "$wt" diff --name-only --diff-filter=U)" ]]; then
       git -C "$wt" merge --abort >/dev/null 2>&1 || true
       die "conflicts merging dev into $branch not resolved (worktree $wt kept)"
     fi
-    log "pipeline #$n $id: conflicts with dev resolved by winston"
+    log "pipeline #$n $id: conflicts with dev resolved by $agent"
   fi
 fi
 if [[ -z "$(git -C "$wt" log --oneline "dev..HEAD")" ]]; then
@@ -318,11 +353,11 @@ while :; do
     log "pipeline #$n $id: check passed (round $rounds)"
     audited="$(git -C "$wt" rev-parse HEAD)"; runlog "audit $rounds reads $audited"
     git -C "$wt" diff -U5 "dev...$audited" > "$run/audit-$rounds.diff"
-    { cat "$run/criteria.md"; echo; echo "## winston's report (git log -1)"; git -C "$wt" log -1 --format=%B "$audited"
+    { cat "$run/criteria.md"; echo; echo "## The worker's report ($agent, git log -1)"; git -C "$wt" log -1 --format=%B "$audited"
       echo "## The diff (git diff -U5 dev...$audited, the HEAD of $branch, $(wc -l < "$run/audit-$rounds.diff") lines)"; cat "$run/audit-$rounds.diff"; } > "$run/audit-$rounds.in"
     am="$(resolve_audit_model)"
     run_agent "audit-$n-$rounds" "$run/audit-$rounds.log" susanna "$am" medium "$run/audit-$rounds.in" 1800 \
-      "AUDIT pipeline run $n, package $id, branch $branch. On stdin: the acceptance criteria (with \"For susanna: the audit\"), winston's report and the diff against dev; the Gradle check passed (:core tests, lint, the R8 release build). Reply with the single word APPROVED on the first line, or FIX on the first line followed by at most five findings, each with file:line, the concrete failure and the fix. Nothing else." \
+      "AUDIT pipeline run $n, package $id, branch $branch. On stdin: the acceptance criteria (with \"For susanna: the audit\"), the worker's report and the diff against dev; the Gradle check passed (:core tests, lint, the R8 release build). Reply with the single word APPROVED on the first line, or FIX on the first line followed by at most five findings, each with file:line, the concrete failure and the fix. Nothing else." \
       --tools Read,Grep,Glob
     verdict="$(grep -m1 -oE '^(APPROVED|FIX)' "$run/audit-$rounds.log" || true)"
     if [[ "$verdict" == "APPROVED" ]]; then
@@ -346,9 +381,8 @@ while :; do
   fi
   rounds=$((rounds + 1))
   { echo "# Fix round $rounds of 2 for pipeline run $n ($id): $reason"; echo; cat "$feedback"; echo; echo "# The task bundle"; cat "$bundle"; } > "$run/fix-$rounds.in"
-  run_agent "fix-$n-$rounds" "$run/fix-$rounds.log" winston "$model" "$effort" "$run/fix-$rounds.in" 7200 \
-    "You are winston on branch $branch in your own worktree, fix round $rounds of 2 for package $id: $reason. On stdin: the failing output or the findings, then the task bundle. Fix the cause (not the test), add the regression test where one is missing, run the failing part yourself, commit with your model's trailer (new commits, amend nothing), leave the worktree clean, and update the report: end with a new report commit that says what this round changed. Never start a background loop that waits for a process. Reply in at most five lines: last commit, what you fixed, anything you could not fix." \
-    --disallowedTools Agent
+  run_worker "fix-$n-$rounds" "$run/fix-$rounds.log" "$run/fix-$rounds.in" 7200 \
+    "You are $agent on branch $branch in your own worktree, fix round $rounds of 2 for package $id: $reason. On stdin: the failing output or the findings, then the task bundle. Fix the cause (not the test), add the regression test where one is missing, run the failing part yourself, commit with your model's trailer (new commits, amend nothing), leave the worktree clean, and update the report: end with a new report commit that says what this round changed. Never start a background loop that waits for a process. Reply in at most five lines: last commit, what you fixed, anything you could not fix."
   log "pipeline #$n $id: fix round $rounds done, $(git -C "$wt" log -1 --format=%h)"
 done
 

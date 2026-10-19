@@ -22,7 +22,7 @@ while IFS= read -r qid; do
   grep -q "branch wp/${qid,,}," <<<"$out" || fail "$qid: dry run names no branch wp/${qid,,}"
   grep -qE "^## Your task: package $qid " <<<"$out" || fail "$qid: no task heading"
   grep -qE "^### \[[ x]\] " <<<"$out" || fail "$qid: the bundle holds no plan section"
-  grep -q '^## For winston' <<<"$out" && grep -q '^## Definition of done' <<<"$out" || fail "$qid: the bundle lacks night.md's sections"
+  grep -qE '^## For (winston|rosie)' <<<"$out" && grep -q '^## Definition of done' <<<"$out" || fail "$qid: the bundle lacks night.md's sections"
 done < <(awk -F'|' '/^## / { q = ($0 ~ /^## The queue/); next } q && /^\| *[0-9]+ *\|/ { gsub(/ /, "", $3); print $3 }' "$night")
 [[ $count -gt 0 ]] || fail "no queue rows found in $night"
 
@@ -30,6 +30,12 @@ done < <(awk -F'|' '/^## / { q = ($0 ~ /^## The queue/); next } q && /^\| *[0-9]
 out="$("$here/pipeline.sh" F2 --dry-run 2>&1)"
 grep -q '^### \[ \] F1–F5\.' <<<"$out" && grep -q '^### \[ \] 4\. Wi-Fi only' <<<"$out" || fail "F2: the bundle lacks the plan's F1–F5 or features.md's item 4"
 grep -q 'winston (opus, high), branch wp/m1, tablet no' "$tmp/m1" || fail "M1: not opus, high, tablet no: $(head -n 1 "$tmp/m1")"
+# A device package has rosie as its worker, with her rules in the bundle.
+if [[ -n "$(queue_row "$night" M0)" ]]; then
+  out="$("$here/pipeline.sh" M0 --dry-run 2>&1)"
+  grep -q 'package M0: rosie (opus, medium), branch wp/m0, tablet no' <<<"$out" || fail "M0: not rosie, opus, medium: $(head -n 1 <<<"$out")"
+  grep -q '^## For rosie: the tablet checks (night.md)' <<<"$out" || fail "M0: the bundle lacks rosie's rules"
+fi
 # A fix package takes its package's row and the flags; a made-up ID without a task fails with exit 2.
 out="$("$here/pipeline.sh" M2f1 --model sonnet --tablet no --dry-run "Fix the thing in Store.kt" 2>&1)"
 grep -q 'winston (sonnet, high), branch wp/m2f1, tablet no' <<<"$out" || fail "M2f1: wrong defaults: $(head -n 1 <<<"$out")"

@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Helpers of scripts/pipeline.sh and scripts/night.sh, sourced by them and by scripts/pipeline.test.sh.
 
-# queue_row <night.md> <ID>: the row of the queue table (section "## The queue") whose ID column is <ID>,
-# as model|effort|tablet|after|spec; nothing when there is no such row.
+# queue_row <night.md> <ID>: the row of the queue table (section "## The queue": Step, ID, What, Agent, Model and
+# effort, Tablet, After, Spec) whose ID column is <ID>, as agent|model|effort|tablet|after|spec; nothing when
+# there is no such row.
 queue_row() {
   awk -F'|' -v id="$2" '
     /^## / { q = ($0 ~ /^## The queue/); next }
     q && /^\|/ {
       for (i = 2; i < NF; i++) gsub(/^ +| +$/, "", $i)
-      if ($3 == id) { split($5, m, / *, */); printf "%s|%s|%s|%s|%s\n", m[1], m[2], $6, $7, $8; exit }
+      if ($3 == id) { split($6, m, / *, */); printf "%s|%s|%s|%s|%s|%s\n", $5, m[1], m[2], $7, $8, $9; exit }
     }' "$1"
 }
 
@@ -70,6 +71,15 @@ last_pass_reply() {
        on && /^    / { r[++n] = $0; next }
        on { on = 0 }
        END { for (i = 1; i <= n; i++) print r[i] }' "$1"
+}
+
+# sync_dev <dev worktree>: brings dev up to master (the user's day commits): a fast-forward, or a merge commit when
+# both moved; prints what it did. A conflict is aborted and fails.
+sync_dev() {
+  git -C "$1" merge-base --is-ancestor master HEAD && return 0
+  if git -C "$1" merge --no-edit master > /dev/null 2>&1; then echo "master merged into dev ($(git -C "$1" rev-parse --short HEAD))"; return 0; fi
+  git -C "$1" merge --abort > /dev/null 2>&1 || true
+  echo "merging master into dev conflicts"; return 1
 }
 
 # audited_head_check <worktree> <branch> <audited sha>: succeeds when refs/heads/<branch> is the audited commit;

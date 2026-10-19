@@ -6,6 +6,7 @@
 #
 #   scripts/night.sh [--until HH:MM] [--max-steps N] [--limit-wait SECONDS]   (defaults: no --until, 30, 1800)
 #   scripts/night.sh --next        ask josh once and print his command; run nothing, log nothing
+# Each start first brings dev up to master and runs scripts/pipeline.test.sh (the preflight); a failure stops it.
 #   scripts/night.sh --dry-run [--until HH:MM] [--max-steps N] [--dry-step MIN]
 #                                  the steps on a simulated clock (APODROID_NIGHT_NOW=HH:MM); asks no josh
 #
@@ -71,9 +72,12 @@ else
   trap '"$here/devlock.sh" release night "night.sh-$$" >/dev/null 2>&1 || true' EXIT
   printf '\n## %s night, %s\n' "$(date +%F)" "$(date +%H:%M)" >> "$coord/log.md"
   [[ -z "$(git -C "$integ" status --porcelain --untracked-files=no)" ]] || { log "STOPPED night.sh: the dev worktree $integ is not clean"; say "STOPPED: dev worktree not clean"; exit 1; }
-  if ! git merge-base --is-ancestor master dev; then
-    if git -C "$integ" merge --no-edit master > /dev/null 2>&1; then log "night.sh: master merged into dev ($(git -C "$integ" rev-parse --short HEAD))"
-    else git -C "$integ" merge --abort >/dev/null 2>&1 || true; log "STOPPED night.sh: merging master into dev conflicts"; say "STOPPED: master into dev conflicts"; exit 1; fi
+  if ! synced="$(sync_dev "$integ")"; then log "STOPPED night.sh: $synced"; say "STOPPED: $synced"; exit 1; fi
+  [[ -z "$synced" ]] || log "night.sh: $synced"
+  # The preflight: every queue row resolves against dev's plan, and the scripts work (no agent is started).
+  if ! (cd "$integ" && timeout 300 scripts/pipeline.test.sh) > "$coord/preflight.log" 2>&1; then
+    log "STOPPED night.sh: the preflight failed (scripts/pipeline.test.sh): $(grep -m1 '^FAIL' "$coord/preflight.log" | cut -c1-200)"
+    say "STOPPED: preflight failed, see $coord/preflight.log"; exit 1
   fi
   tstate="$("$ANDROID_HOME/platform-tools/adb" -s "$TABLET" get-state 2>/dev/null || true)"
   log "night.sh started (max $max_steps steps$until_text); dev at $(git -C "$integ" rev-parse --short HEAD); tablet $TABLET: ${tstate:-not attached}"
@@ -100,7 +104,7 @@ ask_josh() {  # prints josh's one-line reply; waits and asks again on a usage li
   while :; do
     josh_input > "$josh_dir/in.md"; cp "$josh_dir/in.md" "$coord/josh-last-input.md" 2>/dev/null || true
     set +e
-    (cd "$josh_dir" && timeout 600 claude -p --tools "" --model sonnet --effort medium --system-prompt "$josh_prompt" \
+    (cd "$josh_dir" && timeout 600 claude -p --tools "" --model "${APODROID_TEST_MODEL:-sonnet}" --effort medium --system-prompt "$josh_prompt" \
       --strict-mcp-config --output-format text --no-session-persistence "$josh_question") < "$josh_dir/in.md" > "$josh_dir/out.md" 2> "$josh_dir/err.md"
     rc=$?; set -e
     if is_limit "$rc" "$josh_dir/err.md" "$josh_dir/out.md"; then limit_wait_or_stop "josh"; continue; fi

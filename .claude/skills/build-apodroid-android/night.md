@@ -15,7 +15,9 @@ this file's sections (the queue, josh's commands, each agent's rules), so each r
   1. **Bundle:** the package's sections of the plan (and of `features.md`), the plan's decisions and layout, and
      this file's rules for winston, the report and the definition of done (`.coord/runs/<n>-<id>/spec.md`).
   2. **winston** (the row's model and effort) in his own worktree `.claude/worktrees/wp-<n>-<id>`, on branch
-     `wp/<id>` from `dev`, the bundle on stdin, no Agent tool. He commits and ends with the report commit.
+     `wp/<id>` from `dev`, the bundle on stdin, no Agent tool. He commits and ends with the report commit. A
+     device package (Agent rosie, such as M0) has **rosie** as its worker: she runs it on the tablet and commits
+     the results; anything but PASS leaves it unmerged, since what follows rests on it.
   3. **The check:** the worktree is clean, then `./gradlew :core:test :app:lintRelease :app:assembleRelease` (the
      plan's build check; 2½ min from cold), under the host-cpu lock.
   4. **susanna's audit:** the diff against `dev`, the criteria and winston's report on stdin; Read, Grep and Glob
@@ -42,7 +44,7 @@ this file's sections (the queue, josh's commands, each agent's rules), so each r
 | josh | picks the next command | Sonnet, medium | none (all on stdin) |
 | winston | builds a package; the fix rounds | the queue row's (the plan's) | all but Agent |
 | susanna | audits a diff; the Opus pass; the report | audit Opus or Sonnet; pass Opus; report Sonnet | audit Read, Grep, Glob; else all but Agent |
-| rosie | the tablet checks | Sonnet, medium | all but Agent and Edit |
+| rosie | the tablet checks; a device package (M0) | checks Sonnet, medium; a package the row's | checks all but Agent and Edit; a package all but Agent |
 
 The agent files are `.claude/agents/<name>.md`. None of them starts another agent; at night only the pipeline
 starts agents. By day each can be started by hand (`claude --agent <name>`). Every pipeline session gets
@@ -78,18 +80,20 @@ pascaline's six agents (three workers by area, an advisor, a verifier, the coord
 
 ## The queue
 
-Tonight's (user, 2026-10-19): M1 to M4 and F2 of `plan-0.6.0.md`, with code, tests and the tablet checks; the
-texts wait for the user. F1, F3, F4 and F5 each start with a question for the user, so they stay for the day.
-"Model, effort" is the plan's. Spec names the sections the bundle takes: `plan <key>` is the plan's
-`### [ ] <key>.`, `features <key>` is `features.md`'s.
+Tonight's (user, 2026-10-19): M1 to M4 and F2 of `plan-0.6.0.md`, with code, tests and the tablet checks, after
+M0, the Android check the plan's second review put first (M1's grouping rests on it). The texts wait for the
+user. F1, F3, F4 and F5 each start with a question for the user, so they stay for the day. "Model, effort" is the
+plan's. Spec names the sections the bundle takes: `plan <key>` is the plan's `### [ ] <key>.`, `features <key>`
+is `features.md`'s. Without the tablet M0 can't run, so M1 to M4 wait and only F2 runs.
 
-| Step | ID | What | Model, effort | Tablet | After | Spec |
-|---|---|---|---|---|---|---|
-| 1 | M1 | `:core`: screens, columns, the stand-in and the hold | opus, high | no | — | plan M1 |
-| 2 | M2 | `Store`: mode, grid, a record per screen, migration, fetch rules | opus, high | yes | M1 | plan M2 |
-| 3 | M3 | Settings: the mode switch, the grid, the dropdown, the set menu | opus, high | yes | M2 | plan M3 |
-| 4 | M4 | The page: three tabs, chip, status lines, video notice, problem box | opus, medium | yes | M3 | plan M4 |
-| 5 | F2 | Wi-Fi only | sonnet, medium | yes | — | plan F1–F5 + features 4 |
+| Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
+|---|---|---|---|---|---|---|---|
+| 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
+| 2 | M1 | `:core`: screens, columns, the stand-in and the hold | winston | opus, high | no | M0 | plan M1 |
+| 3 | M2 | `Store`: mode, grid, a record per screen, migration, fetch rules | winston | opus, high | yes | M1 | plan M2 |
+| 4 | M3 | Settings: the mode switch, the grid, the dropdown, the set menu | winston | opus, high | yes | M2 | plan M3 |
+| 5 | M4 | The page: three tabs, chip, status lines, video notice, problem box | winston | opus, medium | yes | M3 | plan M4 |
+| 6 | F2 | Wi-Fi only | winston | sonnet, medium | yes | — | plan F1–F5 + features 4 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.
@@ -109,8 +113,8 @@ The first that applies:
    (the last pass; its FIX lines then run by rule 1).
 5. After that: `scripts/pipeline.sh report`; once the report has its RESULT line, `SHIFT DONE`.
 
-A RESULT line with LIMIT or FAILED: run the same command again. SKIPPED: never again. Reply with one command and
-nothing else.
+A RESULT line with LIMIT or FAILED: run the same command again. SKIPPED or NOT STARTED: never again tonight.
+Reply with one command and nothing else.
 
 ## For winston
 
@@ -158,7 +162,8 @@ Judge the diff against the criteria and `CLAUDE.md`; read other files only to ch
 - a rule of `CLAUDE.md` broken: a new dependency or permission, a help text, a notification, network on the main
   thread, Android in `:core`;
 - the plan's rules for the package (for 0.6.0: one reading of the clock; grouping by the due picture, not by the
-  columns; the hold; the stand-in; the migration reads with a fallback and writes nothing);
+  columns; the hold and its ends; the stand-in; forgetting keeps the owner and the stamp; the migration is a
+  one-time write at the first start, under a lock, and sets nothing at the first run);
 - logic without a test, a test that passes for the wrong reason, a fixed bug without a regression test;
 - what R8 can break (serialized classes, reflection);
 - files outside the package; a user-visible text missing from the report's Texts.
@@ -179,7 +184,11 @@ Reply APPROVED, or FIX with at most five findings: file:line, the concrete failu
   crashes from `logcat` and `dumpsys activity exit-info`. Screenshots (`exec-out screencap -p`) go into your folder
   for the user; look at one only when the check needs eyes (each costs tokens). For texts the user must approve:
   one screenshot per screen state, named for what it shows.
-- At most 45 minutes. No code changes, no commits.
+- At most 45 minutes. No code changes, and no commits except in a device package.
+- **A device package** (Agent rosie in the queue, such as M0): you're its worker. Run its steps as above. Then write
+  the results where its "Done when" says (for M0, `CLAUDE.md`'s Wallpaper section), commit them on your branch with
+  your model's trailer, and end with the report commit ("Your report"; Tests: what you ran on the tablet). Commit
+  the results with any verdict: a STOP's evidence is what the user needs.
 - Reply with the verdict alone on the first line:
   - **PASS**: everything checked works.
   - **FIX**: our app does something wrong (the steps, what happened, the logcat line); winston fixes it.
@@ -248,6 +257,9 @@ scripts/night.sh --until 07:30
 - One package by hand, by day or night: `scripts/pipeline.sh M3` (`--dry-run` prints its bundle; `--no-merge`
   stops before the merge; `--tablet no` skips rosie).
 - Locks: `scripts/devlock.sh status`; `scripts/devlock.sh break <name>` for one whose owner is gone.
+- Each start brings `dev` up to master and runs `scripts/pipeline.test.sh` first (no agents); if a queue row doesn't
+  resolve against the committed plan, the night stops before spending anything.
+- To test the pipeline cheaply: `APODROID_TEST_MODEL=haiku` puts every agent on Haiku.
 
 ## The morning
 
@@ -269,3 +281,21 @@ An unmerged branch stays as `wp/<id>`, with its worktree, until the next run of 
 - Gitignored, in the main checkout: `.coord/` (`log.md`, `runs/`, `passes/`, `reports/`, `locks/`, `counter`,
   `night-<date>.log`, `josh-last-input.md`) and `.claude/worktrees/` (`dev` and the packages'). Each worktree gets a
   link to `private/` (gitignored as `/private`), so `SourcesTest`'s real posts and rosie's scripts are there.
+
+## Tested (2026-10-19)
+
+In a scratch clone, every agent on Haiku, the tablet attached:
+- A package end to end: winston, the check (2 min 46 s), the audit, the merge into `dev`, the worktree and branch
+  removed (3 min).
+- A device package: rosie with the tablet lock and adb, her commits, PASS read, merged. rosie's check after winston:
+  the debug APK built and installed with `install -r` over 0.5.0, the app opened, no crash, the settings and app
+  data backed up first, PASS, merged. M0 without the tablet: NOT STARTED, nothing made.
+- The Opus pass (the check on dev, its reply logged from `OPUS PASS` on) and the report (a file in `.coord/reports/`).
+- josh on Sonnet, on five logs: the first step, a pass after three packages, a FIX line copied verbatim, F2 after M0
+  stopped, the report at the end. All right, about 4 s each.
+- The rules in `agent-settings.json`: `git push` and `git -C <dir> push` denied (the first form of the second rule
+  never matched: susanna's pass flagged it, fixed), adb to the FP6 denied, adb to the tablet allowed.
+- `scripts/pipeline.test.sh`: every queue row's bundle, the log helpers, the merge guard, night.sh's closing.
+
+Not tested: the real models on real packages, a fix round, a usage limit, a merge conflict, a STOP, and
+night.sh's loop beyond one decision (`--next`; the closing only as a dry run).

@@ -490,7 +490,8 @@ video days worked only with APOD alone (it shows at once that it was a video day
 - **A switch "All NASA pictures"**, at the end of the settings, default off. Off: the app with
   APOD alone, as now. On: always three tabs, and a grid replaces the chips and "Where": a row
   per source, a tick box for Home and for Lock. Each mode keeps its own settings; the grid
-  starts from "Where" the first time. From 0.5.0: two or more ticked → on. Rejected: a
+  starts from "Where" the first time. From 0.5.0: anything but APOD alone → on (0.5.0 allows
+  NASA or Earth alone). Rejected: a
   first-boot screen (an extra screen; updaters never see it), a "Lock screen: one source" row.
 - **The grid:** equal columns are one wallpaper (as today), an empty column leaves that screen
   alone, a column with two or more takes turns. One shared clock for both screens.
@@ -498,17 +499,30 @@ video days worked only with APOD alone (it shows at once that it was a video day
   turns too. Four choices in both modes, never greyed: "Skip it" (was "Keep"), NASA, Earth, my
   picture. A dropdown, under APOD's grid row with the switch on.
 - **"Set as wallpaper"** stays; with the switch on it asks Home screen / Lock screen / Both.
-  A picture set by hand stays until that screen's next normal change (its turn ends, or on a
-  one-source screen that source posts); a newer post of its own source is set and keeps the
-  hold; unticking a source on that screen ends it.
+  A set by hand changes the picture, not whose turn it is, so screens with equal columns meet
+  again when the hold ends (the source may come round again at the next turn: accepted). The
+  picture stays until that screen's next normal change (its turn ends, or on a one-source
+  screen that source posts); a newer post of its own source is set and keeps the hold; any
+  tick or untick in that screen's column ends it. Set from APOD's video tab, the stand-in is
+  held as APOD's picture (APOD's next post replaces it). No hold on a screen with no ticks or
+  for a one-source screen's own source. A changed setting ("Where", the video-day choice,
+  "Change picture", the mode, Fit) is not a set by hand: no hold, no clock restart.
 - Both screens due the same picture: one set with both flags; else each screen on its own (not
   by equal columns: a hold on one screen must survive). Every screen's due picture comes from
   one reading of the clock (reviews of the plan, 2026-10-19). The clock restarts only when the
-  turn ends or on a set by hand, not when one screen changes early, so the screens stay in
-  step; a second tick restarts it only when no column took turns before.
+  turn ends or on a set by hand that touches a screen with turns, not when one screen changes
+  early, so the screens stay in step; a second tick restarts it only when no column took turns
+  before. Each screen's record notes its turn, so a failed set on one screen is retried
+  without moving the other on again; a restart by hand stamps only the screens on the current
+  turn. Forgetting a record (a setting, the daily or mode switch) keeps whose turn it is and
+  the stamp, so the current source's picture goes on again; a screen with no record starts on
+  the other screen's source if ticked there, else the first ticked one with a picture.
+- Fill / Fit (0.1.1's review) is one setting for both screens.
 - The mode switch while the daily switch is on works like a tick: what changes is set at once,
   and every hold is cleared. A held APOD whose next post is a video follows the video-day rule.
-- With the switch on the page fetches all three; the job only what the screens need. The chip
+- With the switch on the page fetches all three; the job only what the screens need (the
+  ticked ones, held pictures' sources, the stand-in while APOD is ticked somewhere). APOD mode
+  with "Where" = Lock reads the lock screen's record. The chip
   and the opening tab follow the picture's source (a stand-in's tab), not whose turn it is.
 - Home and lock set separately: checked on the tablet only first (M0); the FP6 (Android 16)
   sees it in the final pass (user).
@@ -516,7 +530,10 @@ video days worked only with APOD alone (it shows at once that it was a video day
   fallback (home's record is the unprefixed keys, so a read can't make it unknown). 0.5.0's
   `sources` and `where` become the mode and the columns; the wallpaper record is copied to the
   lock screen with Both and Lock, and home's is cleared with Lock; with Home the lock screen is
-  unknown (the app never set it).
+  unknown (the app never set it). Under a lock (the page and the job may both start first);
+  0.5.0's own picture (APOD's, no URL, on a video date) becomes "own"; in APOD mode the owner
+  is always APOD (0.5.0 noted a stand-in as the wallpaper's source). A fresh install runs it
+  too and only writes the mode.
 
 **0.5.0: more NASA pictures of the day** (user, 2026-10-16, from the repo's first GitHub issue;
 packages in `plan-0.5.0.md` in the skill, with the details still only proposed). NASA Image of

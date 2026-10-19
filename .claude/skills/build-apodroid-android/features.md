@@ -13,6 +13,9 @@ about more NASA sources (`plan-0.5.0.md`) and takes item 1 (its WP2); 2, 4, 6, 7
 
 ## Settings layout afterwards
 
+Superseded for 0.6.0 by the layout in `plan-0.6.0.md` (2026-10-19: the "All NASA pictures"
+switch, the grid); kept here for the items' own rows.
+
 ```
 Wallpaper
 [switch] Change wallpaper automatically

@@ -8,8 +8,8 @@ description: Execution brief for building APODroid (io.github.buerlino.apodroid)
 How-tos and what's still untested. `CLAUDE.md` at the repo root is the source of truth for the
 stack, the data source and the decisions. Read it first. If this skill and `CLAUDE.md` disagree,
 `CLAUDE.md` wins; update this skill to match. The history is in git. The next features to build,
-with a checklist: `features.md` next to this file. The work for 0.5.0: `plan-0.5.0.md` (0.4.0's,
-done: `plan-0.4.0.md`).
+with a checklist: `features.md` next to this file. The work for 0.6.0: `plan-0.6.0.md` (0.5.0's
+and 0.4.0's, done: `plan-0.5.0.md`, `plan-0.4.0.md`).
 
 ## Where things are
 

@@ -12,8 +12,9 @@
 #   scripts/night.sh --dry-run [--until HH:MM] [--max-steps N] [--dry-step MIN]
 #                                  the steps on a simulated clock (APODROID_NIGHT_NOW=HH:MM); asks no josh
 #
-# The end: from --until (the next HH:MM after the start) or at step N - 2, the night closes with two fixed steps:
-# the last Opus pass (when a package finished since the last one), then the report. Stops on SHIFT DONE, after the
+# The end: from --until (the next HH:MM after the start) or at step N - 3, the night closes with three fixed steps:
+# the last Opus pass (when a package finished since the last one), the regression (rosie on dev's build; the
+# pipeline skips it when nothing was merged since the last one), then the report. Stops on SHIFT DONE, after the
 # report, after 6 usage-limit waits, or when josh twice gives no usable command.
 # Output: .coord/log.md (the state) and .coord/night-<date>.log (every command's output).
 set -euo pipefail
@@ -24,7 +25,7 @@ while [[ $# -gt 0 ]]; do case "$1" in
   --max-steps) max_steps="$2"; shift 2;; --limit-wait) limit_wait="$2"; shift 2;; --until) until_hm="$2"; shift 2;;
   --dry-run) dry=1; shift;; --dry-step) dry_step="$2"; shift 2;; --next) next_only=1; shift;; --dirty-ok) dirty_ok=1; shift;;
   *) usage;; esac; done
-[[ "$max_steps" =~ ^[0-9]+$ && "$max_steps" -ge 2 ]] || { echo "night.sh: --max-steps needs at least 2 (the closing steps)" >&2; exit 2; }
+[[ "$max_steps" =~ ^[0-9]+$ && "$max_steps" -ge 3 ]] || { echo "night.sh: --max-steps needs at least 3 (the closing steps)" >&2; exit 2; }
 [[ -z "$until_hm" || "$until_hm" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] || { echo "night.sh: --until takes HH:MM" >&2; exit 2; }
 self="$(readlink -f "$0")"; here="$(dirname "$self")"
 # shellcheck source=scripts/pipeline-lib.sh
@@ -158,19 +159,25 @@ while :; do
   if (( closing == 0 )); then
     why=""
     if [[ -n "$deadline" ]] && (( $(now) >= deadline )); then why="--until $until_hm reached"
-    elif (( steps >= max_steps - 2 )); then why="step cap $max_steps minus the two closing steps"; fi
-    if [[ -n "$why" ]]; then closing=1; log "night.sh: closing ($why): the last Opus pass, then the report"; say "closing ($why)"; fi
+    elif (( steps >= max_steps - 3 )); then why="step cap $max_steps minus the three closing steps"; fi
+    if [[ -n "$why" ]]; then closing=1; log "night.sh: closing ($why): the last Opus pass, the regression, then the report"; say "closing ($why)"; fi
   fi
   if (( closing == 1 )); then  # closing step 1: the last pass, when a package finished since the last one
     if [[ $dry -eq 1 ]] || [[ -n "$(since_last_pass "$coord/log.md")" ]]; then
-      cmd="scripts/pipeline.sh pass"; say "night.sh #$n (closing 1 of 2): $cmd"; log "night.sh #$n (closing 1 of 2): $cmd"
+      cmd="scripts/pipeline.sh pass"; say "night.sh #$n (closing 1 of 3): $cmd"; log "night.sh #$n (closing 1 of 3): $cmd"
       rc=0; run_cmd "$cmd" || rc=$?
       (( rc == 75 )) && continue
-    else log "night.sh #$n (closing 1 of 2): no package since the last pass, no pass"; fi
+    else log "night.sh #$n (closing 1 of 3): no package since the last pass, no pass"; fi
     closing=2; tick; continue
   fi
-  if (( closing == 2 )); then  # closing step 2: the report
-    cmd="scripts/pipeline.sh report"; say "night.sh #$n (closing 2 of 2): $cmd"; log "night.sh #$n (closing 2 of 2): $cmd"
+  if (( closing == 2 )); then  # closing step 2: the regression (the pipeline skips it when nothing was merged since)
+    cmd="scripts/pipeline.sh regression"; say "night.sh #$n (closing 2 of 3): $cmd"; log "night.sh #$n (closing 2 of 3): $cmd"
+    rc=0; run_cmd "$cmd" || rc=$?
+    (( rc == 75 )) && continue
+    closing=3; tick; continue
+  fi
+  if (( closing == 3 )); then  # closing step 3: the report
+    cmd="scripts/pipeline.sh report"; say "night.sh #$n (closing 3 of 3): $cmd"; log "night.sh #$n (closing 3 of 3): $cmd"
     rc=0; run_cmd "$cmd" || rc=$?
     (( rc == 75 )) && continue
     tick; log "SHIFT DONE (night.sh, closed after $steps steps)"; say "done"; exit 0

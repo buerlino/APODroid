@@ -66,6 +66,20 @@ last_pass_reply "$tmp/log.md" | grep -q 'josh #5' && fail "last_pass_reply runs 
 head -n 3 "$tmp/log.md" > "$tmp/log2.md"
 [[ "$(since_last_pass "$tmp/log2.md" | wc -l)" -eq 1 ]] || fail "since_last_pass counts a LIMIT as finished"
 
+# The regression counts the merges since the last one that reached the tablet; its dry run starts nothing.
+cat > "$tmp/log3.md" <<'EOF2'
+- 22:30 RESULT #1 M1: MERGED abc1234 (tablet SKIP)
+- 23:00 RESULT regression 1: NOT RUN (the tablet HA24BZ2Y is not attached; on the morning list)
+- 23:30 RESULT #2 M2: NOT MERGED (the check failed after two fix rounds; branch wp/m2 kept)
+- 23:40 RESULT #3 M3: MERGED 1234abc (tablet PASS)
+EOF2
+[[ "$(merged_since_regression "$tmp/log3.md" | paste -sd';')" == "#1 M1: MERGED abc1234 (tablet SKIP);#3 M3: MERGED 1234abc (tablet PASS)" ]] || fail "merged_since_regression: $(merged_since_regression "$tmp/log3.md")"
+[[ "$(next_regression "$tmp/log3.md")" == 1 ]] || fail "next_regression counts a NOT RUN: $(next_regression "$tmp/log3.md")"
+echo '- 23:50 RESULT regression 1: FIX (exit 0; x)' >> "$tmp/log3.md"
+[[ -z "$(merged_since_regression "$tmp/log3.md")" && "$(next_regression "$tmp/log3.md")" == 2 ]] || fail "a FIX regression doesn't end the count"
+out="$("$here/pipeline.sh" regression --dry-run 2>&1)"; rc=$?
+[[ $rc -eq 0 ]] && grep -qE '^RESULT regression [0-9]+: (DRY RUN|NOTHING)' <<<"$out" || fail "regression --dry-run: exit $rc: $out"
+
 # josh's lines: plain commands pass, metacharacters don't.
 unsafe 'scripts/pipeline.sh M1' && fail "unsafe refuses a plain command"
 unsafe 'scripts/pipeline.sh M2f1 --model opus "Fix Store.kt line 473; the clock (one reading) & the hold"' && fail "unsafe refuses ; & ( ) inside double quotes"
@@ -90,11 +104,12 @@ printf 'Here it is.\n\nOPUS PASS 9\nVERDICT: M1 ok\n' > "$tmp/reply.md"
 out="$(APODROID_NIGHT_NOW=23:00 "$here/night.sh" --dry-run --until 01:00 2>&1)"; rc=$?
 [[ $rc -eq 0 ]] || fail "night.sh --dry-run --until: exit $rc: $out"
 grep -q '^01:00 closing (--until 01:00 reached)' <<<"$out" || fail "night.sh --until 01:00 from 23:00 doesn't close at 01:00: $out"
-grep -q '^01:00 night.sh #5 (closing 1 of 2): scripts/pipeline.sh pass$' <<<"$out" || fail "night.sh: no last pass as closing step 1: $out"
-grep -q '^01:30 night.sh #6 (closing 2 of 2): scripts/pipeline.sh report$' <<<"$out" || fail "night.sh: no report as closing step 2: $out"
+grep -q '^01:00 night.sh #5 (closing 1 of 3): scripts/pipeline.sh pass$' <<<"$out" || fail "night.sh: no last pass as closing step 1: $out"
+grep -q '^01:30 night.sh #6 (closing 2 of 3): scripts/pipeline.sh regression$' <<<"$out" || fail "night.sh: no regression as closing step 2: $out"
+grep -q '^02:00 night.sh #7 (closing 3 of 3): scripts/pipeline.sh report$' <<<"$out" || fail "night.sh: no report as closing step 3: $out"
 [[ "$(grep -c 'josh #' <<<"$out")" -eq 4 ]] || fail "night.sh asks josh after the deadline: $out"
 out="$(APODROID_NIGHT_NOW=22:00 "$here/night.sh" --dry-run --max-steps 5 2>&1)"
-grep -q 'josh #3: ' <<<"$out" && grep -q 'night.sh #4 (closing 1 of 2)' <<<"$out" && grep -q 'night.sh #5 (closing 2 of 2)' <<<"$out" || fail "night.sh --max-steps 5: no closing at steps 4 and 5: $out"
+grep -q 'josh #2: ' <<<"$out" && ! grep -q 'josh #3: ' <<<"$out" && grep -q 'night.sh #3 (closing 1 of 3)' <<<"$out" && grep -q 'night.sh #4 (closing 2 of 3)' <<<"$out" && grep -q 'night.sh #5 (closing 3 of 3)' <<<"$out" || fail "night.sh --max-steps 5: no closing at steps 3 to 5: $out"
 grep -q '#6' <<<"$out" && fail "night.sh --max-steps 5 runs a sixth step"
 
 # The agent files: the four exist, none forces the background, josh's text is a whole prompt.

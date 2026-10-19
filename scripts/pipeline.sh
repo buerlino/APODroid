@@ -16,6 +16,9 @@
 #       --no-merge        stop after the checks; print the merge command
 #       --dry-run         print the bundle and the plan; start nothing, make no worktree
 #   scripts/pipeline.sh pass       an Opus pass by susanna on dev over the packages since the last pass
+#   scripts/pipeline.sh regression [--dry-run]
+#                                  rosie tests the whole app on dev's debug build (night.md, "The regression"), when
+#                                  something was merged since the last one and the tablet is attached
 #   scripts/pipeline.sh report     the night's report, written by susanna to .coord/reports/
 #   APODROID_TEST_MODEL=haiku ...  every agent on that model (to test the pipeline cheaply)
 #
@@ -92,13 +95,47 @@ if [[ "${1:-}" == "pass" ]]; then
   from_opus_pass "$run/reply.md"; result "pass $n: done (exit $rc)"; exit 0
 fi
 
+# ---------- regression ----------
+if [[ "${1:-}" == "regression" ]]; then
+  dry=0; [[ "${2:-}" == "--dry-run" ]] && dry=1
+  ensure_integ
+  k="$(next_regression "$coord/log.md")"
+  since="$(merged_since_regression "$coord/log.md" | paste -sd';' | sed 's/;/; /g')"
+  [[ -n "$since" ]] || { result "regression $k: NOTHING (nothing merged since the last regression)"; exit 0; }
+  if [[ $dry -eq 1 ]]; then echo "DRY RUN: regression $k, rosie on dev's debug build, after: $since"; echo "RESULT regression $k: DRY RUN"; exit 0; fi
+  state="$("$adb" -s "$TABLET" get-state 2>/dev/null || true)"
+  [[ "$state" == device ]] || { result "regression $k: NOT RUN (the tablet $TABLET is ${state:-not attached}; on the morning list)"; exit 0; }
+  run="$coord/regressions/regression-$k"; mkdir -p "$run/tablet"
+  log "Regression $k: rosie (sonnet) on dev $(git -C "$integ" rev-parse --short HEAD), after: $since"
+  lock acquire host-cpu "regression-$k" 1800 || die "host-cpu lock busy"
+  if ! (cd "$integ" && timeout 1800 ./gradlew --console=plain :app:assembleDebug) > "$run/debug.log" 2>&1; then
+    lock release host-cpu "regression-$k" || true
+    result "regression $k: NOT RUN (the debug build of dev failed: $run/debug.log)"; exit 0
+  fi
+  lock release host-cpu "regression-$k" || true
+  apk="$run/app-debug.apk"; cp "$integ/app/build/outputs/apk/debug/app-debug.apk" "$apk"
+  link_shared "$integ"
+  prompt="REGRESSION $k of the night shift: test the whole app on dev's debug build $apk on the tablet $TABLET, as \"The regression\" in $skill/night.md says, with the device rules of \"For rosie: the tablet checks\". Merged since the last regression: $since. Put screenshots, dumps and the backup in $run/tablet/. No code changes, no commits. Reply in the form \"The regression\" gives."
+  lock acquire tablet "regression-$k" 1800 || { result "regression $k: NOT RUN (tablet lock busy)"; exit 0; }
+  set +e
+  (cd "$integ" && ANDROID_SERIAL="$TABLET" PATH="$ANDROID_HOME/platform-tools:$PATH" timeout 7200 claude -p \
+    --disallowedTools Agent,Edit,NotebookEdit --add-dir "$run" --add-dir "$coord" \
+    --agent rosie --model "${APODROID_TEST_MODEL:-sonnet}" --effort medium "${claude_common[@]}" "$prompt") < /dev/null > "$run/reply.md" 2> "$run/stderr.log"
+  rc=$?; set -e
+  lock release tablet "regression-$k" || true
+  if is_limit "$rc" "$run/stderr.log" "$run/reply.md"; then result "regression $k: LIMIT"; exit 75; fi
+  v="$(grep -m1 -oE '^(PASS|FIX|STOP|NOT RUN)' "$run/reply.md" || true)"
+  { echo "- $(date +%H:%M) Regression $k reply ($run/reply.md):"; grep -E '^(Tested|Not tested|BUG|For the user):' "$run/reply.md" | sed 's/^/    /'; } >> "$coord/log.md"
+  result "regression $k: ${v:-NOT RUN} (exit $rc; $run/reply.md)"; exit 0
+fi
+
 # ---------- report ----------
 if [[ "${1:-}" == "report" ]]; then
   ensure_integ
   night_date="$(grep -oE '^## [0-9-]+ night' "$coord/log.md" 2>/dev/null | tail -n1 | cut -d' ' -f2 || true)"
   out="$coord/reports/${night_date:-$(date +%F)}-night.md"; run="$coord/reports/.${night_date:-$(date +%F)}"; mkdir -p "$run"
   log "Shift report: susanna (sonnet) writes $out"
-  prompt="Write the shift report of $skill/night.md (\"The shift report\") to $out, from the night's part of .coord/log.md on stdin. You run in the dev worktree $integ; the run folders are in $coord/runs/ and the pass replies in $coord/passes/. Never commit, never push. Reply with the file's path only."
+  prompt="Write the shift report of $skill/night.md (\"The shift report\") to $out, from the night's part of .coord/log.md on stdin. You run in the dev worktree $integ; the run folders are in $coord/runs/, the pass replies in $coord/passes/ and the regressions' replies in $coord/regressions/. Never commit, never push. Reply with the file's path only."
   set +e
   awk '/^## [0-9-]+ night/ { buf = "" } { buf = buf $0 "\n" } END { printf "%s", buf }' "$coord/log.md" |
     (cd "$integ" && timeout 1800 claude -p --disallowedTools Agent --add-dir "$coord" \
@@ -110,7 +147,7 @@ if [[ "${1:-}" == "report" ]]; then
 fi
 
 # ---------- a package ----------
-[[ $# -ge 1 ]] || die "usage: pipeline.sh <ID> [options] [\"<task text>\"] | pass | report"
+[[ $# -ge 1 ]] || die "usage: pipeline.sh <ID> [options] [\"<task text>\"] | pass | regression | report"
 id="$1"; shift
 [[ "$id" =~ ^[A-Z][A-Za-z0-9]*$ ]] || die "bad package ID '$id'"
 agent=""; model=""; effort=""; tablet=""; branch=""; audit_model="auto"; nowork=0; merge=1; dry=0; task=""

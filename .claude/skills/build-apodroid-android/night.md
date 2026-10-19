@@ -33,6 +33,10 @@ this file's sections (the queue, josh's commands, each agent's rules), so each r
 - `scripts/pipeline.sh pass`: the **Opus pass**, susanna on Opus over the packages since the last pass, after
   every three finished packages and once at the end. Her FIX lines become fix packages; her QUEUE line reorders
   the queue.
+- `scripts/pipeline.sh regression`: **rosie tests the whole app** on dev's debug build, once the night's last code
+  is merged (after the last pass's fixes, and when night.sh closes): [The regression](#the-regression). Nothing to
+  test (no merge since the last one) or no tablet: it says so and ends. Its bugs aren't fixed that night: the
+  report drafts each as a `B<n>` package, which the morning commits for the next night (user, 2026-10-19).
 - `scripts/pipeline.sh report`: the night's report for the user, `.coord/reports/<date>-night.md`.
 - Nothing is pushed and master isn't touched: `dev` is master plus the night's merges. The user fast-forwards
   master after the morning review ([The morning](#the-morning)).
@@ -44,7 +48,7 @@ this file's sections (the queue, josh's commands, each agent's rules), so each r
 | josh | picks the next command | Sonnet, medium | none (all on stdin) |
 | winston | builds a package; the fix rounds | the queue row's (the plan's) | all but Agent |
 | susanna | audits a diff; the Opus pass; the report | audit Opus or Sonnet; pass Opus; report Sonnet | audit Read, Grep, Glob; else all but Agent |
-| rosie | the tablet checks; a device package (M0) | checks Sonnet, medium; a package the row's | checks all but Agent and Edit; a package all but Agent |
+| rosie | the tablet checks; a device package (M0); the regression | checks and regression Sonnet, medium; a package the row's | checks and regression all but Agent and Edit; a package all but Agent |
 
 The agent files are `.claude/agents/<name>.md`. None of them starts another agent; at night only the pipeline
 starts agents. By day each can be started by hand (`claude --agent <name>`). Every pipeline session gets
@@ -74,9 +78,10 @@ pascaline's six agents (three workers by area, an advisor, a verifier, the coord
 8. A step without a RESULT line (the pipeline died): run it once more; the second time it is logged SKIPPED and
    josh goes on. A worker who made no commits: NOT MERGED with the worktree kept; the next run of that package
    resumes the branch.
-9. The end: the queue, the last pass and its FIX packages, the report, then SHIFT DONE. With `--until HH:MM` (or
-   at the step cap minus 2) night.sh closes by itself: the last pass if a package finished since the last one,
-   then the report.
+9. The end: the queue, the last pass and its FIX packages, the regression, the report, then SHIFT DONE. With
+   `--until HH:MM` (or at the step cap minus 3) night.sh closes by itself: the last pass if a package finished since
+   the last one, the regression, then the report. The closing takes up to about 3 h (the regression up to 2 h), so
+   set `--until` that much before the morning.
 
 ## The queue
 
@@ -111,9 +116,12 @@ The first that applies:
    `scripts/pipeline.sh <ID>`. A step whose After is NOT MERGED is passed over tonight.
 4. No queue step can run, and no pass came after the last queue step's RESULT line: `scripts/pipeline.sh pass`
    (the last pass; its FIX lines then run by rule 1).
-5. After that: `scripts/pipeline.sh report`; once the report has its RESULT line, `SHIFT DONE`.
+5. After that, when no `RESULT regression` line came after the last package's RESULT line:
+   `scripts/pipeline.sh regression`.
+6. After that: `scripts/pipeline.sh report`; once the report has its RESULT line, `SHIFT DONE`.
 
-A RESULT line with LIMIT or FAILED: run the same command again. SKIPPED or NOT STARTED: never again tonight.
+A RESULT line with LIMIT or FAILED: run the same command again. SKIPPED or NOT STARTED: never again tonight. A
+regression's PASS, FIX, STOP, NOT RUN or NOTHING ends it for tonight: its bugs wait for the morning.
 Reply with one command and nothing else.
 
 ## For winston
@@ -205,13 +213,42 @@ Reply APPROVED, or FIX with at most five findings: file:line, the concrete failu
 
   Then one line each: `Tested:`, `Not tested:`, `For the user:` (screenshots to look at, texts to approve).
 
+## The regression
+
+rosie on Sonnet, after the night's last merge: the whole app on dev's debug build, so what one package broke in
+another shows before the user takes `dev` into master. It doesn't replace the plan's own tablet pass (0.6.0's V:
+the R8 build, the update from 0.5.0, turns over hours). The device rules are those of "For rosie: the tablet
+checks" (the backup first, everything set back at the end, the tablet only); no code, no commits. At most 90
+minutes; when time runs short, keep the order below and name what was left under `Not tested:`.
+1. Install the APK the prompt names, run [the smoke list](#for-rosie-the-tablet-checks).
+2. **What the night built:** each merged package the prompt names (its section in the plan): its device bullets
+   again, on this build. What another package changed since its own check matters most.
+3. **APOD mode as 0.5.0** (`CLAUDE.md`, The app; "All NASA pictures" off, or 0.5.0's settings before M3): the page
+   with title, then date (no source line and no tabs with APOD alone, except the video-day source's tab on a
+   video day) and the explanation ("more", the tap, the long presses); pull to refresh; ⛶ with ✓ and
+   Back; ★ (then delete the saved file, the skill says how); "Where" each way with "Set as wallpaper now"
+   (`dumpsys wallpaper`); the daily switch on and off (`dumpsys jobscheduler`) and a forced run; a faked video day
+   with each choice (the ▶ tile, the video notice and its buttons); the problem box offline (the skill: the firewall
+   chain or the proxy, set back after) and its Dismiss; the battery hint.
+4. **With "All NASA pictures" on** (once M3 is merged): three tabs and their pictures, the grid with Home and Lock
+   different and then equal (`dumpsys wallpaper`), the set menu, the mode back and forth (each keeps its settings),
+   a turn ended with `turn.sh`.
+5. **The edges:** a rotation and two panes, font scale 2.0 at the phone's width (`wm density 344`), `am kill` and
+   reopen, no crash in `logcat` and `dumpsys activity exit-info`.
+
+Reply with the verdict alone on the first line (PASS: nothing found; FIX: a bug in our app; STOP: Android does
+something the plan didn't expect; NOT RUN: why), then `Tested:` and `Not tested:` (one line each), then one line per
+bug, worst first: `BUG: <what> | steps: <…> | expected: <…> | got: <…> | evidence: <logcat line or screenshot> |
+package: <the one whose code it likely is>`. Then `For the user:` (screenshots to look at).
+
 ## Opus pass
 
 susanna on Opus, in the dev worktree; no feature code. You're the night's quality gate and make the decisions the
 night can make; josh carries out your reply as written.
 1. For each package in the prompt: its sections of the plan (the queue's Spec), its report (`git log -1 <merge>^2`,
    or the branch tip when unmerged), its diff (`git diff <merge>^1 <merge>`), its audit and tablet lines in
-   `.coord/log.md`, and rosie's reply in its run folder (`.coord/runs/<n>-<id>/tablet-<round>.log`).
+   `.coord/log.md`, and rosie's reply in its run folder (`.coord/runs/<n>-<id>/tablet-<round>.log`; for a device
+   package such as M0, `worker-0.log`).
 2. Run the check once on dev: `./gradlew :core:test :app:lintRelease :app:assembleRelease`, under
    `scripts/devlock.sh acquire host-cpu pass-<n> 1800`.
 3. Look across the packages for what one audit misses: the pieces working together (M1's logic as M2 wires it, M3's
@@ -239,9 +276,12 @@ pass replies and the run folders. Short and plain, for the user in the morning:
 1. Merged on `dev`, each with its commit and its tablet verdict. Unmerged: why, and the branch.
 2. **For you this morning**, by package: the texts to approve (with the screenshots' paths), the tablet checks that
    didn't run, the QUESTION lines and the Needs the user items, each with its recommendation.
-3. The Opus passes' NOTES.
-4. The queue left for the next night.
-5. The steps of [The morning](#the-morning), with the commands.
+3. **Bugs from the regression** (`.coord/regressions/`; what it didn't test too): each BUG line as a draft
+   `### [ ] B<n>. <what>` section and its queue row, in [The morning](#the-morning)'s step 6 form, numbered on from
+   the plan's last B, the package named in the line as After; ready for the user to check and commit.
+4. The Opus passes' NOTES.
+5. The queue left for the next night.
+6. The steps of [The morning](#the-morning), with the commands.
 
 ## Starting, watching, stopping
 
@@ -278,7 +318,8 @@ scripts/night.sh --until 07:30
    `cd .claude/worktrees/dev && ANDROID_HOME=~/Android/Sdk ./gradlew :app:assembleDebug`.
 4. Approve or change the texts and the night defaults (a day session, as before).
 5. Take it into master: `git merge --ff-only dev` in the main checkout. The plan's checkboxes get ticked then.
-6. A bug found in the morning becomes a package for the next night (pass 5, 2026-10-19): a `### [ ] B<n>. <what>`
+6. A bug found in the morning, or by the night's regression (the report drafts those), becomes a package for the
+   next night (pass 5, 2026-10-19): a `### [ ] B<n>. <what>`
    section in the plan, after the last package, with the steps to reproduce, what happened, what should happen,
    the files, and "Done when: a regression test that fails on the old code (or, for the page, a Device (tablet …)
    bullet that shows it), and the fix"; plus a queue row (Agent winston, the model and effort you'd pick, Tablet
@@ -294,7 +335,7 @@ An unmerged branch stays as `wp/<id>`, with its worktree, until the next run of 
 - `scripts/night.sh`, `scripts/pipeline.sh` (with `pipeline-lib.sh`), `scripts/devlock.sh`,
   `scripts/agent-settings.json`; `scripts/pipeline.test.sh` checks them without starting an agent.
 - `.claude/agents/josh.md`, `winston.md`, `susanna.md`, `rosie.md`.
-- Gitignored, in the main checkout: `.coord/` (`log.md`, `runs/`, `passes/`, `reports/`, `locks/`, `counter`,
+- Gitignored, in the main checkout: `.coord/` (`log.md`, `runs/`, `passes/`, `regressions/`, `reports/`, `locks/`, `counter`,
   `night-<date>.log`, `josh-last-input.md`) and `.claude/worktrees/` (`dev` and the packages'). Each worktree gets a
   link to `private/` (gitignored as `/private`), so `SourcesTest`'s real posts and rosie's scripts are there.
 
@@ -316,4 +357,5 @@ In a scratch clone, every agent on Haiku, the tablet attached:
   brought up to master, the last pass and the report run and their RESULT lines read, SHIFT DONE (2 min).
 
 Not tested: the real models on real packages, a fix round, a usage limit, a merge conflict, a STOP, and a night
-where josh's commands drive the loop (josh only with `--next`).
+where josh's commands drive the loop (josh only with `--next`). The regression (added 2026-10-19 after pass 5): only
+its dry run, its helpers and night.sh's closing in `pipeline.test.sh`; rosie hasn't run it.

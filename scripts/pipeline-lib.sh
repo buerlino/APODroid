@@ -64,6 +64,22 @@ next_pass() {
   echo $(( ${done:-0} + 1 ))
 }
 
+# merged_since_regression <log>: the MERGED RESULT lines since the last regression that reached the tablet (PASS,
+# FIX or STOP).
+merged_since_regression() {
+  [[ -f "$1" ]] || return 0
+  awk '/RESULT regression [0-9]+: (PASS|FIX|STOP)/ { n = 0; delete r; next }
+       /RESULT #[0-9]+ [^:]+: MERGED/ { sub(/^.*RESULT /, ""); r[++n] = $0 }
+       END { for (i = 1; i <= n; i++) print r[i] }' "$1"
+}
+
+# next_regression <log>: the number of the next regression (those that reached the tablet plus one).
+next_regression() {
+  local done=0
+  [[ -f "$1" ]] && done="$(grep -cE 'RESULT regression [0-9]+: (PASS|FIX|STOP)' "$1" || true)"
+  echo $(( ${done:-0} + 1 ))
+}
+
 # last_pass_reply <log>: the last Opus pass reply as logged (its indented lines).
 last_pass_reply() {
   [[ -f "$1" ]] || return 0

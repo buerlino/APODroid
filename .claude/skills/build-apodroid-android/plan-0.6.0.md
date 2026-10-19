@@ -41,7 +41,10 @@ screen, asked before the user has seen the app; updaters never get a first boot)
     both columns).
   - Turning it on or off while the daily switch is on works like a tick: whatever the new mode
     puts on a screen is set at once, and the job is rescheduled (its period depends on the
-    mode). It clears every hold (the new mode's settings decide what shows).
+    mode). It clears every hold (the new mode's settings decide what shows). Switching it off
+    leaves a screen "Where" doesn't name alone, also when the grid had put NASA's or Earth's
+    picture there (user, 2026-10-19: as 0.5.0 when "Where" goes from Both to Home; "Both" puts
+    APOD there).
 - **The grid** (only with the switch on): a row per source (full names), a tick box per screen
   (Home, Lock). It replaces the chips and "Where".
   - Both screens due the same picture: one set with both flags, one wallpaper, as today (with
@@ -171,8 +174,8 @@ The lines under the daily switch show only while it's on, as now. Where F1, F2 a
 | F4 | Image credit | Opus, medium |
 | F5 | Save every picture | Opus, medium |
 | V  | Tablet pass of everything (debug and R8), the update from 0.5.0 | Opus, high |
-| R  | Docs, version, changelog, store texts, screenshots | Opus, medium |
-| P  | Phone pass on the FP6 (release-signed) | Opus, high |
+| P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
+| R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
 
 Each package runs in a fresh session started from the repo folder with its model and effort.
@@ -192,8 +195,8 @@ claude --model sonnet --effort medium "Do F3 in .claude/skills/build-apodroid-an
 claude --model opus --effort medium "Do F4 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do F5 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort high "Do V in .claude/skills/build-apodroid-android/plan-0.6.0.md"
-claude --model opus --effort medium "Do R in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
+claude --model opus --effort medium "Do R in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model sonnet --effort low "Do T in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 ```
 
@@ -312,8 +315,9 @@ the clock restarts.
 
 ### [ ] M2. `Store`: mode, grid, a record per screen, migration, fetch rules (Opus, high)
 
-Files: `Store.kt`, `DailyJob.kt` (the period: turns when a column has two or more),
-`MainActivity.kt` (only the set paths: `applyNow` and its callers, `set`, `setWallpaperNow`,
+Files: `Store.kt`, `DailyJob.kt` (the period: turns when a column has two or more), a new
+`core/.../Migration.kt` with its test (the migration's mapping, below), `MainActivity.kt` (only
+the set paths: `applyNow` and its callers, `set`, `setWallpaperNow`,
 which the button and ✓ call), `CLAUDE.md`.
 - **Prefs:** `allSources` (the mode switch); `home`, `lock` (the grid's columns, comma lists);
   `where` stays APOD mode's; `videoDays` shared, `KEEP` now reads "Skip it" (the name may
@@ -349,6 +353,13 @@ which the button and ✓ call), `CLAUDE.md`.
   "Unknown" means the first run that needs that screen sets it. List the migration in
   `CLAUDE.md`'s Stack (drop two releases after F-Droid ships past 0.6.0); `CLAUDE.md`'s 0.6.0
   block has it until then.
+  **The mapping in `:core`, with tests** (2026-10-19, the plan's check: else it's tested only on
+  the tablet): a pure function from 0.5.0's values (a `Map<String, String>` of the keys above,
+  and whether the stored APOD of `wallpaperDate` is a video) to the keys to write and remove;
+  `Store` reads the prefs, calls it and writes the result under the lock. Tests: each `where`
+  with APOD alone, NASA alone and two sources; the own picture on a video date ("own"); APOD
+  alone with NASA standing in (owner APOD); a fresh install (only `allSources` = false); a
+  missing key of each kind doesn't throw.
 - **`update`/`setDue`:** M1's function once, from one reading of the clock; the clock written
   first if it restarts; then the sets it asks for (one with both flags when both screens are
   due the same picture, else `FLAG_SYSTEM` / `FLAG_LOCK` each) under the wallpaper lock, each
@@ -384,8 +395,8 @@ which the button and ✓ call), `CLAUDE.md`.
   → no crash, `allSources` false; "Set as wallpaper now" with turns → `turnStartedAt` fresh,
   the hold mark set; a "Where" change with the switch on → the picture set again,
   `turnStartedAt` unchanged.
-- Done when: the checks pass and `CLAUDE.md` (Background update, Turns; The app, Settings) says
-  how it works now.
+- Done when: the migration's `:core` tests and the checks pass, and `CLAUDE.md` (Background
+  update, Turns; The app, Settings) says how it works now.
 
 ### [ ] M3. Settings: the mode switch, the grid, the dropdown, the set menu (Opus, high)
 
@@ -403,7 +414,10 @@ Files: `MainActivity.kt` (`Settings`, `tick`, `chooseVideoDays`, `setWallpaperNo
 - **The dropdown:** `ExposedDropdownMenuBox` (material3) or a `DropdownMenu` under a
   button-like field, whichever needs less code; the four choices; greyed while APOD has no tick
   (switch on). "Use my picture" with nothing picked opens the picker at once (if the user backs
-  out of the picker, the choice falls back to the one before).
+  out of the picker, the choice falls back to the one before); "Change picture" beside the
+  dropdown while "Use my picture" is chosen (the layout). 0.5.0's greying with two or more
+  ticked and its grey line "The next source takes its turn." go (Decisions: never greyed out);
+  take the line out of `CLAUDE.md`'s list of help texts (The app, Settings).
 - **The set button:** switch off as now; switch on a `DropdownMenu` with Home screen / Lock
   screen / Both, then M2's `setByHand`. On APOD's video tab it sets the stand-in; with "Skip
   it" nothing, and the toast "Video day: wallpaper kept".
@@ -510,19 +524,23 @@ build of 0.6.0 (both signed with the debug key, as the skill says), checking onl
 rotation and two panes, font scale 2.0. Report what was and wasn't tested; the skill's "Still
 untested" follows.
 
-### [ ] R. Docs, version, changelog, store texts, screenshots (Opus, medium)
-
-`versionCode` 10, `versionName` 0.6.0; `changelogs/10.txt` (max 500 characters; say that a
-video-day choice saved while it was greyed out in 0.5.0, e.g. "Use my picture" with turns, now
-works with turns, second review); `README.md`,
-`full_description.txt` (APOD first, the switch); `features.md` and this file ticked; the
-screenshots on the FP6 by the user (APOD mode first, as `README.md` embeds `1.png`).
-
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 
-As 0.5.0's WP8: the release-signed build over the user's Obtainium install (the skill, Testing
-an update on the user's phone), the update keeping the settings, both modes, the grid at font
-scale 1.5 and 2.0, a lock screen with its own picture, landscape. Report what was tested.
+Before R (user, 2026-10-19, the last pass: a bug P finds would otherwise mean redoing R's
+changelog and screenshots). First the version: `versionCode` 10, `versionName` 0.6.0 in
+`app/build.gradle.kts`, so the phone gets the real build (and its User-Agent). Then as 0.5.0's
+WP8: the release-signed build over the user's Obtainium install (the skill, Testing an update
+on the user's phone), the update keeping the settings, both modes, the grid at font scale 1.5
+and 2.0, a lock screen with its own picture, landscape. Report what was tested; a bug becomes a
+`B<n>` package (night.md, The morning, step 6) before R.
+
+### [ ] R. Docs, changelog, store texts, screenshots (Opus, medium)
+
+After P, on the build that passed. `changelogs/10.txt` (max 500 characters; say that a
+video-day choice saved while it was greyed out in 0.5.0, e.g. "Use my picture" with turns, now
+works with turns, second review); `README.md`, `full_description.txt` (APOD first, the
+switch); `features.md` and this file ticked; the screenshots on the FP6 by the user (APOD mode
+first, as `README.md` embeds `1.png`).
 
 ### [ ] T. Commit and tag (Sonnet, low)
 

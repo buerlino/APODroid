@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew:*)",
+      "Bash(adb -s HA24BZ2Y:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git -C * push:*)",
+      "Bash(adb -s 4d42e62f:*)",
+      "Bash(*adb -s 4d42e62f*)"
+    ]
+  }
+}

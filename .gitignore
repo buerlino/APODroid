@@ -13,6 +13,12 @@ keystore.properties
 
 # Personal files (the Tasker export holds a NASA API key)
 private/
+# the link to it the night pipeline puts in a worktree (a link doesn't match private/)
+/private
+
+# Night shift (night.md in the skill): the log, runs, reports, locks; the pipeline's worktrees
+.coord/
+.claude/worktrees/
 
 # Env / logs
 .env

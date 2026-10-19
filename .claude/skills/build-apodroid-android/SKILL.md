@@ -9,7 +9,8 @@ How-tos and what's still untested. `CLAUDE.md` at the repo root is the source of
 stack, the data source and the decisions. Read it first. If this skill and `CLAUDE.md` disagree,
 `CLAUDE.md` wins; update this skill to match. The history is in git. The next features to build,
 with a checklist: `features.md` next to this file. The work for 0.6.0: `plan-0.6.0.md` (0.5.0's
-and 0.4.0's, done: `plan-0.5.0.md`, `plan-0.4.0.md`).
+and 0.4.0's, done: `plan-0.5.0.md`, `plan-0.4.0.md`). Night shifts (agents working through the
+packages unattended): `night.md`.
 
 ## Where things are
 

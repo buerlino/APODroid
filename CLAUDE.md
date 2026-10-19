@@ -27,6 +27,8 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   (custom hours dropped, 2026-10-17: [Next features](#next-features)).
 - Work for 0.6.0 (APOD first, the "All NASA pictures" switch, and the features from 0.1.1's
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
+- Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
+  unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
 
 ## How the user works (2026-10-01)
 
@@ -36,6 +38,9 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   about what's settled below.
 - Step by step: do one step, show it working, then wait for the next instruction.
 - Commit only when asked. The user pushes; never `git push`.
+- Night shifts (2026-10-19): starting `scripts/night.sh` is the go for the agents' commits on `wp/*` branches and
+  their merges into `dev`, never on master and never pushed. The packages then run one after another without
+  waiting; the user reviews `dev` in the morning and fast-forwards master (night.md).
 - When reporting back, say what was actually tested and what wasn't.
 
 ## Stack (decided by the user, 2026-10-01)
@@ -92,7 +97,7 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
   timestamps, build paths or machine-specific values in the APK; `dependenciesInfo` off. Unit
   tests don't cover R8, so test release builds on the phone.
 - Android SDK in `~/Android/Sdk`. The user tests on a real phone over adb, no emulator.
-- Git branch `master`, remote `origin`.
+- Git branch `master`, remote `origin`. `dev` holds the night shift's merges until the user fast-forwards master.
 
 **Releases** (F-Droid builds only the newest tag: it skipped 0.1.2 and 0.2.0 and ships 0.2.1,
 checked 2026-10-07; its bot finds new tags by itself, skill, Releasing):

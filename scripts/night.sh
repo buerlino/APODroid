@@ -6,7 +6,9 @@
 #
 #   scripts/night.sh [--until HH:MM] [--max-steps N] [--limit-wait SECONDS]   (defaults: no --until, 30, 1800)
 #   scripts/night.sh --next        ask josh once and print his command; run nothing, log nothing
-# Each start first brings dev up to master and runs scripts/pipeline.test.sh (the preflight); a failure stops it.
+# Each start first checks that the main checkout has no uncommitted change the night would miss (CLAUDE.md, the
+# skill with the plan, the agents, the scripts; --dirty-ok skips this), brings dev up to master and runs
+# scripts/pipeline.test.sh (the preflight); a failure stops it.
 #   scripts/night.sh --dry-run [--until HH:MM] [--max-steps N] [--dry-step MIN]
 #                                  the steps on a simulated clock (APODROID_NIGHT_NOW=HH:MM); asks no josh
 #
@@ -16,11 +18,12 @@
 # Output: .coord/log.md (the state) and .coord/night-<date>.log (every command's output).
 set -euo pipefail
 orig_args=("$@")
-max_steps=30; limit_wait=1800; until_hm=""; dry=0; dry_step=30; next_only=0
-usage() { echo "usage: scripts/night.sh [--until HH:MM] [--max-steps N] [--limit-wait S] [--next] [--dry-run [--dry-step MIN]]" >&2; exit 2; }
+max_steps=30; limit_wait=1800; until_hm=""; dry=0; dry_step=30; next_only=0; dirty_ok=0
+usage() { echo "usage: scripts/night.sh [--until HH:MM] [--max-steps N] [--limit-wait S] [--dirty-ok] [--next] [--dry-run [--dry-step MIN]]" >&2; exit 2; }
 while [[ $# -gt 0 ]]; do case "$1" in
   --max-steps) max_steps="$2"; shift 2;; --limit-wait) limit_wait="$2"; shift 2;; --until) until_hm="$2"; shift 2;;
-  --dry-run) dry=1; shift;; --dry-step) dry_step="$2"; shift 2;; --next) next_only=1; shift;; *) usage;; esac; done
+  --dry-run) dry=1; shift;; --dry-step) dry_step="$2"; shift 2;; --next) next_only=1; shift;; --dirty-ok) dirty_ok=1; shift;;
+  *) usage;; esac; done
 [[ "$max_steps" =~ ^[0-9]+$ && "$max_steps" -ge 2 ]] || { echo "night.sh: --max-steps needs at least 2 (the closing steps)" >&2; exit 2; }
 [[ -z "$until_hm" || "$until_hm" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] || { echo "night.sh: --until takes HH:MM" >&2; exit 2; }
 self="$(readlink -f "$0")"; here="$(dirname "$self")"
@@ -72,6 +75,12 @@ else
   trap '"$here/devlock.sh" release night "night.sh-$$" >/dev/null 2>&1 || true' EXIT
   printf '\n## %s night, %s\n' "$(date +%F)" "$(date +%H:%M)" >> "$coord/log.md"
   [[ -z "$(git -C "$integ" status --porcelain --untracked-files=no)" ]] || { log "STOPPED night.sh: the dev worktree $integ is not clean"; say "STOPPED: dev worktree not clean"; exit 1; }
+  # The night reads master's commits only: an uncommitted plan or CLAUDE.md would be missed.
+  dirty="$(git -C "$main" status --porcelain --untracked-files=no -- CLAUDE.md "$skill" .claude/agents scripts | tr '\n' ' ')"
+  if [[ -n "$dirty" && $dirty_ok -eq 0 ]]; then
+    log "STOPPED night.sh: uncommitted changes the night would miss: $dirty(commit them, or start with --dirty-ok)"
+    say "STOPPED: uncommitted changes the night would miss: $dirty(commit them, or --dirty-ok)"; exit 1
+  fi
   if ! synced="$(sync_dev "$integ")"; then log "STOPPED night.sh: $synced"; say "STOPPED: $synced"; exit 1; fi
   [[ -z "$synced" ]] || log "night.sh: $synced"
   # The preflight: every queue row resolves against dev's plan, and the scripts work (no agent is started).

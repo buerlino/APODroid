@@ -257,8 +257,10 @@ scripts/night.sh --until 07:30
 - One package by hand, by day or night: `scripts/pipeline.sh M3` (`--dry-run` prints its bundle; `--no-merge`
   stops before the merge; `--tablet no` skips rosie).
 - Locks: `scripts/devlock.sh status`; `scripts/devlock.sh break <name>` for one whose owner is gone.
-- Each start brings `dev` up to master and runs `scripts/pipeline.test.sh` first (no agents); if a queue row doesn't
-  resolve against the committed plan, the night stops before spending anything.
+- Each start checks that CLAUDE.md, the skill (the plan), the agents and the scripts have no uncommitted changes
+  (the night reads master's commits only; `--dirty-ok` skips this), brings `dev` up to master and runs
+  `scripts/pipeline.test.sh` (no agents). If a check fails, or a queue row doesn't resolve against the committed
+  plan, the night stops before spending anything.
 - To test the pipeline cheaply: `APODROID_TEST_MODEL=haiku` puts every agent on Haiku.
 
 ## The morning
@@ -296,6 +298,8 @@ In a scratch clone, every agent on Haiku, the tablet attached:
 - The rules in `agent-settings.json`: `git push` and `git -C <dir> push` denied (the first form of the second rule
   never matched: susanna's pass flagged it, fixed), adb to the FP6 denied, adb to the tablet allowed.
 - `scripts/pipeline.test.sh`: every queue row's bundle, the log helpers, the merge guard, night.sh's closing.
+- night.sh itself: refused to start with an uncommitted `CLAUDE.md`; then with `--max-steps 2` the preflight, dev
+  brought up to master, the last pass and the report run and their RESULT lines read, SHIFT DONE (2 min).
 
-Not tested: the real models on real packages, a fix round, a usage limit, a merge conflict, a STOP, and
-night.sh's loop beyond one decision (`--next`; the closing only as a dry run).
+Not tested: the real models on real packages, a fix round, a usage limit, a merge conflict, a STOP, and a night
+where josh's commands drive the loop (josh only with `--next`).

@@ -137,7 +137,7 @@ run_cmd() {  # <cmd>: one pipeline line; returns its exit code (75: a usage limi
   local cmd="$1" cmdout rc
   [[ $dry -eq 0 ]] || return 0
   cmdout="$(mktemp)"
-  set +e; (cd "$integ" && eval "timeout 14400 $cmd") > "$cmdout" 2>&1; rc=$?; set -e
+  set +e; (cd "$integ" && eval "timeout 28800 $cmd") > "$cmdout" 2>&1; rc=$?; set -e
   cat "$cmdout" >> "$out"
   say "rc=$rc: $(grep '^RESULT ' "$cmdout" | tail -n 1 || tail -n 1 "$cmdout")"
   if [[ $rc -ne 75 ]] && ! grep -q '^RESULT ' "$cmdout"; then

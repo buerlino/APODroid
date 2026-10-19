@@ -414,6 +414,9 @@ Files: `MainActivity.kt` (`Settings`, `tick`, `chooseVideoDays`, `setWallpaperNo
   tick that changes what a screen shows sets it at once (as unticking the source on the
   wallpaper does now); one that only adds to a turning screen waits for its turn. Any tick or untick in
   a screen's column clears that screen's hold (Decisions). "Where", the video-day choice and "Change picture" as now.
+- **"Change every"** with the switch on shows while a column has two or more ticks (APOD mode:
+  never, as now with APOD alone); hiding it moves the page only after a tick, as in 0.5.0
+  (pass 5: only the Decisions said so).
 - Device (tablet, debug build): every control in both modes, switching modes back and forth
   (each keeps its settings), the grid's first start from "Where", the picker path, the menu; a
   "Where" change and "Change picture" with turns don't restart the clock (`turnStartedAt`
@@ -437,7 +440,10 @@ Files: `MainActivity.kt` (`sources`, `shown`, `Tabs`, `Picture`, `readStatus`, `
   chip and the opening tab go by the **picture's** source, not by whose turn it is: with NASA
   standing in for APOD, the chip is on NASA's tab; the user's own picture has no tab, so no
   chip.
-- The status line: one line per screen while they differ.
+- The status line: one line per screen while they differ. "Video day, wallpaper kept" (pass 5:
+  undefined with two screens) goes on the line of each screen that kept its picture on an APOD
+  video day ("Lock screen: video day, wallpaper kept", placeholder); with the screens together,
+  today's single line.
 - The video notice also with turns; its texts follow the stand-in rule (placeholder: "This
   APOD is a video, so your own picture takes its place."); with the switch on and APOD ticked
   nowhere it only says the APOD is a video (third review).
@@ -463,16 +469,7 @@ only in P. Their open questions, to ask the user at the start of each:
 - **F1 Fill / Fit:** one setting for both screens (decided, 2026-10-19). Still open: does
   changing it set the wallpaper again while the switch is on? If so, M2's forget-and-`setDue`
   path, never a set by hand.
-- **F2 Wi-Fi only:** no open question (the page and the buttons still use any network). The
-  switch's place: under the daily switch, shown while it's on (the layout above). Files:
-  `Store.kt` (a pref `wifiOnly`, default off), `DailyJob.kt` (`NETWORK_TYPE_UNMETERED` when on;
-  `ensure` treats a changed network type as another timing, so the job is rescheduled),
-  `MainActivity.kt` (the switch, rescheduling while the daily switch is on), `CLAUDE.md`.
-  - Device (tablet, debug build): with the daily switch on, Wi-Fi only on → `dumpsys
-    jobscheduler` shows the unmetered constraint for job 1; off → any network again. With
-    Wi-Fi off (note the setting first and put it back) the job doesn't run.
-  - Done when: the switch is built, the device checks pass, and `CLAUDE.md` (Background
-    update) has the setting and the job's constraint.
+- **F2 Wi-Fi only:** its own section below (no open question).
 - **F3 Share:** the glyph, shown on the tablet; with the switch on it shares the shown tab.
 - **F4 Image credit:** the user wants it under the title with the switch on; parse it for NASA
   and Earth too (not checked yet: look at `private/`'s feed and posts first), or APOD only?
@@ -481,6 +478,24 @@ only in P. Their open questions, to ask the user at the start of each:
   (2–10 MB a picture, 100–300 MB a month) are APOD's; NASA's originals are 4.7 MB typically
   and up to 97 MB, and saving every source means more than one large download within the
   job's roughly 10 minutes. Settle the figures and the job's time with this question.
+
+### [ ] F2. Wi-Fi only (Sonnet, medium)
+
+`features.md` item 4 has the how; this section is what's settled for 0.6.0 (its own section
+since pass 5, 2026-10-19, so the bundle doesn't carry the other features' open questions). No
+open question: the page and the buttons still use any network. Device checks on the tablet,
+never the FP6.
+- The switch "Wi-Fi only" (placeholder) under the daily switch, shown while it's on (the layout
+  above), default off (today's behaviour).
+- Files: `Store.kt` (a pref `wifiOnly`, default off), `DailyJob.kt` (`NETWORK_TYPE_UNMETERED`
+  when on, else `NETWORK_TYPE_ANY`; `ensure` treats a changed network type as another timing,
+  so the job is rescheduled), `MainActivity.kt` (the switch; toggling it reschedules the job
+  while the daily switch is on), `CLAUDE.md`.
+- Device (tablet, debug build): with the daily switch on, Wi-Fi only on → `dumpsys
+  jobscheduler` shows the unmetered constraint for job 1; off → any network again. With Wi-Fi
+  off (note the setting first and put it back) the job doesn't run.
+- Done when: the switch is built, the device checks pass, and `CLAUDE.md` (Background update)
+  has the setting and the job's constraint.
 
 ### [ ] V. Tablet pass of everything (Opus, high)
 

@@ -27,7 +27,7 @@ h2() {
 }
 
 # spec_text <plan> <features> <spec>: the sections a queue row's Spec names, e.g. "plan M1" or
-# "plan F1–F5 + features 4". Fails, naming the part, when a section is missing.
+# "plan F2 + features 4". Fails, naming the part, when a section is missing.
 spec_text() {
   local plan="$1" features="$2" part file key out
   local IFS=$'\n'

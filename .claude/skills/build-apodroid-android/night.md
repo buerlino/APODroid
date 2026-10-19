@@ -93,7 +93,7 @@ is `features.md`'s. Without the tablet M0 can't run, so M1 to M4 wait and only F
 | 3 | M2 | `Store`: mode, grid, a record per screen, migration, fetch rules | winston | opus, high | yes | M1 | plan M2 |
 | 4 | M3 | Settings: the mode switch, the grid, the dropdown, the set menu | winston | opus, high | yes | M2 | plan M3 |
 | 5 | M4 | The page: three tabs, chip, status lines, video notice, problem box | winston | opus, medium | yes | M3 | plan M4 |
-| 6 | F2 | Wi-Fi only | winston | sonnet, medium | yes | — | plan F1–F5 + features 4 |
+| 6 | F2 | Wi-Fi only | winston | sonnet, medium | yes | — | plan F2 + features 4 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.
@@ -184,7 +184,14 @@ Reply APPROVED, or FIX with at most five findings: file:line, the concrete failu
   crashes from `logcat` and `dumpsys activity exit-info`. Screenshots (`exec-out screencap -p`) go into your folder
   for the user; look at one only when the check needs eyes (each costs tokens). For texts the user must approve:
   one screenshot per screen state, named for what it shows.
-- At most 45 minutes. No code changes, and no commits except in a device package.
+- **The smoke list**, after the package's own checks on every check of winston's work (not in a device package
+  such as M0, which runs 0.5.0's code): the app starts; the page loads in APOD mode and, once the switch exists,
+  with "All NASA pictures" on; "Set as wallpaper now" sets the wallpaper (`dumpsys wallpaper`); a forced job run
+  (`cmd jobscheduler run -f io.github.buerlino.apodroid 1`, daily switch on) ends as a successful run in
+  `dumpsys jobscheduler` (the log names a set, or is silent when there was nothing to set);
+  `logcat` shows no crash. About 5 minutes. A failure here is a FIX even when the package's own checks passed
+  (a later package broke an earlier one); say which item failed.
+- At most 50 minutes, the smoke list included. No code changes, and no commits except in a device package.
 - **A device package** (Agent rosie in the queue, such as M0): you're its worker. Run its steps as above. Then write
   the results where its "Done when" says (for M0, `CLAUDE.md`'s Wallpaper section), commit them on your branch with
   your model's trailer, and end with the report commit ("Your report"; Tests: what you ran on the tablet). Commit
@@ -271,6 +278,13 @@ scripts/night.sh --until 07:30
    `cd .claude/worktrees/dev && ANDROID_HOME=~/Android/Sdk ./gradlew :app:assembleDebug`.
 4. Approve or change the texts and the night defaults (a day session, as before).
 5. Take it into master: `git merge --ff-only dev` in the main checkout. The plan's checkboxes get ticked then.
+6. A bug found in the morning becomes a package for the next night (pass 5, 2026-10-19): a `### [ ] B<n>. <what>`
+   section in the plan, after the last package, with the steps to reproduce, what happened, what should happen,
+   the files, and "Done when: a regression test that fails on the old code (or, for the page, a Device (tablet …)
+   bullet that shows it), and the fix"; plus a queue row (Agent winston, the model and effort you'd pick, Tablet
+   yes when the bug shows on the device, After the package that caused it, Spec `plan B<n>`). Commit both on
+   master. By day, one runs at once with `scripts/pipeline.sh B<n>`, or a fix of a merged package with
+   `scripts/pipeline.sh M3f1 "<the bug>"`.
 
 An unmerged branch stays as `wp/<id>`, with its worktree, until the next run of that package (or
 `git worktree remove` and `git branch -d` by hand).

@@ -522,7 +522,11 @@ class MainActivity : ComponentActivity() {
         readStatus()
         when {
             apod?.isVideo != true -> {}
-            choice.source != null -> load()
+            choice.source != null -> lifecycleScope.launch {
+                // Forget the records (and holds) first, off the main thread; load() then fetches and sets the stand-in.
+                if (daily) withContext(Dispatchers.IO) { runCatching { store.settingChanged(Changed.VIDEO_DAYS) } }
+                load()
+            }
             choice == VideoDays.MINE -> applyNow(Changed.VIDEO_DAYS, videoOnly = true)
         }
         // The video-day source's tab went: show the one now in its place.

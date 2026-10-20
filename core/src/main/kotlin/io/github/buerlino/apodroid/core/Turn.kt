@@ -22,20 +22,3 @@ fun nextSource(ticked: List<Source>, after: Source, hasPicture: (Source) -> Bool
     val all = Source.entries
     return all.indices.map { all[(after.ordinal + 1 + it) % all.size] }.firstOrNull { it in ticked && hasPicture(it) }
 }
-
-/**
- * Whose turn it is with two or more [ticked] sources: [current] (the one on the wallpaper)
- * until its turn, which began at [startedAt] and lasts [length], is over ([isTurnOver]), then
- * the [nextSource] with a picture; null when none has one.
- */
-fun nextTurn(
-    ticked: List<Source>,
-    current: Source,
-    startedAt: Instant?,
-    length: Duration,
-    now: Instant,
-    hasPicture: (Source) -> Boolean,
-): Source? {
-    if (!isTurnOver(startedAt, length, now) && current in ticked && hasPicture(current)) return current
-    return nextSource(ticked, current, hasPicture)
-}

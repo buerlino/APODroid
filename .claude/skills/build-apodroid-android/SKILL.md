@@ -24,8 +24,8 @@ packages unattended): `night.md`.
   `core/.../Frame.kt`: `wallpaperFrame`, the part of the picture the wallpaper shows, which is
   also the crop hint (tests in `FrameTest`; a hint widened for landscape was tried and dropped,
   `CLAUDE.md`, Wallpaper).
-  `core/.../Turn.kt`: `nextTurn`, whose turn it is with two or more sources, `isTurnOver`,
-  `nextSource` and `turnSlack` (tests in `TurnTest`).
+  `core/.../Turn.kt`: `isTurnOver`,
+  `nextSource` (the next ticked source with a picture) and `turnSlack` (tests in `TurnTest`).
   `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in:
   `picture(source)`), `Record` (owner, picture, stamp, `Hold`; `forget()`), and the pure

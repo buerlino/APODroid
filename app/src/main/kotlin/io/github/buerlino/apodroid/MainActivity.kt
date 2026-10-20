@@ -284,7 +284,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             readStatus()
             if (isStale()) show()
-            val result = withContext(Dispatchers.IO) { runCatching { store.update(force, skipRecent = true) } }
+            val result = withContext(Dispatchers.IO) { runCatching { store.update(force, page = true) } }
             // Also when this update found nothing new: another one (the job's) may have.
             readStatus()
             if (isStale()) show()
@@ -415,9 +415,12 @@ class MainActivity : ComponentActivity() {
         daily = on
         store.daily = on
         // Sets today's picture again, also when it was set before (the wallpaper may have changed since).
+        // Off the main thread: forgetting waits for a set the job may be doing.
         if (on) {
-            store.forgetWallpaper()
-            load()
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) { store.forgetWallpaper() }
+                load()
+            }
         }
     }
 
@@ -460,14 +463,14 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The shown tab's picture; on the APOD tab on a video day what the video-day setting says
-     * (with APOD ticked alone; with turns nothing).
+     * The shown tab's picture, set by hand ([Store.setByHand]: held, and with turns the clock
+     * restarts); on the APOD tab on a video day what the video-day setting says. On the screens
+     * "Where" names, also with the switch "All NASA pictures" on until M3's menu.
      */
     private fun setWallpaperNow() {
         val post = post ?: return
-        val file = if (post.isVideo) store.wallpaperFile().takeIf { apodAlone } else store.imageFile(post.source).takeIf { it.exists() }
-        if (file == null) {
-            val waiting = videoDays.source?.takeIf { post.isVideo && apodAlone && store.wallpaperFile() == null }
+        if (store.tabPicture(post.source) == null) {
+            val waiting = videoDays.source?.takeIf { post.isVideo }
             toast(
                 when {
                     waiting != null -> "${waiting.possessive} hasn't loaded yet"
@@ -478,27 +481,34 @@ class MainActivity : ComponentActivity() {
             return
         }
         cropping = false
-        set(file)
-    }
-
-    private fun set(file: File) {
+        val screens = where.screens
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { store.setWallpaper(file) } }
+            val result = withContext(Dispatchers.IO) { runCatching { store.setByHand(post.source, screens) } }
             result.onFailure { Log.w("APODroid", "Set failed: $it", it) }
             readStatus()
             if (isStale()) show()
-            toast(if (result.isSuccess) "Wallpaper set" else "Couldn't set the wallpaper")
+            toast(if (result.getOrNull() == true) "Wallpaper set" else "Couldn't set the wallpaper")
         }
     }
 
     /**
-     * A setting changed: while the daily change is on, the wallpaper follows at once (while it's
-     * off, only the button sets it). [videoOnly] for the video-day settings, which change nothing
-     * on an image day.
+     * A setting changed ([change]): while the daily change is on, the screens it affects follow at
+     * once ([Store.settingChanged]: not a set by hand, so no hold and the clock stays; while it's
+     * off, only the button sets). [videoOnly] for the video-day settings, which change nothing on
+     * an image day.
      */
-    private fun applyNow(videoOnly: Boolean = false) {
+    private fun applyNow(change: Changed, videoOnly: Boolean = false) {
         if (!daily || (videoOnly && apod?.isVideo != true)) return
-        store.wallpaperFile()?.let(::set)
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { store.settingChanged(change) } }
+            result.onFailure { Log.w("APODroid", "Set failed: $it", it) }
+            readStatus()
+            if (isStale()) show()
+            when {
+                result.isFailure -> toast("Couldn't set the wallpaper")
+                result.getOrNull() != null -> toast("Wallpaper set")
+            }
+        }
     }
 
     /**
@@ -513,7 +523,7 @@ class MainActivity : ComponentActivity() {
         when {
             apod?.isVideo != true -> {}
             choice.source != null -> load()
-            choice == VideoDays.MINE -> applyNow(videoOnly = true)
+            choice == VideoDays.MINE -> applyNow(Changed.VIDEO_DAYS, videoOnly = true)
         }
         // The video-day source's tab went: show the one now in its place.
         if (choice.source == null && isStale()) lifecycleScope.launch { show() }
@@ -529,9 +539,12 @@ class MainActivity : ComponentActivity() {
         if (new.isEmpty()) return
         val added = source !in ticked
         ticked = new
-        store.sources = new
-        rescheduleJob()
-        load()
+        // Off the main thread: the ticks wait for a set the job may be doing.
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) { store.sources = new }
+            rescheduleJob()
+            load()
+        }
         if (added && source != Source.APOD && !weekdayNoticeHidden) weekdayDialog = true
     }
 
@@ -602,7 +615,7 @@ class MainActivity : ComponentActivity() {
             }
             if (!ok) toast("Couldn't use that picture")
             hasFallback = store.fallbackFile.exists()
-            if (ok && videoDays == VideoDays.MINE) applyNow(videoOnly = true)
+            if (ok && videoDays == VideoDays.MINE) applyNow(Changed.MY_PICTURE, videoOnly = true)
         }
     }
 
@@ -960,7 +973,7 @@ class MainActivity : ComponentActivity() {
                         onClick = {
                             if (where != w) {
                                 where = w; store.where = w
-                                applyNow()
+                                applyNow(Changed.WHERE)
                             }
                         },
                         shape = SegmentedButtonDefaults.itemShape(i, Where.entries.size),

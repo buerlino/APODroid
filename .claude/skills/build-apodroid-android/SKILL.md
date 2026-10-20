@@ -26,19 +26,25 @@ packages unattended): `night.md`.
   `CLAUDE.md`, Wallpaper).
   `core/.../Turn.kt`: `nextTurn`, whose turn it is with two or more sources, `isTurnOver`,
   `nextSource` and `turnSlack` (tests in `TurnTest`).
-  `core/.../Screens.kt` (0.6.0, M1; `Store` doesn't use it until M2): `Screen`, `apodColumns`,
+  `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in:
   `picture(source)`), `Record` (owner, picture, stamp, `Hold`; `forget()`), and the pure
   functions returning a `Plan` (clock, records, `sets` grouped by picture): `dueWallpapers`
   (each run), `setByHand`, `columnsChanged`, `restartAndForget` (tests in `ScreensTest`).
+  `core/.../Migration.kt` (0.6.0, M2): `migrate`, 0.5.0's prefs → 0.6.0's keys, run once by
+  `Store.migrateOnce` (tests in `MigrationTest`).
 - `app/.../Store.kt`: per source (`post(source)`, `imageFile(source)`; APOD's keys unprefixed
   and `apod.jpg`, the others `nasa.<key>` / `earth.<key>` and `nasa.jpg` / `earth.jpg`) prefs (also `daily`, `pauseHintHidden`; `checkedAt`, `problem`, `httpCode`,
   `wallpaperSetAt` for the problem and status lines), `update(force)` (what the page, the pull
   and the job run: refresh, noting how the check went, then set while `daily` is on), `refresh(source)`
-  (the picture through `downloadPicture`: the rendition, else the plain URL), `wallpaperFile()`
-  (which picture, or null on a video day with "keep"), `setWallpaper` (a photo with an EXIF
-  orientation goes upright through `setBitmap`), `sources`/`interval`/`turnStartedAt` and
-  `turn()` (gathers the prefs and files for `:core`'s `nextTurn`), `setDue()` (the set, under the wallpaper lock), `cropPosition(post)`, `save` (the original, else the stored picture; returns `Saved`), `imageBounds`,
+  (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
+  `columns`, `hasTurns`, `setAllSources`, `setColumns` (the mode and the grid; `sources` is the
+  union, its setter 0.5.0's chips until M3), `record(screen)` (home unprefixed, lock `lock.`;
+  `wallpaperSource`/`Date`/`Url`/`SetAt` are the page's screen's), `stored()` (posts, files,
+  the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
+  wallpaper lock), `setByHand(tab, screens)` (button, ✓), `settingChanged(Changed)` (forget,
+  then `setDue`), `tabPicture(tab)`, `set(picture, screens)` (the flags per screen; a photo with
+  an EXIF orientation goes upright through `setBitmap`), `cropPosition(post)`, `save` (the original, else the stored picture; returns `Saved`), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
   `follow()` redraws while resumed when `Store.watch` sees the job set or store a post.

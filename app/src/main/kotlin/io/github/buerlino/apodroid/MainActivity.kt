@@ -117,6 +117,7 @@ import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.Source
+import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
@@ -224,8 +225,11 @@ class MainActivity : ComponentActivity() {
     /** The daily switch's run is going ([switchOn]); Set waits for it. */
     private var switching by mutableStateOf(false)
 
-    /** The daily switch went on while a load, a Set or a switch-on ran: [switchOn] runs after it ([runNext]). */
-    private var switchAgain = false
+    /**
+     * The daily switch went on while a load, a Set or a switch-on ran: [switchOn] runs after it
+     * ([runNext]), unless the switch-on run went on to set (B6: quick taps set once).
+     */
+    private val switchRuns = SwitchRuns()
 
     private var weekdayNoticeHidden by mutableStateOf(false)
 
@@ -414,12 +418,11 @@ class MainActivity : ComponentActivity() {
 
     /**
      * After a load, a Set or the daily switch's run: once none runs, the daily switch's run that
-     * waited ([switchAgain]) goes first, then a load that waited ([loadAgain]).
+     * waited ([switchRuns]) goes first, then a load that waited ([loadAgain]).
      */
     private fun runNext() {
         if (loading || setting || switching) return
-        if (switchAgain) {
-            switchAgain = false
+        if (switchRuns.take()) {
             if (store.daily) {
                 switchOn()
                 return
@@ -589,18 +592,19 @@ class MainActivity : ComponentActivity() {
      * which stays a draft), then schedules the job, after the set as Set does. "Wallpaper set" or
      * "Couldn't set the wallpaper"; no toast when nothing was set (the status line says it).
      * Turned on while a load, a Set or its own run goes: one run after it ([runNext]), so its set
-     * and its toast aren't taken by the other. Off drops a waiting run, and a running one sets
-     * nothing more ([switchOn]).
+     * and its toast aren't taken by the other; none after its own run when that one went on to
+     * set (B6: on, off, on in quick taps set once), only when it gave up (the switch was off at
+     * its check). Off drops a waiting run, and a running one sets nothing more ([switchOn]).
      */
     private fun switchDaily(on: Boolean) {
         daily = on
         store.switchDaily(on)
         if (!on) {
-            switchAgain = false
+            switchRuns.off()
             DailyJob.cancel(this)
             return
         }
-        switchAgain = true
+        switchRuns.on()
         runNext()
     }
 
@@ -628,6 +632,8 @@ class MainActivity : ComponentActivity() {
             failed = updated?.failure != null || result.isFailure
             readStatus()
             if (isStale()) show()
+            // It set (or tried) the stored setup, the switch on: an on meanwhile owes no second set.
+            switchRuns.ended(checkedOn = updated?.wentToSet == true)
             switching = false
             when {
                 result.isFailure || updated?.setFailed == true -> toast("Couldn't set the wallpaper")

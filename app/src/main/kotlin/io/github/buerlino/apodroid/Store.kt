@@ -90,9 +90,10 @@ data class Setup(
 
 /**
  * What [Store.update] did: [done] for the log (null: nothing was set), whether a set failed
- * ([setFailed]), and the first failure, a fetch's or a set's ([failure]; the job retries).
+ * ([setFailed]), the first failure, a fetch's or a set's ([failure]; the job retries), and
+ * whether it went on to set ([wentToSet]: the daily switch was on at its check, or `set`).
  */
-data class Updated(val done: String?, val setFailed: Boolean, val failure: Exception?)
+data class Updated(val done: String?, val setFailed: Boolean, val failure: Exception?, val wentToSet: Boolean)
 
 /**
  * What fills APOD's turn on an APOD video day ("If APOD is a video", both modes): "Skip it"
@@ -569,10 +570,10 @@ class Store(private val context: Context) {
             }
         }
         if (Thread.currentThread().isInterrupted) throw InterruptedException()
-        if (!daily && !set) return Updated(null, false, failure)
+        if (!daily && !set) return Updated(null, false, failure, wentToSet = false)
         val (done, setFailure) = setDue()
         if (failure != null && done != null) Log.i("APODroid", "Despite the failure: $done")
-        return Updated(done, setFailure != null, failure ?: setFailure)
+        return Updated(done, setFailure != null, failure ?: setFailure, wentToSet = true)
     }
 
     /** The sources in use ([sourcesInUse]): what the job fetches and [saveInUse] saves. */

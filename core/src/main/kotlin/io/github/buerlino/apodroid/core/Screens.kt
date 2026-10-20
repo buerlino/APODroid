@@ -284,22 +284,40 @@ fun setByHand(
  * Ticks or unticks, [before] → [after]: clears the hold of each screen whose column changed (the
  * user is reconfiguring it; the next [dueWallpapers] gives it what its settings say). A column
  * taking turns when none did before restarts the clock (to [now]) with every record on it, so
- * the tick doesn't end the current picture at once; otherwise the clock stays. Write the result
- * at once, then run [dueWallpapers].
+ * the tick doesn't end the current picture at once; otherwise the clock stays.
+ *
+ * A screen whose column goes from empty to ticked starts as a screen with no record: its record
+ * was left alone while the column was empty (or written by a hand set there), so its owner and
+ * stamp are stale. It takes the other screen's owner and stamp if that source is in its new
+ * column (so equal columns are one wallpaper at once; the other's stamp, not the clock's, so a
+ * screen still due a retry and this one move on together), else the first ticked source with a
+ * picture in [stored] and the current stamp. It keeps what it shows, so it's set only when that
+ * isn't due. Write the result at once, then run [dueWallpapers].
  */
 fun columnsChanged(
     before: Map<Screen, List<Source>>,
     after: Map<Screen, List<Source>>,
     clock: Instant?,
     records: Map<Screen, Record>,
+    stored: Stored,
     now: Instant,
 ): Plan {
     val restarted = before.values.none { it.size >= 2 } && after.values.any { it.size >= 2 }
-    val out = records.mapValues { (screen, record) ->
+    val current = if (restarted) now else clock
+    val stamped = records.mapValues { (screen, record) ->
         val changed = before[screen].orEmpty() != after[screen].orEmpty()
         record.copy(hold = if (changed) null else record.hold, stamp = if (restarted) now else record.stamp)
+    }
+    val started = { screen: Screen -> before[screen].orEmpty().isEmpty() && after[screen].orEmpty().isNotEmpty() }
+    val out = stamped.mapValues { (screen, record) ->
+        if (!started(screen)) return@mapValues record
+        val column = after.getValue(screen)
+        val other = Screen.entries.first { it != screen }
+        val shared = stamped[other]?.takeIf { !started(other) && after[other].orEmpty().isNotEmpty() && it.owner in column }
+        if (shared != null) record.copy(owner = shared.owner, stamp = shared.stamp)
+        else record.copy(owner = column.firstOrNull { stored.picture(it) != null } ?: column.first(), stamp = current)
     }.filter { (screen, it) -> it != records[screen] }.mapValues { Due(it.value, false) }
-    return Plan(if (restarted) now else clock, restarted, out)
+    return Plan(current, restarted, out)
 }
 
 /**

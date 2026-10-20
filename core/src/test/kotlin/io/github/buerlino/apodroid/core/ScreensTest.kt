@@ -195,14 +195,14 @@ class ScreensTest {
     fun aSecondTickRestartsTheClockOnlyWhenNoColumnTookTurns() {
         val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
         val now = t0 + h1
-        val first = columnsChanged(cols(listOf(APOD)), cols(listOf(APOD, NASA), listOf(APOD)), t0, records, now)
+        val first = columnsChanged(cols(listOf(APOD)), cols(listOf(APOD, NASA), listOf(APOD)), t0, records, stored(), now)
         assertTrue(first.restarted)
         assertEquals(now, first.clock)
         for (screen in Screen.entries) assertEquals(now, first.screens.getValue(screen).record.stamp)
         // The tick doesn't end the current picture at once.
         assertEquals(emptyList(), due(cols(listOf(APOD, NASA), listOf(APOD)), apply(records, first), clock = now, now = now + h1).sets)
 
-        val second = columnsChanged(cols(listOf(APOD, NASA), listOf(APOD)), cols(listOf(APOD, NASA)), t0, records, now)
+        val second = columnsChanged(cols(listOf(APOD, NASA), listOf(APOD)), cols(listOf(APOD, NASA)), t0, records, stored(), now)
         assertFalse(second.restarted)
         assertEquals(t0, second.clock)
         assertEquals(emptyMap(), second.screens)
@@ -263,7 +263,7 @@ class ScreensTest {
         // A tick in Home's column clears the hold: Home stays on APOD, in step with Lock.
         val after = cols(listOf(APOD, NASA), all)
         val turned = apply(records, end)
-        val tick = columnsChanged(before, after, t3, turned, t3 + h1)
+        val tick = columnsChanged(before, after, t3, turned, stored(), t3 + h1)
         assertFalse(tick.restarted)
         val plan = due(after, apply(turned, tick), clock = t3, now = t3 + h1)
         assertEquals(listOf(pic(APOD) to setOf(HOME)), plan.sets)
@@ -283,7 +283,7 @@ class ScreensTest {
         val records = mapOf(HOME to Record(APOD, pic(EARTH), t0, hold), LOCK to Record(APOD, pic(EARTH), t0, hold))
         val before = cols(listOf(APOD, NASA))
         for (after in listOf(cols(all, listOf(APOD, NASA)), cols(listOf(APOD), listOf(APOD, NASA)))) {
-            val change = columnsChanged(before, after, t0, records, t0 + h1)
+            val change = columnsChanged(before, after, t0, records, stored(), t0 + h1)
             assertFalse(change.restarted)
             assertEquals(Record(APOD, pic(EARTH), t0), change.screens.getValue(HOME).record)
             assertNull(change.screens[LOCK])
@@ -291,6 +291,53 @@ class ScreensTest {
             val plan = due(after, apply(records, change))
             assertEquals(listOf(pic(APOD) to setOf(HOME)), plan.sets)
         }
+    }
+
+    @Test
+    fun anEmptiedColumnTickedAgainStartsOnTheOtherScreensSource() {
+        // Home was emptied with a record on Earth, or Earth was set by hand on the empty Home.
+        val lock = Record(APOD, pic(APOD), t0)
+        val before = cols(emptyList(), all)
+        val hand = setByHand(pic(EARTH), EARTH, setOf(HOME), before, t0, mapOf(LOCK to lock), stored(), t0 + h1)
+        for (records in listOf(mapOf(HOME to Record(EARTH, pic(EARTH), t0), LOCK to lock), apply(mapOf(LOCK to lock), hand))) {
+            assertEquals(EARTH, records.getValue(HOME).owner)
+            val t3 = t0 + h3
+            val turn = due(before, records, now = t3)
+            assertTrue(turn.restarted)
+            assertEquals(listOf(pic(NASA) to setOf(LOCK)), turn.sets)
+            assertNull(turn.screens[HOME])
+            val turned = apply(records, turn)
+            // Home is ticked like Lock: no restart, it starts on Lock's source and stamp.
+            val tick = columnsChanged(before, cols(all), t3, turned, stored(), t3 + h1)
+            assertFalse(tick.restarted)
+            assertEquals(Record(NASA, pic(EARTH), t3), tick.screens.getValue(HOME).record)
+            val ticked = apply(turned, tick)
+            val run = due(cols(all), ticked, clock = t3, now = t3 + h1)
+            assertEquals(listOf(pic(NASA) to setOf(HOME)), run.sets)
+            // One wallpaper from then on.
+            val next = due(cols(all), apply(ticked, run), clock = t3, now = t3 + h3)
+            assertEquals(listOf(pic(EARTH) to setOf(HOME, LOCK)), next.sets)
+        }
+    }
+
+    @Test
+    fun anEmptiedColumnTickedAgainMovesOnWithTheOtherScreenDueARetry() {
+        // Lock's set failed at the turn's end: it's still on APOD with the old stamp.
+        val records = mapOf(HOME to Record(EARTH, pic(EARTH), t0), LOCK to Record(APOD, pic(APOD), t0))
+        val t3 = t0 + h3
+        val tick = columnsChanged(cols(emptyList(), all), cols(all), t3, records, stored(), t3 + h1)
+        assertEquals(Record(APOD, pic(EARTH), t0), tick.screens.getValue(HOME).record)
+        val run = due(cols(all), apply(records, tick), clock = t3, now = t3 + h1)
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), run.sets)
+    }
+
+    @Test
+    fun anEmptiedColumnTickedAgainWithoutTheOtherScreensSourceStartsOnItsFirstWithAPicture() {
+        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
+        val stored = stored(files = setOf(APOD, EARTH))
+        val tick = columnsChanged(cols(emptyList(), listOf(APOD)), cols(listOf(NASA, EARTH), listOf(APOD)), t0, records, stored, t0 + h1)
+        assertTrue(tick.restarted)
+        assertEquals(Record(EARTH, pic(APOD), t0 + h1), tick.screens.getValue(HOME).record)
     }
 
     @Test

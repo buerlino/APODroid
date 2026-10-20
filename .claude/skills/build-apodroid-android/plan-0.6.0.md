@@ -419,7 +419,13 @@ use, not APOD only** (APOD only would favour it), and on a failed original the s
 - Done when: the tests pass, the device checks pass, the user has approved the ⓘ text, and
   `CLAUDE.md` says how it works.
 
-### [ ] F5f1. A stopped save: the smaller copy next time (Opus, medium)
+### [x] F5f1. A stopped save: the smaller copy next time (Opus, medium)
+
+**Status (2026-10-20, day):** built and unit-tested (`toSave` returns `ToSave(post, original)`
+from the noted tries, 2 new tests in `SavingTest`, 110 with `private/`; the build check
+passes). Differed from the plan: `save`'s flag is `tryOriginal` (`original` is its temp file),
+the note is written with `commit = true` before the download, and any save that returns clears
+it (also `BUSY`, which downloaded nothing). The device check is V2's.
 
 Found by reading (review of F5, 2026-10-20); the fix settled by the user the same day. A stop
 during the original's download (the job's roughly 10 minutes run out, or the network goes)

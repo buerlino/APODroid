@@ -526,11 +526,14 @@ video day the stand-in; "Skip it" or "my picture" saves nothing. One skipped whi
 (`BUSY`) or failed is logged, doesn't retry the job, and the next run tries. A stop ends it:
 `save` rethrows an interrupted download (`isStop()`) instead of falling back. Built and
 unit-tested; the device checks and the ⓘ text wait for the tablet. **One try of the original
-per post** (user, 2026-10-20, from a review by reading; to build in F5f1): a stopped save noted
-nothing, so each retry of the job and each later run downloaded the original from zero (a
-97 MB NASA original on a slow connection, all day). The job notes the try first
-(`<source>.saveTried`, the picture URL); the next job save of that post saves the stored
-picture, the smaller copy, as after a failure. ★ always tries the original.
+per post** (user, 2026-10-20, from a review by reading; F5f1): a stopped save noted nothing, so
+each retry of the job and each later run downloaded the original from zero (a 97 MB NASA
+original on a slow connection, all day). The job notes the try first (`<source>.saveTried`,
+the picture URL, committed before the download); `toSave` then says not to try it again, and
+the next job save of that post saves the stored picture, the smaller copy, as after a failure
+(`save(post, tryOriginal = false)`). A post with another picture URL tries its original. A save
+that returns (also `BUSY`, which downloaded nothing) clears the note. ★ always tries the
+original and ignores the note.
 
 ### Background update
 

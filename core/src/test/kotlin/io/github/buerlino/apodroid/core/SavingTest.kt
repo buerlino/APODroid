@@ -22,6 +22,10 @@ class SavingTest {
     private fun stored(posts: Map<Source, Post> = this.posts, files: Set<Source> = posts.keys, standIn: StandIn = StandIn.SKIP) =
         Stored(posts, files, true, standIn)
 
+    /** The posts [toSave] picks, none tried before. */
+    private fun toSave(inUse: List<Source>, stored: Stored, saved: Map<Source, Picture.Of>) =
+        toSave(inUse, stored, saved, emptyMap()).map { it.post }
+
     private fun cols(home: List<Source>, lock: List<Source> = home) = mapOf(HOME to home, LOCK to lock)
 
     // The sources in use
@@ -78,5 +82,23 @@ class SavingTest {
         for (standIn in listOf(StandIn.SKIP, StandIn.OWN)) {
             assertEquals(emptyList(), toSave(sourcesInUse(cols(listOf(APOD)), emptyList(), null, true), stored(video, setOf(NASA, EARTH), standIn), emptyMap()))
         }
+    }
+
+    // The original once per post
+
+    @Test
+    fun theOriginalFirstThenTheStoredPictureAfterATry() {
+        assertEquals(listOf(ToSave(posts.getValue(APOD), true)), toSave(listOf(APOD), stored(), emptyMap(), emptyMap()))
+        val tried = mapOf(APOD to posts.getValue(APOD).imageUrl!!)
+        assertEquals(listOf(ToSave(posts.getValue(APOD), false)), toSave(listOf(APOD), stored(), emptyMap(), tried))
+    }
+
+    @Test
+    fun aNewPostAfterATriedOneTriesItsOriginal() {
+        val tried = mapOf(APOD to post(APOD, d1).imageUrl!!, NASA to posts.getValue(NASA).imageUrl!!)
+        assertEquals(
+            listOf(ToSave(posts.getValue(APOD), true), ToSave(posts.getValue(NASA), false)),
+            toSave(listOf(APOD, NASA), stored(), emptyMap(), tried),
+        )
     }
 }

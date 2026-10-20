@@ -532,18 +532,22 @@ class Store(private val context: Context) {
      * Blocking, the job's, after each run but a stopped one, while [saveEvery] is on: [save]s
      * each source in use's stored post, as ★ does ([toSave]: not a video, nor one noted as saved,
      * even if deleted in the gallery since). One skipped while ★ saves ([Saved.BUSY]) or failed
-     * is tried by the next run; a stop ends it (thrown). Returns what it saved for the log, or null.
+     * is tried by the next run; a stop ends it (thrown). The original once per post: the try is
+     * noted first (`saveTried`, its picture URL), so after a stop the next job save is the stored
+     * picture. Returns what it saved for the log, or null.
      */
     fun saveInUse(): String? {
         if (!saveEvery) return null
         val saved = Source.entries.mapNotNull { source ->
             prefs.getString(source.key("savedDate"), null)?.let { source to Picture.Of(source, LocalDate.parse(it), prefs.getString(source.key("savedUrl"), null)) }
         }.toMap()
+        val tried = Source.entries.mapNotNull { source -> prefs.getString(source.key("saveTried"), null)?.let { source to it } }.toMap()
         val done = mutableListOf<String>()
-        for (post in toSave(inUse(), stored(), saved)) {
+        for ((post, original) in toSave(inUse(), stored(), saved, tried)) {
             if (Thread.currentThread().isInterrupted) throw InterruptedException()
+            if (original) prefs.edit(commit = true) { putString(post.source.key("saveTried"), post.imageUrl) }
             val result = try {
-                save(post)
+                save(post, original).also { prefs.edit { remove(post.source.key("saveTried")) } }
             } catch (e: Exception) {
                 if (e.isStop()) throw e
                 Log.w("APODroid", "Couldn't save ${post.source} ${post.date}: $e")
@@ -750,17 +754,18 @@ class Store(private val context: Context) {
      * Blocking. Downloads the original of [post]'s picture and copies it to Pictures/APODroid (no
      * permission on Android 10+), unless it's there already (a quick double tap); if the
      * original fails, the stored picture. Saves nothing when the stored post isn't [post] any
-     * more: a refresh stored a new one meanwhile. The download runs outside
+     * more: a refresh stored a new one meanwhile. Without [tryOriginal] (the job's second save of a
+     * post, [saveInUse]) the stored picture at once. The download runs outside
      * the lock, so a refresh doesn't wait for it. One save at a time: [Saved.BUSY] while another
      * runs.
      */
-    fun save(post: Post): Saved {
+    fun save(post: Post, tryOriginal: Boolean = true): Saved {
         if (!saving.compareAndSet(false, true)) return Saved.BUSY
         var original: File? = null
         try {
             val url = post.takeIf(::isStored)?.let(::originalUrl) ?: return Saved.STALE
-            original = File.createTempFile("original", ".part", context.cacheDir)
-            val loaded = try {
+            val loaded = tryOriginal && try {
+                original = File.createTempFile("original", ".part", context.cacheDir)
                 download(url, original, userAgent)
                 isImage(original)
             } catch (e: IOException) {
@@ -769,7 +774,7 @@ class Store(private val context: Context) {
                 Log.w("APODroid", "Original failed, saving the stored picture: $e")
                 false
             }
-            return copyToGallery(post, if (loaded) original else imageFile(post.source), loaded)
+            return copyToGallery(post, if (loaded) original!! else imageFile(post.source), loaded)
         } finally {
             original?.delete()
             saving.set(false)

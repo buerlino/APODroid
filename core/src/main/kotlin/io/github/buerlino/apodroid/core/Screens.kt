@@ -29,6 +29,21 @@ enum class Screen { HOME, LOCK }
 fun apodColumns(screens: Set<Screen>): Map<Screen, List<Source>> =
     Screen.entries.associateWith { if (it in screens) listOf(Source.APOD) else emptyList() }
 
+/** The screens [source] is ticked for in these columns. */
+fun Map<Screen, List<Source>>.screensOf(source: Source): Set<Screen> =
+    Screen.entries.filter { source in this[it].orEmpty() }.toSet()
+
+/**
+ * The list's change ("Pictures from"): [source] on exactly [screens] (none: off both screens),
+ * the other sources where they were, each column in order. A tick, an untick and a new dropdown
+ * choice are all this; a set by hand too ([setByHand]).
+ */
+fun Map<Screen, List<Source>>.placing(source: Source, screens: Set<Screen>): Map<Screen, List<Source>> =
+    Screen.entries.associateWith { screen ->
+        val column = this[screen].orEmpty()
+        Source.entries.filter { if (it == source) screen in screens else it in column }
+    }
+
 /** What a screen shows. */
 sealed interface Picture {
     /**
@@ -244,10 +259,7 @@ fun setByHand(
 ): ByHand? {
     val source = if (allSources) tab else Source.APOD
     if (screens.isEmpty() || stored.picture(source) == null) return null
-    val after = Screen.entries.associateWith { screen ->
-        val column = columns[screen].orEmpty()
-        Source.entries.filter { if (it == source) screen in screens else it in column }
-    }
+    val after = columns.placing(source, screens)
     val restarted = screens.any { after.getValue(it).size >= 2 }
     val current = if (restarted) now else clock
     val out = mutableMapOf<Screen, Due>()

@@ -252,44 +252,54 @@ set it as wallpaper, and on video days kept the old wallpaper.
   right. Pull to refresh works on the picture side only. The tablet (711 dp in portrait) shows
   two panes both ways.
 - **Settings** (SharedPreferences; 0.6.0's layout built in M3, 2026-10-20, its texts and the
-  night's defaults approved by the user the same day from the tablet's screenshots): **Wallpaper** (the daily switch, the status line,
-  "Wi-Fi only" (F2) while the switch is on; in APOD mode **Where**, "If APOD is a video", the set button), with the switch "All NASA
-  pictures" on, after a divider, **Pictures from** (the grid with "If it's a video" under APOD's
-  row, "Change every", the set menu); then a divider and the switch "All NASA pictures", in both
-  modes.
+  night's defaults approved by the user the same day from the tablet's screenshots; the order
+  and the list since S2, 2026-10-20, texts placeholders until the user's look): **Wallpaper**:
+  the daily switch, then while it's on, in this order: the status lines; in APOD mode
+  **Where**, with the switch "All NASA pictures" on **Pictures from** (the list) and "Change
+  every" (while a screen takes turns) and the set menu; "Size", "If APOD is a video", "Wi-Fi
+  only" (F2), "Save every picture" (F5); in APOD mode the set button. **While the daily switch
+  is off** only "Size" and the set button (APOD mode) or menu: "Where", the list, "Change
+  every" and "If APOD is a video" are hidden (the button uses "Size"; S3 moves the set buttons
+  to the picture side). Then, in both modes and states, a divider and the switch "All NASA
+  pictures".
   - A switch for the daily change ("Change wallpaper automatically", user 2026-10-17: with
     turns it isn't daily): schedules or cancels the job.
   - **All NASA pictures** (0.6.0, M3; the pref `allSources`, default off: APOD mode). Turning
-    it on or off works like a tick (`Store.setAllSources`: both records forgotten; the first time on, the grid starts from "Where"), then the page's update sets
+    it on or off works like a tick (`Store.setAllSources`: both records forgotten; the first time on, the list starts from "Where"), then the page's update sets
     what the new mode puts on a screen while the daily switch is on, and the job is
     rescheduled (its period follows the mode). Each mode keeps its settings: "Where" is APOD
-    mode's, the grid the other's. With the daily switch off the records are forgotten too, so
+    mode's, the list the other's. With the daily switch off the records are forgotten too, so
     the chip and the opening tab lose track of what's still on the screens until the next set
     (accepted by the user, 2026-10-20).
-  - **The grid** (switch on; M3): "Pictures from" with the heads "Home" and "Lock", a row per
-    source by its short name, "APOD", "NASA", "Earth", as on the tabs (`shortLabel`; user,
-    2026-10-20: the full names took three lines on the tablet and broke "Astronomy" inside the
-    word at font scale 2.0), and a material3 `Checkbox` per screen in columns
-    72 dp wide, wider when a large font widens a head (the heads don't wrap: at font scale 2.0
-    on the FP6's width "Home" broke inside the word, tablet M3 check); screen readers "APOD on the home screen". The prefs are the columns `home` and
-    `lock` (comma lists, `Store.columns`; APOD mode's columns are APOD on the screens "Where"
-    names, `apodColumns`). A tick goes through `Store.setColumns` (`columnsChanged`: the clock
-    restarts only when no column took turns before), then the page's update: what changes a
-    screen is set at once (the source on it unticked, a column's first tick), a tick added to a turning screen waits for its turn
-    (Turns). The last tick in the grid is greyed out. With a column of two or more, **Change
-    every** [Day | 12 h | 6 h | 3 h] (`Store.interval`, default Day) below the grid; hiding it
-    moves the page only after a tick. 0.5.0's chips ("APOD | NASA | Earth", `EqualGrid`) are
-    gone.
+  - **The list** (switch on; S2, 2026-10-20, from the user's sketch; replaced M3's grid of a
+    tick box per screen): "Pictures from", a row per source: a tick box with its short name,
+    "APOD", "NASA", "Earth", as on the tabs (`shortLabel`; user, 2026-10-20: the full names took
+    three lines on the tablet), and a dropdown Home screen / Lock screen / Both (an outlined
+    button "Both ▾" and a `DropdownMenu`, ✓ before the chosen one, as "If APOD is a video"'s);
+    the dropdown wraps under the name when both don't fit on one line. A tick puts the source
+    on its dropdown's screens, an untick takes it off both, a new choice for a ticked source
+    moves it (`:core`'s `placing`, then `Store.setColumns`). An unticked row's dropdown is
+    greyed out and shows the screens the source had last (`<source>.lastScreens`, written with
+    the columns; Both when it never had any); ticking it puts the source there. The last ticked
+    row can't be unticked (greyed out); its dropdown still moves it. Screen readers: the row
+    "NASA" (a checkbox), the dropdown "NASA on: Home screen". The prefs are the columns `home`
+    and `lock` (comma lists, `Store.columns`; APOD mode's columns are APOD on the screens
+    "Where" names, `apodColumns`). A change goes through `Store.setColumns` (`columnsChanged`:
+    the clock restarts only when no column took turns before), then the page's update: what
+    changes a screen is set at once (the source on it unticked, a column's first tick), a
+    source added to a turning screen waits for its turn (Turns). With a column of two or more,
+    **Change every** [Day | 12 h | 6 h | 3 h] (`Store.interval`, default Day) below the list;
+    hiding it moves the page only after a tick. 0.5.0's chips and M3's grid are gone.
   - **Weekday dialog** (user, 2026-10-17): ticking NASA or Earth where it wasn't ticked on
     either screen says they post on weekdays only and Friday's pictures come back on weekends;
     "Dismiss" (again at the next such tick) and "Don't show again" (`weekdayNoticeHidden`). Not
     for the video-day choice or the mode switch. No text on the page.
   - **Where** (was "Wallpaper on" until U3): home screen, lock screen, or both (user: a setting,
-    not fixed), APOD mode's only (the grid has its columns). Default: both. Its segments, like the tabs' and "Change every"'s, share one
+    not fixed), APOD mode's only (the list has its columns). Default: both. Its segments, like the tabs' and "Change every"'s, share one
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
   - **Size** [Fill | Fit] (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; the heading
-    "Size" (was "Fit") and the choices approved by the user in C, 2026-10-20): in APOD mode under "Where", with the switch on above the grid's divider. One
+    "Size" (was "Fit") and the choices approved by the user in C, 2026-10-20): under "Where" or "Change every", the only setting under the daily switch while it's off (S2). One
     setting for both screens, so one picture is still one set. Fill: the screen's shape cut from
     the picture (⛶ chooses where). Fit: all of it, as large as fits, centred on black
     (Wallpaper). No ⛶ with Fit; choosing Fit closes crop mode. A change while the daily switch
@@ -298,9 +308,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture as it was set); with it off the next set uses it.
   - **If APOD is a video** (was "On video days"; one setting for both modes): a dropdown (M3,
     2026-10-20: a `DropdownMenu` under an outlined button "Skip it ▾", ✓ before the chosen
-    one; were four radios), in APOD mode under "Where", with the switch on under APOD's grid row
-    as "If it's a video", greyed out there while APOD has no tick (so the page doesn't move).
-    Never greyed out otherwise (0.5.0 greyed it with two or more ticked, under a grey line).
+    one; were four radios), under its heading after "Size" in both modes (S2; M3 had it under
+    APOD's grid row), hidden while the daily switch is off; with the switch "All NASA pictures"
+    on greyed out while APOD has no tick (so the page doesn't move). Never greyed out otherwise (0.5.0 greyed it with two or more ticked, under a grey line).
     The choices: "Skip it" (`VideoDays.KEEP`; was "Keep the previous picture"), NASA Image of
     the Day, Earth Observatory (0.5.0, WP3; `VideoDays.NASA`, `.EARTH`), or "Use my picture"
     (user). Default: "Skip it", as the Tasker task did. The choice fills APOD's turn on every
@@ -321,11 +331,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
     in APOD mode "Where" becomes the chosen screens. Then the normal set (Background update,
     Turns), so the settings always say what each screen gets (why: Next features, 0.6.0). With the daily switch off a one-off set,
     the records noted for the chip, the settings untouched. Settings already so: set again
-    (✓ with a new part). The page then reads "Where", the grid and "Change every" again and
+    (✓ with a new part). The page then reads "Where", the list and "Change every" again and
     reschedules the job (`Store.setByHand` returns whether it set and which setting changed,
     for S3's highlight). A failed set keeps the new settings: the next run sets them. In APOD mode at the end of the Wallpaper section, on the
     screens "Where" names. With the switch on (M3) "Set as wallpaper ▾" under "Change every"
-    opens a menu Home screen / Lock screen / Both (the shown tab may be ticked nowhere); when
+    (under "Size" while the daily switch is off) opens a menu Home screen / Lock screen / Both (the shown tab may be ticked nowhere); when
     the tab has nothing to set it says so instead of opening. ✓ in crop mode opens the same menu
     (M4, `SetChoices`). **Always shown** (user,
     2026-10-17, U4; was only while the switch is off, user 2026-10-16): with tabs and turns the
@@ -646,16 +656,17 @@ Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn'
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).
 - **A switch "All NASA pictures"**, at the end of the settings, default off. Off: the app with
-  APOD alone, as now. On: always three tabs, and a grid replaces the chips and "Where": a row
-  per source, a tick box for Home and for Lock. Each mode keeps its own settings; the grid
+  APOD alone, as now. On: always three tabs, and a list replaces the chips and "Where": a row
+  per source, a tick box and a dropdown Home screen / Lock screen / Both (S2; M3 had a grid,
+  a tick box for Home and for Lock). Each mode keeps its own settings; the list
   starts from "Where" the first time. From 0.5.0: anything but APOD alone → on (0.5.0 allows
   NASA or Earth alone). Rejected: a
   first-boot screen (an extra screen; updaters never see it), a "Lock screen: one source" row.
-- **The grid:** equal columns are one wallpaper (as today), an empty column leaves that screen
+- **The columns** (the list's screens per screen): equal columns are one wallpaper (as today), an empty column leaves that screen
   alone, a column with two or more takes turns. One shared clock for both screens.
 - **Video days:** the stand-in takes APOD's place on every screen where APOD is ticked, with
   turns too. Four choices in both modes, never greyed: "Skip it" (was "Keep"), NASA, Earth, my
-  picture. A dropdown, under APOD's grid row with the switch on.
+  picture. A dropdown after "Size" in both modes (S2).
 - **"Set as wallpaper" changes the settings** (user, 2026-10-20 afternoon, from a sketch; it
   replaced the hold of 2026-10-19; built in S1). Why: a simulation of the hold's rules over a
   week showed what the page never said: a held picture followed its source's newer posts (APOD
@@ -671,7 +682,7 @@ video days worked only with APOD alone (it shows at once that it was a video day
   daily switch off a one-off set, the settings untouched. A changed setting ("Where", the
   video-day choice, "Change picture", the mode, Fit) is not a set by hand: no clock restart.
   Still to come: the button under the picture in both modes with its menu, the highlight
-  (S3) and the list instead of the grid (S2).
+  (S3). The list replaced the grid (S2).
 - Both screens due the same picture: one set with both flags; else each screen on its own (not
   by equal columns: a screen still due a retry may differ for a while). Every screen's due picture comes from
   one reading of the clock (reviews of the plan, 2026-10-19). The clock restarts only when the

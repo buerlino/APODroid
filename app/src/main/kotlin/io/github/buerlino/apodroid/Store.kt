@@ -36,6 +36,7 @@ import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.Stored
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.columnsChanged
+import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.download
 import io.github.buerlino.apodroid.core.dueWallpapers
 import io.github.buerlino.apodroid.core.fetchLatest
@@ -238,14 +239,28 @@ class Store(private val context: Context) {
         val before = columns
         if (after == before) return
         val plan = columnsChanged(before, after, turnStartedAt, records(), stored(), Instant.now())
-        prefs.edit(commit = true) { putColumns(after) }
+        prefs.edit(commit = true) { putColumns(after, before) }
         write(plan)
     }
 
-    /** The grid's columns, as comma lists (`home`, `lock`). */
-    private fun SharedPreferences.Editor.putColumns(columns: Map<Screen, List<Source>>) {
+    /**
+     * The list's columns, as comma lists (`home`, `lock`), and each source's screens for
+     * [lastScreens]: where it is now, or for one unticked where it was in [before].
+     */
+    private fun SharedPreferences.Editor.putColumns(columns: Map<Screen, List<Source>>, before: Map<Screen, List<Source>>) {
         for (screen in Screen.entries) putString(screen.name.lowercase(), columns[screen].orEmpty().joinToString(",") { it.name })
+        for (source in Source.entries) {
+            val screens = columns.screensOf(source).ifEmpty { before.screensOf(source) }
+            Where.entries.firstOrNull { it.screens == screens }?.let { putString(source.key("lastScreens"), it.name) }
+        }
     }
+
+    /**
+     * The screens [source] had last in the list (`<source>.lastScreens`): its dropdown shows
+     * them while it's unticked, and a tick puts it there. Both when it never had any.
+     */
+    fun lastScreens(source: Source): Set<Screen> =
+        (enumValue<Where>(prefs.getString(source.key("lastScreens"), null)) ?: Where.BOTH).screens
 
     /** How long a turn lasts. */
     var interval: Interval
@@ -647,7 +662,7 @@ class Store(private val context: Context) {
         val before = columns
         val hand = planByHand(tab, screens, allSources, before, turnStartedAt, records(), stored, Instant.now()) ?: return HandSet(false, null)
         prefs.edit(commit = true) {
-            if (allSources) putColumns(hand.columns) else putString("where", Where.entries.first { it.screens == screens }.name)
+            if (allSources) putColumns(hand.columns, before) else putString("where", Where.entries.first { it.screens == screens }.name)
             putPlan(hand.plan)
         }
         val done = setDue()

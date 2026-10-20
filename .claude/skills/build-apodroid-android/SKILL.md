@@ -28,6 +28,7 @@ packages unattended): `night.md`.
   `core/.../Turn.kt`: `isTurnOver`,
   `nextSource` (the next ticked source with a picture) and `turnSlack` (tests in `TurnTest`).
   `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
+  `screensOf` and `placing` (S2: the list's change, a source on exactly its screens),
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in:
   `picture(source)`), `Record` (owner, picture, stamp; `forget()`), and the pure
   functions returning a `Plan` (clock, records, `sets` grouped by picture): `dueWallpapers`
@@ -42,8 +43,8 @@ packages unattended): `night.md`.
   `wallpaperSetAt` for the problem and status lines), `update(force)` (what the page, the pull
   and the job run: refresh, noting how the check went, then set while `daily` is on), `refresh(source)`
   (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
-  `columns`, `hasTurns`, `setAllSources`, `setColumns` (the mode and the grid; `sources` is the
-  union), `record(screen)` (home unprefixed, lock `lock.`;
+  `columns`, `hasTurns`, `setAllSources`, `setColumns` (the mode and the list; `sources` is the
+  union), `lastScreens(source)` (S2: an unticked row's screens, `<source>.lastScreens`, written with the columns), `record(screen)` (home unprefixed, lock `lock.`;
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
   is APOD mode's screen), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
@@ -55,8 +56,8 @@ packages unattended): `night.md`.
   `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs in APOD mode;
   `screens` from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`, `SetChoices` for the set button and ✓), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
-  the settings (`Settings`; with the switch "All NASA pictures" `Grid`, `SetMenu`; `VideoDaysChoice`, the
-  dropdown; `switchAllSources`, `tick(screen, source)`, `chooseVideoDays`, `canSetNow`, `setWallpaperNow(screens)`);
+  the settings (`Settings`; with the switch "All NASA pictures" `PictureList`, `SetMenu`; `VideoDaysChoice`, the
+  dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`, `canSetNow`, `setWallpaperNow(screens)`);
   `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post.
   `app/.../DailyJob.kt`: the job (id 1; after `update`, `saveInUse` unless stopped); `ensure` reschedules it only when its timing or its network type (Wi-Fi only) changes.
 

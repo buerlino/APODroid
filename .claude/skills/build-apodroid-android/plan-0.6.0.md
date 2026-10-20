@@ -253,6 +253,9 @@ checked on the tablet once the user says it's free.
 `features.md` item 2 has the how. Settled: one setting for both screens (2026-10-19); changing
 it while the daily switch is on sets the wallpaper again at once, like "Where" (user,
 2026-10-20).
+**Status (2026-10-20, day):** built and unit-tested (`fitFrame`, 4 tests; the build check
+passes); the device checks and the texts ("Fit" over [Fill | Fit]) are open until the tablet
+is free.
 - The pref `fit` (default off: Fill, today's behaviour), a segmented row "Fit" [Fill | Fit]
   (placeholder) in the Wallpaper section in both modes (the layout: APOD mode under "Where",
   with the switch on after the switches under the daily one).

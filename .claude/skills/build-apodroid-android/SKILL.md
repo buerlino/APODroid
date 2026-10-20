@@ -22,8 +22,9 @@ packages unattended): `night.md`.
   responses in `private/` (`latest.json`, `last100.json`, `iotd-feed-2026-10-16.xml`,
   `eo-last40-2026-10-16.json`).
   `core/.../Frame.kt`: `wallpaperFrame`, the part of the picture the wallpaper shows, which is
-  also the crop hint (tests in `FrameTest`; a hint widened for landscape was tried and dropped,
-  `CLAUDE.md`, Wallpaper).
+  also the crop hint, and `fitFrame`, where the whole picture goes on the screen with Fit (F1)
+  (tests in `FrameTest`; a hint widened for landscape was tried and dropped, `CLAUDE.md`,
+  Wallpaper).
   `core/.../Turn.kt`: `isTurnOver`,
   `nextSource` (the next ticked source with a picture) and `turnSlack` (tests in `TurnTest`).
   `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
@@ -45,7 +46,7 @@ packages unattended): `night.md`.
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
   wallpaper lock), `setByHand(tab, screens)` (button, ✓), `settingChanged(Changed)` (forget,
   then `setDue`), `tabPicture(tab)`, `set(picture, screens)` (the flags per screen; a photo with
-  an EXIF orientation goes upright through `setBitmap`), `cropPosition(post)`, `save` (the original, else the stored picture; returns `Saved`), `imageBounds`,
+  an EXIF orientation goes upright through `setBitmap`; with `fit` the `fitted` bitmap), `cropPosition(post)`, `save` (the original, else the stored picture; returns `Saved`), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs in APOD mode;
   `screens` from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`, `SetChoices` for the set button and ✓), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;

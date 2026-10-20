@@ -8,7 +8,10 @@ import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ImageDecoder
+import android.graphics.Paint
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.os.Environment
@@ -37,6 +40,7 @@ import io.github.buerlino.apodroid.core.columnsChanged
 import io.github.buerlino.apodroid.core.download
 import io.github.buerlino.apodroid.core.dueWallpapers
 import io.github.buerlino.apodroid.core.fetchLatest
+import io.github.buerlino.apodroid.core.fitFrame
 import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.originalUrl
 import io.github.buerlino.apodroid.core.restartAndForget
@@ -82,6 +86,9 @@ enum class Changed {
 
     /** "Change picture": the screens showing the user's own picture. */
     MY_PICTURE,
+
+    /** Fill / Fit: every screen with a tick (one left alone keeps its picture as it was set). */
+    FIT,
 }
 
 /** How long each source's turn lasts with two or more sources ticked. */
@@ -251,6 +258,11 @@ class Store(private val context: Context) {
     var daily: Boolean
         get() = prefs.getBoolean("daily", false)
         set(value) = prefs.edit { putBoolean("daily", value) }
+
+    /** Fit (F1): all of the picture on black instead of the screen's shape cut from it (Fill); both screens. */
+    var fit: Boolean
+        get() = prefs.getBoolean("fit", false)
+        set(value) = prefs.edit { putBoolean("fit", value) }
 
     /** The job waits for an unmetered network (F2); the page and the buttons use any. */
     var wifiOnly: Boolean
@@ -594,13 +606,15 @@ class Store(private val context: Context) {
      * sets what is due ([setDue]); no hold, no clock restart. Returns what it set, or null.
      */
     fun settingChanged(change: Changed): String? = synchronized(wallpaperLock) {
-        val affected = records().filterValues {
+        val columns = columns
+        val affected = records().filter { (screen, record) ->
             when (change) {
                 // The grid has its own columns.
                 Changed.WHERE -> !allSources
                 // In APOD's place: APOD's turn, or held as APOD's picture.
-                Changed.VIDEO_DAYS -> (it.hold?.source ?: it.owner) == Source.APOD
-                Changed.MY_PICTURE -> it.picture == Picture.Own
+                Changed.VIDEO_DAYS -> (record.hold?.source ?: record.owner) == Source.APOD
+                Changed.MY_PICTURE -> record.picture == Picture.Own
+                Changed.FIT -> columns[screen].orEmpty().isNotEmpty()
             }
         }
         write(Plan(turnStartedAt, false, affected.mapValues { Due(it.value.forget(), false) }))
@@ -662,14 +676,19 @@ class Store(private val context: Context) {
      * callers read [stored] and the records first: setting takes seconds, and a refresh storing
      * a new post meanwhile must not mark the new one as set. The crop is [wallpaperFrame], the
      * screen's portrait shape: without one, Android 15+ shows the left part of a wide picture.
-     * The user's own picture (video days) is always centred. Writes no record.
+     * The user's own picture (video days) is always centred. With [fit] all of it on black
+     * ([fitted]). Writes no record.
      */
     private fun set(picture: Picture, screens: Set<Screen>, stored: Stored) {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
         val position = if (picture is Picture.Of) cropPosition(stored.post(picture.source)) else 0.5f
         val flags = screens.fold(0) { flags, it -> flags or if (it == Screen.HOME) WallpaperManager.FLAG_SYSTEM else WallpaperManager.FLAG_LOCK }
         val manager = WallpaperManager.getInstance(context)
-        if (needsTurning(file)) {
+        if (fit) {
+            // The screen's size already: the hint is all of it.
+            val bitmap = fitted(file, screen)
+            manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
+        } else if (needsTurning(file)) {
             // Android would measure it unturned but draw it turned, stretching it (seen on API 36).
             val bitmap = decodeUpright(file, screen)
             manager.setBitmap(bitmap, wallpaperFrame(bitmap.width, bitmap.height, screen, position), true, flags)
@@ -798,6 +817,19 @@ private fun decodeUpright(file: File, screen: Size): Bitmap =
         decoder.setTargetSampleSize(sample)
         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
     }
+
+/** [file] upright, all of it as large as fits ([fitFrame]), centred on black in the [screen]'s size: Fit. */
+private fun fitted(file: File, screen: Size): Bitmap {
+    val picture = decodeUpright(file, screen)
+    val frame = fitFrame(picture.width, picture.height, screen.width, screen.height)
+    return Bitmap.createBitmap(screen.width, screen.height, Bitmap.Config.ARGB_8888).also {
+        Canvas(it).run {
+            drawColor(Color.BLACK)
+            drawBitmap(picture, null, Rect(frame.left, frame.top, frame.right, frame.bottom), Paint(Paint.FILTER_BITMAP_FLAG))
+        }
+        picture.recycle()
+    }
+}
 
 /** The MIME type of a decodable image, e.g. `image/jpeg`, or null. */
 private fun imageType(file: File): String? = imageBounds(file)?.outMimeType

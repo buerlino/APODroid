@@ -281,6 +281,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
     not fixed), APOD mode's only (the grid has its columns). Default: both. Its segments, like the tabs' and "Change every"'s, share one
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
+  - **Fit** [Fill | Fit] (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; texts
+    placeholders): in APOD mode under "Where", with the switch on above the grid's divider. One
+    setting for both screens, so one picture is still one set. Fill: the screen's shape cut from
+    the picture (⛶ chooses where). Fit: all of it, as large as fits, centred on black
+    (Wallpaper). No ⛶ with Fit; choosing Fit closes crop mode. A change while the daily switch
+    is on sets at once, as a changed setting (`Changed.FIT`: the records of the screens with a
+    tick forgotten, then the normal set; no hold, the clock stays; a screen left alone keeps its
+    picture as it was set); with it off the next set uses it.
   - **If APOD is a video** (was "On video days"; one setting for both modes): a dropdown (M3,
     2026-10-20: a `DropdownMenu` under an outlined button "Skip it ▾", ✓ before the chosen
     one; were four radios), in APOD mode under "Where", with the switch on under APOD's grid row
@@ -437,7 +445,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   decoded upright with `ImageDecoder`, halved while it still fills the screen, and set with
   `setBitmap` (user, 2026-10-05): Android 16 measures it unturned but draws it turned, so it
   came out stretched, with or without a crop. Only changed when the date is new and the
-  download is a complete, decodable image.
+  download is a complete, decodable image. **Fit** (F1): the picture decoded upright (as the
+  EXIF case), drawn into `:core`'s `fitFrame` on a black bitmap of the screen's portrait size
+  (about 11 MB on the FP6) and set with `setBitmap`, the hint all of it.
   **Home and lock set separately** (M0, 2026-10-20; tablet, Android 15; the FP6 unchecked):
   both flags make one shared wallpaper (`dumpsys wallpaper`: `id=154: mWhich=3`, "Lock
   wallpaper state" empty); `FLAG_SYSTEM` alone first moves the shared one to the lock screen

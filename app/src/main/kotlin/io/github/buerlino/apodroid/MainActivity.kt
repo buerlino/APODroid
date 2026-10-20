@@ -166,6 +166,7 @@ class MainActivity : ComponentActivity() {
     private var daily by mutableStateOf(false)
     private var wifiOnly by mutableStateOf(false)
     private var where by mutableStateOf(Where.BOTH)
+    private var fit by mutableStateOf(false)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
 
     /** The ticked sources ([Store.sources]), on any screen. */
@@ -209,6 +210,7 @@ class MainActivity : ComponentActivity() {
         videoNoticeHidden = store.videoNoticeHidden
         problemNoticeKey = store.problemNoticeKey
         where = store.where
+        fit = store.fit
         videoDays = store.videoDays
         ticked = store.sources
         allSources = store.allSources
@@ -666,6 +668,15 @@ class MainActivity : ComponentActivity() {
         rescheduleJob()
     }
 
+    /** Fill or Fit, both screens: with Fit there's no part to choose, so crop mode closes; the screens follow at once while the daily change is on. */
+    private fun chooseFit(on: Boolean) {
+        if (fit == on) return
+        fit = on
+        store.fit = on
+        if (on) cropping = false
+        applyNow(Changed.FIT)
+    }
+
     private fun closeWeekdayDialog(forever: Boolean) {
         weekdayDialog = false
         if (forever) {
@@ -867,8 +878,9 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 // ✓ sets the chosen part at once; with the switch on it asks which screens, as the set button does.
+                // With Fit there's no part to choose.
                 var setMenu by remember { mutableStateOf(false) }
-                Box(Modifier.align(Alignment.BottomStart)) {
+                if (!fit) Box(Modifier.align(Alignment.BottomStart)) {
                     IconButton(
                         onClick = {
                             when {
@@ -1094,9 +1106,10 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Wallpaper (the daily switch and its status line; in APOD mode "Where", "If APOD is a video"
-     * and the set button), with the switch "All NASA pictures" on the grid with "If it's a video"
-     * under APOD's row, "Change every" and the set menu; then the mode switch.
+     * Wallpaper (the daily switch and its status line; in APOD mode "Where", "Fit", "If APOD is a
+     * video" and the set button; with the switch "All NASA pictures" on "Fit"), with that switch
+     * on the grid with "If it's a video" under APOD's row, "Change every" and the set menu; then
+     * the mode switch.
      */
     @Composable
     private fun Settings() {
@@ -1146,6 +1159,7 @@ class MainActivity : ComponentActivity() {
                         ) { Text(labels.getValue(w)) }
                     }
                 }
+                FitChoice()
 
                 Heading("If APOD is a video")
                 videoDaysChoice(null, true)
@@ -1157,6 +1171,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 ) { Text("Set as wallpaper now") }
             } else {
+                FitChoice()
                 HorizontalDivider(Modifier.padding(vertical = 16.dp))
                 Grid(videoDaysChoice)
                 // Hiding it moves the page only after a tick.
@@ -1184,6 +1199,22 @@ class MainActivity : ComponentActivity() {
             ) {
                 Text("All NASA pictures", Modifier.weight(1f))
                 Switch(checked = allSources, onCheckedChange = null)
+            }
+        }
+    }
+
+    /** "Fit": Fill (the screen's shape cut from the picture; ⛶ chooses which part) or Fit (all of it on black). */
+    @Composable
+    private fun FitChoice() {
+        Heading("Fit")
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            listOf(false to "Fill", true to "Fit").forEachIndexed { i, (on, label) ->
+                SegmentedButton(
+                    selected = fit == on,
+                    onClick = { chooseFit(on) },
+                    shape = SegmentedButtonDefaults.itemShape(i, 2),
+                    modifier = Modifier.fillMaxHeight(),
+                ) { Text(label) }
             }
         }
     }

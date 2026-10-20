@@ -5,8 +5,8 @@ import java.time.Instant
 import java.time.LocalDate
 
 /*
- * What each screen is due (0.6.0). The rules, in short (the decisions: plan-0.6.0.md in the skill,
- * until M2 writes them into CLAUDE.md, Background update):
+ * What each screen is due (0.6.0). The rules, in short (the full rules: CLAUDE.md, Background
+ * update, Turns):
  * - Each screen has a column, the sources ticked for it; an empty column is left alone. In
  *   APOD mode the columns come from "Where" ([apodColumns]).
  * - A column with two or more takes turns, on one shared clock (`turnStartedAt`). Each screen's

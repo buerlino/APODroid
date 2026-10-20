@@ -976,14 +976,14 @@ class MainActivity : ComponentActivity() {
                 if (!tabs) {
                     Text(dateLine, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                // APOD's only; all of it while the explanation is open.
+                // APOD's only; one line, all of it while the explanation is open.
                 post.credit?.let { credit ->
                     Text(
                         credit,
                         Modifier.padding(top = 2.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = if (expanded) Int.MAX_VALUE else 2,
+                        maxLines = if (expanded) Int.MAX_VALUE else 1,
                         overflow = TextOverflow.Ellipsis,
                         onTextLayout = { if (!expanded) creditCut = it.hasVisualOverflow },
                     )
@@ -1057,7 +1057,8 @@ class MainActivity : ComponentActivity() {
                 "⤴",
                 Modifier.clearAndSetSemantics { contentDescription = "Share" },
                 color = Color.White,
-                fontSize = 24.sp,
+                // Larger than ★'s 24 sp: ⤴ is a thinner glyph (user, C); still inside the circle.
+                fontSize = 28.sp,
             )
         }
     }
@@ -1159,8 +1160,8 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Wallpaper (the daily switch and its status line; in APOD mode "Where", "Fit", "If APOD is a
-     * video" and the set button; with the switch "All NASA pictures" on "Fit"), with that switch
+     * Wallpaper (the daily switch and its status line; in APOD mode "Where", "Size", "If APOD is a
+     * video" and the set button; with the switch "All NASA pictures" on "Size"), with that switch
      * on the grid with "If it's a video" under APOD's row, "Change every" and the set menu; then
      * the mode switch.
      */
@@ -1257,10 +1258,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** "Fit": Fill (the screen's shape cut from the picture; ⛶ chooses which part) or Fit (all of it on black). */
+    /** "Size": Fill (the screen's shape cut from the picture; ⛶ chooses which part) or Fit (all of it on black). */
     @Composable
     private fun FitChoice() {
-        Heading("Fit")
+        Heading("Size")
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             listOf(false to "Fill", true to "Fit").forEachIndexed { i, (on, label) ->
                 SegmentedButton(
@@ -1421,9 +1422,7 @@ class MainActivity : ComponentActivity() {
                 confirmButton = { TextButton(onClick = { info = false }) { Text("OK") } },
                 text = {
                     Text(
-                        "Each new picture is saved full size to Pictures/APODroid. " +
-                            "APOD's are 2–10 MB, NASA's up to about 100 MB, Earth Observatory's up to 3 MB: " +
-                            "a few hundred MB a month or more.",
+                        "Each new picture is saved full size to Pictures/APODroid: a few hundred MB a month or more.",
                     )
                 },
             )

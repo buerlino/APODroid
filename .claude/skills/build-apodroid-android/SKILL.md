@@ -32,7 +32,7 @@ packages unattended): `night.md`.
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in:
   `picture(source)`), `Record` (owner, picture, stamp; `forget()`), and the pure
   functions returning a `Plan` (clock, records, `sets` grouped by picture): `dueWallpapers`
-  (each run), `restartAndForget(before, after, …)` (S4, Set: the clock restarts, the records of
+  (each run; equal columns: the lock screen follows home's owner, B2), `restartAndForget(before, after, …)` (S4, Set: the clock restarts, the records of
   the screens with a column forgotten; a `Restart` with the plan and the screens whose record to
   `drop`, a column that was empty), and `videoDayKept` for the page's status line (tests in `ScreensTest`).
   `core/.../Saving.kt` (0.6.0, F5): `sourcesInUse` (what the job fetches and saves) and

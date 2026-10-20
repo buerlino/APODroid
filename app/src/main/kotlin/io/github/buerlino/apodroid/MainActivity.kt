@@ -34,6 +34,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -46,22 +48,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -93,20 +96,18 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import io.github.buerlino.apodroid.core.Post
+import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -158,8 +159,14 @@ class MainActivity : ComponentActivity() {
     private var where by mutableStateOf(Where.BOTH)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
 
-    /** The ticked sources ([Store.sources]); with two or more they take turns every [interval]. */
+    /** The ticked sources ([Store.sources]), on any screen. */
     private var ticked by mutableStateOf(listOf(Source.APOD))
+
+    /** The switch "All NASA pictures" ([Store.allSources]): the grid instead of "Where". */
+    private var allSources by mutableStateOf(false)
+
+    /** The grid's ticks per screen ([Store.columns]); a column with two or more takes turns every [interval]. */
+    private var columns by mutableStateOf(emptyMap<Screen, List<Source>>())
     private var interval by mutableStateOf(Interval.DAY)
 
     private var weekdayNoticeHidden by mutableStateOf(false)
@@ -194,6 +201,8 @@ class MainActivity : ComponentActivity() {
         where = store.where
         videoDays = store.videoDays
         ticked = store.sources
+        allSources = store.allSources
+        columns = store.columns
         interval = store.interval
         weekdayNoticeHidden = store.weekdayNoticeHidden
         hasFallback = store.fallbackFile.exists()
@@ -463,25 +472,33 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The shown tab's picture, set by hand ([Store.setByHand]: held, and with turns the clock
-     * restarts); on the APOD tab on a video day what the video-day setting says. On the screens
-     * "Where" names, also with the switch "All NASA pictures" on until M3's menu.
+     * Whether the shown tab has a picture to set ([Store.tabPicture]); if not, a toast says why.
+     * Checked before the set menu opens.
      */
-    private fun setWallpaperNow() {
+    private fun canSetNow(): Boolean {
+        val post = post ?: return false
+        if (store.tabPicture(post.source) != null) return true
+        val waiting = videoDays.source?.takeIf { post.isVideo }
+        toast(
+            when {
+                waiting != null -> "${waiting.possessive} hasn't loaded yet"
+                post.isVideo -> "Video day: wallpaper kept"
+                else -> "No picture yet"
+            },
+        )
+        return false
+    }
+
+    /**
+     * The shown tab's picture on [screens], set by hand ([Store.setByHand]: held, and with turns
+     * the clock restarts); on the APOD tab on a video day what the video-day setting says. The
+     * button: in APOD mode the screens "Where" names, with the switch "All NASA pictures" on the
+     * menu's choice. ✓ (until M4's menu): with the switch on both screens.
+     */
+    private fun setWallpaperNow(screens: Set<Screen> = if (allSources) Screen.entries.toSet() else where.screens) {
         val post = post ?: return
-        if (store.tabPicture(post.source) == null) {
-            val waiting = videoDays.source?.takeIf { post.isVideo }
-            toast(
-                when {
-                    waiting != null -> "${waiting.possessive} hasn't loaded yet"
-                    post.isVideo -> "Video day: wallpaper kept"
-                    else -> "No picture yet"
-                },
-            )
-            return
-        }
+        if (!canSetNow()) return
         cropping = false
-        val screens = where.screens
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching { store.setByHand(post.source, screens) } }
             result.onFailure { Log.w("APODroid", "Set failed: $it", it) }
@@ -513,10 +530,16 @@ class MainActivity : ComponentActivity() {
 
     /**
      * On a video day another source's picture is fetched first ([load], which also sets it while
-     * the daily change is on), the user's own is set at once, "keep" sets nothing.
+     * the daily change is on), the user's own is set at once, "Skip it" sets nothing. "Use my
+     * picture" with nothing picked opens the picker first ([pickFirst]): the choice is made only
+     * once a picture is there, so backing out keeps the one before.
      */
-    private fun chooseVideoDays(choice: VideoDays) {
+    private fun chooseVideoDays(choice: VideoDays, pickFirst: () -> Unit = {}) {
         if (videoDays == choice) return
+        if (choice == VideoDays.MINE && !hasFallback) {
+            pickFirst()
+            return
+        }
         videoDays = choice
         store.videoDays = choice
         readStatus()
@@ -534,22 +557,42 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Ticks or unticks [source] (not the last one) and fetches what's new. While the daily change
-     * is on, unticking the source on the wallpaper sets the next one ([load]); a ticked one waits
-     * for its turn. Ticking NASA or Earth Observatory says they post on weekdays only.
+     * Ticks or unticks [source] in [screen]'s column of the grid (not the last tick) and fetches
+     * what's new ([Store.setColumns]: the column's hold ends). While the daily change is on, a
+     * tick that changes what a screen shows sets it ([load]); one that only adds to a turning
+     * screen waits for its turn. Ticking NASA or Earth Observatory where it wasn't ticked
+     * anywhere says they post on weekdays only.
      */
-    private fun tick(source: Source) {
-        val new = if (source in ticked) ticked - source else Source.entries.filter { it in ticked || it == source }
-        if (new.isEmpty()) return
-        val added = source !in ticked
-        ticked = new
+    private fun tick(screen: Screen, source: Source) {
+        val column = columns[screen].orEmpty()
+        val new = columns + (screen to if (source in column) column - source else Source.entries.filter { it in column || it == source })
+        if (new.values.all { it.isEmpty() }) return
+        val added = columns.values.none { source in it }
+        columns = new
+        ticked = Source.entries.filter { s -> new.values.any { s in it } }
         // Off the main thread: the ticks wait for a set the job may be doing.
         lifecycleScope.launch {
-            withContext(Dispatchers.IO) { store.sources = new }
+            withContext(Dispatchers.IO) { store.setColumns(new) }
             rescheduleJob()
             load()
         }
         if (added && source != Source.APOD && !weekdayNoticeHidden) weekdayDialog = true
+    }
+
+    /**
+     * The switch "All NASA pictures" ([Store.setAllSources]): the first time on, the grid starts
+     * from "Where". Works like a tick: every hold ends, and while the daily change is on what the
+     * new mode puts on a screen is set ([load]); the job's period follows the mode.
+     */
+    private fun switchAllSources(on: Boolean) {
+        allSources = on
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) { store.setAllSources(on) }
+            columns = store.columns
+            ticked = store.sources
+            rescheduleJob()
+            load()
+        }
     }
 
     private fun closeWeekdayDialog(forever: Boolean) {
@@ -606,8 +649,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Copies the picked picture to [Store.fallbackFile]; a failed pick keeps the previous one. */
-    private fun saveFallback(uri: Uri) {
+    /**
+     * Copies the picked picture to [Store.fallbackFile]; a failed pick keeps the previous one.
+     * With [choose] (picked on choosing "Use my picture") the choice follows once it's there.
+     */
+    private fun saveFallback(uri: Uri, choose: Boolean = false) {
         lifecycleScope.launch {
             val ok = withContext(Dispatchers.IO) {
                 val part = File(filesDir, "fallback.part")
@@ -619,7 +665,11 @@ class MainActivity : ComponentActivity() {
             }
             if (!ok) toast("Couldn't use that picture")
             hasFallback = store.fallbackFile.exists()
-            if (ok && videoDays == VideoDays.MINE) applyNow(Changed.MY_PICTURE, videoOnly = true)
+            when {
+                !ok -> {}
+                choose -> chooseVideoDays(VideoDays.MINE)
+                videoDays == VideoDays.MINE -> applyNow(Changed.MY_PICTURE, videoOnly = true)
+            }
         }
     }
 
@@ -951,9 +1001,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Wallpaper (the daily switch and its status line; in APOD mode "Where", "If APOD is a video"
+     * and the set button), with the switch "All NASA pictures" on the grid with "If it's a video"
+     * under APOD's row, "Change every" and the set menu; then the mode switch.
+     */
     @Composable
     private fun Settings() {
-        val pick = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let(::saveFallback) }
+        // Two launchers: the result reaches the right one also after a rotation.
+        val change = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let(::saveFallback) }
+        val pickAndChoose = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let { saveFallback(it, choose = true) } }
+        val request = PickVisualMediaRequest(PickVisualMedia.ImageOnly)
+        val videoDaysChoice = @Composable { label: String?, enabled: Boolean ->
+            VideoDaysChoice(label, enabled, pick = { pickAndChoose.launch(request) }, change = { change.launch(request) })
+        }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Heading("Wallpaper")
             Row(
@@ -967,83 +1028,173 @@ class MainActivity : ComponentActivity() {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            Heading("Where")
-            // One height for all: a label that wraps (a narrow pane, a large font) made its segment taller.
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                val labels = mapOf(Where.HOME to "Home screen", Where.LOCK to "Lock screen", Where.BOTH to "Both")
-                Where.entries.forEachIndexed { i, w ->
-                    SegmentedButton(
-                        selected = where == w,
-                        onClick = {
-                            if (where != w) {
-                                where = w; store.where = w
-                                applyNow(Changed.WHERE)
-                            }
-                        },
-                        shape = SegmentedButtonDefaults.itemShape(i, Where.entries.size),
-                        modifier = Modifier.fillMaxHeight(),
-                    ) { Text(labels.getValue(w)) }
+            if (!allSources) {
+                Heading("Where")
+                // One height for all: a label that wraps (a narrow pane, a large font) made its segment taller.
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                    val labels = mapOf(Where.HOME to "Home screen", Where.LOCK to "Lock screen", Where.BOTH to "Both")
+                    Where.entries.forEachIndexed { i, w ->
+                        SegmentedButton(
+                            selected = where == w,
+                            onClick = {
+                                if (where != w) {
+                                    where = w; store.where = w
+                                    applyNow(Changed.WHERE)
+                                }
+                            },
+                            shape = SegmentedButtonDefaults.itemShape(i, Where.entries.size),
+                            modifier = Modifier.fillMaxHeight(),
+                        ) { Text(labels.getValue(w)) }
+                    }
                 }
-            }
 
-            // Also while the daily change is on: with tabs and turns the shown picture may not be the one on the wallpaper.
-            Button(
-                onClick = ::setWallpaperNow,
-                enabled = post != null,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            ) { Text("Set as wallpaper now") }
+                Heading("If APOD is a video")
+                videoDaysChoice(null, true)
+
+                // Also while the daily change is on: the shown picture may not be the one on the wallpaper.
+                Button(
+                    onClick = { setWallpaperNow() },
+                    enabled = post != null,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                ) { Text("Set as wallpaper now") }
+            } else {
+                HorizontalDivider(Modifier.padding(vertical = 16.dp))
+                Grid(videoDaysChoice)
+                // Hiding it moves the page only after a tick.
+                if (columns.values.any { it.size >= 2 }) {
+                    Heading("Change every")
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                        val labels = mapOf(Interval.DAY to "Day", Interval.H12 to "12 h", Interval.H6 to "6 h", Interval.H3 to "3 h")
+                        Interval.entries.forEachIndexed { i, choice ->
+                            SegmentedButton(
+                                selected = interval == choice,
+                                onClick = { chooseInterval(choice) },
+                                shape = SegmentedButtonDefaults.itemShape(i, Interval.entries.size),
+                                modifier = Modifier.fillMaxHeight(),
+                            ) { Text(labels.getValue(choice)) }
+                        }
+                    }
+                }
+                SetMenu()
+            }
 
             HorizontalDivider(Modifier.padding(vertical = 16.dp))
-
-            Heading("Pictures from")
-            EqualGrid(gap = 8.dp) {
-                Source.entries.forEach { source ->
-                    FilterChip(
-                        selected = source in ticked,
-                        onClick = { tick(source) },
-                        label = { Text(source.tabLabel, Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
-                        // As the segmented buttons mark theirs; a text glyph, no icon library.
-                        leadingIcon = if (source in ticked) { { Text("✓") } } else null,
-                        // The last one stays.
-                        enabled = ticked != listOf(source),
-                    )
-                }
+            Row(
+                Modifier.fillMaxWidth().toggleable(allSources, role = Role.Switch, onValueChange = ::switchAllSources),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("All NASA pictures", Modifier.weight(1f))
+                Switch(checked = allSources, onCheckedChange = null)
             }
-            if (ticked.size > 1) {
-                Heading("Change every")
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    val labels = mapOf(Interval.DAY to "Day", Interval.H12 to "12 h", Interval.H6 to "6 h", Interval.H3 to "3 h")
-                    Interval.entries.forEachIndexed { i, choice ->
-                        SegmentedButton(
-                            selected = interval == choice,
-                            onClick = { chooseInterval(choice) },
-                            shape = SegmentedButtonDefaults.itemShape(i, Interval.entries.size),
-                            modifier = Modifier.fillMaxHeight(),
-                        ) { Text(labels.getValue(choice)) }
+        }
+    }
+
+    /**
+     * "Pictures from": a row per source, a tick box for the home and the lock screen in columns
+     * of one width (the names wrap, the boxes stay put); "If it's a video" ([videoDaysChoice])
+     * under APOD's row, greyed out while APOD has no tick. The last tick can't be removed.
+     */
+    @Composable
+    private fun Grid(videoDaysChoice: @Composable (String?, Boolean) -> Unit) {
+        val cell = Modifier.width(72.dp)
+        val heads = mapOf(Screen.HOME to "Home", Screen.LOCK to "Lock")
+        val screenNames = mapOf(Screen.HOME to "home screen", Screen.LOCK to "lock screen")
+        val ticks = columns.values.sumOf { it.size }
+        Row(verticalAlignment = Alignment.Bottom) {
+            Box(Modifier.weight(1f)) { Heading("Pictures from") }
+            Screen.entries.forEach { screen ->
+                Text(
+                    heads.getValue(screen),
+                    cell,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+        Source.entries.forEach { source ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(source.label, Modifier.weight(1f))
+                Screen.entries.forEach { screen ->
+                    val checked = source in columns[screen].orEmpty()
+                    Box(cell, contentAlignment = Alignment.Center) {
+                        Checkbox(
+                            checked = checked,
+                            onCheckedChange = { tick(screen, source) },
+                            // The last tick stays.
+                            enabled = !(checked && ticks == 1),
+                            modifier = Modifier.semantics { contentDescription = "${source.tabLabel} on the ${screenNames.getValue(screen)}" },
+                        )
                     }
                 }
             }
-
-            // Always shown, so ticking a second source doesn't move the page. With turns a video APOD
-            // just skips its turn: greyed out, the choice kept for when APOD is ticked alone again.
-            Heading("If APOD is a video")
-            if (!apodAlone) {
-                Text(
-                    "The next source takes its turn.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            if (source == Source.APOD) {
+                Box(Modifier.padding(start = 16.dp)) {
+                    // Greyed out, not hidden, while APOD has no tick: the page doesn't move.
+                    videoDaysChoice("If it's a video", columns.values.any { Source.APOD in it })
+                }
             }
-            Choice("Keep the previous picture", videoDays == VideoDays.KEEP, apodAlone) { chooseVideoDays(VideoDays.KEEP) }
-            Choice(Source.NASA.label, videoDays == VideoDays.NASA, apodAlone) { chooseVideoDays(VideoDays.NASA) }
-            Choice(Source.EARTH.label, videoDays == VideoDays.EARTH, apodAlone) { chooseVideoDays(VideoDays.EARTH) }
-            Choice("Use my picture", videoDays == VideoDays.MINE, apodAlone) { chooseVideoDays(VideoDays.MINE) }
+        }
+    }
+
+    /**
+     * "If APOD is a video": a dropdown with the four choices, after [label] when given; while
+     * "Use my picture" is chosen "Change picture" beside it. Choosing it with nothing picked
+     * opens the picker at once ([pick]).
+     */
+    @OptIn(ExperimentalLayoutApi::class)
+    @Composable
+    private fun VideoDaysChoice(label: String?, enabled: Boolean, pick: () -> Unit, change: () -> Unit) {
+        var open by remember { mutableStateOf(false) }
+        val disabled = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+            if (label != null) {
+                Text(label, color = if (enabled) Color.Unspecified else disabled)
+            }
+            Box {
+                val name = videoDays.label
+                OutlinedButton(onClick = { open = true }, enabled = enabled) {
+                    Text("$name ▾", Modifier.clearAndSetSemantics { contentDescription = "If APOD is a video: $name" })
+                }
+                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                    VideoDays.entries.forEach { choice ->
+                        DropdownMenuItem(
+                            text = { Text(choice.label) },
+                            onClick = {
+                                open = false
+                                chooseVideoDays(choice, pickFirst = pick)
+                            },
+                            // As the segmented buttons mark theirs; a text glyph, no icon library.
+                            leadingIcon = { Text(if (choice == videoDays) "✓" else "") },
+                        )
+                    }
+                }
+            }
             if (videoDays == VideoDays.MINE) {
-                OutlinedButton(
-                    onClick = { pick.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
-                    enabled = apodAlone,
-                    modifier = Modifier.padding(start = 48.dp),
-                ) { Text(if (hasFallback) "Change picture" else "Pick picture") }
+                TextButton(onClick = change, enabled = enabled) { Text(if (hasFallback) "Change picture" else "Pick picture") }
+            }
+        }
+    }
+
+    /** With the switch "All NASA pictures" on: the set button asks which screens. */
+    @Composable
+    private fun SetMenu() {
+        var open by remember { mutableStateOf(false) }
+        Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            Button(
+                onClick = { if (canSetNow()) open = true },
+                enabled = post != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Set as wallpaper ▾", Modifier.clearAndSetSemantics { contentDescription = "Set as wallpaper" }) }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                val choices = listOf(
+                    "Home screen" to setOf(Screen.HOME),
+                    "Lock screen" to setOf(Screen.LOCK),
+                    "Both" to Screen.entries.toSet(),
+                )
+                choices.forEach { (text, screens) ->
+                    DropdownMenuItem(text = { Text(text) }, onClick = { open = false; setWallpaperNow(screens) })
+                }
             }
         }
     }
@@ -1108,28 +1259,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * [content] in equal widths, as many on a line as the widest fits (all on one, unless the font is
-     * large): a label never breaks inside a word.
-     */
-    @Composable
-    private fun EqualGrid(gap: Dp, content: @Composable () -> Unit) {
-        Layout(content, Modifier.fillMaxWidth()) { measurables, constraints ->
-            val gapPx = gap.roundToPx()
-            val widest = measurables.maxOf { it.maxIntrinsicWidth(constraints.maxHeight) }
-            val perLine = (measurables.size downTo 1).firstOrNull { widest * it + gapPx * (it - 1) <= constraints.maxWidth } ?: 1
-            val width = (constraints.maxWidth - gapPx * (perLine - 1)) / perLine
-            val lines = measurables.map { it.measure(Constraints.fixedWidth(width)) }.chunked(perLine)
-            layout(constraints.maxWidth, lines.sumOf { line -> line.maxOf { it.height } }) {
-                var y = 0
-                lines.forEach { line ->
-                    line.forEachIndexed { i, placeable -> placeable.place(i * (width + gapPx), y) }
-                    y += line.maxOf { it.height }
-                }
-            }
-        }
-    }
-
     @Composable
     private fun Heading(text: String) {
         Text(
@@ -1139,21 +1268,9 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier.padding(top = 8.dp),
         )
     }
-
-    @Composable
-    private fun Choice(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
-        Row(
-            Modifier.fillMaxWidth().selectable(selected, enabled = enabled, onClick = onClick, role = Role.RadioButton),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RadioButton(selected = selected, onClick = null, enabled = enabled, modifier = Modifier.padding(12.dp))
-            // Material's disabled alpha, as the radio button's.
-            Text(label, color = if (enabled) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f))
-        }
-    }
 }
 
-/** The source's name in the video-day choices, the status line, the problem box and the source line. */
+/** The source's name in the grid, the video-day choices, the status line, the problem box and the source line. */
 private val Source.label
     get() = when (this) {
         Source.APOD -> "Astronomy Picture of the Day"
@@ -1161,7 +1278,7 @@ private val Source.label
         Source.EARTH -> "Earth Observatory"
     }
 
-/** The source's tab above the picture and its chip in the settings. */
+/** The source's tab above the picture and its tick boxes' screen-reader labels. */
 private val Source.tabLabel
     get() = when (this) {
         Source.APOD -> "APOD"
@@ -1175,6 +1292,15 @@ private val Source.possessive
         Source.APOD -> "the APOD"
         Source.NASA -> "NASA's Image of the Day"
         Source.EARTH -> "Earth Observatory's Image of the Day"
+    }
+
+/** The video-day choice in its dropdown. */
+private val VideoDays.label
+    get() = when (this) {
+        VideoDays.KEEP -> "Skip it"
+        VideoDays.NASA -> Source.NASA.label
+        VideoDays.EARTH -> Source.EARTH.label
+        VideoDays.MINE -> "Use my picture"
     }
 
 private val dateFormat = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH)

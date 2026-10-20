@@ -182,21 +182,9 @@ class Store(private val context: Context) {
     val hasTurns: Boolean
         get() = columns.values.any { it.size >= 2 }
 
-    /**
-     * The sources ticked on any screen, in order (APOD mode: APOD). Setting it is 0.5.0's chips,
-     * until M3's grid: read as the migration reads them, so APOD alone is APOD mode and anything
-     * else the switch on, the ticks in the columns "Where" names.
-     */
-    var sources: List<Source>
+    /** The sources ticked on any screen, in order (APOD mode: APOD). */
+    val sources: List<Source>
         get() = columns.values.flatten().toSet().let { ticked -> Source.entries.filter { it in ticked } }.ifEmpty { listOf(Source.APOD) }
-        set(value) {
-            if (value == listOf(Source.APOD)) {
-                setAllSources(false)
-            } else {
-                if (!allSources) setAllSources(true)
-                setColumns(Screen.entries.associateWith { if (it in where.screens) value else emptyList() })
-            }
-        }
 
     /**
      * Turns the switch "All NASA pictures" on or off, like a tick ([columnsChanged]: the clock

@@ -1,12 +1,12 @@
 package io.github.buerlino.apodroid.core
 
 /**
- * The sources in use, in order: the ones ticked on any screen ([columns]), the source of each
- * picture held by hand ([held]), and on an APOD video day ([apodIsVideo]) the stand-in's
- * [standIn] while APOD is ticked or held. What the job fetches and "Save every picture" saves.
+ * The sources in use, in order: the ones ticked on any screen ([columns]), and on an APOD video
+ * day ([apodIsVideo]) the stand-in's [standIn] while APOD is ticked. What the job fetches and
+ * "Save every picture" saves.
  */
-fun sourcesInUse(columns: Map<Screen, List<Source>>, held: List<Source>, standIn: Source?, apodIsVideo: Boolean): List<Source> {
-    val ticked = columns.values.flatten() + held
+fun sourcesInUse(columns: Map<Screen, List<Source>>, standIn: Source?, apodIsVideo: Boolean): List<Source> {
+    val ticked = columns.values.flatten()
     return Source.entries.filter { it in ticked || it == standIn && apodIsVideo && Source.APOD in ticked }
 }
 

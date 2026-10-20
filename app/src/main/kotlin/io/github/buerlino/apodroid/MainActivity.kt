@@ -557,8 +557,9 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The shown tab's picture on [screens], set by hand ([Store.setByHand]: held, and with turns
-     * the clock restarts); on the APOD tab on a video day what the video-day setting says. The
+     * The shown tab's picture on [screens], set by hand ([Store.setByHand]: with the daily change
+     * on it changes the settings, so the grid, "Where" and "Change every" are read again, and the
+     * job follows them); on the APOD tab on a video day what the video-day setting says. The
      * button: in APOD mode the screens "Where" names, with the switch "All NASA pictures" on the
      * menu's choice (also ✓'s).
      */
@@ -569,15 +570,26 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching { store.setByHand(post.source, screens) } }
             result.onFailure { Log.w("APODroid", "Set failed: $it", it) }
+            // Also after a failed set: the settings may have changed before it.
+            readSettings()
+            rescheduleJob()
             readStatus()
             if (isStale()) show()
-            toast(if (result.getOrNull() == true) "Wallpaper set" else "Couldn't set the wallpaper")
+            toast(if (result.getOrNull()?.set == true) "Wallpaper set" else "Couldn't set the wallpaper")
         }
+    }
+
+    /** The settings a set by hand may change: "Where", the grid and "Change every". */
+    private fun readSettings() {
+        where = store.where
+        columns = store.columns
+        interval = store.interval
+        ticked = store.sources
     }
 
     /**
      * A setting changed ([change]): while the daily change is on, the screens it affects follow at
-     * once ([Store.settingChanged]: not a set by hand, so no hold and the clock stays; while it's
+     * once ([Store.settingChanged]: not a set by hand, so the clock stays; while it's
      * off, only the button sets). [videoOnly] for the video-day settings, which change nothing on
      * an image day.
      */
@@ -614,12 +626,12 @@ class MainActivity : ComponentActivity() {
         when {
             apod?.isVideo != true -> {}
             choice.source != null -> lifecycleScope.launch {
-                // Forget the records (and holds) first, off the main thread; load() then fetches and sets the stand-in.
+                // Forget the records first, off the main thread; load() then fetches and sets the stand-in.
                 if (daily) withContext(Dispatchers.IO) { runCatching { store.settingChanged(Changed.VIDEO_DAYS) } }
                 load()
             }
             choice == VideoDays.MINE -> applyNow(Changed.VIDEO_DAYS, videoOnly = true)
-            // "Skip it": a screen with turns passes APOD's turn on at once (no forget: dueOn keeps a held stand-in).
+            // "Skip it": a screen with turns passes APOD's turn on at once (no forget: a screen with APOD alone keeps its picture).
             daily -> lifecycleScope.launch { load() }
         }
         // The video-day source's tab went: show the one now in its place.
@@ -628,7 +640,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Ticks or unticks [source] in [screen]'s column of the grid (not the last tick) and fetches
-     * what's new ([Store.setColumns]: the column's hold ends). While the daily change is on, a
+     * what's new ([Store.setColumns]). While the daily change is on, a
      * tick that changes what a screen shows sets it ([load]); one that only adds to a turning
      * screen waits for its turn. Ticking NASA or Earth Observatory where it wasn't ticked
      * anywhere says they post on weekdays only.
@@ -651,7 +663,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * The switch "All NASA pictures" ([Store.setAllSources]): the first time on, the grid starts
-     * from "Where". Works like a tick: every hold ends, and while the daily change is on what the
+     * from "Where". Works like a tick: while the daily change is on what the
      * new mode puts on a screen is set ([load]); the job's period follows the mode.
      */
     private fun switchAllSources(on: Boolean) {

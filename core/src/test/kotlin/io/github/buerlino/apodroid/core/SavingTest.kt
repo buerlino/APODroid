@@ -32,21 +32,15 @@ class SavingTest {
 
     @Test
     fun theTickedOnesOnEitherScreenInOrder() {
-        assertEquals(listOf(APOD, EARTH), sourcesInUse(cols(listOf(EARTH), listOf(APOD)), emptyList(), null, false))
-        assertEquals(emptyList(), sourcesInUse(cols(emptyList()), emptyList(), null, false))
+        assertEquals(listOf(APOD, EARTH), sourcesInUse(cols(listOf(EARTH), listOf(APOD)), null, false))
+        assertEquals(emptyList(), sourcesInUse(cols(emptyList()), null, false))
     }
 
     @Test
-    fun aHeldPicturesSourceIsInUse() {
-        assertEquals(listOf(APOD, NASA), sourcesInUse(cols(listOf(APOD)), listOf(NASA), null, false))
-    }
-
-    @Test
-    fun theStandInOnlyOnAnApodVideoDayWithApodTickedOrHeld() {
-        assertEquals(listOf(APOD, NASA), sourcesInUse(cols(listOf(APOD)), emptyList(), NASA, true))
-        assertEquals(listOf(APOD), sourcesInUse(cols(listOf(APOD)), emptyList(), NASA, false))
-        assertEquals(listOf(EARTH), sourcesInUse(cols(listOf(EARTH)), emptyList(), NASA, true))
-        assertEquals(listOf(APOD, NASA, EARTH), sourcesInUse(cols(listOf(EARTH)), listOf(APOD), NASA, true))
+    fun theStandInOnlyOnAnApodVideoDayWithApodTicked() {
+        assertEquals(listOf(APOD, NASA), sourcesInUse(cols(listOf(APOD)), NASA, true))
+        assertEquals(listOf(APOD), sourcesInUse(cols(listOf(APOD)), NASA, false))
+        assertEquals(listOf(EARTH), sourcesInUse(cols(listOf(EARTH)), NASA, true))
     }
 
     // What is saved
@@ -76,11 +70,11 @@ class SavingTest {
     fun onAnApodVideoDayTheStandInIsSavedAsItself() {
         val video = posts + (APOD to post(APOD, video = true))
         val stored = stored(video, files = setOf(NASA, EARTH), standIn = StandIn.NASA)
-        val inUse = sourcesInUse(cols(listOf(APOD)), emptyList(), NASA, true)
+        val inUse = sourcesInUse(cols(listOf(APOD)), NASA, true)
         assertEquals(listOf(posts[NASA]), toSave(inUse, stored, emptyMap()))
         // "Skip it" or the user's own picture: nothing.
         for (standIn in listOf(StandIn.SKIP, StandIn.OWN)) {
-            assertEquals(emptyList(), toSave(sourcesInUse(cols(listOf(APOD)), emptyList(), null, true), stored(video, setOf(NASA, EARTH), standIn), emptyMap()))
+            assertEquals(emptyList(), toSave(sourcesInUse(cols(listOf(APOD)), null, true), stored(video, setOf(NASA, EARTH), standIn), emptyMap()))
         }
     }
 

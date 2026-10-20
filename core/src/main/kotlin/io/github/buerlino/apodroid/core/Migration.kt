@@ -29,7 +29,7 @@ data class Migration(val write: Map<String, Any>, val remove: Set<String>)
  *   missing, as 0.5.0 read it). Its picture (`wallpaperPicture`): [OWN_PICTURE] when 0.5.0
  *   noted APOD with no URL on an APOD video date (the user's own picture counted as APOD's),
  *   else the noted source; none when 0.5.0 had forgotten it (no `wallpaperDate`). Its stamp
- *   (`wallpaperStamp`): `turnStartedAt`. No hold.
+ *   (`wallpaperStamp`): `turnStartedAt`.
  * - A fresh install has none of these: only `allSources` = false, which keeps it from running again.
  */
 fun migrate(old: Map<String, String>, apodVideo: Boolean): Migration {
@@ -69,8 +69,7 @@ fun migrate(old: Map<String, String>, apodVideo: Boolean): Migration {
     return Migration(write, remove)
 }
 
-/** Home's record: 0.5.0's keys and 0.6.0's new ones (the picture, the stamp, the hold). */
+/** Home's record: 0.5.0's keys and 0.6.0's new ones (the picture, the stamp). */
 val homeRecordKeys = setOf(
     "wallpaperSource", "wallpaperPicture", "wallpaperDate", "wallpaperUrl", "wallpaperStamp", "wallpaperSetAt",
-    "hold", "holdPost", "holdOwnerPost",
 )

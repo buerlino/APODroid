@@ -253,24 +253,56 @@ set it as wallpaper, and on video days kept the old wallpaper.
   two panes both ways.
 - **Settings** (SharedPreferences; 0.6.0's layout built in M3, 2026-10-20, its texts and the
   night's defaults approved by the user the same day from the tablet's screenshots; the order
-  and the list since S2, 2026-10-20, texts placeholders until the user's look): **Wallpaper**:
-  the daily switch, then while it's on, in this order: the status lines; in APOD mode
-  **Where**, with the switch "All NASA pictures" on **Pictures from** (the list) and "Change
-  every" (while a screen takes turns) and the set menu; "Size", "If APOD is a video", "Wi-Fi
-  only" (F2), "Save every picture" (F5); in APOD mode the set button. **While the daily switch
-  is off** only "Size" and the set button (APOD mode) or menu: "Where", the list, "Change
-  every" and "If APOD is a video" are hidden (the button uses "Size"; S3 moves the set buttons
-  to the picture side). Then, in both modes and states, a divider and the switch "All NASA
-  pictures".
+  and the list since S2, Set applies the setup since S4, 2026-10-20, texts placeholders until
+  the user's look): **Wallpaper**: the daily switch; the status lines (while the stored daily
+  switch is on); in APOD mode **Where**, with the switch "All NASA pictures" on **Pictures
+  from** (the list) and, while the daily switch is on and a column takes turns, "Change every";
+  "Size"; while the daily switch is on "If APOD is a video", "Wi-Fi only" (F2) and "Save every
+  picture" (F5); **Set as wallpaper**, always. Then, in both modes and states, a divider and
+  the switch "All NASA pictures". (S5 groups them under "Setup" and "Advanced settings".)
+  - **Set applies the setup** (user, 2026-10-20 evening; S4; why: a change took effect at once,
+    "but maybe I'm not done"; Next features, 0.6.0). **A draft
+    until Set:** the daily switch, "Where", the list (ticks and dropdowns), "Change every",
+    "Size", "If APOD is a video", a newly picked "my picture", ⛶'s part and the switch "All
+    NASA pictures" change only the page (`MainActivity`'s draft state; no pref is written, no
+    set, no scheduling). A rotation and the system killing the app keep the draft
+    (`onSaveInstanceState`); closing the app drops it (a start without a saved draft deletes
+    `files/fallback-draft.jpg`). The daily switch is part of the draft (the user's choice: off,
+    then leaving the app, keeps the job and reopens with the switch on; the alternative, should
+    the user want it: off applies at once, on waits for Set). **Two kinds of state on the
+    page:** the controls and the sources the page offers (the tabs) follow the draft, so
+    turning "All NASA pictures" on offers and fetches all three at once (`Store.update`'s
+    `show`); what reports what is set follows the stored setup (`Store.setup`): the status
+    lines, the chip, the video notice, the problem box, the battery hint, the opening tab. **The
+    job follows the stored setup only:** `onResume`'s `DailyJob.ensure` and the reschedule
+    after "Wi-Fi only" read `store.daily`, the stored mode and columns; only Set schedules or
+    cancels by the draft. **At once, as before:** "Wi-Fi only", "Save every picture" (they
+    change no picture) and ★.
+  - **Set as wallpaper**: one button at the end of the Wallpaper section, both modes, the daily
+    switch on or off, no Home / Lock / Both menu, enabled unless a Set runs. It saves the whole
+    draft in one commit (`Store.saveSetup`: the settings, the list with its `lastScreens`, the
+    parts, "my picture" renamed from `fallback-draft.jpg` to `fallback.jpg`), restarts the
+    clock and forgets the records (`:core`'s `restartAndForget`; Turns), then
+    `update(page = true, show, set = true)` fetches what a newly offered source needs and sets
+    each screen afresh (a changed Fit or "my picture" too, the same picture again), also with
+    the daily switch off (a one-off set of the same setup), then schedules (`DailyJob.ensure`)
+    or cancels the job as the daily switch says (after the set: a job without turns runs at
+    once and would set first). The shown picture decides nothing: to put Earth on a screen,
+    tick Earth (0.5.0's "set the shown picture" dropped). A source whose fetch fails: the setup
+    is saved anyway and each screen gets what has a picture (Turns). Toasts: "Wallpaper set"
+    when a screen was set; "Setup saved. Nothing to set yet." when none was (an APOD video with
+    "Skip it" alone, or nothing stored and the fetch failed: the problem box says why);
+    "Couldn't set the wallpaper" when a set failed (also when another worked). With the daily
+    switch on the job sets the rest later.
   - A switch for the daily change ("Change wallpaper automatically", user 2026-10-17: with
-    turns it isn't daily): schedules or cancels the job.
-  - **All NASA pictures** (0.6.0, M3; the pref `allSources`, default off: APOD mode). Turning
-    it on or off works like a tick (`Store.setAllSources`: both records forgotten; the first time on, the list starts from "Where"), then the page's update sets
-    what the new mode puts on a screen while the daily switch is on, and the job is
-    rescheduled (its period follows the mode). Each mode keeps its settings: "Where" is APOD
-    mode's, the list the other's. With the daily switch off the records are forgotten too, so
-    the chip and the opening tab lose track of what's still on the screens until the next set
-    (accepted by the user, 2026-10-20).
+    turns it isn't daily): part of the draft; Set schedules or cancels the job.
+  - **All NASA pictures** (0.6.0, M3; the pref `allSources`, default off: APOD mode). Part of
+    the draft: "Where" and the list swap at once and the page offers the new mode's sources;
+    Set saves it and reschedules the job (its period follows the mode). Each mode keeps its
+    settings: "Where" is APOD mode's, the list the other's (`Store.list`, kept in APOD mode
+    too). The first time on, the list starts from the draft's "Where" (the list is saved only
+    once it was on: `Store.hasList`). Switching it off and Set leaves a screen "Where" doesn't
+    name alone, with its record, so the chip still knows it.
   - **The list** (switch on; S2, 2026-10-20, from the user's sketch; replaced M3's grid of a
     tick box per screen): "Pictures from", a row per source: a tick box with its short name,
     "APOD", "NASA", "Earth", as on the tabs (`shortLabel`; user, 2026-10-20: the full names took
@@ -278,18 +310,17 @@ set it as wallpaper, and on video days kept the old wallpaper.
     button "Both ▾" and a `DropdownMenu`, ✓ before the chosen one, as "If APOD is a video"'s);
     the dropdown wraps under the name when both don't fit on one line. A tick puts the source
     on its dropdown's screens, an untick takes it off both, a new choice for a ticked source
-    moves it (`:core`'s `placing`, then `Store.setColumns`). An unticked row's dropdown is
+    moves it (`:core`'s `placing`, in the draft). An unticked row's dropdown is
     greyed out and shows the screens the source had last (`<source>.lastScreens`, written with
-    the columns; Both when it never had any); ticking it puts the source there. The last ticked
+    the list by Set; the draft's while unsaved; Both when it never had any); ticking it puts the source there. The last ticked
     row can't be unticked (greyed out); its dropdown still moves it. Screen readers: the row
     "NASA" (a checkbox), the dropdown "NASA on: Home screen". The prefs are the columns `home`
-    and `lock` (comma lists, `Store.columns`; APOD mode's columns are APOD on the screens
-    "Where" names, `apodColumns`). A change goes through `Store.setColumns` (`columnsChanged`:
-    the clock restarts only when no column took turns before), then the page's update: what
-    changes a screen is set at once (the source on it unticked, a column's first tick), a
-    source added to a turning screen waits for its turn (Turns). With a column of two or more,
-    **Change every** [Day | 12 h | 6 h | 3 h] (`Store.interval`, default Day) below the list;
-    hiding it moves the page only after a tick. 0.5.0's chips and M3's grid are gone.
+    and `lock` (comma lists, `Store.list`; `Store.columns` is the list with the switch on, else
+    APOD on the screens "Where" names, `apodColumns`). With a column of two or more, while the
+    daily switch is on, **Change every** [Day | 12 h | 6 h | 3 h] (`Store.interval`, default
+    Day) below the list; hiding it moves the page only after a tick. 0.5.0's chips and M3's grid are gone.
+    While the daily switch is off "Where" or the list still shows (S4; S2 hid them), so a
+    one-off Set uses settings the user can see.
   - **Weekday dialog** (user, 2026-10-17): ticking NASA or Earth where it wasn't ticked on
     either screen says they post on weekdays only and Friday's pictures come back on weekends;
     "Dismiss" (again at the next such tick) and "Don't show again" (`weekdayNoticeHidden`). Not
@@ -299,13 +330,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
   - **Size** [Fill | Fit] (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; the heading
-    "Size" (was "Fit") and the choices approved by the user in C, 2026-10-20): under "Where" or "Change every", the only setting under the daily switch while it's off (S2). One
+    "Size" (was "Fit") and the choices approved by the user in C, 2026-10-20): under "Where" or "Change every". One
     setting for both screens, so one picture is still one set. Fill: the screen's shape cut from
     the picture (⛶ chooses where). Fit: all of it, as large as fits, centred on black
-    (Wallpaper). No ⛶ with Fit; choosing Fit closes crop mode. A change while the daily switch
-    is on sets at once, as a changed setting (`Changed.FIT`: the records of the screens with a
-    tick forgotten, then the normal set; the clock stays; a screen left alone keeps its
-    picture as it was set); with it off the next set uses it.
+    (Wallpaper). No ⛶ with Fit; choosing Fit closes crop mode. Part of the draft: Set puts the
+    same pictures on again with the new size (`restartAndForget`; a screen left alone keeps its
+    picture as it was set).
   - **If APOD is a video** (was "On video days"; one setting for both modes): a dropdown (M3,
     2026-10-20: a `DropdownMenu` under an outlined button "Skip it ▾", ✓ before the chosen
     one; were four radios), under its heading after "Size" in both modes (S2; M3 had it under
@@ -317,36 +347,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
     screen where APOD is ticked, with turns too ("Skip it": a screen with APOD alone keeps its
     picture, one with turns passes to the next source; Turns). The other source is fetched only
     on APOD video days (after APOD's refresh, which tells); its newest post is the wallpaper,
-    set once per its date; choosing it on a video day fetches and sets it at once; none stored
-    yet → kept. No still-frame option (often a generic NASA image). "My picture" is picked with
-    the system photo picker (`PickVisualMedia`, no permission) and copied to
-    `files/fallback.jpg`: choosing "Use my picture" with nothing picked opens the picker at once
-    and the choice is made only once a picture is there (backing out keeps the one before);
-    while it's chosen, "Change picture" beside the dropdown ("Pick picture" for 0.5.0's choice
-    without a picture, which keeps).
-  - **Set as wallpaper now**: the shown tab's picture, set by hand. **It changes the settings**
-    (S1, 2026-10-20; was a hold until the screen's next normal change, M2): with the daily
-    switch on, the tab's source (APOD on APOD's video tab and on APOD mode's stand-in tab) is
-    ticked for exactly the chosen screens and leaves the other one, the other sources stay;
-    in APOD mode "Where" becomes the chosen screens. Then the normal set (Background update,
-    Turns), so the settings always say what each screen gets (why: Next features, 0.6.0). With the daily switch off a one-off set,
-    the records noted for the chip, the settings untouched. Settings already so: set again
-    (✓ with a new part). The page then reads "Where", the list and "Change every" again and
-    reschedules the job (`Store.setByHand` returns whether it set and which setting changed,
-    for S3's highlight). A failed set keeps the new settings: the next run sets them. In APOD mode at the end of the Wallpaper section, on the
-    screens "Where" names. With the switch on (M3) "Set as wallpaper ▾" under "Change every"
-    (under "Size" while the daily switch is off) opens a menu Home screen / Lock screen / Both (the shown tab may be ticked nowhere); when
-    the tab has nothing to set it says so instead of opening. ✓ in crop mode opens the same menu
-    (M4, `SetChoices`). **Always shown** (user,
-    2026-10-17, U4; was only while the switch is off, user 2026-10-16): with tabs and turns the
-    app no longer picks the one picture alone, so the user needs a way to set the one they're
-    looking at (before, only ⛶ then ✓). On APOD's video tab it sets the stand-in, also with
-    turns (M2); with "Skip it" or nothing loaded nothing ("Video day: wallpaper kept"). While the
-    switch is on, changing "Where", picking or changing "my picture" or choosing "Use my
-    picture" (on a video day) also sets at once, but not by hand (`Store.settingChanged`, M2:
-    the affected screens' records forgotten, then the normal set; the clock stays);
-    turning the switch on sets today's picture again (`forgetWallpaper`), which also puts APOD
-    back after another wallpaper. "Skip it" on a video day: a screen showing APOD alone keeps its picture, a screen that takes turns passes APOD's turn to the next source at once.
+    set once per its date; choosing it in the draft on a video day fetches it for its tab, and
+    Set puts it on; none stored yet → kept. No still-frame option (often a generic NASA image).
+    "My picture" is picked with the system photo picker (`PickVisualMedia`, no permission) and
+    copied to `files/fallback-draft.jpg`; Set renames it to `files/fallback.jpg`. Choosing "Use
+    my picture" with no picture in either file opens the picker at once and the choice is made
+    only once a picture is there (backing out keeps the one before); while it's chosen, "Change
+    picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
+    keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
     update), the video-day notice and the ⓘ (Save every picture, Save).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
@@ -380,16 +388,16 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the stored post is today's (US Eastern) or, page opens only (user, 2026-10-17; WP7c), its
   source was checked within the hour with no problem since and its picture is there (so a new
   APOD reaches an open page up to an hour late; not the job: a page open just before a new
-  post would hold the wallpaper back until the job's next run) and, while the switch is on, sets a new one at once; it
+  post would hold the wallpaper back until the job's next run) and, while the stored daily switch is on, sets a new one at once; it
   also redraws when the job stored a new one in the background, and while open it follows the
   job's sets, stored posts and problems (a prefs listener while resumed, WP5d; either screen's record since M4). **Pull to refresh** (user,
   2026-10-16; material3's `PullToRefreshBox`) always fetches, also when it comes during a
   running update (the run after it keeps the force); a new picture is set at once while
-  the switch is on, nothing is set while it's off. A changed title or explanation for the same
+  the stored daily switch is on, nothing is set while it's off. A changed title or explanation for the same
   date is stored. A new date closes crop mode, a same-date change doesn't. A failed refresh keeps the
   stored picture; only with none is there an error with a retry button. Video days show "Video"
-  after the date. "Set as wallpaper now" on a video day with NASA or Earth chosen and nothing of
-  theirs stored says "NASA's Image of the Day hasn't loaded yet".
+  after the date. The page fetches the sources it offers (`update`'s `show`: the draft's mode's,
+  so a source ticked in the draft only has a picture), besides those in use.
 - **Problems and status line (2026-10-16; texts approved by the user, 2026-10-18):**
   `:core` throws `SiteChanged` (not the JSON expected, no post, a bad date, an image day without
   a picture; `Store` adds a download that isn't an image) `HttpStatus(code)` and `StorageFailed` (the file can't be written or renamed, a full disk:
@@ -442,9 +450,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (⛶'s and ★'s dark style; none on the ▶ tile, hidden in crop mode) marks the post on a screen,
   from the records (`Store.screenState`): with the switch on "On home screen", "On lock screen"
   or "On wallpaper" (both); in APOD mode "On wallpaper" for the screen "Where" names (M4). Tabs stay
-  short; with one source the caption is 0.4.0's: title, then date. "Set as wallpaper now" and ✓ set
-  the shown tab's picture (APOD's video tab: what the video-day setting says, with turns too
-  since M2; with "Keep" nothing). The boxes show
+  short; with one source the caption is 0.4.0's: title, then date. The tabs follow the draft
+  (Settings, Set applies the setup); the chip and the opening tab the stored setup. The boxes show
   on every tab (the video notice's "Tap ▶ …" only on APOD's, user); pull refreshes every source in use.
 - **Credit** (F4, 2026-10-20; approved by the user in C the same day): one line under the date
   (APOD mode: title, date, credit) or, with tabs, under the title on APOD's tab; smaller and
@@ -500,10 +507,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
 - **Choosing the part (user, 2026-10-05):** a ⛶ at the bottom left of the picture (mirroring
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the
-  screen, none of 85 posts checked was). While it shows, a tap doesn't open the page; ✓ sets the
-  wallpaper at once, as "Set as wallpaper now" does (user, 2026-10-07); Back closes it without
-  setting. The position (0–1) is in the prefs for that post only (date and picture URL), so each new
-  picture starts centred; the job uses it too. The user's own picture (video days) is always centred.
+  screen, none of 85 posts checked was). While it shows, a tap doesn't open the page; ✓ closes it
+  and keeps the part in the draft ("Done" for screen readers; S4, 2026-10-20: ✓ no longer sets
+  the wallpaper, as it did since 0.3.1); Back closes it without keeping; reopening ⛶ shows the
+  draft's part. Set stores it (a Set while crop mode is open keeps the dragged part, as ✓
+  would). The position (0–1) is per source for that post only (date and picture URL), so each new
+  picture starts centred (a new post drops a draft part); the job uses only the stored one. The user's own picture (video days) is always centred.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title.
 - **Icon:** the user's SVGs in `logo/` as an adaptive icon; a monochrome layer for themed icons
@@ -556,7 +565,7 @@ original and ignores the note.
 
 (Decided 2026-10-01.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
 AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
-periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`, so on mobile data turns wait too, also between stored pictures, and a metered Wi-Fi (a phone's hotspot) counts as mobile data (accepted by the user for 0.6.0, 2026-10-20: a job that only skips downloads on a metered network is more code); toggling it reschedules the job (`DailyJob.ensure` counts another network type as another timing; it reads the deprecated `JobInfo.networkType`, a compiler warning left as is, 2026-10-20: it works, and `requiredNetwork` would mean comparing `NetworkRequest`s); the page and the buttons still use any network. Each run, and each page
+periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`, so on mobile data turns wait too, also between stored pictures, and a metered Wi-Fi (a phone's hotspot) counts as mobile data (accepted by the user for 0.6.0, 2026-10-20: a job that only skips downloads on a metered network is more code); toggling it writes the pref at once (not part of Set's draft) and reschedules the job while the stored daily switch is on (`DailyJob.ensure` counts another network type as another timing; it reads the deprecated `JobInfo.networkType`, a compiler warning left as is, 2026-10-20: it works, and `requiredNetwork` would mean comparing `NetworkRequest`s); the page and the buttons still use any network. Each run, and each page
 open or pull (2026-10-16, one path): `Store.update(force)`, `refresh(source)` for each source
 in use unless its stored post is today's (always with `force`), then, while `daily` is on,
 `setDue()`: what each screen is due (`:core`'s `dueWallpapers`, Turns), set where it isn't
@@ -565,16 +574,17 @@ unprefixed keys (as before), the lock screen's under `lock.`: `wallpaperSource` 
 the owner), `wallpaperPicture` (the picture's source or `own`) with `wallpaperDate` and
 `wallpaperUrl` (the URL since WP7d, 2026-10-18: a site may post a second picture on the same
 date, never seen in the 60 feed items; none matches by date), `wallpaperStamp` (the turn it
-belongs to) and `wallpaperSetAt` (a dev build's `hold`/`holdPost`/`holdOwnerPost`, before S1,
-are ignored; no migration, 0.6.0 wasn't released). Both screens
+belongs to) and `wallpaperSetAt`. Both screens
 due the same picture: one set with both flags (one wallpaper); else `FLAG_SYSTEM` and
 `FLAG_LOCK` each (M0). Each screen's record is written right after its own set; a failed set
-leaves it, so the retry sets that screen only. A set by hand (the button, ✓) with the daily
-switch on writes the settings, the clock and the records in one commit, then sets. The page reads home's record, the lock screen's
+leaves it, so the retry sets that screen only. Set ("Set as wallpaper", S4) writes the
+settings, the clock and the records in one commit (`Store.saveSetup`), then `update(set =
+true)` sets, also with `daily` off; `update` returns `Updated` (what it set, whether a set
+failed, the first failure) and throws only a stop. The page reads home's record, the lock screen's
 when only it has a column (APOD mode with "Where" = Lock). The sources in use (the job): the
 ones ticked on either screen, and on an APOD video day the stand-in, while APOD is ticked
 somewhere; the page with
-`allSources` on fetches all three. One failing doesn't stop the others, and its stored picture still counts (user, 2026-10-17,
+the sources it offers (the draft's mode's: all three with `allSources` on). One failing doesn't stop the others, and its stored picture still counts (user, 2026-10-17,
 after a code review: a failed check ended the current turn early, and a weekend shows Friday's
 stored picture anyway); the set is logged "Despite the failure: …" and the job retries. A
 separate
@@ -584,8 +594,9 @@ the next run or page open. `refresh()` and `save()` hold one lock, as the page a
 run at once; `setDue()`, every set and every change to the records or columns hold another (not
 the refresh lock: ★ would wait seconds for a set), so a page and a job running at once set once;
 the page calls them off the main thread.
-Failures return `needsReschedule` (30 s exponential backoff). Turning the switch on runs the job
-at once. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
+Failures return `needsReschedule` (30 s exponential backoff). Set with the daily switch on
+schedules the job (`DailyJob.ensure`, after its set; one without turns runs at once), off
+cancels it. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
 schedules it again when `daily` is on and the job is missing or has another timing
 (`DailyJob.ensure`; scheduling the same id again would stop a running job).
@@ -601,30 +612,24 @@ APOD video with "Keep"), which moves the owner but not the stamp, so it ends wit
 newer post of the owner is set at once and keeps its turn. **The stand-in** fills APOD's turn
 on an APOD video day on every screen where APOD is ticked, with turns too (NASA's, Earth's or
 the user's own picture; with "Keep" a screen with APOD alone keeps its picture, one with turns
-passes to the next source); the record keeps APOD as the owner. **A set by hand** (button, ✓;
-S1, 2026-10-20, `:core`'s `setByHand`, then `setDue`) changes the settings, no holds: the
-source on exactly the chosen screens (The app, Settings). The clock restarts (to now) when a
-chosen screen's new column has two or more, also when it was on the source already: a new
-turn now. The chosen screens get the source as owner, the new stamp and no picture, so the
-normal set puts its picture on (one set when both are chosen; on an APOD video day the
-stand-in). The other screen keeps its owner and picture and takes the new stamp when it had
-the current one (one still due a retry keeps its old stamp); if it lost the source, it's an
-early change as after an untick; an emptied column is left alone. A column that was empty
-starts on the source. **A changed
-setting** ("Where", the video-day choice, "my picture") forgets the affected screens' records
-(picture dropped, owner and stamp kept), then the normal set; the clock stays. The
-daily switch going on restarts the clock and forgets both records (`forgetWallpaper`), so the
-current sources' pictures go on again. A screen with no record (the lock screen after
-migrating "Home", a fresh install) starts on the other screen's owner if ticked there, else
-the first ticked source with a picture. A second tick restarts the clock only when no column
-took turns before (so ticking doesn't end the current picture). Changing the interval waits
-for the next run. The job: with turns (a column with two or more, `Store.hasTurns`), period `min(interval, 6 h)` with a 15 min flex (Android raises it to 5 % of the period:
+passes to the next source); the record keeps APOD as the owner. **Set** (S4, 2026-10-20;
+`:core`'s `restartAndForget`, then `setDue`): the
+clock restarts (to now); the records of the screens with a column are forgotten (picture
+dropped, owner kept) and those on the current turn take the new stamp (one still due a retry
+keeps its old stamp, so it moves on), so each screen gets what the setup says afresh, the same
+picture again after a changed Fit or "my picture". A screen left alone (an empty column) keeps
+its record. A screen whose column was empty starts without a record (its owner is removed):
+it was left alone meanwhile, so its record is stale. A screen with no record (the lock screen
+after migrating "Home", a fresh install, such a column) starts on the other screen's owner if
+ticked there, else the first ticked source with a picture. A changed interval takes effect
+with Set. The job: with turns (a column with two or more, `Store.hasTurns`), period `min(interval, 6 h)` with a 15 min flex (Android raises it to 5 % of the period:
 18 min at 6 h), so turns come at even times; such a job doesn't run at once when scheduled, so
 switching on offline waits up to a period. With one source 0.4.0's job (6 h, flex 6 h).
 A `turnStartedAt` in the future (the clock set back) counts as a turn that is over
 (WP7g; on the tablet, U7: the next source set at once, the turn fresh). `run -f` runs push the job's next window one period further each (seen: +21 h after 7 runs);
-changing the interval or the switch schedules it afresh. A tick or a video-day choice while
-an update runs makes the page run one more after it (that one read the settings before).
+Set with another interval or mode schedules it afresh. A video-day choice or the mode switch
+in the draft while an update runs makes the page run one more after it (that one read the
+offered sources before).
 
 Seen on the tablet (Android 15, 2026-10-17): `Num Required Flexible constraints: 0` for the
 job, so Android doesn't hold it back for charging or idle; the same on the FP6 (Android 16, WP8).
@@ -633,7 +638,7 @@ job, so Android doesn't hold it back for charging or idle; the same on the FP6 (
 [keep-running.md](.claude/skills/build-apodroid-android/keep-running.md)). Android pauses an app
 that isn't opened, and the job doesn't count as use: the restricted bucket after about 8 days
 (Android 13+; later or never before) and hibernation after about 3 months (12+), which deletes
-the job. While the switch is on, a hint in a neutral box (U5) below the picture (user, 2026-10-16) names only what's missing, one line each:
+the job. While the stored daily switch is on, a hint in a neutral box (U5) below the picture (user, 2026-10-16) names only what's missing, one line each:
 battery Unrestricted (checked on API 33+ only, 2026-10-04 evening: on 10–12 the 8 days aren't
 true) and "pause/manage app if unused" off (API 31+). Each line is the path in App info (user,
 2026-10-04: "Unrestricted" alone didn't say where): on API 35+ the battery line says to tap
@@ -667,36 +672,31 @@ video days worked only with APOD alone (it shows at once that it was a video day
 - **Video days:** the stand-in takes APOD's place on every screen where APOD is ticked, with
   turns too. Four choices in both modes, never greyed: "Skip it" (was "Keep"), NASA, Earth, my
   picture. A dropdown after "Size" in both modes (S2).
-- **"Set as wallpaper" changes the settings** (user, 2026-10-20 afternoon, from a sketch; it
-  replaced the hold of 2026-10-19; built in S1). Why: a simulation of the hold's rules over a
-  week showed what the page never said: a held picture followed its source's newer posts (APOD
-  for almost three days on a screen ticked for NASA), a set on Home stretched the lock screen's
-  turn from 6 h to 9 h, an Earth screen showed NASA's Friday picture standing in for an APOD
-  video set there by hand, and in APOD mode a set from the stand-in's tab outlived a change of
-  the video-day choice. Now, with the daily switch on: APOD mode, "Where" becomes exactly the
-  chosen screens ("the user chose home, otherwise he would have chosen both"); with "All NASA
-  pictures" the shown tab's source is ticked for exactly the chosen screens and leaves the
-  other, the other sources stay ("Add"), APOD's video tab counting as APOD's row ("Skip it":
-  nothing to set). A chosen screen that takes turns starts a new turn now, the source the
-  owner; the other screen keeps its picture and owner and starts a fresh turn too. With the
-  daily switch off a one-off set, the settings untouched. A changed setting ("Where", the
-  video-day choice, "Change picture", the mode, Fit) is not a set by hand: no clock restart.
-  Still to come: the button under the picture in both modes with its menu, the highlight
-  (S3). The list replaced the grid (S2).
+- **Set applies the setup** (user, 2026-10-20 evening, from a mockup; built in S4; S5 and S6
+  follow: "Setup" and "Advanced settings", the highlight, "24 h", "Extended API mode", the title
+  dropdown and the swipe, no Share). Every setting, ⛶'s part, "my picture" and the mode switch
+  are a draft until "Set as wallpaper", one button in both modes, which saves it all, restarts
+  the clock, forgets the records and sets both screens afresh (The app, Settings; Turns). Why:
+  a change took effect at once, "but maybe I'm not done"; one system for both modes. It
+  replaced the afternoon's "Set as wallpaper changes the settings" (S1), which had replaced the
+  hold of 2026-10-19: a simulation of the hold's rules over a week showed what the page never
+  said (a held picture followed its source's newer posts, a set on Home stretched the lock
+  screen's turn from 6 h to 9 h). The shown picture decides nothing (0.5.0 could set it): to
+  put Earth on a screen, tick Earth. Kept after a review asked: the daily switch in the draft
+  (the user's choice), the label "Set as wallpaper" (not "Apply").
 - Both screens due the same picture: one set with both flags; else each screen on its own (not
   by equal columns: a screen still due a retry may differ for a while). Every screen's due picture comes from
   one reading of the clock (reviews of the plan, 2026-10-19). The clock restarts only when the
-  turn ends or on a set by hand on a screen that takes turns, not when one screen changes
-  early, so the screens stay in step; a second tick restarts it only when no column took turns
-  before. Each screen's record notes its turn, so a failed set on one screen is retried
-  without moving the other on again; a restart by hand stamps only the screens on the current
-  turn. Forgetting a record (a setting, the daily or mode switch) keeps whose turn it is and
-  the stamp, so the current source's picture goes on again; a screen with no record starts on
-  the other screen's source if ticked there, else the first ticked one with a picture.
+  turn ends or on Set, not when one screen changes early, so the screens stay in step. Each
+  screen's record notes its turn, so a failed set on one screen is retried without moving the
+  other on again; Set stamps only the screens on the current turn. Forgetting a record (Set)
+  keeps whose turn it is and the stamp, so the current source's picture goes on again; a
+  screen with no record starts on the other screen's source if ticked there, else the first
+  ticked one with a picture.
 - Fill / Fit (0.1.1's review) is one setting for both screens. F1–F5's decisions: below, From a
   review of 0.1.1.
-- The mode switch while the daily switch is on works like a tick: what changes is set at once.
-- With the switch on the page fetches all three; the job only what the screens need (the
+- The mode switch is part of the setup: Set applies it and reschedules the job.
+- The page fetches the sources it offers (with the switch on in the draft all three); the job only what the screens need (the
   ticked ones, the stand-in while APOD is ticked somewhere). APOD mode
   with "Where" = Lock reads the lock screen's record. The chip
   and the opening tab follow the picture's source (a stand-in's tab), not whose turn it is.
@@ -746,9 +746,9 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
   downloading them daily costs about 10× the data.
 - **Fill / Fit:** a setting next to "Where", default Fill (today). Fit puts the whole
   picture on black; no ⛶ with Fit (user, 2026-10-05). One setting for both screens
-  (2026-10-19). Changing it while the daily switch is on sets the wallpaper again at once, like
-  "Where": a changed setting, not a set by hand (user, 2026-10-20; was "the next change uses
-  it", 2026-10-04).
+  (2026-10-19). Part of the setup since S4: Set puts the pictures on again with the new size
+  (2026-10-20 evening; was "sets at once", 2026-10-20, and "the next change uses it",
+  2026-10-04).
 - **Wi-Fi only:** a switch for the job, default off (built, F2).
 - **Share:** title and page link via the share sheet; not the picture file. The glyph ⤴
   (U+2934) beside ★, to be seen on a device (user, 2026-10-20).

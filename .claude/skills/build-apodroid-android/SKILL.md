@@ -32,32 +32,39 @@ packages unattended): `night.md`.
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in:
   `picture(source)`), `Record` (owner, picture, stamp; `forget()`), and the pure
   functions returning a `Plan` (clock, records, `sets` grouped by picture): `dueWallpapers`
-  (each run), `setByHand` (S1: a `ByHand`, the new columns, APOD mode's as `apodColumns` of the
-  new "Where", and the plan; null when the tab has nothing to set), `columnsChanged`, `restartAndForget`, and `videoDayKept` for the page's status line (tests in `ScreensTest`).
+  (each run), `restartAndForget(before, after, …)` (S4, Set: the clock restarts, the records of
+  the screens with a column forgotten; a `Restart` with the plan and the screens whose record to
+  `drop`, a column that was empty), and `videoDayKept` for the page's status line (tests in `ScreensTest`).
   `core/.../Saving.kt` (0.6.0, F5): `sourcesInUse` (what the job fetches and saves) and
   `toSave` (Save every picture's choice; tests in `SavingTest`).
   `core/.../Migration.kt` (0.6.0, M2): `migrate`, 0.5.0's prefs → 0.6.0's keys, run once by
   `Store.migrateOnce` (tests in `MigrationTest`).
 - `app/.../Store.kt`: per source (`post(source)`, `imageFile(source)`; APOD's keys unprefixed
   and `apod.jpg`, the others `nasa.<key>` / `earth.<key>` and `nasa.jpg` / `earth.jpg`) prefs (also `daily`, `pauseHintHidden`; `checkedAt`, `problem`, `httpCode`,
-  `wallpaperSetAt` for the problem and status lines), `update(force)` (what the page, the pull
-  and the job run: refresh, noting how the check went, then set while `daily` is on), `refresh(source)`
+  `wallpaperSetAt` for the problem and status lines), `update(force, page, show, set)` (what the
+  page, the pull, Set and the job run: refresh the sources in use and `show`, noting how the
+  check went, then set while `daily` is on or with `set`; returns `Updated`: what it set,
+  `setFailed`, the first failure; throws only a stop), `refresh(source)`
   (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
-  `columns`, `hasTurns`, `setAllSources`, `setColumns` (the mode and the list; `sources` is the
-  union), `lastScreens(source)` (S2: an unticked row's screens, `<source>.lastScreens`, written with the columns), `record(screen)` (home unprefixed, lock `lock.`;
+  `list` (the list's columns in both modes; before the first save APOD on "Where"'s screens,
+  `hasList`), `columns` (the mode's), `hasTurns`, `setup` (the stored `Setup`: daily, mode,
+  "Where", list, interval, fit, video days, `parts`, ⛶'s `Part` per source) and
+  `saveSetup(setup)` (S4, Set: one commit with the settings, `putColumns`, the parts and
+  `restartAndForget`'s plan; `draftFallbackFile` renamed to `fallbackFile` first),
+  `lastScreens(source)` (S2: an unticked row's screens, `<source>.lastScreens`, written with the list), `record(screen)` (home unprefixed, lock `lock.`;
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
   is APOD mode's screen), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
-  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`), `setByHand(tab, screens)` (button, ✓: with
-  `daily` the settings, the plan, then `setDue`, returning a `HandSet` (set, the changed
-  setting); without, a one-off set), `settingChanged(Changed)` (forget,
-  then `setDue`), `tabPicture(tab)`, `set(picture, screens)` (the flags per screen; a photo with
+  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`), `tabPicture(tab)`, `set(picture, screens)` (the flags per screen; a photo with
   an EXIF orientation goes upright through `setBitmap`; with `fit` the `fitted` bitmap), `cropPosition(post)`, `save` (the original, else the stored picture; returns `Saved`), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs in APOD mode;
-  `screens` from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`, `SetChoices` for the set button and ✓), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
-  the settings (`Settings`; with the switch "All NASA pictures" `PictureList`, `SetMenu`; `VideoDaysChoice`, the
-  dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`, `canSetNow`, `setWallpaperNow(screens)`);
+  `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
+  the draft (S4: `daily`, `where`, `list`, `interval`, `fit`, `videoDays`, `parts`, `draftFallback`,
+  `allSources`; `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`;
+  ✓ `keepPart`, `draftPosition`); the settings (`Settings`; with the switch "All NASA pictures" `PictureList`; `VideoDaysChoice`, the
+  dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
+  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, then the job scheduled or cancelled);
   `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post.
   `app/.../DailyJob.kt`: the job (id 1; after `update`, `saveInUse` unless stopped); `ensure` reschedules it only when its timing or its network type (Wi-Fi only) changes.
 

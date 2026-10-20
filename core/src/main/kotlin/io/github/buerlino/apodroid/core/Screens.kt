@@ -156,6 +156,11 @@ data class Plan(val clock: Instant?, val restarted: Boolean, val screens: Map<Sc
  *   or nothing stored it keeps its picture) and takes the current stamp.
  * - **A screen with no record** starts on the other screen's owner if that's in its column,
  *   else the first ticked source with a picture, with the current stamp.
+ * - **Equal columns** (the same sources on both screens) change together: home goes as above
+ *   (with no record of its own it starts on the lock screen's owner), and the lock screen takes
+ *   home's owner and stamp and is due the same picture, so [Plan.sets] makes one set with both
+ *   flags. So the screens match again after Set from columns that differed, and after a failed
+ *   set on one screen (B2).
  * - A screen needs a set when its due picture isn't the one it shows ([Picture.Of.url] null
  *   matches by date); nothing to show keeps the picture.
  */
@@ -170,6 +175,19 @@ fun dueWallpapers(
     val restarted = columns.values.any { it.size >= 2 } && isTurnOver(clock, length, now)
     val current = if (restarted) now else clock
     val due = mutableMapOf<Screen, Due>()
+    val home = columns[Screen.HOME].orEmpty()
+    if (home.isNotEmpty() && home.toSet() == columns[Screen.LOCK].orEmpty().toSet()) {
+        val base = records[Screen.HOME] ?: Record(
+            records[Screen.LOCK]?.owner?.takeIf { it in home } ?: home.firstOrNull { stored.picture(it) != null } ?: home.first(),
+            stamp = current,
+        )
+        val lead = dueOn(home, base, current, stored)
+        due[Screen.HOME] = lead
+        val follow = records[Screen.LOCK]?.copy(owner = lead.record.owner, stamp = lead.record.stamp)
+            ?: Record(lead.record.owner, stamp = lead.record.stamp)
+        due[Screen.LOCK] = show(follow, stored.picture(lead.record.owner))
+        return Plan(if (restarted) now else clock, restarted, due.filter { (screen, it) -> it.set || it.record != records[screen] })
+    }
     val (known, unknown) = Screen.entries.filter { columns[it].orEmpty().isNotEmpty() }.partition { it in records }
     for (screen in known) due[screen] = dueOn(columns.getValue(screen), records.getValue(screen), current, stored)
     for (screen in unknown) {

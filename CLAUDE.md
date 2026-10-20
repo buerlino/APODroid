@@ -687,7 +687,12 @@ picture again after a changed Fit or "my picture". Turning the daily switch on (
 alone (an empty column) keeps its record. A screen whose column was empty starts without a record (its owner is removed):
 it was left alone meanwhile, so its record is stale. A screen with no record (the lock screen
 after migrating "Home", a fresh install, such a column) starts on the other screen's owner if
-ticked there, else the first ticked source with a picture. A changed interval takes effect
+ticked there, else the first ticked source with a picture. **Equal columns** (the same
+sources on both screens; B2, 2026-10-20 night): the lock screen takes home's owner and stamp,
+in every run (`dueWallpapers`), so both are due one picture and get one set; home with no
+record starts on the lock screen's owner. So they match again after a Set from columns that
+differed and after a failed set on one screen (its retry takes home's source, not its own
+next one). Columns that differ: each screen its own owner, one clock. A changed interval takes effect
 with Set. The job: with turns (a column with two or more, `Store.hasTurns`), period `min(interval, 6 h)` with a 15 min flex (Android raises it to 5 % of the period:
 18 min at 6 h), so turns come at even times; such a job doesn't run at once when scheduled, so
 switching on offline waits up to a period. With one source 0.4.0's job (6 h, flex 6 h).
@@ -752,10 +757,11 @@ video days worked only with APOD alone (it shows at once that it was a video day
   (not "Apply"). The daily switch was in the draft too; after seeing S4 the user took it out
   (2026-10-20 evening; built in S4f2: it acts at once, on sets the stored setup afresh). S4's texts approved the same evening: "Set as
   wallpaper", ✓'s screen-reader label "Done", the toast "Setup saved. Nothing to set yet."
-- Both screens due the same picture: one set with both flags; else each screen on its own (not
-  by equal columns: a screen still due a retry may differ for a while). **Equal columns change
-  together** (user, 2026-10-20 night; B2, not built yet): with the same sources on both screens
-  the lock screen follows home's owner, so both show one picture. Why: after a Set from columns
+- Both screens due the same picture: one set with both flags; else each screen on its own
+  (grouped by the due picture: with columns that differ the screens may show one picture or
+  two). **Equal columns change together** (user, 2026-10-20 night; built in B2): with the same
+  sources on both screens the lock screen follows home's owner and stamp in every run, so both
+  show one picture, also while one screen's set is retried. Why: after a Set from columns
   that differed, each screen kept its own owner and they stayed opposite for good (home NASA
   and lock APOD, then the other way round). Every screen's due picture comes from
   one reading of the clock (reviews of the plan, 2026-10-19). The clock restarts only when the

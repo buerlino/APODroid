@@ -66,6 +66,66 @@ class ScreensTest {
         assertEquals(listOf(pic(APOD) to setOf(HOME), pic(NASA) to setOf(LOCK)), plan.sets)
     }
 
+    // Equal columns change together (B2)
+
+    @Test
+    fun equalColumnsMatchAfterASetFromColumnsThatDiffered() {
+        // APOD on Home, NASA on Lock, set.
+        val before = cols(listOf(APOD), listOf(NASA))
+        var records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(NASA, pic(NASA), t0))
+        // Both on Both with turns, Set.
+        val after = cols(listOf(APOD, NASA))
+        val set = t0 + h1
+        records = apply(records, restartAndForget(before, after, t0, records, set).plan)
+        val afterSet = due(after, records, clock = set, now = set)
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), afterSet.sets)
+        records = apply(records, afterSet)
+        // The next two turns: both screens move on together, one set each time.
+        val turn1 = due(after, records, clock = set, now = set + h3)
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), turn1.sets)
+        records = apply(records, turn1)
+        val turn2 = due(after, records, clock = set + h3, now = set + h3 + h3)
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), turn2.sets)
+    }
+
+    @Test
+    fun aFailedSetOnTheLockScreenRetriesHomesPicture() {
+        // At the turn NASA had no picture, so home went APOD → Earth; the lock screen's set
+        // failed. NASA has a picture now: the lock screen still takes Earth, as home did.
+        val records = mapOf(HOME to Record(EARTH, pic(EARTH), t0), LOCK to Record(APOD, pic(APOD), t0 - h3))
+        val plan = due(cols(all), records)
+        assertEquals(Due(Record(EARTH, pic(EARTH), t0), true), plan.screens.getValue(LOCK))
+        assertEquals(listOf(pic(EARTH) to setOf(LOCK)), plan.sets)
+    }
+
+    @Test
+    fun equalColumnsWithoutAHomeRecordStartOnTheLockScreens() {
+        val records = mapOf(LOCK to Record(NASA, pic(NASA), t0))
+        val plan = due(cols(all), records)
+        assertEquals(listOf(pic(NASA) to setOf(HOME)), plan.sets)
+        assertEquals(Record(NASA, pic(NASA), t0), plan.screens.getValue(HOME).record)
+    }
+
+    @Test
+    fun equalColumnsShareAStandIn() {
+        val video = stored(posts + (APOD to post(APOD, d2, video = true)), StandIn.NASA)
+        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(EARTH, pic(EARTH), t0))
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), due(cols(listOf(APOD)), records, video).sets)
+    }
+
+    @Test
+    fun columnsThatDifferKeepTheirOwnOwners() {
+        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
+        // The turn ends: home moves on, the lock screen with APOD alone stays.
+        val plan = due(cols(listOf(APOD, NASA), listOf(APOD)), records, now = t0 + h3)
+        assertEquals(listOf(pic(NASA) to setOf(HOME)), plan.sets)
+        assertEquals(Record(APOD, pic(APOD), t0 + h3), plan.screens.getValue(LOCK).record)
+        // Two columns with turns that differ: each from its own owner.
+        val apart = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(NASA, pic(NASA), t0))
+        val turn = due(cols(all, listOf(APOD, NASA)), apart, now = t0 + h3)
+        assertEquals(listOf(pic(NASA) to setOf(HOME), pic(APOD) to setOf(LOCK)), turn.sets)
+    }
+
     @Test
     fun anEmptyColumnIsLeftAlone() {
         val records = mapOf(LOCK to Record(NASA, pic(NASA), t0))

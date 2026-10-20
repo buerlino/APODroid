@@ -268,7 +268,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   that saved (also "Setup saved. Nothing to set yet."; a failed set leaves it open). Its state
   and Advanced's survive a rotation (the saved state). **Set as wallpaper**, always, after
   Setup. **Advanced settings ▸/▾**, closed by default: while the daily switch is on "Wi-Fi
-  only" (F2) and "Save every picture" (F5); then, in both modes and states, the switch "More
+  only" (F2) and "Save every picture" (F5) with "Largest original" under it while on (F6); then, in both modes and states, the switch "More
   NASA pictures" (no divider since S5).
   - **The highlight** (S5): each draft setting that differs from the stored setup shows in the
     theme's `tertiary` until Set: its heading, a segmented row's chosen segment
@@ -596,10 +596,16 @@ the next job save of that post saves the stored picture, the smaller copy, as af
 (`save(post, tryOriginal = false)`). A post with another picture URL tries its original. A save
 that returns (also `BUSY`, which downloaded nothing) clears the note. ★ always tries the
 original and ignores the note.
-**A size limit** (user, 2026-10-20 evening, after a 208 MB NASA PNG; F6, not built yet):
-"Largest original" [10 MB | 20 MB | 50 MB | 100 MB | No limit] in "Advanced settings", default
-20 MB, at once. The job only: an original over it isn't downloaded in full, the stored picture
-is saved instead; ★ ignores it.
+**A size limit** (user, 2026-10-20 evening, after a 208 MB NASA PNG; F6, built the same night;
+the device check waits for rosie): "Largest original" [10 MB | 20 MB | 50 MB | 100 MB | No
+limit], a dropdown under "Save every picture" in "Advanced settings" while that switch is on
+(indented, label then "20 MB ▾", ✓ before the chosen one; screen readers "Largest original:
+20 MB"), default 20 MB, at once (not part of the draft; the pref `saveLimit`, MB, 0 = no limit;
+1 MB = 1,000,000 bytes). The job only (`saveInUse` → `save(post, original, limit)`): `:core`'s
+`download(…, limit)` throws `TooLarge` before reading the body when `Content-Length` is over
+it, else once the bytes pass it (the `.part` is deleted); `save` logs it ("Original over the
+limit") and saves the stored picture, as after a failure: no retry, `saveTried` noted as
+before. NASA's enclosure `length` isn't parsed, so it isn't used. ★ ignores the limit.
 
 ### Background update
 
@@ -820,7 +826,8 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
   set path, no state for a set but unsaved picture). As ★ does: the original, else the stored
   picture (bounded data: a 97 MB NASA original is tried once, after a stop too from F5f1). The
   job remembers what it saved (date and URL), not whether the file is still there, so a picture
-  deleted in the gallery isn't saved again.
+  deleted in the gallery isn't saved again. **Largest original** (F6; Save): the job doesn't
+  download an original over the limit (default 20 MB) and saves the stored picture instead.
 - **Left out:** previous days (not one page any more), full-screen view, home-screen widget,
   Quick Settings tile (rarely used), translations (English UI stays), sharing the picture file
   (needs a `FileProvider`). Still out, as above: a notification, the still frame on video days,

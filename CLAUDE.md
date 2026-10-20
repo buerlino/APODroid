@@ -290,7 +290,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
     NASA pictures" change only the page (`MainActivity`'s draft state; no pref is written, no
     set, no scheduling). A rotation and the system killing the app keep the draft
     (`onSaveInstanceState`); closing the app drops it (a start without a saved draft deletes
-    `files/fallback-draft.jpg`). **The daily switch acts at once, both ways** (S4f2; user,
+    `files/fallback-draft.jpg`). Another start while the page is on top (the launcher, a
+    shortcut, `am start -n`) reuses it, so the draft stays: one page (`launchMode="singleTop"`;
+    B4, 2026-10-21: without it a start whose intent differed from the task's first put a second
+    page on top, without the draft, and deleted the draft's picture). **The daily switch acts at once, both ways** (S4f2; user,
     2026-10-20 evening: a setting that changes how the whole app works must act at once; S4 had
     it in the draft): off writes `daily` and cancels the job; on writes it, starts the stored
     setup afresh (`Store.startAfresh`: `restartAndForget` with the stored columns, the clock

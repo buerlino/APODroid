@@ -60,7 +60,7 @@ packages unattended): `night.md`.
   wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `tabPicture(tab)`, `set(picture, screens)` (the flags per screen; a photo with
   an EXIF orientation goes upright through `setBitmap`; with `fit` the `fitted` bitmap), `cropPosition(post)`, `save` (the original, else the stored picture; the job's `limit`; returns `Saved`), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
-- `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs in APOD mode;
+- `app/.../MainActivity.kt`: the page, one instance (`launchMode="singleTop"` in `AndroidManifest.xml`, B4; `onNewIntent` does nothing) (`Tabs`, the shown tab's `post`; `apod` decides the tabs in APOD mode;
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
   the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob()` after its set, as Set's; on while a load, Set or switch-on runs: `switchAgain`, run by `runNext` after it, as `loadAgain`); the draft (S4: `where`, `list`, `interval`, `fit`, `videoDays`, `parts`, `draftFallback`,
   `allSources`; `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`;
@@ -97,6 +97,11 @@ packages unattended): `night.md`.
   and `am` tools starting); after `logcat -c`,
   `adb shell dumpsys activity exit-info io.github.buerlino.apodroid` still lists each exit's
   reason (a crash is `CRASH`).
+- Start the app with the launcher's intent, as a user does:
+  `adb shell monkey -p io.github.buerlino.apodroid -c android.intent.category.LAUNCHER 1`.
+  `am start -n io.github.buerlino.apodroid/.MainActivity` works too; since B4 (`singleTop`)
+  either start reuses the page on top (before, mixing the two stacked a second page without the
+  draft). One page: `adb shell dumpsys activity activities | grep 'Hist #.*apodroid'` shows one line.
 - `am force-stop` cancels the app's jobs; opening the page schedules it again (pref `daily`).
   Use `am kill` to restart the app and keep the job. `pm clear` cancels it and the pref.
 - The hint about Android pausing the app: undo "Don't show again" with

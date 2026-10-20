@@ -28,7 +28,7 @@ done < <(awk -F'|' '/^## / { q = ($0 ~ /^## The queue/); next } q && /^\| *[0-9]
 
 # F2 takes the plan's F section and features.md's item 4; M1's row says opus, high, no tablet.
 out="$("$here/pipeline.sh" F2 --dry-run 2>&1)"
-grep -q '^### \[ \] F2\.' <<<"$out" && grep -q '^### \[ \] 4\. Wi-Fi only' <<<"$out" || fail "F2: the bundle lacks the plan's F2 or features.md's item 4"
+grep -qE '^### \[[ x]\] F2\.' <<<"$out" && grep -qE '^### \[[ x]\] 4\. Wi-Fi only' <<<"$out" || fail "F2: the bundle lacks the plan's F2 or features.md's item 4"
 grep -q 'winston (opus, high), branch wp/m1, tablet no' "$tmp/m1" || fail "M1: not opus, high, tablet no: $(head -n 1 "$tmp/m1")"
 # A device package has rosie as its worker, with her rules in the bundle.
 if [[ -n "$(queue_row "$night" M0)" ]]; then

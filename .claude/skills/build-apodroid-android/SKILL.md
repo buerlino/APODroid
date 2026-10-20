@@ -174,6 +174,8 @@ packages unattended): `night.md`.
 
 ## Still untested
 
+- 0.6.0 (the night of 2026-10-20 on the tablet, debug builds; the morning's short names not on
+  a device): what V and P still have to check is listed in `plan-0.6.0.md`, V and P.
 - 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
   device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
   for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked

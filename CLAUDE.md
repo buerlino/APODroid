@@ -242,8 +242,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   each scrolling on its own: the picture side (tabs, picture, boxes, caption) left, the settings
   right. Pull to refresh works on the picture side only. The tablet (711 dp in portrait) shows
   two panes both ways.
-- **Settings** (SharedPreferences; 0.6.0's layout built in M3, 2026-10-20, texts placeholders
-  until the user approves them on the device): **Wallpaper** (the daily switch, the status line,
+- **Settings** (SharedPreferences; 0.6.0's layout built in M3, 2026-10-20, its texts and the
+  night's defaults approved by the user the same day from the tablet's screenshots): **Wallpaper** (the daily switch, the status line,
   "Wi-Fi only" (F2) while the switch is on; in APOD mode **Where**, "If APOD is a video", the set button), with the switch "All NASA
   pictures" on, after a divider, **Pictures from** (the grid with "If it's a video" under APOD's
   row, "Change every", the set menu); then a divider and the switch "All NASA pictures", in both
@@ -255,9 +255,13 @@ set it as wallpaper, and on video days kept the old wallpaper.
     hold goes; the first time on, the grid starts from "Where"), then the page's update sets
     what the new mode puts on a screen while the daily switch is on, and the job is
     rescheduled (its period follows the mode). Each mode keeps its settings: "Where" is APOD
-    mode's, the grid the other's.
+    mode's, the grid the other's. With the daily switch off the records are forgotten too, so
+    the chip and the opening tab lose track of what's still on the screens until the next set
+    (accepted by the user, 2026-10-20).
   - **The grid** (switch on; M3): "Pictures from" with the heads "Home" and "Lock", a row per
-    source (`Source.label`, the names wrap) and a material3 `Checkbox` per screen in columns
+    source by its short name, "APOD", "NASA", "Earth", as on the tabs (`shortLabel`; user,
+    2026-10-20: the full names took three lines on the tablet and broke "Astronomy" inside the
+    word at font scale 2.0), and a material3 `Checkbox` per screen in columns
     72 dp wide, wider when a large font widens a head (the heads don't wrap: at font scale 2.0
     on the FP6's width "Home" broke inside the word, tablet M3 check); screen readers "APOD on the home screen". The prefs are the columns `home` and
     `lock` (comma lists, `Store.columns`; APOD mode's columns are APOD on the screens "Where"
@@ -320,7 +324,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   picture). With the switch on (M4; also with turns) it says what takes APOD's place ("This
   APOD is a video, so your own picture takes its place.", "… so NASA's Image of the Day takes
   its place." or "… takes its place once it has loaded.", "… so it's skipped." with "Skip it";
-  placeholders), and with APOD ticked nowhere only "This APOD is a video.". "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
+  approved by the user, 2026-10-20), and with APOD ticked nowhere only "This APOD is a video.". "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
   (`videoNoticeHidden`, no confirmation). The second help text besides the pause hint (the problem box is a status, not help). `refresh()` stores the
   entry without a picture and deletes the previous `apod.jpg`; `isCurrent` doesn't need one.
 - **Fetch** in `:core`: newest post → `Post(source, date, title, imageUrl, pageUrl, isVideo,
@@ -364,15 +368,16 @@ set it as wallpaper, and on video days kept the old wallpaper.
   went: a success (a refresh, or today's APOD already stored) sets `checkedAt` and clears
   `problem`; a failure stores `problem` (and `httpCode`). Per source (WP3: `nasa.problem`, …);
   one box: in APOD mode the first tab with a problem (APOD's first); with the switch on (all
-  three fetched) the shown tab's, else the first ticked source's (M4, proposed, for the user to
-  approve), prefixed with its name
+  three fetched) the shown tab's, else the first ticked source's (M4; approved by the user,
+  2026-10-20; the second case untested until V), prefixed with its name
   ("NASA Image of the Day: …"; its `problemNoticeKey` starts `nasa:`) unless it's APOD's with
   APOD ticked alone. The video-day
   texts (user approved, 2026-10-16): "This APOD is a video, so NASA's Image of the Day is the
   wallpaper." (or "… becomes the wallpaper once it has loaded."), with "Keep" "To change that,
   choose another picture for video days below.", and the status line "Wallpaper changed
-  16 Oct, 20:43 · NASA Image of the Day" when the wallpaper isn't APOD's or two or more sources
-  are ticked. A failed set isn't a problem (the
+  16 Oct, 20:43 · NASA" when the wallpaper isn't APOD's or two or more sources are ticked (the
+  source's short name since 2026-10-20, user: the full names wrapped in the tablet's settings
+  pane and would on the phone). A failed set isn't a problem (the
   toasts and the job's retry cover it). While `problem` is set, it shows in the orange box
   below the picture or tile (user, 2026-10-16; orange for problems only since U5, 2026-10-18: a failing app must look failing, the other boxes are neutral), with "since <day>" when `checkedAt` is more than a day old. Only "Dismiss":
   it hides that problem until its kind or HTTP code changes or a new day starts
@@ -387,15 +392,18 @@ set it as wallpaper, and on video days kept the old wallpaper.
   nothing standing in; with turns "Skip it" passes the turn, so nothing is kept); before the
   first set nothing. In APOD mode for the screen "Where" names (with Lock the `lock.*` record).
   With the switch on (M4) one line while both screens show the same picture, else a line per
-  screen set or kept: "Home screen changed 16 Oct, 06:12 · NASA Image of the Day", "Lock screen:
-  video day, wallpaper kept" (placeholders); the user's own picture " · My picture". The page re-reads both
+  screen set or kept: "Home screen changed 16 Oct, 06:12 · NASA", "Lock screen: video day,
+  wallpaper kept"; the user's own picture " · My picture"; a screen never set has no line
+  (approved by the user, 2026-10-20). The page re-reads both
   around each update and after a set.
 - **Tabs (0.5.0, WP4; 0.6.0, M4, 2026-10-20):** with the switch "All NASA pictures" on always
   three, else (APOD mode) on an APOD video day APOD and the video-day source; a segmented row
   above the picture ("APOD | NASA | Earth"), opening on the **picture's** source (a stand-in's
   own tab, not APOD's; the user's own picture has none) on the home screen, else the lock
   screen's, else APOD (APOD mode: the screen "Where" names, `pageScreen`) until the user
-  picks one; the pick survives rotation, not a restart. The shown tab drives the picture, ⛶,
+  picks one; the pick survives rotation and the system killing the app (Android's saved state:
+  seen after `am kill`, tablet, 2026-10-20), not a swipe-away from Recents (to check in P on the
+  FP6; user, 2026-10-20). The shown tab drives the picture, ⛶,
   ★, title, date and explanation; switching closes crop mode. With tabs (U2, 2026-10-17) a
   source line above the title, "NASA Image of the Day · 17 October 2026" (" · Video" on video
   days), replaces the date line below it, and a chip at the picture's top left
@@ -473,7 +481,7 @@ redraws the page.
 
 (Decided 2026-10-01.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
 AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
-periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`, so on mobile data turns wait too, also between stored pictures; toggling it reschedules the job (`DailyJob.ensure` counts another network type as another timing); the page and the buttons still use any network. Each run, and each page
+periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`, so on mobile data turns wait too, also between stored pictures, and a metered Wi-Fi (a phone's hotspot) counts as mobile data (accepted by the user for 0.6.0, 2026-10-20: a job that only skips downloads on a metered network is more code); toggling it reschedules the job (`DailyJob.ensure` counts another network type as another timing); the page and the buttons still use any network. Each run, and each page
 open or pull (2026-10-16, one path): `Store.update(force)`, `refresh(source)` for each source
 in use unless its stored post is today's (always with `force`), then, while `daily` is on,
 `setDue()`: what each screen is due (`:core`'s `dueWallpapers`, Turns), set where it isn't
@@ -563,7 +571,7 @@ wake and fail offline).
 
 ## Next features
 
-**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, 2026-10-20; the how and the layout in `plan-0.6.0.md`).
+**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, Wi-Fi only in F2, by the night shift of 2026-10-20, approved by the user that morning; the how and the layout in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).
@@ -597,7 +605,8 @@ video days worked only with APOD alone (it shows at once that it was a video day
   turn. Forgetting a record (a setting, the daily or mode switch) keeps whose turn it is and
   the stamp, so the current source's picture goes on again; a screen with no record starts on
   the other screen's source if ticked there, else the first ticked one with a picture.
-- Fill / Fit (0.1.1's review) is one setting for both screens.
+- Fill / Fit (0.1.1's review) is one setting for both screens. F1–F5's decisions: below, From a
+  review of 0.1.1.
 - The mode switch while the daily switch is on works like a tick: what changes is set at once,
   and every hold is cleared. A held APOD whose next post is a video follows the video-day rule.
 - With the switch on the page fetches all three; the job only what the screens need (the
@@ -649,12 +658,27 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
   original (`content/dam`, 2–10 MB). Why: the originals load on 20 of 20 posts checked, but
   downloading them daily costs about 10× the data.
 - **Fill / Fit:** a setting next to "Where", default Fill (today). Fit puts the whole
-  picture on black; no ⛶ with Fit (user, 2026-10-05).
-- **Wi-Fi only:** a switch for the job, default off.
-- **Share:** title and page link via the share sheet; not the picture file.
-- **Image credit** under the date, parsed in `:core` (on all 100 posts checked).
+  picture on black; no ⛶ with Fit (user, 2026-10-05). One setting for both screens
+  (2026-10-19). Changing it while the daily switch is on sets the wallpaper again at once, like
+  "Where": a changed setting, not a set by hand (user, 2026-10-20; was "the next change uses
+  it", 2026-10-04).
+- **Wi-Fi only:** a switch for the job, default off (built, F2).
+- **Share:** title and page link via the share sheet; not the picture file. The glyph ⤴
+  (U+2934) beside ★, to be seen on a device (user, 2026-10-20).
+- **Image credit** under the date, parsed in `:core` (on all 100 posts checked). APOD only
+  (user, 2026-10-20): NASA's feed names a credit in 1 of 60 items (the rest only on each image
+  page), Earth's is in `content` only (each check 0.6 KB → about 61 KB) and mostly "NASA Earth
+  Observatory".
 - **Save every picture:** a switch for the job, default off, with a small ⓘ next to it: saved
   pictures are full resolution, and saving every day takes a lot of space (user, 2026-10-04).
+  **Every source in use, not APOD only** (user, 2026-10-20: APOD only would favour it): after
+  each run the job saves each in-use source's stored post (the same set it fetches: the ticked
+  ones, a held picture's source, the stand-in on an APOD video day) unless it's a video or
+  already saved; chosen over "what goes on a screen" as easier to keep right (no hook in every
+  set path, no state for a set but unsaved picture). As ★ does: the original, else the stored
+  picture (bounded data: a 97 MB NASA original is tried once). The job remembers what it saved
+  (date and URL), not whether the file is still there, so a picture deleted in the gallery
+  isn't saved again.
 - **Left out:** previous days (not one page any more), full-screen view, home-screen widget,
   Quick Settings tile (rarely used), translations (English UI stays), sharing the picture file
   (needs a `FileProvider`). Still out, as above: a notification, the still frame on video days,

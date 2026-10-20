@@ -91,9 +91,9 @@ default Fill, today's behaviour.
   `setBitmap(bitmap, null, true, which)`. 1116×2484 ARGB is about 11 MB, fine. Applies to the
   APOD and to "my picture"; to home and lock alike.
 - No ⛶ with Fit: the whole picture shows, so there's no part to choose (user, 2026-10-05).
-- Changing it doesn't set the wallpaper again (2026-10-04; since 0.4.0 "Where" does while the
-  switch is on: ask the user whether Fit should too); the next change or "Set as
-  wallpaper now" uses it.
+- Changing it while the daily switch is on sets the wallpaper again at once, like "Where" (user,
+  2026-10-20; was "the next change uses it", 2026-10-04): a changed setting, not a set by hand
+  (`plan-0.6.0.md` F1). One setting for both screens (2026-10-19).
 - Test on the phone: a landscape and a portrait picture, home and lock, both modes.
 
 ### [x] 3. Status line (done in 0.4.0, WP4; see CLAUDE.md for what it became) under the daily switch
@@ -111,7 +111,9 @@ Decided (user, 2026-10-04): **always shown** while the switch is on.
 - Covers a broken endpoint, an app that Android has stopped (5), and no network for days.
 - Test: fake `checkedAt` two days back with `run-as sed` (skill, Fake an old day).
 
-### [ ] 4. Wi-Fi only (0.6.0)
+### [x] 4. Wi-Fi only (0.6.0)
+
+Built 2026-10-20 (`plan-0.6.0.md` F2; `CLAUDE.md`, Background update).
 
 With 0.5.0's sources there are up to three pictures a day to download (about 1 MB each as
 renditions).
@@ -147,13 +149,14 @@ Decided (user, 2026-10-04): share **title and page link** with `ACTION_SEND` (te
 the system share sheet. No `FileProvider`, no picture file.
 - Text: `<title>\n<page link>`.
 - Where: a text glyph next to the ★ at the bottom right of the picture, also on video days (the
-  link works). There's no clear share glyph in Unicode; show the user two or three candidates on
-  the phone. Screen-reader label "Share".
+  link works). There's no clear share glyph in Unicode: the user chose ⤴ (U+2934) from ⤴, ↗, ⇪
+  and a drawn Material icon (2026-10-20), to be seen on a device. Screen-reader label "Share".
 
 ### [ ] 7. Image credit (0.6.0)
 
-Checked for APOD only. NASA Image of the Day and Earth Observatory (0.5.0) weren't checked:
-parse theirs too, or show the credit on APOD only (ask the user).
+**APOD only** (user, 2026-10-20). Checked in `private/` that day: NASA's feed names a credit in
+1 of 60 items (the others only on each image page); Earth has one on 33 of 40 posts, but in
+`content` only (each check 0.6 KB → about 61 KB) and mostly "NASA Earth Observatory".
 
 Decided (user, 2026-10-04): show the credit under the date.
 
@@ -175,7 +178,9 @@ stripped they run together: "…NSF/AURAImage Processing: …") and sometimes st
 
 ### [ ] 8. Save every picture (0.6.0)
 
-With 0.5.0's sources: every source in use, or APOD only? Ask the user.
+With 0.5.0's sources: **every source in use**, not APOD only (user, 2026-10-20: APOD only
+would favour it), and on a failed original the stored picture, as ★ does. What it saves, its
+edge cases and the ⓘ's figures: `plan-0.6.0.md` F5, which overrides the APOD-only lines below.
 
 Decided (user, 2026-10-04): a switch under the daily switch, **default off**.
 - On: after a successful run, the job also saves today's picture (as ★: the original, see 1)

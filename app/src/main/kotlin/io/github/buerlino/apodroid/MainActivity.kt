@@ -402,9 +402,9 @@ class MainActivity : ComponentActivity() {
         return listOfNotNull(home?.let { line("Home screen", it) }, lock?.let { line("Lock screen", it) })
     }
 
-    /** " · NASA Image of the Day" on the status line, none for APOD's with APOD ticked alone; the user's own " · My picture" with the switch on. */
+    /** " · NASA" on the status line, none for APOD's with APOD ticked alone; the user's own " · My picture" with the switch on. */
     private fun pictureSuffix(picture: Picture?): String = when (picture) {
-        is Picture.Of -> if (picture.source == Source.APOD && apodAlone) "" else " · ${picture.source.label}"
+        is Picture.Of -> if (picture.source == Source.APOD && apodAlone) "" else " · ${picture.source.shortLabel}"
         Picture.Own -> if (allSources) " · My picture" else ""
         null -> ""
     }
@@ -592,7 +592,8 @@ class MainActivity : ComponentActivity() {
 
     /**
      * On a video day another source's picture is fetched first ([load], which also sets it while
-     * the daily change is on), the user's own is set at once, "Skip it" sets nothing. "Use my
+     * the daily change is on), the user's own is set at once; with "Skip it" a screen with APOD
+     * alone keeps its picture and one with turns passes APOD's turn on at once ([load]). "Use my
      * picture" with nothing picked opens the picker first ([pickFirst]): the choice is made only
      * once a picture is there, so backing out keeps the one before.
      */
@@ -806,7 +807,7 @@ class MainActivity : ComponentActivity() {
                     onClick = { if (source != shown) showTab(source) },
                     shape = SegmentedButtonDefaults.itemShape(i, sources.size),
                     modifier = Modifier.fillMaxHeight(),
-                ) { Text(source.tabLabel) }
+                ) { Text(source.shortLabel) }
             }
         }
     }
@@ -1188,8 +1189,8 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * "Pictures from": a row per source, a tick box for the home and the lock screen in columns
-     * of one width (the names wrap, the boxes stay put); "If it's a video" ([videoDaysChoice])
+     * "Pictures from": a row per source (its short name, so one line at any font size), a tick box
+     * for the home and the lock screen in columns of one width; "If it's a video" ([videoDaysChoice])
      * under APOD's row, greyed out while APOD has no tick. The last tick can't be removed.
      */
     @Composable
@@ -1218,7 +1219,7 @@ class MainActivity : ComponentActivity() {
         }
         Source.entries.forEach { source ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(source.label, Modifier.weight(1f))
+                Text(source.shortLabel, Modifier.weight(1f))
                 Screen.entries.forEach { screen ->
                     val checked = source in columns[screen].orEmpty()
                     Box(cell, contentAlignment = Alignment.Center) {
@@ -1227,7 +1228,7 @@ class MainActivity : ComponentActivity() {
                             onCheckedChange = { tick(screen, source) },
                             // The last tick stays.
                             enabled = !(checked && ticks == 1),
-                            modifier = Modifier.semantics { contentDescription = "${source.tabLabel} on the ${screenNames.getValue(screen)}" },
+                            modifier = Modifier.semantics { contentDescription = "${source.shortLabel} on the ${screenNames.getValue(screen)}" },
                         )
                     }
                 }
@@ -1379,7 +1380,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** The source's name in the grid, the video-day choices, the status line, the problem box and the source line. */
+/** The source's name in the video-day choices, the problem box and the source line. */
 private val Source.label
     get() = when (this) {
         Source.APOD -> "Astronomy Picture of the Day"
@@ -1387,8 +1388,8 @@ private val Source.label
         Source.EARTH -> "Earth Observatory"
     }
 
-/** The source's tab above the picture and its tick boxes' screen-reader labels. */
-private val Source.tabLabel
+/** The source's short name: its tab above the picture, its row in the grid (and its tick boxes' screen-reader labels), the status line. */
+private val Source.shortLabel
     get() = when (this) {
         Source.APOD -> "APOD"
         Source.NASA -> "NASA"

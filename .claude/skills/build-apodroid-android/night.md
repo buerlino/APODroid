@@ -87,7 +87,8 @@ pascaline's six agents (three workers by area, an advisor, a verifier, the coord
 
 Tonight's (user, 2026-10-19): M1 to M4 and F2 of `plan-0.6.0.md`, with code, tests and the tablet checks, after
 M0, the Android check the plan's second review put first (M1's grouping rests on it). The texts wait for the
-user. F1, F3, F4 and F5 each start with a question for the user, so they stay for the day. "Model, effort" is the
+user. F1, F3, F4 and F5 each start with a question for the user, so they stay for the day (answered 2026-10-20 and
+built by day; every row below ran in the night of 2026-10-20 and is merged). "Model, effort" is the
 plan's. Spec names the sections the bundle takes: `plan <key>` is the plan's `### [ ] <key>.`, `features <key>`
 is `features.md`'s. Without the tablet M0 can't run, so M1 to M4 wait and only F2 runs.
 

@@ -258,7 +258,7 @@ checked on the tablet once the user says it's free.
 reading; their build check passed, 108 tests with `private/`):
 1. By day, no device: F3's commit (its review: the `Row` around ★ not re-indented; otherwise
    fine), then **F1f1** and **F5f1** (found by the review), each committed when the user says
-   so.
+   so. Done 2026-10-20 (three commits).
 2. **C**, the early look, only when the user gives the go-ahead (the tablet is pascaline's
    until then); its text changes are made and committed before the night.
 3. **V1–V6 by night** (user): rosie on the tablet, the queue in `night.md`. F1–F5's own
@@ -298,7 +298,13 @@ is free.
   modes; a change with the daily switch on sets at once and `turnStartedAt` stays; no ⛶ with Fit.
 - Done when: the tests pass, the device checks pass, and `CLAUDE.md` says how it works.
 
-### [ ] F1f1. Fit decodes at the size it's drawn (Opus, medium)
+### [x] F1f1. Fit decodes at the size it's drawn (Opus, medium)
+
+**Status (2026-10-20, day):** built (`fitted` in `Store.kt`: `setTargetSize` to `fitFrame`'s
+size, drawn 1:1; the build check passes). `info.size` and `setTargetSize` are the upright size
+on Android 10 (`SkAndroidCodec` made with `ExifOrientationBehavior::kRespect`) and 11+
+(`swapWidthHeight`), read in AOSP's `ImageDecoder.cpp`. No new pure helper, so no new test. The
+device check is V1's.
 
 Found by reading (review of F1, 2026-10-20); the fix settled by the user the same day.
 `fitted()` in `Store.kt` decodes with `decodeUpright(file, screen)`, whose sample rule is

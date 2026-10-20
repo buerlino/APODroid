@@ -11,7 +11,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ImageDecoder
-import android.graphics.Paint
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.os.Environment
@@ -22,6 +21,7 @@ import android.view.Display
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import io.github.buerlino.apodroid.core.Due
+import io.github.buerlino.apodroid.core.Frame
 import io.github.buerlino.apodroid.core.Hold
 import io.github.buerlino.apodroid.core.HttpStatus
 import io.github.buerlino.apodroid.core.OWN_PICTURE
@@ -856,14 +856,24 @@ private fun decodeUpright(file: File, screen: Size): Bitmap =
         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
     }
 
-/** [file] upright, all of it as large as fits ([fitFrame]), centred on black in the [screen]'s size: Fit. */
+/**
+ * [file] upright, all of it as large as fits ([fitFrame]), centred on black in the [screen]'s size: Fit.
+ * Decoded straight to the frame's size and drawn 1:1: shrinking the rendition (3726×2484 for a
+ * 3:2 post) about 3× in one bilinear step can make stars jagged. `info.size` and `setTargetSize`
+ * are both the upright size (Android 10's codec respects EXIF, 11+ swaps for the origin; AOSP's
+ * ImageDecoder.cpp).
+ */
 private fun fitted(file: File, screen: Size): Bitmap {
-    val picture = decodeUpright(file, screen)
-    val frame = fitFrame(picture.width, picture.height, screen.width, screen.height)
+    lateinit var frame: Frame
+    val picture = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
+        frame = fitFrame(info.size.width, info.size.height, screen.width, screen.height)
+        decoder.setTargetSize(maxOf(1, frame.right - frame.left), maxOf(1, frame.bottom - frame.top))
+        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+    }
     return Bitmap.createBitmap(screen.width, screen.height, Bitmap.Config.ARGB_8888).also {
         Canvas(it).run {
             drawColor(Color.BLACK)
-            drawBitmap(picture, null, Rect(frame.left, frame.top, frame.right, frame.bottom), Paint(Paint.FILTER_BITMAP_FLAG))
+            drawBitmap(picture, frame.left.toFloat(), frame.top.toFloat(), null)
         }
         picture.recycle()
     }

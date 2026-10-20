@@ -461,12 +461,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
   decoded upright with `ImageDecoder`, halved while it still fills the screen, and set with
   `setBitmap` (user, 2026-10-05): Android 16 measures it unturned but draws it turned, so it
   came out stretched, with or without a crop. Only changed when the date is new and the
-  download is a complete, decodable image. **Fit** (F1): the picture decoded upright (as the
-  EXIF case), drawn into `:core`'s `fitFrame` on a black bitmap of the screen's portrait size
-  (about 11 MB on the FP6) and set with `setBitmap`, the hint all of it. To build (F1f1; user,
-  2026-10-20, from a review by reading): decoded straight to the frame's size, since Fill's
-  sample rule left a wide picture at the rendition's full size (3726×2484, 37 MB) for one
-  bilinear shrink of about 3.3×, which can make stars jagged.
+  download is a complete, decodable image. **Fit** (F1): the picture decoded upright by
+  `ImageDecoder` straight to `:core`'s `fitFrame` size (`setTargetSize`; F1f1, user,
+  2026-10-20, from a review by reading: Fill's sample rule left a wide picture at the
+  rendition's full size, 3726×2484, 37 MB, for one bilinear shrink of about 3.3×, which can
+  make stars jagged; a smaller picture is scaled up), drawn 1:1 into the frame on a black
+  bitmap of the screen's portrait size (about 11 MB on the FP6) and set with `setBitmap`, the
+  hint all of it. `info.size` and `setTargetSize` are the upright size on Android 10 and later
+  (AOSP's `ImageDecoder.cpp`; an EXIF-turned "my picture" with Fit is checked in V1).
   **Home and lock set separately** (M0, 2026-10-20; tablet, Android 15; the FP6 unchecked):
   both flags make one shared wallpaper (`dumpsys wallpaper`: `id=154: mWhich=3`, "Lock
   wallpaper state" empty); `FLAG_SYSTEM` alone first moves the shared one to the lock screen

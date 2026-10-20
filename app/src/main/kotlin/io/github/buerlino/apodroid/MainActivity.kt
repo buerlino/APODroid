@@ -84,6 +84,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -173,6 +174,9 @@ class MainActivity : ComponentActivity() {
     private var wifiOnly by mutableStateOf(false)
     private var saveEvery by mutableStateOf(false)
 
+    /** "Largest original" ([Store.saveLimit], MB, 0: no limit): at once, as "Save every picture". */
+    private var saveLimit by mutableIntStateOf(20)
+
     /** The daily switch ([Store.daily]): not part of the draft, it acts at once ([switchDaily]). */
     private var daily by mutableStateOf(false)
 
@@ -251,6 +255,7 @@ class MainActivity : ComponentActivity() {
         daily = store.daily
         wifiOnly = store.wifiOnly
         saveEvery = store.saveEvery
+        saveLimit = store.saveLimit
         pauseHintHidden = store.pauseHintHidden
         videoNoticeDate = store.videoNoticeDate
         videoNoticeHidden = store.videoNoticeHidden
@@ -778,6 +783,12 @@ class MainActivity : ComponentActivity() {
     private fun switchSaveEvery(on: Boolean) {
         saveEvery = on
         store.saveEvery = on
+    }
+
+    /** "Largest original": the job's next save uses it. */
+    private fun chooseSaveLimit(mb: Int) {
+        saveLimit = mb
+        store.saveLimit = mb
     }
 
     /** The draft's Fill or Fit: with Fit there's no part to choose, so crop mode closes. */
@@ -1573,7 +1584,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** "Save every picture" with a small ⓘ beside the label, which says what it costs. */
+    /**
+     * "Save every picture" with a small ⓘ beside the label, which says what it costs; while it's
+     * on, "Largest original" under it (F6): a dropdown of the limit for the job's originals.
+     */
     @Composable
     private fun SaveEverySwitch() {
         var info by rememberSaveable { mutableStateOf(false) }
@@ -1594,6 +1608,29 @@ class MainActivity : ComponentActivity() {
             Spacer(Modifier.weight(1f))
             Switch(checked = saveEvery, onCheckedChange = null)
         }
+        if (saveEvery) {
+            FlowRow(
+                Modifier.padding(start = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Largest original")
+                Box {
+                    var open by remember { mutableStateOf(false) }
+                    val name = limitLabel(saveLimit)
+                    DropdownButton("$name ▾", "Largest original: $name", enabled = true, changed = false) { open = true }
+                    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                        listOf(10, 20, 50, 100, 0).forEach { mb ->
+                            DropdownMenuItem(
+                                text = { Text(limitLabel(mb)) },
+                                onClick = { open = false; chooseSaveLimit(mb) },
+                                leadingIcon = { Text(if (mb == saveLimit) "✓" else "") },
+                            )
+                        }
+                    }
+                }
+            }
+        }
         if (info) {
             AlertDialog(
                 onDismissRequest = { info = false },
@@ -1606,6 +1643,8 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
+
+    private fun limitLabel(mb: Int) = if (mb == 0) "No limit" else "$mb MB"
 
     /** NASA and Earth Observatory post on weekdays only; shown when one is ticked, until hidden for good. */
     @Composable

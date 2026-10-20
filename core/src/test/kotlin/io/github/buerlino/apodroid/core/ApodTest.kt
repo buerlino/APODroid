@@ -248,6 +248,44 @@ class ApodTest {
         assertFalse(file.exists())
     }
 
+    @Test
+    fun anAnnouncedLengthOverTheLimitStopsBeforeTheBody() = withServer(200, "made-up picture bytes") { url ->
+        val file = File.createTempFile("apod", ".jpg")
+        val e = assertFailsWith<TooLarge> { download(url, file, UA, limit = 10) }
+        assertEquals(21L, e.size)
+        assertFalse(file.exists())
+    }
+
+    @Test
+    fun withoutALengthTheBytesPassingTheLimitStopIt() = withServer(200, "x".repeat(200_000), announced = 0) { url ->
+        val file = File.createTempFile("apod", ".jpg")
+        val e = assertFailsWith<TooLarge> { download(url, file, UA, limit = 100_000) }
+        assertEquals(null, e.size)
+        assertFalse(file.exists())
+    }
+
+    @Test
+    fun underTheLimitDownloads() = withServer(200, "made-up picture bytes", announced = 0) { url ->
+        val file = File.createTempFile("apod", ".jpg")
+        try {
+            download(url, file, UA, limit = 21)
+            assertEquals("made-up picture bytes", file.readText())
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
+    fun noLimitDownloadsAnySize() = withServer(200, "x".repeat(200_000)) { url ->
+        val file = File.createTempFile("apod", ".jpg")
+        try {
+            download(url, file, UA, limit = 0)
+            assertEquals(200_000L, file.length())
+        } finally {
+            file.delete()
+        }
+    }
+
     /** Neither of the typed failures: the app calls the rest a network failure. */
     private fun assertNetworkFailure(e: IOException) {
         assertFalse(e is SiteChanged || e is HttpStatus, "$e")
@@ -256,7 +294,7 @@ class ApodTest {
     private val UA = "APODroid/0.0.0 (+https://example.org)"
     private var userAgent: String? = null
 
-    /** [announced] is the Content-Length sent, by default the body's. */
+    /** [announced] is the Content-Length sent, by default the body's; 0 sends none (chunked). */
     private fun withServer(status: Int, body: String, announced: Long? = null, block: (String) -> Unit) {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/") { ex ->

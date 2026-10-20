@@ -92,6 +92,12 @@ class SiteChanged(message: String, cause: Throwable? = null) : IOException(messa
 /** The picture couldn't be written to its file (a full disk, say), whatever the network did. */
 class StorageFailed(cause: Throwable) : IOException("Couldn't write the file: $cause", cause)
 
+/**
+ * The download is larger than the limit [download] was given ([size]: the announced length,
+ * or null when none was announced and the bytes passed it). Not a failure of the site.
+ */
+class TooLarge(val limit: Long, val size: Long?) : IOException("Larger than $limit bytes" + (size?.let { ": $it" } ?: ""))
+
 /** The site answered with [code] instead of 200. */
 class HttpStatus(val code: Int) : IOException("HTTP $code")
 
@@ -113,12 +119,14 @@ fun parseLatest(source: Source, body: String): Post = when (source) {
 /**
  * Blocking download of [url] to [to]. Throws [SiteChanged] for a URL that doesn't parse,
  * [HttpStatus], [StorageFailed] when [to] can't be written, [InterruptedIOException] when the thread was interrupted (checked once per chunk), or an [IOException] for a network failure, also when fewer bytes arrive than
- * announced; [to] is then deleted.
+ * announced; [to] is then deleted. With a [limit] (bytes, 0: none) it throws [TooLarge] before
+ * reading the body when the announced length is over it, else once the bytes pass it.
  */
-fun download(url: String, to: File, userAgent: String) {
+fun download(url: String, to: File, userAgent: String, limit: Long = 0) {
     try {
         get(url, "image/*", userAgent) { input ->
             val expected = contentLengthLong
+            if (limit > 0 && expected > limit) throw TooLarge(limit, expected)
             var written = 0L
             val buffer = ByteArray(64 * 1024)
             val out = try {
@@ -137,6 +145,7 @@ fun download(url: String, to: File, userAgent: String) {
                         throw StorageFailed(e)
                     }
                     written += n
+                    if (limit > 0 && written > limit) throw TooLarge(limit, null)
                 }
             }
             if (expected >= 0 && written != expected) throw IOException("Got $written of $expected bytes")

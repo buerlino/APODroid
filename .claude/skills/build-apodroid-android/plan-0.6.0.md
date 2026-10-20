@@ -208,10 +208,10 @@ Advanced settings ▸                                closed by default
   each ticked source "<short name> on <home screen | lock screen | both screens>", joined by
   ", "; then " · turns every <interval>" while a screen takes turns and the daily switch is on;
   then " · Fill" or " · Fit".
-- **The highlight** in the mockup: the daily switch's label and track, a segmented row's chosen
-  segment (`tertiaryContainer` / `onTertiaryContainer`) and its borders, a list row's tick box,
-  name and dropdown, the video dropdown's border and text, the "Setup" header while anything in
-  it differs, "Advanced settings" while the mode does.
+- **The highlight** in the mockup: a segmented row's chosen segment (`tertiaryContainer` /
+  `onTertiaryContainer`) and its borders, a list row's tick box, name and dropdown, the video
+  dropdown's border and text, the "Setup" header while anything in it differs, "Advanced
+  settings" while the mode does. Not the daily switch: it acts at once (S4f2).
 
 ## Packages
 
@@ -769,8 +769,12 @@ From regression 2 (2026-10-20 night; the user: a bug, its own package before S5)
   it", press Set.
 - Happened: the status line reads "Wallpaper changed 20 Oct, 19:28", no source (evidence:
   `.coord/regressions/regression-2/tablet/s27-video-skip.png`, `s28-video-skip-after-job.png`).
-  Should: "Video day, wallpaper kept" (nothing was set). Likely cause: Set forgets the record's
-  picture (`restartAndForget`), and `videoDayKept` needs one.
+  Should: "Video day, wallpaper kept" (nothing was set). The cause (read in the code,
+  2026-10-20): Set forgets the record's picture (`restartAndForget` → `Record.forget`, owner
+  kept), "Skip it" alone sets nothing, so the picture stays null, and `videoDayKept` returns
+  false on `record?.picture ?: return false`. A forgotten record (owner APOD, no picture) on
+  APOD's video day with nothing standing in is a kept wallpaper; a record that was never
+  there (a fresh install) still isn't.
 - Also: the KDoc above `chooseVideoDays` in `MainActivity.kt` still says "Skip it" sets nothing
   (from pass 3); make it say what it does since S4.
 - **Files:** `core/.../Screens.kt` (`videoDayKept`), `ScreensTest`, `Store.kt` (`saveSetup`

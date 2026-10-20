@@ -242,6 +242,11 @@ packages unattended): `night.md`.
   of it, the picker in APOD mode, the race for "Where" Home or Both (Lock is the case that
   copies), an upgrade from a real 0.5.0 APK (the state was made by `run-as`). Evidence in the
   run's `tablet/`.
+  Regression 2 (2026-10-20 night, dev 0d6df20, after S4f1, passed) didn't check: the open page
+  following a job that changes only the lock screen (job and page share one process), a set
+  that fails on one screen and its retry (nothing makes a set fail), the "Skip it" toast (rosie
+  can't catch toasts), "Wi-Fi only" with the daily switch off (hidden). Share on the ▶ tile
+  wasn't opened (S6 removes Share). Found: B1.
 - 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
   device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
   for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked

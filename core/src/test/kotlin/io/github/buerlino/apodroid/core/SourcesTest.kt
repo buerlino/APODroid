@@ -149,8 +149,7 @@ class SourcesTest {
     fun readsEveryRealPost() {
         val feed = File("../private/iotd-feed-2026-10-16.xml")
         val eo = File("../private/eo-last40-2026-10-16.json")
-        val apod = File("../private/last100.json")
-        assumeTrue(feed.exists() && eo.exists() && apod.exists())
+        assumeTrue(feed.exists() && eo.exists())
         for ((posts, count) in listOf(nasaPosts(feed.readText()).toList() to 60, earthPosts(eo.readText()).toList() to 40)) {
             assertEquals(count, posts.size)
             for (p in posts) {
@@ -160,16 +159,7 @@ class SourcesTest {
                 assertTrue(p.pageUrl.startsWith("https://"), p.pageUrl)
                 assertTrue(p.explanation.length > 50 && '<' !in p.explanation, p.explanation)
                 assertTrue(p.date.year == 2026, "${p.date}")
-                assertEquals(null, p.credit)
             }
-        }
-        val apods = apodPosts(apod.readText()).toList()
-        assertEquals(100, apods.size)
-        for (p in apods) {
-            val credit = p.credit!!
-            assertTrue(Regex("""^[\p{L} &]*Credit[\p{L} &]*: \S""").containsMatchIn(credit), credit)
-            assertTrue(Regex("""<|&\w+;|\s[,;:)]|,;|\(\s|;\s*;|\s\s|::""").find(credit) == null, credit)
-            assertTrue(credit == credit.trim(' ', ';'), credit)
         }
     }
 }

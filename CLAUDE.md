@@ -27,6 +27,10 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   (custom hours dropped, 2026-10-17: [Next features](#next-features)).
 - Work for 0.6.0 (APOD first, the "All NASA pictures" switch, and the features from 0.1.1's
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
+  **Reverted (user, 2026-10-20):** `app/` and `core/` are back to v0.5.0 (one revert commit;
+  the night-shift tooling, the plans and this file kept; `dev` and `wp/s2` left as they were).
+  Where this file describes 0.6.0 (M0–M4, F1–F5, the migration) as built, that code is gone
+  from master and lives only in git history and on `dev`.
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
 
@@ -629,7 +633,7 @@ wake and fail offline).
 
 ## Next features
 
-**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, Wi-Fi only in F2, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6), turns over hours by day (V7), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
+**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, Wi-Fi only in F2, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6), turns over hours by day (V7), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`). **Reverted on master, 2026-10-20** (user; [Project](#project)): the code is v0.5.0's again.
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).

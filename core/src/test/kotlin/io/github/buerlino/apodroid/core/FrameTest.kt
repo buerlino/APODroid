@@ -40,30 +40,4 @@ class FrameTest {
         // 1 000 000 · 2484 is past Int.MAX_VALUE.
         assertEquals(Frame(999_551, 0, 1_000_000, 1000), frame(1_000_000, 1000, 1f))
     }
-
-    private fun fit(width: Int, height: Int) = fitFrame(width, height, 1116, 2484)
-
-    @Test
-    fun fitPutsAWidePictureAcrossTheMiddle() {
-        // Earth's 1440×600 map: 600 · 1116 / 1440 = 465 px tall, (2484 − 465) / 2 = 1009.5 from the top.
-        assertEquals(Frame(0, 1009, 1116, 1474), fit(1440, 600))
-    }
-
-    @Test
-    fun fitPutsATallPictureInTheMiddleOfTheWidth() {
-        // 400 · 2484 / 1200 = 828 px wide, (1116 − 828) / 2 = 144 from the left.
-        assertEquals(Frame(144, 0, 972, 2484), fit(400, 1200))
-    }
-
-    @Test
-    fun fitFillsTheScreenWithAPictureInItsShape() {
-        assertEquals(Frame(0, 0, 1116, 2484), fit(558, 1242))
-        assertEquals(Frame(0, 0, 1116, 2484), fit(2232, 4968))
-    }
-
-    @Test
-    fun fitDoesntOverflowOnHugePictures() {
-        // 1 000 000 · 2484 is past Int.MAX_VALUE; 1000 · 1116 / 1 000 000 rounds down to 1 px.
-        assertEquals(Frame(0, 1241, 1116, 1242), fit(1_000_000, 1000))
-    }
 }

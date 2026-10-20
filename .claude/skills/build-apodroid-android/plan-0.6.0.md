@@ -241,8 +241,13 @@ Advanced settings ▸                                closed by default
 | S4f3 | Set doesn't stop a running job (pass 5's side effect) | Opus, medium |
 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "More NASA pictures" | Opus, medium |
 | F6 | A size limit for the job's saves ("Largest original", default 20 MB) | Opus, medium |
+| B2 | Equal columns change together (regression 3) | Opus, medium |
+| B3 | Two texts: " · My picture" in APOD mode, the ⓘ for saving (by day) | Sonnet, medium |
+| B4 | The draft after a second start (S5's tablet check) | Opus, medium |
+| B5 | A failed run keeps its retry (pass 6) | Opus, medium |
+| B6 | Quick taps on the daily switch set once (pass 6) | Opus, medium |
 | S6 | The picture side: the title dropdown, swipe between sources, no Share | Opus, high |
-| V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 by night, V7 by day | Opus, high |
+| V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 and V8 by night, V7 by day | Opus, high |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
@@ -267,8 +272,8 @@ claude --model opus --effort medium "Do F1f1 and F5f1 in .claude/skills/build-ap
 claude --model opus --effort medium "Do C in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 scripts/pipeline.sh S2 --no-worker --tablet no    # S2's review and merge (S1 is merged)
 scripts/night.sh --until <HH:MM>    # B1, S4f2, S4f3, S5, F6: the queue in night.md
-scripts/night.sh --until <HH:MM>    # after the user's look at S5: S6, then V3, V5, V6
-scripts/night.sh --until <HH:MM>    # V1–V6: the queue in night.md
+scripts/night.sh --until <HH:MM>    # after the user's look at S5: B2, B4–B6, S6, then V3, V5, V6, V8
+scripts/night.sh --until <HH:MM>    # what that night didn't reach: the queue in night.md
 claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do R in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -356,6 +361,18 @@ reading; their build check passed, 108 tests with `private/`):
    S4f3 → S5 → F6. The user looks at S5 (and the button that moves after Set, the report's question)
    in the morning; S6 waits for that look (night.md: an After naming the user). **The night
    after:** S6, then V3, V5, V6.
+3c. **The night of 2026-10-20 to 21** (user, after the night's report): B1, S4f2, S4f3, S5 and
+   F6 merged with tablet PASS, `dev` fast-forwarded into master. Approved: S5's texts, colours
+   and night defaults; F6's label, default and MB; the ⓘ text (B3). Decided: B2 (equal columns
+   change together), B3 (" · My picture" in APOD mode; done by day with the ⓘ text), B5 (a
+   failed run keeps its retry, instead of S4f3's night default), B6 (quick taps set once);
+   B4 (the lost draft: reproduced by day, a second page on top; fixed by night).
+   `scripts/pipeline.sh` now takes a row's own ID first (S4f2 had run on S4's row and
+   section). A review of this plan (same night): V5 no longer waits for S6, B5 drops a kept
+   note on a direct reschedule, B6 on Opus with its edge, V3 without B2's and B4's checks
+   (their own rows test them). **The next night:** B2 → B4 → B5 → B6 → S6 → V3 → V5 → V6 →
+   V8, then the regression. S6 no longer waits for the user (S5 approved); the user
+   looks at it in the morning, and a change there reruns the parts of V3 and V6 it touches.
 4. **V7** after the night of V3–V6 (turns over hours: the night's later rows and the
    regression reinstall and change the tablet). It needs the tablet alone for 6 hours, and
    pascaline has it by day: its first session at the end of a night, the second before
@@ -773,7 +790,7 @@ rearranges it, S6 the picture side), so the tablet sees the new rules first.
 - **Done when:** the checks pass, the tests pass (the removed `:core` functions' tests gone,
   nothing left that names them), the tablet passes and `CLAUDE.md` says the new rules.
 
-### [ ] B1. The status line after Set with "Skip it" on a video day (Sonnet, medium)
+### [x] B1. The status line after Set with "Skip it" on a video day (Sonnet, medium)
 
 From regression 2 (2026-10-20 night; the user: a bug, its own package before S5).
 - Steps: fake an APOD video day, the daily switch on, APOD alone, "If APOD is a video" = "Skip
@@ -807,7 +824,7 @@ From regression 2 (2026-10-20 night; the user: a bug, its own package before S5)
   (nothing was ever set; then set the tablet's prefs back).
 - **Done when:** a regression test that fails on the old code, the fix, the tablet passes.
 
-### [ ] S4f2. The daily switch applies at once, both ways (Opus, medium)
+### [x] S4f2. The daily switch applies at once, both ways (Opus, medium)
 
 After B1 (both touch `Store.kt`). The user's decision in "Set applies the setup" (2026-10-20
 evening): the daily switch leaves the draft.
@@ -835,7 +852,7 @@ evening): the daily switch leaves the draft.
   More NASA pictures; no crash.
 - **Done when:** the checks pass, the tablet passes, `CLAUDE.md` says the new rule.
 
-### [ ] S4f3. Set doesn't stop a running job (Opus, medium)
+### [x] S4f3. Set doesn't stop a running job (Opus, medium)
 
 After S4f2 (both change how Set and the switch schedule). Pass 5's side effect (2026-10-20
 night), which the user wants fixed (the same evening): Set with turns calls
@@ -862,7 +879,7 @@ changed (Set without turns after a change of the list, "Wi-Fi only", the switch 
   it. If the proxy can't be set up, say so under Not tested.
 - **Done when:** the checks pass, the tablet passes, `CLAUDE.md` says the rule.
 
-### [ ] S5. Settings: Setup and Advanced settings, the highlight, "24 h", "More NASA pictures" (Opus, medium)
+### [x] S5. Settings: Setup and Advanced settings, the highlight, "24 h", "More NASA pictures" (Opus, medium)
 
 After S4f3 (S4f2: the daily switch at once). The layout, the summary and the highlight of "Set
 applies the setup" above.
@@ -889,7 +906,7 @@ applies the setup" above.
   accessibility tree (`uiautomator dump`).
 - **Done when:** the checks pass, the tablet passes, the screenshots are there for the user.
 
-### [ ] F6. A size limit for the job's saves (Opus, medium)
+### [x] F6. A size limit for the job's saves (Opus, medium)
 
 After S5 (its row is in "Advanced settings"). The user, 2026-10-20 evening, after the night's
 heads-up that today's NASA original is a 208 MB PNG: "Save every picture" may not download
@@ -923,9 +940,139 @@ anything that size every day; a setting, the user decides, limited by default.
   from the gallery afterwards.
 - **Done when:** the tests pass, the checks pass, the tablet passes, `CLAUDE.md` says it.
 
+### [ ] B2. Equal columns change together (Opus, medium)
+
+From regression 3 (2026-10-20 night; rosie read it as by design; the user, after it: a bug, as
+`CLAUDE.md` says equal columns are one wallpaper).
+- Steps: "More NASA pictures" on, APOD on Home screen, NASA on Lock screen, Set (home APOD,
+  lock NASA). Then both on Both, "Change every" 6 h, Set.
+- Happened: home keeps APOD, lock keeps NASA, and at each turn both move on from their own
+  owner (home NASA and lock APOD, then the other way round): the screens never match again.
+  The cause (read in the code, 2026-10-20 night): `restartAndForget` keeps each record's owner
+  (`Record.forget`), and `dueOn` moves each screen on from its own owner; only a screen with no
+  record takes the other's (`dueWallpapers`). The same can happen without Set: a screen whose
+  set failed retries later, when another source may have got a picture, and picks another
+  next source than the other screen did.
+- **Should:** with the same sources on both screens (equal columns, both with at least one),
+  the lock screen follows home's owner and stamp, so both are due the same picture and
+  `Plan.sets` makes it one set with both flags. In `dueWallpapers` (one reading of the clock, so
+  it holds after Set, the daily switch on and every run), not only in `restartAndForget`.
+  Home's owner wins (night default if another fits better, with the alternative). The
+  stand-in, "Skip it" and an early change follow, as the lock screen takes home's due record.
+- Columns that differ keep today's rules (each screen its own owner, one shared clock).
+- **Files:** `core/.../Screens.kt` (`dueWallpapers`), `ScreensTest` (the steps above as a test
+  that fails on the old code: after Set and at the next two turns both screens due one
+  picture; the failed-retry case; columns that differ unchanged), `CLAUDE.md` (Next features,
+  0.6.0: drop B2's "not built yet", and reword "not by equal columns: a screen still due a
+  retry may differ for a while", which is no longer true for equal columns; Turns: the rule).
+- **Tablet:** the steps above: after Set `dumpsys wallpaper` shows one shared wallpaper
+  (`mWhich=3`), then `turn.sh` ends the turn and both screens change to the same picture;
+  then columns that differ (APOD Both, NASA Home) still take turns on home only.
+- **Done when:** a regression test that fails on the old code, the fix, the tablet passes.
+
+### [x] B3. Two texts: " · My picture" in APOD mode, the ⓘ for saving (Sonnet, medium)
+
+Done by day (2026-10-20, a day session, not by night): `pictureSuffix` and the ⓘ text in
+`MainActivity.kt`. Tablet: APOD mode, a faked APOD video day, "Use my picture", Set: "Wallpaper
+changed 20 Oct, 23:41 · My picture" (logcat "Set: wallpaper set: Own on HOME"); the ⓘ dialog
+shows the new text. Not checked: font scale 2.0.
+
+From the night's report (2026-10-20 night; the user's answers after it).
+- **" · My picture" in APOD mode:** with "Use my picture" on an APOD video day the status line
+  read "Wallpaper changed 20 Oct, 22:55" with nothing after it (regression 3), while a stand-in
+  shows " · NASA". `pictureSuffix` in `MainActivity.kt` adds it only with `stored.allSources`:
+  add it in both modes; the KDoc above it says so.
+- **The ⓘ dialog** of "Save every picture" (F6 made the old text untrue at 20 MB): "Each new
+  picture is saved to Pictures/APODroid: full size up to the largest original, else a
+  screen-sized copy. A few hundred MB a month or more." (as `CLAUDE.md`, Save every picture).
+- **Files:** `MainActivity.kt`, `CLAUDE.md` (drop the two "B3, not built yet").
+- **Tablet:** APOD mode, a faked APOD video day, "Use my picture" with a picture, Set: the
+  status line ends " · My picture" (a screenshot); with the switch on as before; the ⓘ
+  dialog (a screenshot; font scale 2.0 too).
+- **Done when:** the checks pass, the tablet passes, the screenshots are there for the user.
+
+### [ ] B4. The draft after a second start (Opus, medium)
+
+From S5's tablet check (2026-10-20 night, rosie): a draft change, a tap on the picture (the
+browser), back to the app: the draft was gone. **Reproduced by day** (2026-10-20, the tablet,
+dev's build): `MainActivity` has no `launchMode`, so a start whose intent doesn't match the one
+that opened the task puts a **second** page on top. It opens without the draft (Setup closed,
+the stored setup), and its `onCreate` deletes `files/fallback-draft.jpg`, which the page under
+it still uses. Seen: a task opened by `am start -n …/.MainActivity` (rosie's way), then a
+launcher-style start → two pages (`dumpsys activity activities`: `* Hist #1`, `#0`, the
+bottom one's intent without `act`/`cat`); the reverse too (launcher first, then `am start -n`).
+Not affected, with the task opened from the launcher: the browser and back by Recents, and by
+the launcher icon (Olauncher): one page, the draft kept. (WebLibre's Back stays in the browser.)
+So users rarely hit it (a launcher or shortcut that starts the app another way), but every
+night's tablet check does.
+- **The fix:** one page, one instance: `android:launchMode="singleTop"` on the activity (a
+  start while the page is on top reuses it; `onNewIntent` does nothing), or `singleTask` if
+  rosie finds a way with another activity on top (App info, the photo picker) that still
+  stacks a page; a night default with the why. Nothing else changes: closing the app (a swipe
+  from Recents) still drops the draft, the system killing it keeps it.
+- **Files:** `app/src/main/AndroidManifest.xml`, `MainActivity.kt` only if needed, `CLAUDE.md`
+  (The app, Settings, "A draft until Set": what keeps the draft), the skill's "Where things
+  are" and its how-to for starting the app (prefer the launcher intent: `monkey -p
+  io.github.buerlino.apodroid -c android.intent.category.LAUNCHER 1`).
+- **Tablet** (on B4's build; the old build's behaviour is above, no need to reproduce it): from
+  a force-stop, open with `am start -n io.github.buerlino.apodroid/.MainActivity`, make a draft
+  change (Size → Fit) and pick a "my picture" into the draft, then start again with the
+  launcher intent (`monkey … 1`): one `MainActivity` in `dumpsys activity activities`, Fit
+  still chosen, `fallback-draft.jpg` still there (`run-as ls files`). The reverse order the
+  same. The picture → the browser → back by Recents and by the launcher: the draft kept. A
+  swipe from Recents still drops it.
+- **Done when:** the checks pass, the tablet passes (each start named with its result).
+
+### [ ] B5. A failed run keeps its retry (Opus, medium)
+
+The user's answer to pass 6's question (2026-10-20 night): S4f3's night default, a reschedule
+noted during a failed run replacing its 30 s backoff retry, is fixed, not kept.
+- Now: `DailyJob.rescheduleNoted` runs right after `jobFinished(params, true)`; `schedule`
+  (and `ensure` with another timing) replaces the job and with it the retry, so with turns the
+  retry waits up to a period.
+- **Should:** after a failed run, a noted reschedule stays noted and is done at the end of the
+  next run that doesn't fail (the retry, usually within a minute). Off still cancels and drops
+  it. The process dying in between loses it, as now (`onResume`'s `ensure` covers a changed
+  timing). `onResume`'s own `ensure` while no run goes stays as now. **A `schedule` or
+  `ensure` done directly, with no run going, drops a kept note** (from a review, 2026-10-20
+  night): else a Set made later would be followed, after the next run that doesn't fail, by
+  the old note, restarting the job's period at a random time. A test or a log line shows it
+  if the code allows; else say how it was checked.
+- **Files:** `DailyJob.kt`, `CLAUDE.md` (Background update: drop B5's "not built yet").
+- **Tablet:** a run that fails (the proxy in `private/wp7-handoff/proxy/` failing one source)
+  with "More NASA pictures" on and turns, Set during it: `logcat` shows no "rescheduled after
+  the run" after the failed run, the retry runs (`dumpsys jobscheduler`: the backoff), and the
+  reschedule comes after the retry's end once the proxy lets it through. Then: a failed run
+  with a note kept, a Set with no run going (schedules at once), the next good run: no
+  "rescheduled after the run" line. If the proxy can't be set up, say so under Not tested.
+- **Done when:** the checks pass, the tablet passes, `CLAUDE.md` says it.
+
+### [ ] B6. Quick taps on the daily switch set once (Opus, medium)
+
+The user's answer to pass 6's question (2026-10-20 night): rosie on S4f2 switched on, off, on
+within about 0.3 s and got two switch-on sets of the same picture, 0.6 s apart; fix it.
+- Now: `switchDaily(true)` while the first switch-on's run (`switchOn`) still goes queues
+  another run (`switchAgain`, `runNext`), which starts the stored setup afresh again
+  (`startAfresh` forgets the records) and sets the same picture again.
+- **Should:** on again while a switch-on run goes adds no second run when that run will set
+  (it got past its `store.daily` check); only when it gave up (the switch was off when it
+  started) does the last on run once more. Off is still off. One set and one toast in all.
+  The edge (from a review, 2026-10-20 night): the first run's `store.daily` check falling
+  inside the short off must not end the taps with the switch on and nothing set (with turns
+  nothing would then be set until the next period). Opus, as S4f2 needed a fix round in the
+  same code.
+- **Files:** `MainActivity.kt` (`switchDaily`, `switchOn`), `CLAUDE.md` (Background update:
+  drop B6's "not built yet").
+- **Tablet:** on, off, on in one `adb shell` command (three `input tap`s): `logcat` shows one
+  "Switch on:" set, `wallpaperSetAt` written once; on, off with a pause: off cancels the job;
+  a slow on, off, on (a second apart) still ends on with the job scheduled and the wallpaper
+  set; several fast triples (on, off, on with 50–300 ms between taps): every one ends on,
+  set once, the job scheduled.
+- **Done when:** the checks pass, the tablet passes.
+
 ### [ ] S6. The picture side: the title dropdown, swipe between sources, no Share (Opus, high)
 
-After S5 (both change `MainActivity.kt`).
+After S5 (both change `MainActivity.kt`), and after B2 and B4–B6 in the queue (B4 and B6 change it too).
 - `Tabs()` → `SourceTitle()`: the short name at `headlineSmall`; with two or more sources "▾"
   and a `DropdownMenu`, ✓ before the shown one; screen readers "Picture from: NASA Image of
   the Day" and its role.
@@ -952,9 +1099,12 @@ After S5 (both change `MainActivity.kt`).
 
 After F5, F1f1, F5f1 and C (V3, V5 and V6 also after S1, S2 and S4–S6), so it tests the final code (third review: F1 changes the set path,
 F5 the job). **By night** (user, 2026-10-20), and a device package gets one rosie session of at
-most 50 minutes (`night.md`, For rosie; `pipeline.sh` gives it 3600 s), so V is six queue
-rows, V1–V6, each bundled as `plan V + plan V<k>`, and V7 by day after the night (turns over
-hours: the night's later rows and the regression reinstall and change the tablet). Every row:
+most 50 minutes (`night.md`, For rosie; `pipeline.sh` gives it 3600 s), so V is queue
+rows, V1–V6 and V8, each bundled as `plan V + plan V<k>`, and V7 by day after the night (turns over
+hours: the night's later rows and the regression reinstall and change the tablet). **The
+complete test before the stable release** (user, 2026-10-20 night): V3, V5, V6 and V8 on the
+final tree (after S6 and B2–B6), the night's regression after them, then V7 and P. V1, V2 and
+V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
 - The final tree: master with everything above committed (`night.sh` refuses an uncommitted
   plan and brings `dev` up to master). Build what the row needs in your worktree:
   `./gradlew :app:assembleDebug`, and for R8 `:app:assembleRelease` signed with the debug key
@@ -1007,6 +1157,12 @@ hours: the night's later rows and the regression reinstall and change the tablet
   device makes one set fail, say so under Not tested (`ScreensTest` covers the rule).
 - Rotation and two panes; font scale 2.0 at `wm density 344` (the phone's width): the list and
   the status lines with the short names, the Fit row, the credit.
+- From the night of 2026-10-20 (its report): B1's "kept" line after the daily switch goes on
+  (S4f2 forgets the records as Set does: a faked video day, APOD alone, "Skip it", switch off
+  and on), and with turns on one screen (no "kept" line there); a draft change made while a
+  Set runs (Setup closes after
+  the Set: the change still highlighted, the header too); pull to refresh with a faked old
+  date fetches again (`logcat`).
 
 ### [x] V4. What the night of 2026-10-20 didn't check
 
@@ -1036,8 +1192,9 @@ hours: the night's later rows and the regression reinstall and change the tablet
   checked on screen only: the settings kept, the page and the job work.
 - On the R8 build of 0.6.0: the smoke list (`night.md`), then both modes, Fit set, the credit
   shown, a save by the job (one over "Largest original" saving the smaller copy, F6), ★ by
-  hand, the swipe between sources (S6); no crash (`logcat`, `exit-info`). R8
-  isn't covered by the unit tests.
+  hand on an original over the limit (10 MB and a 20–50 MB original faked by prefs, never
+  today's 208 MB one: ★ saves the original anyway; the file deleted after), the swipe between
+  sources (S6); no crash (`logcat`, `exit-info`). R8 isn't covered by the unit tests.
 
 ### [ ] V7. Turns over hours (by day, after the night)
 
@@ -1048,6 +1205,27 @@ hours: the night's later rows and the regression reinstall and change the tablet
   (`Last successful run`), `logcat -d -s APODroid`, `dumpsys wallpaper`, the prefs: each turn
   within its window (period and flex), both screens on the one clock, no screen set twice for
   one turn. Real timing, so no `turn.sh`. Then set the tablet back.
+
+### [ ] V8. V1, V2 and V4 again where S4–S6 changed them
+
+- Fit (V1, F1): set by Set now (S4), not at once: Fit with a wide and a tall picture, home and
+  lock, both modes; no ⛶ with Fit; a made-up JPEG with EXIF orientation 6 as "my picture" with
+  Fit comes out upright. No ⤴ (S6 removed Share).
+- The credit (V2, F4) under the title with S6's title and swipe: a short one and the longest
+  by prefs, APOD mode and "More NASA pictures", the explanation open and closed.
+- The job's saves (V2, F5, F5f1, F6): "Save every picture" on, a forced run saves each source
+  in use; a stop during a save (`cmd jobscheduler timeout`) leaves no file and `saveTried`, the
+  next run saves the smaller copy; with the limit at 10 MB a 20–50 MB original (faked by prefs)
+  saves the smaller copy, with "No limit" the original. The ⓘ dialog's new text (B3). The
+  test files deleted from the gallery after.
+- The photo picker in the draft (V4): "Use my picture" with none opens the picker; backing out
+  keeps the choice before; a picked picture is a draft (`fallback-draft.jpg`) until Set
+  renames it; "Change picture"; a rotation while the picker is open; closing the app drops the
+  draft file.
+- V4's other bullets on the final tree: the problem box with "More NASA pictures" on when only
+  NASA fails (the proxy), on APOD's page and on NASA's (S6's title and swipe); the chip in APOD
+  mode with "Where" = Lock; the open page following a job run that changes only the lock
+  screen.
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 
@@ -1060,7 +1238,10 @@ and 2.0, a lock screen with its own picture, landscape; home and lock set separa
 16 (M0 checked the tablet only); the shown source after a swipe-away from Recents (expected:
 back to the opening tab; after the system kills the app it stays, `CLAUDE.md`, Tabs); Wi-Fi
 only on mobile data (the tablet has no SIM); the title dropdown and the swipe (S6); the daily
-switch at once (S4f2); "Largest original" (F6) on the phone's own gallery; and Fit on the phone's screen (2026-10-20, review). After V1–V7 and their `B<n>`
+switch at once (S4f2); "Largest original" (F6) on the phone's own gallery; and Fit on the phone's screen (2026-10-20, review);
+S5's highlight on the phone's colours (faint beside the blue on the tablet's) and its headers'
+screen-reader states with TalkBack ("expanded", "collapsed", "not set yet": `uiautomator`
+doesn't show them). After V1–V7 and their `B<n>`
 fixes. Report what was tested; a bug becomes a
 `B<n>` package (night.md, The morning, step 6) before R.
 

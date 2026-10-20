@@ -40,6 +40,12 @@ fi
 out="$("$here/pipeline.sh" M2f1 --model sonnet --tablet no --dry-run "Fix the thing in Store.kt" 2>&1)"
 grep -q 'winston (sonnet, high), branch wp/m2f1, tablet no' <<<"$out" || fail "M2f1: wrong defaults: $(head -n 1 <<<"$out")"
 grep -q '^## The package it fixes: M2' <<<"$out" || fail "M2f1: no section of M2 for context"
+# A queue row named like a fix (S4f2) is a package of its own: its row and its section, not S4's.
+if [[ -n "$(queue_row "$night" S4f2)" ]]; then
+  out="$("$here/pipeline.sh" S4f2 --dry-run 2>&1)"
+  grep -q 'winston (opus, medium), branch wp/s4f2,' <<<"$out" || fail "S4f2: not its own row: $(head -n 1 <<<"$out")"
+  grep -qE '^### \[[ x]\] S4f2\.' <<<"$out" && ! grep -qE '^### \[[ x]\] S4\.' <<<"$out" || fail "S4f2: the bundle holds S4's section, not its own"
+fi
 out="$("$here/pipeline.sh" Z9 --dry-run 2>&1)"; rc=$?
 [[ $rc -eq 2 ]] && grep -q 'Z9' <<<"$out" || fail "made-up ID: exit $rc: $out"
 out="$("$here/pipeline.sh" M1 --model gpt --dry-run 2>&1)"; rc=$?

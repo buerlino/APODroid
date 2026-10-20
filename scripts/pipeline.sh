@@ -4,7 +4,8 @@
 #
 #   scripts/pipeline.sh <ID> [options] ["<task text>"]
 #       A queue package: its row in night.md's queue gives agent, model, effort, tablet and spec.
-#       A fix package (<ID>f1, <ID>f2, ...): the task text is the fix; the defaults come from <ID>'s row.
+#       A fix package (<ID>f1, <ID>f2, ...): the task text is the fix; the defaults come from <ID>'s row,
+#       unless <ID>f<k> has a queue row of its own (then it is a queue package).
 #       --agent A         the worker: winston (code), or rosie (a device package such as M0: she runs it on the tablet)
 #       --model M         the worker's model: opus or sonnet
 #       --effort E        low, medium or high
@@ -176,7 +177,9 @@ plan="$(ls "$integ/$skill"/plan-*.md 2>/dev/null | sort -V | tail -n1)"
 features="$integ/$skill/features.md"
 [[ -f "$night" && -f "$plan" ]] || die "no night.md or plan-*.md in $integ/$skill"
 base="$(sed -E 's/f[0-9]+$//' <<<"$id")"
-row="$(queue_row "$night" "$base")"
+# A queue row of its own wins (S4f2 is a package, not a fix of S4); the base row only for a pass's FIX package.
+row="$(queue_row "$night" "$id")"
+if [[ -n "$row" ]]; then base="$id"; else row="$(queue_row "$night" "$base")"; fi
 [[ -n "$row" || -n "$task" ]] || die "package $id is not in the queue of night.md and has no task text"
 r_agent=""; r_model=""; r_effort=""; r_tablet=""; r_after=""; r_spec=""
 [[ -z "$row" ]] || IFS='|' read -r r_agent r_model r_effort r_tablet r_after r_spec <<<"$row"

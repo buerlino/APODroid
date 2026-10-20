@@ -112,6 +112,11 @@ night (pascaline has it by day). **S6** waits for the user's look at S5 (its Aft
 V6 wait for S6, as they test the final tree. **Only APODroid's nights use the tablet** (user, 2026-10-20
 evening; pascaline's nights leave HA24BZ2Y alone, the user tells them).
 
+The night after (user, 2026-10-20 night, from that night's report; the plan, Remaining 3c): **B2, B4, B5, B6**, the
+fixes the user decided after it (B3 was done by day), then **S6** (S5 approved, so it no longer waits for the user),
+then the complete test on the final tree: **V3, V5, V6, V8**, and the regression. V1, V2 and V4 are merged and pass
+over. V5 (the update from 0.5.0) has no After: it doesn't rest on S6, so it runs even if S6 stays unmerged.
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -130,11 +135,16 @@ evening; pascaline's nights leave HA24BZ2Y alone, the user tells them).
 | 14 | S4f3 | Set doesn't stop a running job | winston | opus, medium | yes | S4f2 | plan S4f3 |
 | 15 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "More NASA pictures" | winston | opus, medium | yes | S4f3 | plan S5 |
 | 16 | F6 | A size limit for the job's saves | winston | opus, medium | yes | S5 | plan F6 |
-| 17 | S6 | The picture side: the title dropdown, swipe between sources, no Share | winston | opus, high | yes | S5, the user | plan S6 |
-| 18 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S6 | plan V + plan V3 |
-| 19 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
-| 20 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | S6 | plan V + plan V5 |
-| 21 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S6 | plan V + plan V6 |
+| 17 | B2 | Equal columns change together | winston | opus, medium | yes | — | plan B2 |
+| 18 | B4 | The draft after a second start | winston | opus, medium | yes | S5 | plan B4 |
+| 19 | B5 | A failed run keeps its retry | winston | opus, medium | yes | S4f3 | plan B5 |
+| 20 | B6 | Quick taps on the daily switch set once | winston | opus, medium | yes | S4f2 | plan B6 |
+| 21 | S6 | The picture side: the title dropdown, swipe between sources, no Share | winston | opus, high | yes | S5 | plan S6 |
+| 22 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S6 | plan V + plan V3 |
+| 23 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
+| 24 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | — | plan V + plan V5 |
+| 25 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S6 | plan V + plan V6 |
+| 26 | V8 | Tablet pass: V1, V2 and V4 again where S4–S6 changed them | rosie | opus, high | no | S6 | plan V + plan V8 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

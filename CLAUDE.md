@@ -254,8 +254,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   two panes both ways.
 - **Settings** (SharedPreferences; 0.6.0's layout built in M3, 2026-10-20, its texts and the
   night's defaults approved by the user the same day from the tablet's screenshots; the order
-  and the list since S2, Set applies the setup since S4, 2026-10-20, texts placeholders until
-  the user's look; S5's grouping and highlight, 2026-10-20 night): **Wallpaper**: the daily
+  and the list since S2, Set applies the setup since S4, 2026-10-20; S5's grouping, highlight
+  and texts, 2026-10-20 night, approved by the user after it with the night's defaults, from the
+  tablet's screenshots): **Wallpaper**: the daily
   switch; the status lines (while the stored daily switch is on); **Setup ▸/▾**, a header that
   opens and closes the draft's settings (a button for screen readers, "expanded"/"collapsed";
   closed: a summary of the **stored** setup under it, "APOD on both screens" in APOD mode (or "home screen", "lock screen", as the stored "Where" says), else
@@ -470,7 +471,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   With the switch on (M4) one line while both screens show the same picture, else a line per
   screen set or kept: "Home screen changed 16 Oct, 06:12 · NASA", "Lock screen: video day,
   wallpaper kept"; the user's own picture " · My picture"; a screen never set has no line
-  (approved by the user, 2026-10-20). The page re-reads both
+  (approved by the user, 2026-10-20). " · My picture" in APOD mode too (user, 2026-10-20 night;
+  B3: it had none there, while a stand-in had " · NASA"). The page re-reads both
   around each update and after a set.
 - **Tabs (0.5.0, WP4; 0.6.0, M4, 2026-10-20):** with the switch "More NASA pictures" on always
   three, else (APOD mode) on an APOD video day APOD and the video-day source; a segmented row
@@ -574,10 +576,11 @@ original downloads outside the refresh lock (a refresh doesn't wait for a 10 MB 
 to the gallery holds it, and if a newer APOD was stored meanwhile it saves nothing, says so and
 redraws the page.
 
-**Save every picture** (0.6.0, F5, 2026-10-20; the pref `saveEvery`, default off; the ⓘ's text
-approved by the user in C, 2026-10-20): a switch under "Wi-Fi only" while the daily switch is on, with a small ⓘ
-("About saving") that opens a dialog: "Each new picture is saved full size to Pictures/APODroid: a few hundred
-MB a month or more." (OK; the per-source sizes dropped in C). After each job run (not the page's), also
+**Save every picture** (0.6.0, F5, 2026-10-20; the pref `saveEvery`, default off): a switch
+under "Wi-Fi only" while the daily switch is on, with a small ⓘ ("About saving") that opens a
+dialog: "Each new picture is saved to Pictures/APODroid: full size up to the largest original,
+else a screen-sized copy. A few hundred MB a month or more." (OK; user, 2026-10-20 night, after
+F6: C's "Each new picture is saved full size…" isn't true under the limit; B3). After each job run (not the page's), also
 after a failed one, not after a stop, `Store.saveInUse` saves each source in use's stored post
 in order APOD → NASA → Earth, as ★ does (`save`: the original, else the stored picture). The set
 in use is `:core`'s `sourcesInUse`, the one `update` fetches (the ticked sources and
@@ -596,8 +599,8 @@ the next job save of that post saves the stored picture, the smaller copy, as af
 (`save(post, tryOriginal = false)`). A post with another picture URL tries its original. A save
 that returns (also `BUSY`, which downloaded nothing) clears the note. ★ always tries the
 original and ignores the note.
-**A size limit** (user, 2026-10-20 evening, after a 208 MB NASA PNG; F6, built the same night;
-the device check waits for rosie): "Largest original" [10 MB | 20 MB | 50 MB | 100 MB | No
+**A size limit** (user, 2026-10-20 evening, after a 208 MB NASA PNG; F6, built the same night,
+tablet PASS; the label, the default and 1 MB = 1,000,000 bytes approved by the user after it): "Largest original" [10 MB | 20 MB | 50 MB | 100 MB | No
 limit], a dropdown under "Save every picture" in "Advanced settings" while that switch is on
 (indented, label then "20 MB ▾", ✓ before the chosen one; screen readers "Largest original:
 20 MB"), default 20 MB, at once (not part of the draft; the pref `saveLimit`, MB, 0 = no limit;
@@ -645,7 +648,9 @@ schedules the job after its set: with turns afresh (`DailyJob.schedule`: the per
 the restarted clock; `ensure` would keep the old windows and the first turn would end up to a
 period late), otherwise `ensure` (a fresh one without turns runs at once and would set first); off
 cancels it. Turning the daily switch on (S4f2) does the same after setting the stored setup
-afresh (`Store.startAfresh`); off cancels at once. **No reschedule stops a running run** (user, 2026-10-20 evening; S4f3):
+afresh (`Store.startAfresh`); off cancels at once. Quick taps (on, off, on while the first
+switch-on still runs) set once, not twice (user, 2026-10-20 night; B6, not built yet: S4f2 set
+the same picture twice, 0.6 s apart). **No reschedule stops a running run** (user, 2026-10-20 evening; S4f3):
 scheduling the job's id again stops a run, so a Set with turns during a run delayed its saves
 to the next run (an `ensure` with another timing too). While a run goes (`DailyJob`'s count of
 runs, process-wide: the page and the job share one process), `schedule` and `ensure` only note
@@ -653,8 +658,10 @@ what's wanted (afresh wins), and the run does it after `jobFinished`, by the sto
 and only while `daily` is on. Off still cancels at once, a running run too, and drops the note.
 Accepted: the process dying before the run's end loses the note; `onResume`'s `ensure` covers a
 changed timing, but a fresh period for the same timing is lost (turns stay on their clock, the
-job may come up to a period off). A noted reschedule after a failed run replaces its backoff
-retry (a job without turns runs at once anyway). The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
+job may come up to a period off). **A failed run keeps its backoff retry** (user, 2026-10-20
+night; B5, not built yet: S4f3 let a reschedule noted during a failed run replace the retry, so
+with turns the retry waited up to a period): the note waits for the end of a run that didn't
+fail. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
 schedules it again when `daily` is on and the job is missing or has another timing
 (`DailyJob.ensure`; scheduling the same id again would stop a running job).
@@ -715,7 +722,7 @@ wake and fail offline).
 
 ## Next features
 
-**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, Wi-Fi only in F2, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6), turns over hours by day (V7), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
+**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, Wi-Fi only in F2, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6, and V8: V1, V2 and V4 again where S4–S6 changed them; user, 2026-10-20 night: a complete test on the final tree before the stable release), turns over hours by day (V7), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).
@@ -746,7 +753,11 @@ video days worked only with APOD alone (it shows at once that it was a video day
   (2026-10-20 evening; built in S4f2: it acts at once, on sets the stored setup afresh). S4's texts approved the same evening: "Set as
   wallpaper", ✓'s screen-reader label "Done", the toast "Setup saved. Nothing to set yet."
 - Both screens due the same picture: one set with both flags; else each screen on its own (not
-  by equal columns: a screen still due a retry may differ for a while). Every screen's due picture comes from
+  by equal columns: a screen still due a retry may differ for a while). **Equal columns change
+  together** (user, 2026-10-20 night; B2, not built yet): with the same sources on both screens
+  the lock screen follows home's owner, so both show one picture. Why: after a Set from columns
+  that differed, each screen kept its own owner and they stayed opposite for good (home NASA
+  and lock APOD, then the other way round). Every screen's due picture comes from
   one reading of the clock (reviews of the plan, 2026-10-19). The clock restarts only when the
   turn ends or on Set, not when one screen changes early, so the screens stay in step. Each
   screen's record notes its turn, so a failed set on one screen is retried without moving the

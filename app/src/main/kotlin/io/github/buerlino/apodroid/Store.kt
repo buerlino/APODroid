@@ -27,6 +27,7 @@ import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.Plan
 import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Record
+import io.github.buerlino.apodroid.core.Restart
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.SiteChanged
 import io.github.buerlino.apodroid.core.StandIn
@@ -69,10 +70,10 @@ data class Part(val date: LocalDate, val url: String?, val position: Float)
 
 /**
  * Everything "Set as wallpaper" saves at once ([Store.saveSetup]); the page's draft until then.
- * [list] is the list's columns, kept in APOD mode too; [parts] ⛶'s part per source.
+ * [list] is the list's columns, kept in APOD mode too; [parts] ⛶'s part per source. Not the daily
+ * switch: it acts at once ([Store.switchDaily]).
  */
 data class Setup(
-    val daily: Boolean,
     val allSources: Boolean,
     val where: Where,
     val list: Map<Screen, List<Source>>,
@@ -223,7 +224,7 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(daily, allSources, where, list, interval, fit, videoDays, parts)
+        get() = Setup(allSources, where, list, interval, fit, videoDays, parts)
 
     /**
      * Blocking. "Set as wallpaper": saves [setup] in one commit (the list with [putColumns], so
@@ -231,14 +232,14 @@ class Store(private val context: Context) {
      * [restartAndForget]: the clock restarts and the records of the screens with a column are
      * forgotten, so the next [setDue] gives each screen what the setup says afresh (a changed Fit
      * or "my picture" too, with the same picture). A screen whose column was empty starts
-     * without a record. The caller then schedules or cancels the job and runs [update] with `set`.
+     * without a record. The daily switch isn't part of it ([switchDaily]). The caller then runs
+     * [update] with `set` and schedules or cancels the job as the stored [daily] says.
      */
     fun saveSetup(setup: Setup): Unit = synchronized(wallpaperLock) {
         if (draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
         val before = columns
         val restart = restartAndForget(before, setup.columns, turnStartedAt, records(), Instant.now())
         prefs.edit(commit = true) {
-            putBoolean("daily", setup.daily)
             putBoolean("allSources", setup.allSources)
             putString("where", setup.where.name)
             // Before the first time on, the list stays unsaved, so it still starts from "Where".
@@ -251,9 +252,31 @@ class Store(private val context: Context) {
                 putString(source.key("cropUrl"), part.url)
                 putFloat(source.key("cropPosition"), part.position)
             }
-            putPlan(restart.plan)
-            restart.drop.forEach { remove(it.key("wallpaperSource")) }
+            putRestart(restart)
         }
+    }
+
+    /**
+     * The daily switch, at once (not part of [Setup]): writes [daily] (the caller cancels or
+     * schedules the job). Turning it on, the caller then runs [startAfresh] and [update] with `set`.
+     */
+    fun switchDaily(on: Boolean) {
+        prefs.edit(commit = true) { putBoolean("daily", on) }
+    }
+
+    /**
+     * Blocking. The stored setup afresh, as Set does without saving anything (the daily switch
+     * turned on): [restartAndForget] with the stored columns, so the clock restarts and the records
+     * of the screens with a column are forgotten; the next [setDue] sets each screen anew.
+     */
+    fun startAfresh(): Unit = synchronized(wallpaperLock) {
+        val restart = restartAndForget(columns, columns, turnStartedAt, records(), Instant.now())
+        prefs.edit(commit = true) { putRestart(restart) }
+    }
+
+    private fun SharedPreferences.Editor.putRestart(restart: Restart) {
+        putPlan(restart.plan)
+        restart.drop.forEach { remove(it.key("wallpaperSource")) }
     }
 
     /**

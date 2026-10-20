@@ -166,9 +166,11 @@ class MainActivity : ComponentActivity() {
     private var wifiOnly by mutableStateOf(false)
     private var saveEvery by mutableStateOf(false)
 
+    /** The daily switch ([Store.daily]): not part of the draft, it acts at once ([switchDaily]). */
+    private var daily by mutableStateOf(false)
+
     // The draft: what the settings show and change, until Set saves it all ([Store.saveSetup]).
     // Kept across a rotation and the system killing the app (onSaveInstanceState), not a restart.
-    private var daily by mutableStateOf(false)
     private var where by mutableStateOf(Where.BOTH)
     private var fit by mutableStateOf(false)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
@@ -194,13 +196,19 @@ class MainActivity : ComponentActivity() {
      * it (the status lines, the chip, the video notice, the problem box, the battery hint, the
      * opening tab), the controls the draft.
      */
-    private var stored by mutableStateOf(Setup(false, false, Where.BOTH, emptyMap(), Interval.DAY, false, VideoDays.KEEP, emptyMap()))
+    private var stored by mutableStateOf(Setup(false, Where.BOTH, emptyMap(), Interval.DAY, false, VideoDays.KEEP, emptyMap()))
 
     /** "My picture" as set ([Store.fallbackFile]). */
     private var hasFallback by mutableStateOf(false)
 
     /** "Set as wallpaper" is running. */
     private var setting by mutableStateOf(false)
+
+    /** The daily switch's run is going ([switchOn]); Set waits for it. */
+    private var switching by mutableStateOf(false)
+
+    /** The daily switch went on while a load, a Set or a switch-on ran: [switchOn] runs after it ([runNext]). */
+    private var switchAgain = false
 
     private var weekdayNoticeHidden by mutableStateOf(false)
 
@@ -225,6 +233,7 @@ class MainActivity : ComponentActivity() {
         store = Store(this)
         weekdayDialog = savedInstanceState?.getBoolean("weekdayDialog") == true
         tab = savedInstanceState?.getString("tab")?.let { name -> Source.entries.firstOrNull { it.name == name } }
+        daily = store.daily
         wifiOnly = store.wifiOnly
         saveEvery = store.saveEvery
         pauseHintHidden = store.pauseHintHidden
@@ -264,10 +273,9 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(daily, allSources, where, list, interval, fit, videoDays, parts)
+    private fun draft() = Setup(allSources, where, list, interval, fit, videoDays, parts)
 
     private fun useDraft(setup: Setup) {
-        daily = setup.daily
         allSources = setup.allSources
         where = setup.where
         list = setup.list
@@ -302,7 +310,7 @@ class MainActivity : ComponentActivity() {
      * is enough.
      */
     private fun follow() {
-        if (loading || following?.isActive == true) return
+        if (loading || switching || following?.isActive == true) return
         following = lifecycleScope.launch {
             readStatus()
             if (isStale()) show() else saved = withContext(Dispatchers.IO) { store.isSaved(shown) }
@@ -352,10 +360,11 @@ class MainActivity : ComponentActivity() {
      * was in the background), then runs [Store.update]: fetches the newest of each source in use
      * unless the stored one is today's or was checked within the hour (always with [force], pull
      * to refresh) and sets the wallpaper while the daily change is on. Called while one runs, it
-     * runs once more after, since that one may have read the settings before they changed.
+     * runs once more after, since that one may have read the settings before they changed; also
+     * while the daily switch's run goes ([runNext]).
      */
     private fun load(force: Boolean = false) {
-        if (loading) {
+        if (loading || switching) {
             loadAgain = force || loadAgain == true
             return
         }
@@ -375,11 +384,28 @@ class MainActivity : ComponentActivity() {
             failed = failure != null
             saved = withContext(Dispatchers.IO) { store.isSaved(shown) }
             loading = false
-            val again = loadAgain
-            loadAgain = null
             // A pull meanwhile keeps its spinner until its own fetch ends.
-            if (again != true) refreshing = false
-            if (again != null) load(again)
+            if (loadAgain != true) refreshing = false
+            runNext()
+        }
+    }
+
+    /**
+     * After a load, a Set or the daily switch's run: once none runs, the daily switch's run that
+     * waited ([switchAgain]) goes first, then a load that waited ([loadAgain]).
+     */
+    private fun runNext() {
+        if (loading || setting || switching) return
+        if (switchAgain) {
+            switchAgain = false
+            if (store.daily) {
+                switchOn()
+                return
+            }
+        }
+        loadAgain?.let {
+            loadAgain = null
+            load(it)
         }
     }
 
@@ -534,9 +560,69 @@ class MainActivity : ComponentActivity() {
         return BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
     }
 
-    /** Part of the draft: sets nothing and leaves the job as it is until Set. */
+    /**
+     * The daily switch, at once (not part of the draft; S4f2): [Store.switchDaily] writes it. Off
+     * cancels the job. On starts the stored setup afresh ([Store.startAfresh]: the clock restarts,
+     * both records forgotten), sets it ([Store.update] with set: the stored setup, not the draft,
+     * which stays a draft), then schedules the job, after the set as Set does. "Wallpaper set" or
+     * "Couldn't set the wallpaper"; no toast when nothing was set (the status line says it).
+     * Turned on while a load, a Set or its own run goes: one run after it ([runNext]), so its set
+     * and its toast aren't taken by the other. Off drops a waiting run, and a running one sets
+     * nothing more ([switchOn]).
+     */
     private fun switchDaily(on: Boolean) {
         daily = on
+        store.switchDaily(on)
+        if (!on) {
+            switchAgain = false
+            DailyJob.cancel(this)
+            return
+        }
+        switchAgain = true
+        runNext()
+    }
+
+    /**
+     * The daily switch's run ([switchDaily]). Off is off: abandoned while the stored switch is off
+     * before [Store.startAfresh], and [Store.update] without `set` sets only while it is still on.
+     */
+    private fun switchOn() {
+        switching = true
+        val offered = sources
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (!store.daily) return@runCatching null
+                    store.startAfresh()
+                    store.update(force = false, page = true, show = offered)
+                }
+            }
+            // Switched off again meanwhile: off is off.
+            if (store.daily) scheduleJob()
+            val updated = result.getOrNull()
+            result.exceptionOrNull()?.let { Log.w("APODroid", "Switch on failed: $it", it) }
+            updated?.done?.let { Log.i("APODroid", "Switch on: $it") }
+            updated?.failure?.let { Log.w("APODroid", "Switch on: $it", it) }
+            failed = updated?.failure != null || result.isFailure
+            readStatus()
+            if (isStale()) show()
+            switching = false
+            when {
+                result.isFailure || updated?.setFailed == true -> toast("Couldn't set the wallpaper")
+                updated?.done != null -> toast("Wallpaper set")
+            }
+            runNext()
+        }
+    }
+
+    /**
+     * After a set that started the stored setup afresh (Set, the daily switch on): with turns the
+     * clock just restarted, so the job is scheduled afresh and its period starts now (ensure would
+     * keep the old windows and stretch the first turn); without turns [DailyJob.ensure] (a fresh
+     * job runs at once, so only after the set, or it would set first).
+     */
+    private fun scheduleJob() {
+        if (!(if (store.hasTurns) DailyJob.schedule(this) else DailyJob.ensure(this))) toast("Couldn't schedule the daily change")
     }
 
     private fun openAppInfo() {
@@ -580,12 +666,12 @@ class MainActivity : ComponentActivity() {
     /**
      * "Set as wallpaper": saves the draft ([Store.saveSetup]: the clock restarts, both records
      * forgotten), sets each screen what it says ([Store.update] with set, also with the daily
-     * change off: a one-off set), then schedules or cancels the job as the draft's daily switch
-     * says (after the set: without turns the job runs at once and would set first, so the toast
-     * would say nothing was set).
+     * change off: a one-off set), then schedules or cancels the job as the stored daily switch
+     * says ([scheduleJob], after the set; the switch isn't part of the draft). Disabled while the
+     * daily switch's run goes; the switch turned on meanwhile runs after it ([runNext]).
      */
     private fun setAsWallpaper() {
-        if (setting) return
+        if (setting || switching) return
         setting = true
         // Crop mode still open: the dragged part counts, as after ✓.
         if (cropping) post?.let { keepPart(it) }
@@ -599,15 +685,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             draftFallback = store.draftFallbackFile.exists()
-            if (!setup.daily) {
-                DailyJob.cancel(this@MainActivity)
-            } else if (
-                // With turns the clock just restarted: schedule afresh so the period starts now
-                // (ensure would keep the old windows and stretch the first turn).
-                !(if (store.hasTurns) DailyJob.schedule(this@MainActivity) else DailyJob.ensure(this@MainActivity))
-            ) {
-                toast("Couldn't schedule the daily change")
-            }
+            if (store.daily) scheduleJob() else DailyJob.cancel(this@MainActivity)
             setting = false
             val updated = result.getOrNull()
             result.exceptionOrNull()?.let { Log.w("APODroid", "Set failed: $it", it) }
@@ -623,6 +701,7 @@ class MainActivity : ComponentActivity() {
                     else -> "Setup saved. Nothing to set yet."
                 },
             )
+            runNext()
         }
     }
 
@@ -1079,7 +1158,7 @@ class MainActivity : ComponentActivity() {
         val apodTicked = stored.columns.values.any { Source.APOD in it }
         val mine = stored.videoDays == VideoDays.MINE
         val text = when {
-            !stored.daily || (stored.allSources && !apodTicked) -> "This APOD is a video.$watch"
+            !daily || (stored.allSources && !apodTicked) -> "This APOD is a video.$watch"
             stored.allSources -> when {
                 other != null && standInReady -> "This APOD is a video, so ${other.possessive} takes its place.$watch"
                 other != null -> "This APOD is a video. ${other.possessive} takes its place once it has loaded.$watch"
@@ -1162,8 +1241,8 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Wallpaper, all of it the draft until "Set as wallpaper" (S4): the daily switch, under it the
-     * status lines while the stored daily change is on; in APOD mode "Where", with the switch "All
+     * Wallpaper: the daily switch (at once, S4f2), under it the status lines while it's on; then,
+     * the draft until "Set as wallpaper" (S4), in APOD mode "Where", with the switch "All
      * NASA pictures" on the list ("Pictures from") and, while the daily switch is on and a column
      * takes turns, "Change every"; "Size"; while the daily switch is on "If APOD is a video",
      * "Wi-Fi only" and "Save every picture" (these two act at once); the set button. Then the
@@ -1184,8 +1263,7 @@ class MainActivity : ComponentActivity() {
                 Text("Change wallpaper automatically", Modifier.weight(1f))
                 Switch(checked = daily, onCheckedChange = null)
             }
-            // What is set, so by the stored switch.
-            if (stored.daily) {
+            if (daily) {
                 statusLines().forEach {
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -1243,7 +1321,7 @@ class MainActivity : ComponentActivity() {
             // One button, both modes, the daily switch on or off: it applies the whole draft.
             Button(
                 onClick = ::setAsWallpaper,
-                enabled = !setting,
+                enabled = !setting && !switching,
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             ) { Text("Set as wallpaper") }
 
@@ -1414,7 +1492,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun BatteryNotice() {
-        if (stored.daily && (batteryLimited || mayHibernate) && !pauseHintHidden) PauseHint()
+        if (daily && (batteryLimited || mayHibernate) && !pauseHintHidden) PauseHint()
     }
 
     /** Names only the settings still missing; hiding it asks first, with what will happen. */
@@ -1508,7 +1586,6 @@ private fun Map<Screen, List<Source>>.ticked(): List<Source> = Source.entries.fi
 
 /** The draft in the saved state (a rotation, the system killing the app). */
 private fun Setup.toBundle() = Bundle().apply {
-    putBoolean("daily", daily)
     putBoolean("allSources", allSources)
     putString("where", where.name)
     Screen.entries.forEach { screen -> putString("list.${screen.name}", list[screen].orEmpty().joinToString(",") { it.name }) }
@@ -1521,7 +1598,6 @@ private fun Setup.toBundle() = Bundle().apply {
 /** [toBundle]'s draft, or null when it can't be read. */
 private fun readDraft(bundle: Bundle): Setup? = runCatching {
     Setup(
-        daily = bundle.getBoolean("daily"),
         allSources = bundle.getBoolean("allSources"),
         where = Where.valueOf(bundle.getString("where")!!),
         list = Screen.entries.associateWith { screen ->

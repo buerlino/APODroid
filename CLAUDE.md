@@ -246,10 +246,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
 
 ## The app (decided 2026-10-01 unless dated)
 
-- **One page.** Top: today's picture, full width, with its title and date; tap opens the APOD
-  page in the browser. Below: the settings. From 600 dp wide (U6, 2026-10-18; the user decided
+- **One page.** Top: the source's name, then today's picture, full width, with its title and
+  date; tap opens the APOD page in the browser. Below: the settings. From 600 dp wide (U6, 2026-10-18; the user decided
   it 2026-10-17: one column was too wide on tablets and in landscape) two panes, about 55/45,
-  each scrolling on its own: the picture side (tabs, picture, boxes, caption) left, the settings
+  each scrolling on its own: the picture side (the source's title, picture, boxes, caption) left, the settings
   right. Pull to refresh works on the picture side only. The tablet (711 dp in portrait) shows
   two panes both ways.
 - **Settings** (SharedPreferences; 0.6.0's layout built in M3, 2026-10-20, its texts and the
@@ -306,10 +306,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
     meanwhile waits for it, and Set is disabled while it runs. Off is off: off drops a waiting
     run, and a running one restarts nothing and sets nothing more once `daily` is off. What the draft's switch hid (the
     rows below) follows the one switch. **Two kinds of state on the
-    page:** the controls and the sources the page offers (the tabs) follow the draft, so
+    page:** the controls and the sources the page offers (the title's dropdown and the swipe; the tabs until S6) follow the draft, so
     turning "More NASA pictures" on offers and fetches all three at once (`Store.update`'s
     `show`); what reports what is set follows the stored setup (`Store.setup`): the status
-    lines, the chip, the video notice, the problem box, the battery hint, the opening tab. **The
+    lines, the chip, the video notice, the problem box, the battery hint, the opening page. **The
     job follows the stored setup only:** `onResume`'s `DailyJob.ensure` and the reschedule
     after "Wi-Fi only" read `store.daily`, the stored mode and columns; only Set and the daily
     switch schedule or cancel (Set by the stored switch, after saving the draft). **At once, as before:** "Wi-Fi only", "Save every picture" (they
@@ -343,7 +343,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     name alone, with its record, so the chip still knows it.
   - **The list** (switch on; S2, 2026-10-20, from the user's sketch; replaced M3's grid of a
     tick box per screen): "Pictures from", a row per source: a tick box with its short name,
-    "APOD", "NASA", "Earth", as on the tabs (`shortLabel`; user, 2026-10-20: the full names took
+    "APOD", "NASA", "Earth", as in the title above the picture (`shortLabel`; user, 2026-10-20: the full names took
     three lines on the tablet), and a dropdown Home screen / Lock screen / Both (an outlined
     button "Both ▾" and a `DropdownMenu`, ✓ before the chosen one, as "If APOD is a video"'s);
     the dropdown wraps under the name when both don't fit on one line. A tick puts the source
@@ -364,7 +364,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "Dismiss" (again at the next such tick) and "Don't show again" (`weekdayNoticeHidden`). Not
     for the video-day choice or the mode switch. No text on the page.
   - **Where** (was "Wallpaper on" until U3): home screen, lock screen, or both (user: a setting,
-    not fixed), APOD mode's only (the list has its columns). Default: both. Its segments, like the tabs' and "Change every"'s, share one
+    not fixed), APOD mode's only (the list has its columns). Default: both. Its segments, like "Change every"'s, share one
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
   - **Size** [Fill | Fit] (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; the heading
@@ -385,7 +385,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     screen where APOD is ticked, with turns too ("Skip it": a screen with APOD alone keeps its
     picture, one with turns passes to the next source; Turns). The other source is fetched only
     on APOD video days (after APOD's refresh, which tells); its newest post is the wallpaper,
-    set once per its date; choosing it in the draft on a video day fetches it for its tab, and
+    set once per its date; choosing it in the draft on a video day fetches it for its page, and
     Set puts it on; none stored yet → kept. No still-frame option (often a generic NASA image).
     "My picture" is picked with the system photo picker (`PickVisualMedia`, no permission) and
     copied to `files/fallback-draft.jpg`; Set renames it to `files/fallback.jpg`. Choosing "Use
@@ -445,8 +445,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   stored no problem and ended the run; `isStop()` in `Store` tells them apart). Each `Store.update` (page, pull, job) stores how its check
   went: a success (a refresh, or today's APOD already stored) sets `checkedAt` and clears
   `problem`; a failure stores `problem` (and `httpCode`). Per source (WP3: `nasa.problem`, …);
-  one box: in APOD mode the first tab with a problem (APOD's first); with the switch on (all
-  three fetched) the shown tab's, else the first ticked source's (M4; approved by the user,
+  one box: in APOD mode the first offered source with a problem (APOD's first); with the switch on (all
+  three fetched) the shown source's, else the first ticked source's (M4; approved by the user,
   2026-10-20; the second case untested until V), prefixed with its name
   ("NASA Image of the Day: …"; its `problemNoticeKey` starts `nasa:`) unless it's APOD's with
   APOD ticked alone. The video-day
@@ -477,25 +477,38 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (approved by the user, 2026-10-20). " · My picture" in APOD mode too (user, 2026-10-20 night;
   B3: it had none there, while a stand-in had " · NASA"). The page re-reads both
   around each update and after a set.
-- **Tabs (0.5.0, WP4; 0.6.0, M4, 2026-10-20):** with the switch "More NASA pictures" on always
-  three, else (APOD mode) on an APOD video day APOD and the video-day source; a segmented row
-  above the picture ("APOD | NASA | Earth"), opening on the **picture's** source (a stand-in's
-  own tab, not APOD's; the user's own picture has none) on the home screen, else the lock
-  screen's, else APOD (APOD mode: the screen "Where" names, `pageScreen`) until the user
-  picks one; the pick survives rotation and the system killing the app (Android's saved state:
-  seen after `am kill`, tablet, 2026-10-20), not a swipe-away from Recents (to check in P on the
-  FP6; user, 2026-10-20). The shown tab drives the picture, ⛶,
-  ★, title, date and explanation; switching closes crop mode. With tabs (U2, 2026-10-17) a
-  source line above the title, "NASA Image of the Day · 17 October 2026" (" · Video" on video
-  days), replaces the date line below it, and a chip at the picture's top left
-  (⛶'s and ★'s dark style; none on the ▶ tile, hidden in crop mode) marks the post on a screen,
-  from the records (`Store.screenState`): with the switch on "On home screen", "On lock screen"
-  or "On wallpaper" (both); in APOD mode "On wallpaper" for the screen "Where" names (M4). Tabs stay
-  short; with one source the caption is 0.4.0's: title, then date. The tabs follow the draft
-  (Settings, Set applies the setup); the chip and the opening tab the stored setup. The boxes show
-  on every tab (the video notice's "Tap ▶ …" only on APOD's, user); pull refreshes every source in use.
+- **The title and the swipe** (S6, 2026-10-21, from the user's mockup of 2026-10-20 evening;
+  tabs until then: 0.5.0's WP4, 0.6.0's M4). The sources the page offers: with the switch "More
+  NASA pictures" on always three, else (APOD mode) APOD and, on an APOD video day, the video-day
+  source. Above the picture the shown source's short name ("APOD", "NASA", "Earth";
+  `headlineSmall`); with two or more a "▾" and a `DropdownMenu` of the short names, ✓ before the
+  shown one (screen readers "Picture from: NASA Image of the Day", a dropdown list); with one the
+  name alone. The title and the picture (or the ▶ tile, with ⛶, ★ and the chip) are a
+  `HorizontalPager` over those sources: a swipe shows the previous or the next, sliding with the
+  finger and stopping at the ends; in crop mode the pager doesn't move (a drag moves the frame).
+  Each page draws its own source's stored post, so a neighbour shows while dragging (`show()`
+  loads every offered source's post and decoded picture, at most three in memory; one already
+  decoded for the same date and picture URL stays). The page that settles is the shown source;
+  the dropdown moves the pager (`animateScrollToPage`). The boxes and the caption below the
+  pager show the shown source only, so the page below doesn't change while dragging. It opens
+  on the **picture's** source (a stand-in's own page, not APOD's; the user's own picture has
+  none) on the home screen, else the lock screen's, else APOD (APOD mode: the screen "Where"
+  names, `pageScreen`) until the user picks one (dropdown or swipe); the pick survives rotation
+  and the system killing the app (Android's saved state: seen after `am kill`, tablet,
+  2026-10-20), not a swipe-away from Recents (to check in P on the FP6; user, 2026-10-20).
+  The shown source drives ⛶'s part, the boxes, title, date and explanation; another one closes
+  crop mode. With two or more sources (U2, 2026-10-17) a source line above the title, "NASA
+  Image of the Day · 17 October 2026" (" · Video" on video days), replaces the date line below
+  it, and a chip at the picture's top left (⛶'s and ★'s dark style; none on the ▶ tile, hidden
+  in crop mode) marks the post on a screen, from the records (`Store.screenState`): with the
+  switch on "On home screen", "On lock screen" or "On wallpaper" (both); in APOD mode "On
+  wallpaper" for the screen "Where" names (M4). With one source the caption is 0.4.0's: title,
+  then date. The pages follow the draft (Settings, Set applies the setup); the chip and the
+  opening page the stored setup. The boxes show for every source (the video notice's "Tap ▶ …"
+  only on APOD's page, user); pull refreshes every source in use and covers the picture side
+  (the left pane on wide screens).
 - **Credit** (F4, 2026-10-20; approved by the user in C the same day): one line under the date
-  (APOD mode: title, date, credit) or, with tabs, under the title on APOD's tab; smaller and
+  (APOD mode: title, date, credit) or, with two or more sources, under the title on APOD's page; smaller and
   greyer than the explanation (`bodySmall`, `onSurfaceVariant`), one line with an
   ellipsis while the explanation is closed (C; was two), all of it while the explanation is open (a cut credit makes the caption
   expandable too). The pref `credit` is written with the post; a post stored by 0.5.0 has
@@ -539,12 +552,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   still APOD); `FLAG_LOCK` alone replaces only the lock one (`Lock id=156: mWhich=2`, home
   still 155); both flags again leave one shared wallpaper and no lock one (`id=157:
   mWhich=3`, "Lock wallpaper state" empty). No screen went blank.
-- **Share** (0.6.0, F3, 2026-10-20; the glyph approved by the user in C the same day): ⤴ (U+2934, the
-  user's pick from ⤴, ↗, ⇪ and a drawn icon; ↗ and ⇪ compared on the tablet and rejected) at 28 sp,
-  larger than ★'s 24 sp (at 24 it looked small beside ★), in ★'s dark circle of the same size, left of ★; on video days at the ▶
-  tile's bottom right (the link works). Screen readers "Share". A tap opens the system share sheet
-  (`ACTION_SEND`, `text/plain`) with "<title>\n<page link>" of the shown tab's post; no picture, no
-  `FileProvider`.
+- **No Share** (S6, 2026-10-21; dropped with the mockup of Set applies the setup, user,
+  2026-10-20 evening): F3's ⤴ beside ★ and on the ▶ tile, which sent "<title>\n<page link>" to
+  the share sheet, is gone with its code. Long press on the title block still copies the link.
 - **Choosing the part (user, 2026-10-05):** a ⛶ at the bottom left of the picture (mirroring
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the
@@ -568,8 +578,8 @@ the image type). It downloads the original (`originalUrl`, to a temp file of its
 copies it; if that fails, the stored picture (the rendition), and a toast says it's a smaller
 copy (0.5.0). While it downloads, ☆ is dimmed ("Saving" for screen readers) and taps do
 nothing; one save at a time in the app, so a tap after a rotation says "Still saving" (WP7b,
-2026-10-18), and the rotated page fills ★ when it ends. After a save ★ shows the shown tab's
-state, not the saved one's. ☆ = not saved, ★ = saved; a second tap (or a quick double tap) doesn't save again. Text glyphs, no icon library. Written
+2026-10-18), and the rotated page fills ★ when it ends. After a save each page's ★ shows its own source's
+state. ☆ = not saved, ★ = saved; a second tap (or a quick double tap) doesn't save again. Text glyphs, no icon library. Written
 with `MediaStore` (`IS_PENDING`), which needs no permission on Android 10+, hence `minSdk 29`
 (user chose that over `WRITE_EXTERNAL_STORAGE` for Android 8–9, or a "Save as" dialog each
 time). The saved date, picture URL (so a second post on the same date counts as unsaved; WP7d,
@@ -740,7 +750,8 @@ Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn'
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).
 - **A switch "All NASA pictures"** ("More NASA pictures" since S5), at the end of the settings, default off. Off: the app with
-  APOD alone, as now. On: always three tabs, and a list replaces the chips and "Where": a row
+  APOD alone, as now. On: always three sources to browse (tabs until S6, then the title's
+  dropdown and the swipe), and a list replaces the chips and "Where": a row
   per source, a tick box and a dropdown Home screen / Lock screen / Both (S2; M3 had a grid,
   a tick box for Home and for Lock). Each mode keeps its own settings; the list
   starts from "Where" the first time. From 0.5.0: anything but APOD alone → on (0.5.0 allows
@@ -785,7 +796,7 @@ video days worked only with APOD alone (it shows at once that it was a video day
 - The page fetches the sources it offers (with the switch on in the draft all three); the job only what the screens need (the
   ticked ones, the stand-in while APOD is ticked somewhere). APOD mode
   with "Where" = Lock reads the lock screen's record. The chip
-  and the opening tab follow the picture's source (a stand-in's tab), not whose turn it is.
+  and the opening page follow the picture's source (a stand-in's page), not whose turn it is.
 - Home and lock set separately: checked on the tablet only first (M0); the FP6 (Android 16)
   sees it in the final pass (user).
 - Migration (built, M2, 2026-10-20; Stack, Migrations): a one-time write at 0.6.0's first
@@ -817,7 +828,8 @@ the Day and Earth Observatory Image of the Day besides APOD ([Other sources](#ot
   screen on (JobScheduler batched it until another job ran), and its delay alarm doesn't wake a
   sleeping device.
 - **Tabs above the picture:** a segmented row, one tab per source in use, opening on the one on
-  the wallpaper; each with its own picture, ⛶, ★ and explanation.
+  the wallpaper; each with its own picture, ⛶, ★ and explanation. Replaced in 0.6.0 by the
+  title's dropdown and the swipe (S6; The app).
 - **Sharper wallpaper** (below) is part of it, built (WP2; The app, Fetch and Save): NASA Image
   of the Day originals are 4.7 MB typically and up to 97 MB.
 
@@ -836,8 +848,8 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
   (2026-10-20 evening; was "sets at once", 2026-10-20, and "the next change uses it",
   2026-10-04).
 - **Wi-Fi only:** a switch for the job, default off (built, F2).
-- **Share:** title and page link via the share sheet; not the picture file. The glyph ⤴
-  (U+2934) beside ★, to be seen on a device (user, 2026-10-20).
+- **Share:** title and page link via the share sheet (built in F3, the glyph ⤴ beside ★);
+  removed in S6 with the mockup of Set applies the setup (user, 2026-10-20 evening).
 - **Image credit** under the date, parsed in `:core` (on all 100 posts checked). APOD only
   (user, 2026-10-20): NASA's feed names a credit in 1 of 60 items (the rest only on each image
   page), Earth's is in `content` only (each check 0.6 KB → about 61 KB) and mostly "NASA Earth

@@ -87,34 +87,50 @@ screen, asked before the user has seen the app; updaters never get a first boot)
     no tick (so the page doesn't move, as U4 decided); in APOD mode under "Where". Choosing "Use
     my picture" with nothing picked opens the photo picker at once; "Change picture" beside the
     dropdown afterwards.
-- **"Set as wallpaper" stays.** In APOD mode as now, at the end of the Wallpaper section
-  ("Where" says where). With the switch on it sits under "Change every" (the layout below) and
-  opens a small menu **Home screen / Lock screen / Both**, since the shown tab may be ticked
-  nowhere; ✓ in crop mode opens the same menu.
-  **A set by hand changes the picture, not whose turn it is** (user, 2026-10-19, third
-  review): when the hold ends, the screen carries on where its turns were, so two screens
-  with equal columns become one wallpaper again. The cost, accepted: the source set by hand
-  may come round again at the next turn.
-  **Changing a setting is not a set by hand** (third review): a "Where" change, a video-day
-  choice, "Change picture", the mode switch, and (F1) Fit forget the affected screens'
-  records and run the normal set; no hold, no clock restart. ("Change picture" needs this
-  anyway: the record stays the same while the file changes.)
-  **The hold** (user, 2026-10-19, after the plan's review): a picture set by hand stays until
-  that screen's next normal change: on a screen with turns its turn ends; on a screen with one
-  ticked source that source posts a new picture (e.g. tomorrow's APOD). Meanwhile a newer post
-  of the held picture's own source is set at once and keeps the hold (as for the source on
-  the wallpaper today). **Any change in that screen's column ends its hold** (a tick or an
-  untick; user, 2026-10-19, fourth review: the user is reconfiguring that screen), and the
-  screen gets what its settings say at once. A held APOD whose next post is a video follows
-  the video-day rule (the stand-in in its place; "Skip it" keeps the held picture), and the
-  hold runs to its normal end (user, 2026-10-19). No hold when there's nothing to hold
-  against: a picture set on a screen with no ticks stays for good (that screen is left
-  alone), and a hand set of a one-source screen's own ticked source is its normal picture
-  (fourth review: else "ends when it posts" and "its newer post keeps the hold" collide).
-  On APOD's video tab the button (and ✓) sets the stand-in; with "Skip it" nothing ("Video day:
-  wallpaper kept", as now). **Held, it counts as APOD's picture** (user, 2026-10-19): it
-  stands in APOD's place, so APOD's next post replaces it (as on any video day) and NASA's
-  next post doesn't touch it.
+- **"Set as wallpaper" changes the settings** (user, 2026-10-20 afternoon, from a sketch; it
+  replaces the hold of 2026-10-19, and with it every mention of a hold above). Why: a
+  simulation of the hold's rules over a week (Friday to Tuesday, `:core`'s real functions)
+  showed what the page never said:
+  - A held picture followed its source's newer posts: APOD for almost three days on a screen
+    ticked for NASA.
+  - A set on Home stretched the lock screen's turn from 6 h to 9 h.
+  - An Earth screen showed NASA's Friday picture, standing in for an APOD video the user had
+    set there by hand.
+  - In APOD mode, a set from the stand-in's tab outlived a change of the video-day choice.
+
+  Now the settings always say what each screen gets:
+  - **The button** "Set as wallpaper ▾" sits under the picture (on the picture side) in both
+    modes, with the daily switch off or on, and opens Home screen / Lock screen / Both. ✓ in
+    crop mode opens the same menu.
+  - **Daily switch on, APOD mode:** "Where" becomes exactly the chosen screens. With Lock,
+    choosing "Home screen" gives Home. User: "the user chose home, otherwise he would have
+    chosen both".
+  - **Daily switch on, "All NASA pictures":** the shown tab's source is ticked for exactly the
+    chosen screens, and it leaves a screen that wasn't chosen. The other sources stay, so a
+    chosen screen with other sources takes turns ("Add", user). APOD's video tab counts as
+    APOD's row: the stand-in shows in APOD's place. With "Skip it" there's nothing to set,
+    as today.
+  - **At once:** when a chosen screen takes turns, a new turn starts now. The shared clock
+    restarts and the set source is the owner on the chosen screens. The other screen keeps
+    its picture and its owner, and starts a fresh turn too (user, "new turn now", as 0.5.0
+    did).
+  - **The highlight:** the changed setting lights up for a moment (the source's row, or
+    "Where"). When nothing changed, nothing lights up: it's a set again, e.g. ✓ with a new
+    part.
+  - **Daily switch off:** a one-off set. The settings, hidden then, stay as they are.
+  - **No holds.** The status lines need no new text: nothing on a screen differs from the
+    settings any more, apart from the video day, which the notice and the line already show.
+  - **Changing a setting is not a set by hand** (third review; this still holds): "Where", the
+    video-day choice, "Change picture", the mode switch and Fit forget the affected screens'
+    records and run the normal set, with no clock restart. ("Change picture" needs this
+    anyway: the record stays the same while the file changes.)
+  - **The list replaces the grid** (switch on): per source a tick box, its short name and a
+    dropdown Home screen / Lock screen / Both (the user's sketch). An unticked source's
+    dropdown is greyed out and keeps the screens it had last.
+  - **With the daily switch off,** only "Size" is below it (the button uses it), then, after
+    the divider, "All NASA pictures" (it decides the tabs).
+  - **Kept** (user, same day): the mode switch, the two modes and three tabs with the switch
+    on.
 - **The page with the switch on:** the "On wallpaper" chip becomes "On home screen", "On lock
   screen" or "On wallpaper" (both), on the tab of the picture's source (a stand-in NASA picture:
   NASA's tab, not APOD's); the status line has a line per screen while they differ
@@ -125,8 +141,8 @@ screen, asked before the user has seen the app; updaters never get a first boot)
 - **Fill / Fit (F1): one setting for both screens** (user, 2026-10-19), as `features.md` says,
   so "one set when both screens are due the same picture" holds.
 - **Data:** with the switch on the page fetches all three sources (three fresh tabs); the job
-  fetches only what the screens need: the ticked ones, the source of each picture held by
-  hand (its newer post is set), and the stand-in on an APOD video day, only while APOD is
+  fetches only what the screens need: the ticked ones and the stand-in on an APOD video day
+  (since S1 nothing is held by hand), only while APOD is
   ticked on some screen (or in APOD mode). The page-open hour rule (WP7c) applies to all
   three.
 
@@ -134,30 +150,42 @@ All texts above are placeholders; the user approves them on the device.
 
 ## Settings layout afterwards
 
+After S1–S3 (2026-10-20 afternoon; the layout of the morning had the grid and the set buttons
+in the settings). The texts are placeholders.
+
 ```
-APOD mode (switch off)                      All NASA pictures (switch on)
+Daily switch off (both modes)
+
+Wallpaper
+[switch] Change wallpaper automatically
+Size    [Fill | Fit]
+──────────
+[switch] All NASA pictures
+
+APOD mode, daily on                         All NASA pictures, daily on
 
 Wallpaper                                   Wallpaper
 [switch] Change wallpaper automatically     [switch] Change wallpaper automatically
-         Wallpaper changed 19 Oct, 06:12             Home screen changed 19 Oct, 06:12 · NASA …
-         [switch] Wi-Fi only        (F2)             Lock screen changed 19 Oct, 05:05 · APOD …
-         [switch] Save every picture ⓘ (F5)          [switch] Wi-Fi only        (F2)
-Where   [Home screen | Lock screen | Both]           [switch] Save every picture ⓘ (F5)
-Fit     [Fill | Fit]                (F1)    Fit     [Fill | Fit]                (F1)
-If APOD is a video  [Skip it ▾]             ──────────
-[Set as wallpaper now]                      Pictures from                      Home   Lock
-──────────                                    Astronomy Picture of the Day      [✓]    [✓]
-[switch] All NASA pictures                       If it's a video [Use my picture ▾] Change picture
-                                              NASA Image of the Day             [✓]    [ ]
-                                              Earth Observatory                 [ ]    [ ]
-                                            Change every  [Day | 12 h | 6 h | 3 h]
-                                            [Set as wallpaper ▾]
+         Wallpaper changed 19 Oct, 06:12             Home screen changed 19 Oct, 06:12 · NASA
+Where   [Home screen | Lock screen | Both]           Lock screen changed 19 Oct, 05:05 · APOD
+Size    [Fill | Fit]                        Pictures from
+If APOD is a video  [Skip it ▾]               [✓] APOD    [Both ▾]
+[switch] Wi-Fi only                           [✓] NASA    [Home screen ▾]
+[switch] Save every picture ⓘ                 [ ] Earth   [Both ▾]          (greyed out)
+──────────                                  Change every  [Day | 12 h | 6 h | 3 h]
+[switch] All NASA pictures                  Size    [Fill | Fit]
+                                            If APOD is a video  [Skip it ▾]
+                                            [switch] Wi-Fi only
+                                            [switch] Save every picture ⓘ
                                             ──────────
                                             [switch] All NASA pictures
+
+On the picture side, under the caption, in every case:  [Set as wallpaper ▾]
+                                                         Home screen / Lock screen / Both
 ```
 
-The lines under the daily switch show only while it's on, as now. Where F1, F2 and F5 sit is
-`features.md`'s proposal; confirm with the user in their packages.
+The status lines show only while the daily switch is on, as now. "Change every" shows only
+while a screen takes turns, as now.
 
 ## Packages
 
@@ -176,6 +204,9 @@ The lines under the daily switch show only while it's on, as now. Where F1, F2 a
 | F1f1 | Fit decodes at the size it's drawn (review of F1) | Opus, medium |
 | F5f1 | A stopped save: the smaller copy next time (review of F5) | Opus, medium |
 | C  | Early look on the tablet: the glyph and the texts, on the user's go-ahead | Opus, medium |
+| S1 | `:core` and `Store`: a set by hand changes the settings, no holds | Opus, high |
+| S2 | Settings: the list instead of the grid, the order, the daily switch off | Opus, medium |
+| S3 | The page: the set button under the picture, its menu, the highlight | Opus, medium |
 | V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 by night, V7 by day | Opus, high |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
@@ -199,6 +230,7 @@ claude --model opus --effort medium "Do F4 in .claude/skills/build-apodroid-andr
 claude --model opus --effort medium "Do F5 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do F1f1 and F5f1 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do C in .claude/skills/build-apodroid-android/plan-0.6.0.md"
+scripts/pipeline.sh S1 && scripts/pipeline.sh S2 && scripts/pipeline.sh S3    # or the night: the queue in night.md
 scripts/night.sh --until <HH:MM>    # V1–V6: the queue in night.md
 claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -265,6 +297,9 @@ reading; their build check passed, 108 tests with `private/`):
    device bullets are run there, not separately (user: V reruns them on the final tree
    anyway). If C hasn't run by then, V runs anyway and the user approves from V1's and V2's
    screenshots.
+3a. **S1–S3** (user, 2026-10-20 afternoon: a set by hand changes the settings, the
+   decisions above), one after another by pipeline, after V1, V2 and V4 had run. V3, V5 and V6
+   wait for them, as they test the final tree.
 4. **V7 by day** after the night (turns over hours: the night's later rows and the
    regression reinstall and change the tablet).
 5. P on the FP6 with the user, then R and T.
@@ -477,9 +512,165 @@ On a debug build of master after F3, F1f1 and F5f1. Screenshots only, with rosie
 - Done when: the user has seen all four and their answers are built and in `CLAUDE.md` (F3:
   the glyph; F1, F4, F5: the texts).
 
+### [ ] S1. `:core` and `Store`: a set by hand changes the settings, no holds (Opus, high)
+
+The decisions are above ('"Set as wallpaper" changes the settings'). This package builds the
+rules and their wiring. The page keeps today's controls (the grid, the buttons where they
+are) and only redraws the settings a set changed. The list is S2; the button under the
+picture, its menu in APOD mode and the highlight are S3.
+- **`:core` (`Screens.kt`):** a pure function for the set, in place of `setByHand`. It takes
+  the shown tab's source (APOD's video tab and APOD mode's stand-in tab count as APOD), the
+  chosen screens, the mode, the columns, the clock, the records, `Stored` and `now`. It
+  returns the new settings (APOD mode: the new "Where"; else the new columns) and a `Plan`:
+  - **The settings.** APOD mode: APOD on exactly the chosen screens. With the switch on: the
+    source in exactly the chosen screens' columns (and out of the other's), the other sources
+    unchanged.
+  - **The clock** restarts (to `now`) when a chosen screen's new column has two or more.
+    - The chosen screens' records get the source as owner and the new stamp.
+    - The other screen's record takes the new stamp when it had the current one (as today's
+      restart by hand) and keeps its owner and picture.
+    - If the other screen lost the source, the rules of a tick apply (`columnsChanged`: its
+      owner unticked, an early change).
+    - A column that goes from empty to the source starts on it.
+  - **Settings already so:** a chosen screen that takes turns and shows another source starts
+    the source's turn now. One already on the source, or a one-source screen, only gets its
+    due picture set again (e.g. ✓ with a new part).
+  - **Nothing to set** (the tab's picture is null: "Skip it" on APOD's video tab, or nothing
+    stored): no change at all, and the caller says so, as today.
+
+  The caller then writes the settings and the plan and runs the normal set (`setDue`), which
+  puts the source's picture on the chosen screens (on an APOD video day, the stand-in).
+- **Gone:**
+  - `Hold`, its branch in `dueOn`, its clearing in `columnsChanged`, and `Record.hold`.
+  - The hold's keys in `Store`. A dev build's leftover keys are ignored; 0.6.0 isn't released,
+    so there's no migration.
+  - The held pictures' sources in `sourcesInUse` (the job's fetch and Save every picture).
+  - `hold?.source` in `settingChanged(VIDEO_DAYS)` (the owner alone decides).
+- **`Store.setByHand(tab, screens)`:**
+  - With the daily switch on: the new settings (`where`, or the columns as `setColumns` writes
+    them), the plan, then `setDue`, under the wallpaper lock. It returns whether it set and
+    what setting changed (the source or "Where"; S3 lights it up).
+  - With the daily switch off: a one-off set on the chosen screens. The records are noted so
+    the chip shows it; the settings stay untouched.
+- **The page (`MainActivity.kt`, only what this needs):** after a set, read the settings again
+  (`where`, `columns`, `interval`), so the grid, "Where" and "Change every" show the change.
+  APOD mode's button keeps setting the screens "Where" names until S3's menu.
+- **Tests (`ScreensTest`):** the hold's tests go. New ones cover each rule above, plus the cases
+  the simulation of 2026-10-20 found, each as the settings after the set and the due pictures
+  over the next posts:
+  - Home NASA, Lock APOD; APOD's tab → Both: Home takes turns APOD/NASA with APOD now, and
+    Lock is APOD.
+  - Home all three, Lock NASA + Earth, 6 h; Earth → Home only: Earth now with a new turn; Lock's
+    picture stays, with the new stamp.
+  - Home Earth, Lock APOD, stand-in NASA; APOD → Both, then an APOD video: Home has APOD ticked,
+    so its APOD turn shows NASA as the stand-in, by the settings.
+  - APOD mode, "Where" = Lock; Home chosen: "Where" is Home, and the lock screen is left alone
+    with its picture.
+  - APOD mode on a video day, the stand-in's tab → Both, then the video-day choice changed to
+    Earth: Earth goes on. This is the case that failed.
+  - "Skip it" on APOD's video tab: nothing changes.
+- **`CLAUDE.md`:** the new rules, with the date and the why, in place of the hold's:
+  - The app, Settings: "Set as wallpaper now".
+  - Background update: Turns' "A set by hand", and the sources in use.
+  - Save every picture: the set in use.
+  - Next features: 0.6.0's "Set as wallpaper" bullet.
+
+  Also the skill's "Where things are" (`Screens.kt`, `Store.setByHand`).
+- **Files:** `core/.../Screens.kt`, `Saving.kt`, their tests, `Store.kt`, `MainActivity.kt` (the
+  re-read), `CLAUDE.md`, the skill's `SKILL.md`.
+- **Device (tablet, debug build):**
+  - With the switch on, Home NASA, Lock APOD (the grid), APOD's tab → Both: the grid shows APOD
+    on both and NASA on Home, and "Change every" appears. Check `dumpsys wallpaper` and the
+    prefs (`home`, `lock`, `turnStartedAt` now, both records).
+  - Earth → Home only, with turns on the lock screen: the lock screen's picture is unchanged and
+    `lock.wallpaperStamp` is the new clock.
+  - APOD mode: the button still sets the screens "Where" names, with no setting changed.
+  - A faked APOD video day with "Skip it", APOD's tab: the toast, and the prefs unchanged.
+  - The daily switch off: a set changes no setting.
+  - Then `run -f` sets nothing new. No crash (`logcat`, `exit-info`).
+- **Done when:** the tests pass (the hold gone, the new rules and the simulation's cases
+  covered), the device checks pass, and `CLAUDE.md` says the new rules and no longer the
+  hold.
+
+### [ ] S2. Settings: the list instead of the grid, the order, the daily switch off (Opus, medium)
+
+After S1. The layout is "Settings layout afterwards" above; the texts are placeholders.
+- **The list.** With the switch on, "Pictures from" is a list with a row per source:
+  - Each row has a tick box, the short name ("APOD", "NASA", "Earth") and a dropdown Home
+    screen / Lock screen / Both: an outlined button with ▾ and a `DropdownMenu`, like "If APOD
+    is a video"'s.
+  - Ticking puts the source on its dropdown's screens, unticking takes it off both, and a new
+    dropdown choice for a ticked source moves it. Each change goes through
+    `Store.setColumns`, so the rules of a tick hold (the page's update sets what changes).
+  - An unticked row's dropdown is greyed out and shows the screens the source had last (a pref
+    per source; Both when it never had any). Ticking it again puts the source there.
+  - The last ticked row can't be unticked (greyed out, as the last tick today).
+  - The weekday dialog stays as today: ticking NASA or Earth while it's on neither screen.
+  - Screen readers: the tick box "NASA", the dropdown "NASA on: Home screen".
+- **"If APOD is a video"** leaves APOD's row. In both modes it comes after "Size", under that
+  heading; with the switch on it's greyed out while APOD isn't ticked (so the page doesn't
+  move).
+- **The order while the daily switch is on:**
+  1. The status lines.
+  2. "Where" (APOD mode), or the list and "Change every" (while a screen takes turns).
+  3. "Size", then "If APOD is a video", "Wi-Fi only" and "Save every picture".
+  4. The divider, then "All NASA pictures".
+
+  The set buttons stay until S3: APOD mode's at the end of its section, the menu after "Change
+  every".
+- **While the daily switch is off:** only "Size" under the switch, then the divider and "All
+  NASA pictures". "Where", the list, "Change every" and "If APOD is a video" are hidden, as
+  "Wi-Fi only" and "Save every picture" already are. The set buttons stay visible in both
+  states until S3 moves them to the picture side.
+- **Files:** `MainActivity.kt` (`Settings`; `Grid` becomes the list), `Store.kt` (the remembered
+  screens per source), `CLAUDE.md` (The app, Settings: the list, the order, the daily switch
+  off), the skill's "Where things are".
+- **Device (tablet):**
+  - The list in both orientations and in two panes.
+  - Font scale 2.0 at `wm density 344`: no word broken inside, and the dropdowns fit.
+  - Ticks and dropdown choices change the prefs `home` and `lock` and the wallpaper, as a tick
+    does today.
+  - The greyed-out rows, and the weekday dialog.
+  - The daily switch off: only "Size" and the mode switch.
+  - The labels in the accessibility tree (`uiautomator dump`).
+  - A screenshot of each state, for the user.
+- **Done when:** the device checks pass, the screenshots are there for the texts, and
+  `CLAUDE.md` says the layout.
+
+### [ ] S3. The page: the set button under the picture, its menu, the highlight (Opus, medium)
+
+After S2.
+- **The button.** "Set as wallpaper ▾" moves to the picture side, under the caption (title,
+  explanation, credit). It's there in both modes, with the daily switch off and on; on two
+  panes at the end of the picture side.
+  - It opens Home screen / Lock screen / Both (`SetChoices`). ✓ in crop mode opens the same
+    menu, in APOD mode too (today it sets at once there).
+  - With nothing to set on the shown tab, the toast shows instead of the menu, as today.
+  - The buttons in the settings go: APOD mode's "Set as wallpaper now" and `SetMenu`.
+- **A choice** runs S1's `Store.setByHand`.
+  - While the daily switch is on, the changed setting lights up for about 2 s: the source's row
+    in the list, or "Where". A tint fades out; nothing lights up when no setting changed.
+  - No scrolling to it: on the phone the settings may be below the fold, and the user decides on
+    the device.
+  - The toast "Wallpaper set", as today.
+- **The weekday dialog** shows when the set ticks NASA or Earth where it was on neither screen,
+  as for a tick.
+- **Files:** `MainActivity.kt`, `CLAUDE.md` (The app: the button, its place, ✓, the highlight),
+  the skill's "Where things are".
+- **Device (tablet):**
+  - The button's place at the phone's width and on two panes.
+  - Each menu choice in both modes: the settings after it, and the highlight (a screenshot
+    while lit).
+  - ✓'s menu in APOD mode.
+  - The daily switch off: a set, no setting changed, no highlight.
+  - "Skip it" on APOD's video tab: the toast.
+  - The labels in the accessibility tree, and a rotation with the menu open.
+- **Done when:** the device checks pass, the screenshots of the button and the highlight are
+  there for the user, and `CLAUDE.md` says it.
+
 ### [ ] V. Tablet pass of everything (Opus, high)
 
-After F5, F1f1, F5f1 and C, so it tests the final code (third review: F1 changes the set path,
+After F5, F1f1, F5f1 and C (V3, V5 and V6 also after S1–S3), so it tests the final code (third review: F1 changes the set path,
 F5 the job). **By night** (user, 2026-10-20), and a device package gets one rosie session of at
 most 50 minutes (`night.md`, For rosie; `pipeline.sh` gives it 3600 s), so V is six queue
 rows, V1–V6, each bundled as `plan V + plan V<k>`, and V7 by day after the night (turns over
@@ -524,8 +715,9 @@ hours: the night's later rows and the regression reinstall and change the tablet
 
 ### [ ] V3. M2–M4 again on the final tree
 
-- The hold ending both ways (its turn ends; a tick in its screen's column), and a newer post of
-  the held picture's source keeping it.
+- A set by hand (S1–S3) in both modes, with the daily switch on and off: the settings after
+  it, the turn it starts, the other screen keeping its picture; then the job's next run sets
+  what the settings say, and nothing is held.
 - A faked APOD video day with each of the four choices ("Skip it", NASA, Earth, my picture) in
   both modes, with turns on one screen: the stand-in in APOD's place, "Skip it" passing the turn.
 - A set that fails on one screen and its retry setting only that screen: if nothing on the

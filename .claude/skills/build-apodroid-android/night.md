@@ -100,6 +100,10 @@ them over; they stay because `scripts/pipeline.test.sh` resolves M0, M1 and F2. 
 isn't PASS stays unmerged with its results on its branch, and the rows after it still run (none
 rests on another). The regression after them reruns dev's debug build; let it run.
 
+Then (user, 2026-10-20 afternoon): **S1–S3**, a set by hand that changes the settings (the
+plan's decisions). V3, V5 and V6 wait for them (After S3), as they test the final tree; V4 had
+started before. By day they run by pipeline one after another, outside night.sh.
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -110,10 +114,13 @@ rests on another). The regression after them reruns dev's debug build; let it ru
 | 6 | F2 | Wi-Fi only | winston | sonnet, medium | yes | — | plan F2 + features 4 |
 | 7 | V1 | Tablet pass: F1, F3 and F1f1 | rosie | opus, high | no | — | plan V + plan V1 |
 | 8 | V2 | Tablet pass: F4, F5 and F5f1 | rosie | opus, high | no | — | plan V + plan V2 |
-| 9 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | — | plan V + plan V3 |
-| 10 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
-| 11 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | — | plan V + plan V5 |
-| 12 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | — | plan V + plan V6 |
+| 9 | S1 | `:core` and `Store`: a set by hand changes the settings, no holds | winston | opus, high | yes | — | plan S1 |
+| 10 | S2 | Settings: the list instead of the grid, the order, the daily switch off | winston | opus, medium | yes | S1 | plan S2 |
+| 11 | S3 | The page: the set button under the picture, its menu, the highlight | winston | opus, medium | yes | S2 | plan S3 |
+| 12 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S3 | plan V + plan V3 |
+| 13 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
+| 14 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | S3 | plan V + plan V5 |
+| 15 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S3 | plan V + plan V6 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.
@@ -185,7 +192,7 @@ Judge the diff against the criteria and `CLAUDE.md`; read other files only to ch
 - a rule of `CLAUDE.md` broken: a new dependency or permission, a help text, a notification, network on the main
   thread, Android in `:core`;
 - the plan's rules for the package (for 0.6.0: one reading of the clock; grouping by the due picture, not by the
-  columns; the hold and its ends; the stand-in; forgetting keeps the owner and the stamp; the migration is a
+  columns; a set by hand changes the settings, never a hold (since S1); the stand-in; forgetting keeps the owner and the stamp; the migration is a
   one-time write at the first start, under a lock, and sets nothing at the first run);
 - logic without a test, a test that passes for the wrong reason, a fixed bug without a regression test;
 - what R8 can break (serialized classes, reflection);

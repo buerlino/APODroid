@@ -258,7 +258,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the user's look; S5's grouping and highlight, 2026-10-20 night): **Wallpaper**: the daily
   switch; the status lines (while the stored daily switch is on); **Setup ▸/▾**, a header that
   opens and closes the draft's settings (a button for screen readers, "expanded"/"collapsed";
-  closed: a summary of the **stored** setup under it, "APOD on both screens" in APOD mode, else
+  closed: a summary of the **stored** setup under it, "APOD on both screens" in APOD mode (or "home screen", "lock screen", as the stored "Where" says), else
   "NASA on home screen, Earth on both screens", then " · turns every 6 h" while a screen takes
   turns and the daily switch is on, then " · Fill" or " · Fit"): in APOD mode **Where**, with
   the switch "More NASA pictures" on **Pictures from** (the list) and, while the daily switch
@@ -285,7 +285,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   - **Set applies the setup** (user, 2026-10-20 evening; S4; why: a change took effect at once,
     "but maybe I'm not done"; Next features, 0.6.0). **A draft
     until Set:** "Where", the list (ticks and dropdowns), "Change every",
-    "Size", "If APOD is a video", a newly picked "my picture", ⛶'s part and the switch "All
+    "Size", "If APOD is a video", a newly picked "my picture", ⛶'s part and the switch "More
     NASA pictures" change only the page (`MainActivity`'s draft state; no pref is written, no
     set, no scheduling). A rotation and the system killing the app keep the draft
     (`onSaveInstanceState`); closing the app drops it (a start without a saved draft deletes
@@ -303,7 +303,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     run, and a running one restarts nothing and sets nothing more once `daily` is off. What the draft's switch hid (the
     rows below) follows the one switch. **Two kinds of state on the
     page:** the controls and the sources the page offers (the tabs) follow the draft, so
-    turning "All NASA pictures" on offers and fetches all three at once (`Store.update`'s
+    turning "More NASA pictures" on offers and fetches all three at once (`Store.update`'s
     `show`); what reports what is set follows the stored setup (`Store.setup`): the status
     lines, the chip, the video notice, the problem box, the battery hint, the opening tab. **The
     job follows the stored setup only:** `onResume`'s `DailyJob.ensure` and the reschedule
@@ -472,7 +472,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   wallpaper kept"; the user's own picture " · My picture"; a screen never set has no line
   (approved by the user, 2026-10-20). The page re-reads both
   around each update and after a set.
-- **Tabs (0.5.0, WP4; 0.6.0, M4, 2026-10-20):** with the switch "All NASA pictures" on always
+- **Tabs (0.5.0, WP4; 0.6.0, M4, 2026-10-20):** with the switch "More NASA pictures" on always
   three, else (APOD mode) on an APOD video day APOD and the video-day source; a segmented row
   above the picture ("APOD | NASA | Earth"), opening on the **picture's** source (a stand-in's
   own tab, not APOD's; the user's own picture has none) on the home screen, else the lock
@@ -719,7 +719,7 @@ wake and fail offline).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).
-- **A switch "All NASA pictures"**, at the end of the settings, default off. Off: the app with
+- **A switch "All NASA pictures"** ("More NASA pictures" since S5), at the end of the settings, default off. Off: the app with
   APOD alone, as now. On: always three tabs, and a list replaces the chips and "Where": a row
   per source, a tick box and a dropdown Home screen / Lock screen / Both (S2; M3 had a grid,
   a tick box for Home and for Lock). Each mode keeps its own settings; the list

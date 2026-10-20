@@ -601,7 +601,11 @@ class MainActivity : ComponentActivity() {
             draftFallback = store.draftFallbackFile.exists()
             if (!setup.daily) {
                 DailyJob.cancel(this@MainActivity)
-            } else if (!DailyJob.ensure(this@MainActivity)) {
+            } else if (
+                // With turns the clock just restarted: schedule afresh so the period starts now
+                // (ensure would keep the old windows and stretch the first turn).
+                !(if (store.hasTurns) DailyJob.schedule(this@MainActivity) else DailyJob.ensure(this@MainActivity))
+            ) {
                 toast("Couldn't schedule the daily change")
             }
             setting = false

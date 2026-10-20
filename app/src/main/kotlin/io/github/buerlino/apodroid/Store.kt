@@ -252,6 +252,11 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("daily", false)
         set(value) = prefs.edit { putBoolean("daily", value) }
 
+    /** The job waits for an unmetered network (F2); the page and the buttons use any. */
+    var wifiOnly: Boolean
+        get() = prefs.getBoolean("wifiOnly", false)
+        set(value) = prefs.edit { putBoolean("wifiOnly", value) }
+
     /** The user hid the hint about Android pausing the app, accepting the warning. */
     var pauseHintHidden: Boolean
         get() = prefs.getBoolean("pauseHintHidden", false)

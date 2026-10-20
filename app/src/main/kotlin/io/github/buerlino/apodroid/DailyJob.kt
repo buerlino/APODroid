@@ -12,8 +12,8 @@ import kotlin.concurrent.thread
 
 /**
  * Runs every ~6 hours with network (with turns of 3 hours, every 3): [Store.update], which fetches
- * the newest post of each source in use unless already stored, and sets the wallpaper once per
- * post and turn. A failed run is retried with the job's backoff.
+ * the newest post of each source in use unless already stored, and sets each screen's wallpaper
+ * once per post and turn. A failed run is retried with the job's backoff.
  */
 class DailyJob : JobService() {
     @Volatile
@@ -54,15 +54,16 @@ class DailyJob : JobService() {
         }
 
         /**
-         * Every 6 hours, with any flex (so scheduling runs it at once). With turns, as often as a
-         * turn lasts, up to 6 hours, with a short flex so the turns come at even times.
+         * Every 6 hours, with any flex (so scheduling runs it at once). With turns (a column with
+         * two or more), as often as a turn lasts, up to 6 hours, with a short flex so the turns
+         * come at even times.
          */
         private fun job(context: Context): JobInfo {
             val store = Store(context)
             val sixHours = TimeUnit.HOURS.toMillis(6)
             return JobInfo.Builder(ID, ComponentName(context, DailyJob::class.java))
                 .apply {
-                    if (store.sources.size < 2) {
+                    if (!store.hasTurns) {
                         setPeriodic(sixHours)
                     } else {
                         setPeriodic(minOf(TimeUnit.HOURS.toMillis(store.interval.hours), sixHours), TimeUnit.MINUTES.toMillis(15))

@@ -619,7 +619,8 @@ class MainActivity : ComponentActivity() {
      * After a set that started the stored setup afresh (Set, the daily switch on): with turns the
      * clock just restarted, so the job is scheduled afresh and its period starts now (ensure would
      * keep the old windows and stretch the first turn); without turns [DailyJob.ensure] (a fresh
-     * job runs at once, so only after the set, or it would set first).
+     * job runs at once, so only after the set, or it would set first). While the job runs, both
+     * wait for its end (S4f3: [DailyJob] notes them, so the run and its saves aren't stopped).
      */
     private fun scheduleJob() {
         if (!(if (store.hasTurns) DailyJob.schedule(this) else DailyJob.ensure(this))) toast("Couldn't schedule the daily change")
@@ -773,7 +774,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** "Wi-Fi only" changes the job's network at once, by the stored setup (only Set schedules by the draft). */
+    /**
+     * "Wi-Fi only" changes the job's network at once, by the stored setup (only Set schedules by
+     * the draft); during a run, at its end ([DailyJob.ensure]).
+     */
     private fun rescheduleJob() {
         if (store.daily && !DailyJob.ensure(this)) toast("Couldn't schedule the daily change")
     }

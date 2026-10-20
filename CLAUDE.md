@@ -267,9 +267,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
     NASA pictures" change only the page (`MainActivity`'s draft state; no pref is written, no
     set, no scheduling). A rotation and the system killing the app keep the draft
     (`onSaveInstanceState`); closing the app drops it (a start without a saved draft deletes
-    `files/fallback-draft.jpg`). The daily switch is part of the draft (the user's choice: off,
-    then leaving the app, keeps the job and reopens with the switch on; the alternative, should
-    the user want it: off applies at once, on waits for Set). **Two kinds of state on the
+    `files/fallback-draft.jpg`). The daily switch is part of the draft as built in S4, but
+    **leaves it in S4f2** (user, 2026-10-20 evening: a setting that changes how the whole app
+    works must act at once): off cancels the job at once; on schedules it and sets the stored
+    setup at once (the clock restarts, both records forgotten), other draft changes staying a
+    draft. **Two kinds of state on the
     page:** the controls and the sources the page offers (the tabs) follow the draft, so
     turning "All NASA pictures" on offers and fetches all three at once (`Store.update`'s
     `show`); what reports what is set follows the stored setup (`Store.setup`): the status
@@ -296,7 +298,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "Couldn't set the wallpaper" when a set failed (also when another worked). With the daily
     switch on the job sets the rest later.
   - A switch for the daily change ("Change wallpaper automatically", user 2026-10-17: with
-    turns it isn't daily): part of the draft; Set schedules or cancels the job.
+    turns it isn't daily): part of the draft until S4f2, then at once both ways (above).
   - **All NASA pictures** (0.6.0, M3; the pref `allSources`, default off: APOD mode). Part of
     the draft: "Where" and the list swap at once and the page offers the new mode's sources;
     Set saves it and reschedules the job (its period follows the mode). Each mode keeps its
@@ -561,6 +563,10 @@ the next job save of that post saves the stored picture, the smaller copy, as af
 (`save(post, tryOriginal = false)`). A post with another picture URL tries its original. A save
 that returns (also `BUSY`, which downloaded nothing) clears the note. ★ always tries the
 original and ignores the note.
+**A size limit** (user, 2026-10-20 evening, after a 208 MB NASA PNG; F6, not built yet):
+"Largest original" [10 MB | 20 MB | 50 MB | 100 MB | No limit] in "Advanced settings", default
+20 MB, at once. The job only: an original over it isn't downloaded in full, the stored picture
+is saved instead; ★ ignores it.
 
 ### Background update
 
@@ -685,8 +691,10 @@ video days worked only with APOD alone (it shows at once that it was a video day
   hold of 2026-10-19: a simulation of the hold's rules over a week showed what the page never
   said (a held picture followed its source's newer posts, a set on Home stretched the lock
   screen's turn from 6 h to 9 h). The shown picture decides nothing (0.5.0 could set it): to
-  put Earth on a screen, tick Earth. Kept after a review asked: the daily switch in the draft
-  (the user's choice), the label "Set as wallpaper" (not "Apply").
+  put Earth on a screen, tick Earth. Kept after a review asked: the label "Set as wallpaper"
+  (not "Apply"). The daily switch was in the draft too; after seeing S4 the user took it out
+  (2026-10-20 evening, S4f2: it acts at once). S4's texts approved the same evening: "Set as
+  wallpaper", ✓'s screen-reader label "Done", the toast "Setup saved. Nothing to set yet."
 - Both screens due the same picture: one set with both flags; else each screen on its own (not
   by equal columns: a screen still due a retry may differ for a while). Every screen's due picture comes from
   one reading of the clock (reviews of the plan, 2026-10-19). The clock restarts only when the

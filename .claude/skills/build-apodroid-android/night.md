@@ -105,9 +105,11 @@ plan's decisions). S3 dropped the same evening: **S4–S6**, settings as a draft
 the setup and advanced areas, the title dropdown and swipe (the plan's "Set applies the
 setup"). S2 was stopped by hand during its tablet check: its review run (`scripts/pipeline.sh
 S2 --no-worker --tablet no`, as S4 and S5 replace what that check tests) merges it before S4
-can start. S4, S5 and S6 run by day, one at a time, the user looking at each on the tablet
-before the next (the plan, Remaining 3a). V3, V5 and V6 wait for S6, as they test the final
-tree; V4 had started before.
+can start. S4, S4f1, V4 and the night's rows before them are merged (the night of 2026-10-20).
+
+The next night (user, 2026-10-20 evening; the plan, Remaining 3b): **B1, S4f2, S5, F6**; the tablet is free by
+night (pascaline has it by day). **S6** waits for the user's look at S5 (its After names `the user`); V3, V5 and
+V6 wait for S6, as they test the final tree.
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -122,12 +124,15 @@ tree; V4 had started before.
 | 9 | S1 | `:core` and `Store`: a set by hand changes the settings, no holds | winston | opus, high | yes | — | plan S1 |
 | 10 | S2 | Settings: the list instead of the grid, the order, the daily switch off | winston | opus, medium | yes | S1 | plan S2 |
 | 11 | S4 | Set applies the setup: the draft, `Store.saveSetup`, the old set paths gone | winston | opus, high | yes | S2 | plan S4 |
-| 12 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" | winston | opus, medium | yes | S4 | plan S5 |
-| 13 | S6 | The picture side: the title dropdown, swipe between sources, no Share | winston | opus, high | yes | S5 | plan S6 |
-| 14 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S6 | plan V + plan V3 |
-| 15 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
-| 16 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | S6 | plan V + plan V5 |
-| 17 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S6 | plan V + plan V6 |
+| 12 | B1 | The status line after Set with "Skip it" on a video day | winston | sonnet, medium | yes | S4 | plan B1 |
+| 13 | S4f2 | The daily switch applies at once, both ways | winston | opus, medium | yes | B1 | plan S4f2 |
+| 14 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" | winston | opus, medium | yes | S4f2 | plan S5 |
+| 15 | F6 | A size limit for the job's saves | winston | opus, medium | yes | S5 | plan F6 |
+| 16 | S6 | The picture side: the title dropdown, swipe between sources, no Share | winston | opus, high | yes | S5, the user | plan S6 |
+| 17 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S6 | plan V + plan V3 |
+| 18 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
+| 19 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | S6 | plan V + plan V5 |
+| 20 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S6 | plan V + plan V6 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.
@@ -142,7 +147,8 @@ The first that applies:
    `scripts/pipeline.sh pass`.
 3. The next queue step without a RESULT line whose After packages are merged (the package, or a fix of it
    `<ID>f<k>`, has a MERGED line), in the order of the last pass's QUEUE line, else the table's:
-   `scripts/pipeline.sh <ID>`. A step whose After is NOT MERGED is passed over tonight.
+   `scripts/pipeline.sh <ID>`. A step whose After is NOT MERGED is passed over tonight, and so is one whose
+   After names `the user` (it waits for the user's look in the morning; the user takes the words out).
 4. No queue step can run, and no pass came after the last queue step's RESULT line: `scripts/pipeline.sh pass`
    (the last pass; its FIX lines then run by rule 1).
 5. After that, when no `RESULT regression` line came after the last package's RESULT line:

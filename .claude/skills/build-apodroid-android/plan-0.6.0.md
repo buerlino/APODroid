@@ -73,7 +73,7 @@ screen, asked before the user has seen the app; updaters never get a first boot)
   ticked on that screen may show twice in a row: allowed.
   - Its control is a dropdown (it closes after a choice and opens again with a tap), after
     "Size" (S2), greyed out with the switch on while APOD has no tick (so the page doesn't move,
-    as U4 decided), shown only while the draft's daily switch is on (S5). Choosing "Use my
+    as U4 decided), shown only while the daily switch is on (S5). Choosing "Use my
     picture" with nothing picked opens the photo picker at once; "Change picture" beside the
     dropdown afterwards.
 - **The page with the switch on:** the "On wallpaper" chip becomes "On home screen", "On lock
@@ -107,15 +107,15 @@ are placeholders.
 Why: a change took effect at once, "but maybe I'm not done". One system for both modes, though
 in APOD mode a change of "Where" alone would be safe to set at once.
 
-- **A draft until Set.** The daily switch, "Where", the list (ticks and screen dropdowns),
+- **A draft until Set.** "Where", the list (ticks and screen dropdowns),
   "Change every", "Size", "If APOD is a video", a newly picked "my picture", ⛶'s part and
   "Extended API mode" change only the page. The job keeps the setup last set. A rotation and
   the system killing the app keep the draft (Android's saved state); closing the app drops it.
-  - **The daily switch is part of the draft** (the user's choice, asked directly). It sets
-    nothing by itself any more. Kept after the review pointed out that a switch usually acts
-    when flipped: off, then leaving the app, keeps the job running and reopens with the switch
-    on. The alternative, should the user want it after seeing S4: off applies at once (the
-    safe way), on waits for Set.
+  - **The daily switch applies at once, both ways** (user, 2026-10-20 evening, after S4's
+    night: "a setting that impacts how the entire app works should be instant"; S4f2; S4 had
+    it in the draft). Off cancels the job at once. On schedules it and sets the stored setup
+    at once (the clock restarts, both records forgotten, as 0.5.0's switch did); the other
+    settings' draft changes stay a draft until Set, still highlighted.
   - **"My picture"** is a file: picking one copies it to `files/fallback-draft.jpg`; Set renames
     it to `fallback.jpg`. A start without a saved draft deletes a leftover draft file.
   - **⛶'s part:** ✓ closes crop mode and keeps the part in the draft (per source: the post's
@@ -190,13 +190,14 @@ APOD on both screens, NASA on home screen · turns every 24 h · Fill      is se
     [✓] APOD    [Both ▾]
     [✓] NASA    [Home screen ▾]
     [ ] Earth   [Both ▾]                           greyed out, the screens it had last
-  Change every  [24 h | 12 h | 6 h | 3 h]          draft's daily switch on, a screen takes turns
+  Change every  [24 h | 12 h | 6 h | 3 h]          daily switch on, a screen takes turns
   Size    [Fill | Fit]
-  If APOD is a video  [Skip it ▾]                  draft's daily switch on only
+  If APOD is a video  [Skip it ▾]                  daily switch on only
 [        Set as wallpaper        ]                 always
 Advanced settings ▸                                closed by default
-  [switch] Wi-Fi only                              draft's daily switch on
-  [switch] Save every picture ⓘ                    draft's daily switch on
+  [switch] Wi-Fi only                              daily switch on
+  [switch] Save every picture ⓘ                    daily switch on
+    Largest original  [20 MB ▾]                    "Save every picture" on (F6)
   [switch] Extended API mode
 ```
 
@@ -233,7 +234,10 @@ Advanced settings ▸                                closed by default
 | S2 | Settings: the list instead of the grid, the order, the daily switch off | Opus, medium |
 | S3 | The page: the set button under the picture, its menu, the highlight (dropped) | Opus, medium |
 | S4 | Set applies the setup: the draft, `Store.saveSetup`, the old set paths gone | Opus, high |
+| B1 | The status line after Set with "Skip it" on a video day (regression 2) | Sonnet, medium |
+| S4f2 | The daily switch applies at once, both ways | Opus, medium |
 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" | Opus, medium |
+| F6 | A size limit for the job's saves ("Largest original", default 20 MB) | Opus, medium |
 | S6 | The picture side: the title dropdown, swipe between sources, no Share | Opus, high |
 | V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 by night, V7 by day | Opus, high |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
@@ -259,7 +263,8 @@ claude --model opus --effort medium "Do F5 in .claude/skills/build-apodroid-andr
 claude --model opus --effort medium "Do F1f1 and F5f1 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do C in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 scripts/pipeline.sh S2 --no-worker --tablet no    # S2's review and merge (S1 is merged)
-scripts/pipeline.sh S4    # then S5, then S6: by day, one at a time, the user looks at each
+scripts/night.sh --until <HH:MM>    # B1, S4f2, S5, F6: the queue in night.md
+scripts/night.sh --until <HH:MM>    # after the user's look at S5: S6, then V3, V5, V6
 scripts/night.sh --until <HH:MM>    # V1–V6: the queue in night.md
 claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -332,14 +337,24 @@ reading; their build check passed, 108 tests with `private/`):
    tests ticks that apply at once and a layout S4 and S5 replace). Then S4, S5 and S6 by day,
    one at a time by pipeline, the user looking at each on the tablet before the next. V3, V5
    and V6 wait for S6 (by night), as they test the final tree.
-4. **V7 by day** after the night (turns over hours: the night's later rows and the
-   regression reinstall and change the tablet).
+3b. **The evening of 2026-10-20** (user, after the night's report): S4's texts kept ("Set as
+   wallpaper", ✓'s "Done", "Setup saved. Nothing to set yet."); `dev` fast-forwarded into
+   master. S5 and S6 by night after all (the user), the user's look between them. New: **B1** (the regression's status line),
+   **S4f2** (the daily switch at once, both ways), **F6** (a size limit for the job's saves).
+   The tablet is free by night (pascaline uses it by day). **The next night:** B1 → S4f2 →
+   S5 → F6. The user looks at S5 (and the button that moves after Set, the report's question)
+   in the morning; S6 waits for that look (night.md: an After naming the user). **The night
+   after:** S6, then V3, V5, V6.
+4. **V7** after the night of V3–V6 (turns over hours: the night's later rows and the
+   regression reinstall and change the tablet). It needs the tablet alone for 6 hours, and
+   pascaline has it by day: its first session at the end of a night, the second before
+   pascaline starts, or a night with nothing else queued.
 5. P on the FP6 with the user, then R and T.
 Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
 (deprecated since API 28; it works, and `requiredNetwork` would mean comparing
 `NetworkRequest`s).
 
-### [ ] F1. Fill / Fit (Opus, medium)
+### [x] F1. Fill / Fit (Opus, medium)
 
 `features.md` item 2 has the how. Settled: one setting for both screens (2026-10-19); changing
 it while the daily switch is on sets the wallpaper again at once, like "Where" (user,
@@ -392,7 +407,7 @@ bilinear step, which can make fine detail (stars) jagged or drop it.
 - Device: in V1 (a star field with Fit; an EXIF-rotated "my picture" with Fit, upright).
 - Done when: the build check passes and `CLAUDE.md` says how Fit decodes.
 
-### [ ] F3. Share (Sonnet, medium)
+### [x] F3. Share (Sonnet, medium)
 
 **Status (2026-10-20, day):** built (`ShareButton`, `share` in `MainActivity.kt`; the build
 check passes); the glyph ⤴ approved by the user in C, at 28 sp (★ stays 24 sp); the device
@@ -410,7 +425,7 @@ and a drawn Material icon), to be seen on a device.
   ↗ and ⇪ in the same place for the user to compare.
 - Done when: the user has seen the glyph and approved it, and `CLAUDE.md` describes it.
 
-### [ ] F4. Image credit (Opus, medium)
+### [x] F4. Image credit (Opus, medium)
 
 **Status (2026-10-20, day):** built and unit-tested (`credit`, 5 tests in `ApodTest`, all 100
 real posts in `readsEveryRealPost`; the build check passes); the text approved by the user in C
@@ -447,7 +462,7 @@ and mostly "NASA Earth Observatory").
 - Done when: the tests pass, the user has seen it and approved the text, and `CLAUDE.md` (Data
   source, The app) has it.
 
-### [ ] F5. Save every picture (Opus, medium)
+### [x] F5. Save every picture (Opus, medium)
 
 **Status (2026-10-20, day):** built and unit-tested (`sourcesInUse` and `toSave` in
 `core/.../Saving.kt`, 7 tests in `SavingTest`; the build check passes); the ⓘ text approved by the
@@ -544,7 +559,7 @@ On a debug build of master after F3, F1f1 and F5f1. Screenshots only, with rosie
 - Done when: the user has seen all four and their answers are built and in `CLAUDE.md` (F3:
   the glyph; F1, F4, F5: the texts).
 
-### [ ] S1. `:core` and `Store`: a set by hand changes the settings, no holds (Opus, high)
+### [x] S1. `:core` and `Store`: a set by hand changes the settings, no holds (Opus, high)
 
 The decisions are above ('"Set as wallpaper" changes the settings'). This package builds the
 rules and their wiring. The page keeps today's controls (the grid, the buttons where they
@@ -624,7 +639,7 @@ picture, its menu in APOD mode and the highlight are S3.
   covered), the device checks pass, and `CLAUDE.md` says the new rules and no longer the
   hold.
 
-### [ ] S2. Settings: the list instead of the grid, the order, the daily switch off (Opus, medium)
+### [x] S2. Settings: the list instead of the grid, the order, the daily switch off (Opus, medium)
 
 After S1. The layout is "Settings layout afterwards" above; the texts are placeholders.
 - **The list.** With the switch on, "Pictures from" is a list with a row per source:
@@ -674,7 +689,7 @@ After S1. The layout is "Settings layout afterwards" above; the texts are placeh
 Dropped (user, 2026-10-20 evening): replaced by S4–S6 ("Set applies the setup"); git keeps
 its text.
 
-### [ ] S4. Set applies the setup: the draft, `Store.saveSetup`, the old set paths gone (Opus, high)
+### [x] S4. Set applies the setup: the draft, `Store.saveSetup`, the old set paths gone (Opus, high)
 
 After S2. The behaviour of "Set applies the setup" above; S2's layout mostly stays (S5
 rearranges it, S6 the picture side), so the tablet sees the new rules first.
@@ -747,22 +762,69 @@ rearranges it, S6 the picture side), so the tablet sees the new rules first.
 - **Done when:** the checks pass, the tests pass (the removed `:core` functions' tests gone,
   nothing left that names them), the tablet passes and `CLAUDE.md` says the new rules.
 
+### [ ] B1. The status line after Set with "Skip it" on a video day (Sonnet, medium)
+
+From regression 2 (2026-10-20 night; the user: a bug, its own package before S5).
+- Steps: fake an APOD video day, the daily switch on, APOD alone, "If APOD is a video" = "Skip
+  it", press Set.
+- Happened: the status line reads "Wallpaper changed 20 Oct, 19:28", no source (evidence:
+  `.coord/regressions/regression-2/tablet/s27-video-skip.png`, `s28-video-skip-after-job.png`).
+  Should: "Video day, wallpaper kept" (nothing was set). Likely cause: Set forgets the record's
+  picture (`restartAndForget`), and `videoDayKept` needs one.
+- Also: the KDoc above `chooseVideoDays` in `MainActivity.kt` still says "Skip it" sets nothing
+  (from pass 3); make it say what it does since S4.
+- **Files:** `core/.../Screens.kt` (`videoDayKept`), `ScreensTest`, `Store.kt` (`saveSetup`
+  and what it forgets) if the fix belongs there, `MainActivity.kt` (the KDoc), `CLAUDE.md`
+  (Problems and status line) if the rule's words change.
+- **Tablet:** the steps above: the line says "Video day, wallpaper kept", before and after the
+  job's next run; the same with turns on one screen (no "kept" line there: the turn passes).
+- **Done when:** a regression test that fails on the old code, the fix, the tablet passes.
+
+### [ ] S4f2. The daily switch applies at once, both ways (Opus, medium)
+
+After B1 (both touch `Store.kt`). The user's decision in "Set applies the setup" (2026-10-20
+evening): the daily switch leaves the draft.
+- **Off:** writes `daily` = false and cancels the job at once; the status lines and the
+  battery hint go (they follow the stored switch).
+- **On:** writes `daily` = true, then as 0.5.0's switch did: the clock restarts and both
+  records are forgotten (`restartAndForget`), `update(page = true, set = true)` off the main
+  thread sets the **stored** setup, then the job is scheduled (after the set, as Set does:
+  `DailyJob.schedule` with turns, else `ensure`). The other settings' draft changes stay a
+  draft, still highlighted after S5. Toasts as Set's ("Wallpaper set", "Couldn't set the
+  wallpaper"); none when nothing was set (the status line says it). Turning it on while a
+  Set or an update runs: one more run after it, as a tick did.
+- **Set** keeps applying the rest of the draft; it reads the stored switch for scheduling or
+  cancelling (no change to it), and with the switch off is still a one-off set.
+- The draft drops `daily` (`Setup`, `draft()`, the saved state's bundle key); what showed by
+  "the draft's daily switch" (the hidden rows) now follows the one switch.
+- **Files:** `MainActivity.kt` (`switchDaily`, the draft, Set), `Store.kt` (`Setup`,
+  `saveSetup`), `CLAUDE.md` (The app, Settings: the switch out of the draft list, the
+  decision with its why; Background update: turning the switch on), the skill's "Where things
+  are".
+- **Tablet:** off → `dumpsys jobscheduler` has no job at once, prefs `daily` false, the
+  status lines gone; on → the job scheduled, both screens set to the stored setup (with a
+  pending draft change, e.g. "Size" or a tick: not applied, still the stored one), the clock
+  restarted; a rotation and `am kill` keep the switch's state (it's a pref now); APOD mode and
+  Extended API mode; no crash.
+- **Done when:** the checks pass, the tablet passes, `CLAUDE.md` says the new rule.
+
 ### [ ] S5. Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" (Opus, medium)
 
-After S4. The layout, the summary and the highlight of "Set applies the setup" above.
+After S4f2 (the daily switch at once). The layout, the summary and the highlight of "Set
+applies the setup" above.
 - "Setup": a header row ("Setup ▸/▾", the summary under it while closed) that opens and closes
   the area (`rememberSaveable`); it opens by itself while the draft differs from the store in
   it, and closes after a set that worked.
 - "Set as wallpaper" moves after "Setup", always shown.
 - "Advanced settings": a header row, closed by default (`rememberSaveable`), with "Wi-Fi only"
-  and "Save every picture" (draft's daily switch on) and "Extended API mode"; turning that
+  and "Save every picture" (the daily switch on) and "Extended API mode"; turning that
   opens "Setup". The divider before the mode switch goes.
 - The highlight: each setting compared with the store; while it differs its heading and its
   control in `tertiary` (segmented buttons' active colours `tertiaryContainer` /
   `onTertiaryContainer` and their border, the checkbox and the switch `tertiary`, the outlined
   dropdowns' border and text); the list per row; ⛶ while its part differs; the "Setup" header
   while anything in it differs, "Advanced settings" while the mode does.
-- "If APOD is a video" only while the draft's daily switch is on. "Day" → "24 h". The switch's
+- "If APOD is a video" only while the daily switch is on. "Day" → "24 h". The switch's
   label "Extended API mode" (and the comments that name it).
 - Screen readers: the headers as buttons with "expanded"/"collapsed" (`Role.Button`,
   `stateDescription`); a highlighted setting adds "not set yet" to its state.
@@ -772,6 +834,38 @@ After S4. The layout, the summary and the highlight of "Set applies the setup" a
   phone-width window; font scale 2.0 at `wm density 344` (no word broken inside); the
   accessibility tree (`uiautomator dump`).
 - **Done when:** the checks pass, the tablet passes, the screenshots are there for the user.
+
+### [ ] F6. A size limit for the job's saves (Opus, medium)
+
+After S5 (its row is in "Advanced settings"). The user, 2026-10-20 evening, after the night's
+heads-up that today's NASA original is a 208 MB PNG: "Save every picture" may not download
+anything that size every day; a setting, the user decides, limited by default.
+- **"Largest original"** (placeholder): a dropdown [10 MB | 20 MB | 50 MB | 100 MB | No
+  limit], **default 20 MB**, under "Save every picture" in "Advanced settings", shown while
+  that switch is on. At once, as "Save every picture" (not part of the draft). The pref
+  `saveLimit` (MB; 0 = no limit).
+- **The job only:** an original over the limit isn't downloaded in full; the job saves the
+  stored picture instead (the smaller copy, as after a failure: `save(post, tryOriginal =
+  false)`'s path). ★ by hand ignores the limit and always tries the original.
+- **How the size is known:** the download's `Content-Length` before the body is read (NASA's
+  feed also has the enclosure's `length`; use it if it is already parsed, don't add parsing for
+  it); without a length, stop once the bytes pass the limit and throw the `.part` away. Either
+  way it's a fall-back, not a failure (logged, no retry, `saveTried` noted as now).
+- `:core`: the download takes a byte limit; a typed result or exception for "over the limit",
+  with tests (a length over it, no length and a body over it, under it, no limit).
+- The ⓘ dialog's text ("Each new picture is saved full size to Pictures/APODroid: a few
+  hundred MB a month or more.", approved in C) may no longer be true at 20 MB: propose a new
+  text in the report, don't change it.
+- **Files:** `core/.../Post.kt` (the download), its tests, `Saving.kt` if the choice moves
+  there, `Store.kt` (`save`, `saveInUse`, the pref), `MainActivity.kt` (the row), `CLAUDE.md`
+  (Save every picture; Next features, From a review of 0.1.1), the skill's "Where things
+  are".
+- **Tablet:** with the limit 20 MB and a stored NASA post whose original is bigger (today's, or
+  one faked by prefs): the job saves the stored picture, no full download (`logcat`, the
+  gallery's file size); with "No limit" the original; ★ saves the original despite the limit;
+  the row hidden while "Save every picture" is off; font scale 2.0; the test files deleted
+  from the gallery afterwards.
+- **Done when:** the tests pass, the checks pass, the tablet passes, `CLAUDE.md` says it.
 
 ### [ ] S6. The picture side: the title dropdown, swipe between sources, no Share (Opus, high)
 
@@ -822,7 +916,7 @@ hours: the night's later rows and the regression reinstall and change the tablet
 - Done when: each of the row's bullets ran or is under Not tested with the reason, and the
   results are committed.
 
-### [ ] V1. F1, F3 and F1f1 on the tablet
+### [x] V1. F1, F3 and F1f1 on the tablet
 
 - F1's device bullet (Fit with a wide and a tall picture, home and lock, both modes; a change
   with the daily switch on sets at once and `turnStartedAt` stays; no ⛶ with Fit).
@@ -834,7 +928,7 @@ hours: the night's later rows and the regression reinstall and change the tablet
   tile, from APOD's and NASA's tabs), with screenshots of ⤴ beside ★ for the user (only ⤴: C
   compared the others).
 
-### [ ] V2. F4, F5 and F5f1 on the tablet
+### [x] V2. F4, F5 and F5f1 on the tablet
 
 - F4's device bullet (a short credit and the longest, 251 characters by prefs; APOD mode and
   with tabs; the explanation open and closed), screenshots for the user.
@@ -855,7 +949,7 @@ hours: the night's later rows and the regression reinstall and change the tablet
 - Rotation and two panes; font scale 2.0 at `wm density 344` (the phone's width): the list and
   the status lines with the short names, the Fit row, the credit.
 
-### [ ] V4. What the night of 2026-10-20 didn't check
+### [x] V4. What the night of 2026-10-20 didn't check
 
 - The problem box with "All NASA pictures" on when only NASA fails (the proxy stalling
   `www.nasa.gov` only; APOD and Earth are on science.nasa.gov), on APOD's tab and on NASA's.

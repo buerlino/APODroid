@@ -39,7 +39,7 @@ packages unattended): `night.md`.
   and the job run: refresh, noting how the check went, then set while `daily` is on), `refresh(source)`
   (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
   `columns`, `hasTurns`, `setAllSources`, `setColumns` (the mode and the grid; `sources` is the
-  union, its setter 0.5.0's chips until M3), `record(screen)` (home unprefixed, lock `lock.`;
+  union), `record(screen)` (home unprefixed, lock `lock.`;
   `wallpaperSource`/`Date`/`Url`/`SetAt` are the page's screen's), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
   wallpaper lock), `setByHand(tab, screens)` (button, ✓), `settingChanged(Changed)` (forget,
@@ -47,6 +47,8 @@ packages unattended): `night.md`.
   an EXIF orientation goes upright through `setBitmap`), `cropPosition(post)`, `save` (the original, else the stored picture; returns `Saved`), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
+  the settings (`Settings`; with the switch "All NASA pictures" `Grid`, `SetMenu`; `VideoDaysChoice`, the
+  dropdown; `switchAllSources`, `tick(screen, source)`, `chooseVideoDays`, `canSetNow`, `setWallpaperNow(screens)`);
   `follow()` redraws while resumed when `Store.watch` sees the job set or store a post.
   `app/.../DailyJob.kt`: the job (id 1); `ensure` reschedules it only when its timing changes.
 

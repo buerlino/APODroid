@@ -242,65 +242,77 @@ set it as wallpaper, and on video days kept the old wallpaper.
   each scrolling on its own: the picture side (tabs, picture, boxes, caption) left, the settings
   right. Pull to refresh works on the picture side only. The tablet (711 dp in portrait) shows
   two panes both ways.
-- **Settings** (SharedPreferences), in two sections split by a divider (U3, 2026-10-18;
-  texts approved by the user, 2026-10-18): **Wallpaper** (the switch, the status line, **Where**, the set button)
-  and **Pictures from** (the source chips, "Change every", video days).
+- **Settings** (SharedPreferences; 0.6.0's layout built in M3, 2026-10-20, texts placeholders
+  until the user approves them on the device): **Wallpaper** (the daily switch, the status line;
+  in APOD mode **Where**, "If APOD is a video", the set button), with the switch "All NASA
+  pictures" on, after a divider, **Pictures from** (the grid with "If it's a video" under APOD's
+  row, "Change every", the set menu); then a divider and the switch "All NASA pictures", in both
+  modes.
   - A switch for the daily change ("Change wallpaper automatically", user 2026-10-17: with
     turns it isn't daily): schedules or cancels the job.
-  - **Pictures from** (0.5.0, WP5; proposed 2026-10-16, approved by the user
-    2026-10-17): a row of filter chips, "APOD | NASA | Earth" with ✓ on the selected ones (U3,
-    2026-10-18; were tick boxes with the full names, 72 dp each), equal widths, as many on a line as
-    the widest fits (`EqualGrid`, WP8, 2026-10-18: from font scale 1.5 on the FP6's 372 dp the
-    ticked labels broke inside the word; now two per line there). Since M2 (2026-10-20, until
-    M3's grid replaces them) the chips are read as the migration reads 0.5.0's `sources`: APOD
-    alone is APOD mode, anything else turns `allSources` on with the ticks in the columns
-    "Where" names (`Store.sources`' setter). Default APOD alone, so an update changes nothing; the last chip is greyed out. With two or more,
-    **Change every** [Day | 12 h | 6 h | 3 h] (`Store.interval`, default Day) and they take
-    turns (Background update, Turns).
-  - **Weekday dialog** (user, 2026-10-17): ticking NASA or Earth says they post on weekdays only
-    and Friday's pictures come back on weekends; "Dismiss" (again at the next such tick) and
-    "Don't show again" (`weekdayNoticeHidden`). Not for the video-day choice. No text on the page.
-  - **The mode and the grid** (0.6.0, M2, 2026-10-20; the controls are M3's): pref
-    `allSources` (the switch "All NASA pictures", off: APOD mode), with it on the columns
-    `home` and `lock` (comma lists, `Store.columns`; APOD mode's columns are APOD on the screens
-    "Where" names, `apodColumns`). `Store.setAllSources` (the first time on, the grid starts
-    from "Where"; works like a tick and forgets both records, so every hold goes) and
-    `Store.setColumns` (`columnsChanged`: a changed column clears its screen's hold, the clock
-    restarts only when no column took turns before).
+  - **All NASA pictures** (0.6.0, M3; the pref `allSources`, default off: APOD mode). Turning
+    it on or off works like a tick (`Store.setAllSources`: both records forgotten, so every
+    hold goes; the first time on, the grid starts from "Where"), then the page's update sets
+    what the new mode puts on a screen while the daily switch is on, and the job is
+    rescheduled (its period follows the mode). Each mode keeps its settings: "Where" is APOD
+    mode's, the grid the other's.
+  - **The grid** (switch on; M3): "Pictures from" with the heads "Home" and "Lock", a row per
+    source (`Source.label`, the names wrap) and a material3 `Checkbox` per screen in columns
+    72 dp wide, wider when a large font widens a head (the heads don't wrap: at font scale 2.0
+    on the FP6's width "Home" broke inside the word, tablet M3 check); screen readers "APOD on the home screen". The prefs are the columns `home` and
+    `lock` (comma lists, `Store.columns`; APOD mode's columns are APOD on the screens "Where"
+    names, `apodColumns`). A tick goes through `Store.setColumns` (`columnsChanged`: a changed
+    column clears its screen's hold, the clock restarts only when no column took turns before),
+    then the page's update: what changes a screen is set at once (the source on it unticked, a
+    hold ended, a column's first tick), a tick added to a turning screen waits for its turn
+    (Turns). The last tick in the grid is greyed out. With a column of two or more, **Change
+    every** [Day | 12 h | 6 h | 3 h] (`Store.interval`, default Day) below the grid; hiding it
+    moves the page only after a tick. 0.5.0's chips ("APOD | NASA | Earth", `EqualGrid`) are
+    gone.
+  - **Weekday dialog** (user, 2026-10-17): ticking NASA or Earth where it wasn't ticked on
+    either screen says they post on weekdays only and Friday's pictures come back on weekends;
+    "Dismiss" (again at the next such tick) and "Don't show again" (`weekdayNoticeHidden`). Not
+    for the video-day choice or the mode switch. No text on the page.
   - **Where** (was "Wallpaper on" until U3): home screen, lock screen, or both (user: a setting,
     not fixed), APOD mode's only (the grid has its columns). Default: both. Its segments, like the tabs' and "Change every"'s, share one
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
-  - **If APOD is a video** (was "On video days", shown only with APOD
-    ticked alone until U4): always shown (user, 2026-10-17, U4: it overlapped "Pictures from"
-    and vanished at a second tick, moving the page). With two or more ticked the choices are
-    greyed out, the stored one stays selected for when APOD is alone again, under one grey line
-    "The next source takes its turn." (the one help text this adds): with turns a
-    video APOD skipped its turn, and the video notice and "Video day, wallpaper kept" don't
-    show. Since M2 (2026-10-20) the stored choice fills APOD's turn with turns too (Turns);
-    the greying and the line go in M3. The choices: keep the previous picture, NASA Image of the Day, Earth Observatory (0.5.0,
-    WP3; `VideoDays.NASA`, `.EARTH`), or use my own picture (user). Default: keep, as
-    the Tasker task did. The other source is fetched only on APOD video days (after APOD's
-    refresh, which tells); its newest post is the wallpaper, set once per its date; choosing it
-    on a video day fetches and sets it at once; none stored yet → kept. No still-frame option (often a generic NASA image). "My picture" is
-    picked once with the system photo picker (`PickVisualMedia`, no permission) and copied to
-    `files/fallback.jpg`; chosen but nothing picked → keep.
-  - **Set as wallpaper now**, at the end of the Wallpaper section, with the same two settings:
-    the shown tab's picture, set by hand (`Store.setByHand`, M2: held on the screens "Where"
-    names until their next normal change, Background update, Turns; with turns the clock
-    restarts; with the switch "All NASA pictures" on too until M3's menu). **Always shown** (user,
+  - **If APOD is a video** (was "On video days"; one setting for both modes): a dropdown (M3,
+    2026-10-20: a `DropdownMenu` under an outlined button "Skip it ▾", ✓ before the chosen
+    one; were four radios), in APOD mode under "Where", with the switch on under APOD's grid row
+    as "If it's a video", greyed out there while APOD has no tick (so the page doesn't move).
+    Never greyed out otherwise (0.5.0 greyed it with two or more ticked, under a grey line).
+    The choices: "Skip it" (`VideoDays.KEEP`; was "Keep the previous picture"), NASA Image of
+    the Day, Earth Observatory (0.5.0, WP3; `VideoDays.NASA`, `.EARTH`), or "Use my picture"
+    (user). Default: "Skip it", as the Tasker task did. The choice fills APOD's turn on every
+    screen where APOD is ticked, with turns too ("Skip it": a screen with APOD alone keeps its
+    picture, one with turns passes to the next source; Turns). The other source is fetched only
+    on APOD video days (after APOD's refresh, which tells); its newest post is the wallpaper,
+    set once per its date; choosing it on a video day fetches and sets it at once; none stored
+    yet → kept. No still-frame option (often a generic NASA image). "My picture" is picked with
+    the system photo picker (`PickVisualMedia`, no permission) and copied to
+    `files/fallback.jpg`: choosing "Use my picture" with nothing picked opens the picker at once
+    and the choice is made only once a picture is there (backing out keeps the one before);
+    while it's chosen, "Change picture" beside the dropdown ("Pick picture" for 0.5.0's choice
+    without a picture, which keeps).
+  - **Set as wallpaper now**: the shown tab's picture, set by hand (`Store.setByHand`, M2:
+    held until the screen's next normal change, Background update, Turns; the clock restarts
+    when a set screen takes turns). In APOD mode at the end of the Wallpaper section, on the
+    screens "Where" names. With the switch on (M3) "Set as wallpaper ▾" under "Change every"
+    opens a menu Home screen / Lock screen / Both (the shown tab may be ticked nowhere); when
+    the tab has nothing to set it says so instead of opening. ✓ in crop mode sets both screens
+    with the switch on until M4 gives it the menu. **Always shown** (user,
     2026-10-17, U4; was only while the switch is off, user 2026-10-16): with tabs and turns the
     app no longer picks the one picture alone, so the user needs a way to set the one they're
     looking at (before, only ⛶ then ✓). On APOD's video tab it sets the stand-in, also with
-    turns (M2); with "Keep" or nothing loaded nothing ("Video day: wallpaper kept"). While the
+    turns (M2); with "Skip it" or nothing loaded nothing ("Video day: wallpaper kept"). While the
     switch is on, changing "Where", picking or changing "my picture" or choosing "Use my
     picture" (on a video day) also sets at once, but not by hand (`Store.settingChanged`, M2:
     the affected screens' records forgotten, then the normal set; no hold, the clock stays);
     turning the switch on sets today's picture again (`forgetWallpaper`), which also puts APOD
-    back after another wallpaper. "Keep" on a video day sets nothing.
+    back after another wallpaper. "Skip it" on a video day sets nothing.
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice, the grey line under "If APOD is a video" with turns (U4) and
-    the planned ⓘ (Save every picture).
+    update), the video-day notice and the planned ⓘ (Save every picture).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. A box below the tile
   (user, 2026-10-16; neutral since U5, 2026-10-18: `surfaceVariant` fill, `outline` border) says why the wallpaper didn't change
@@ -537,7 +549,7 @@ wake and fail offline).
 
 ## Next features
 
-**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, 2026-10-20, the settings and the page not yet; the how and the layout in `plan-0.6.0.md`).
+**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, 2026-10-20, the page not yet; the how and the layout in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).

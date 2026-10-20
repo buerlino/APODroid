@@ -85,6 +85,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -1001,15 +1002,23 @@ class MainActivity : ComponentActivity() {
         }
         // Back leaves crop mode without keeping the part; ⛶ opens on the draft's again.
         BackHandler(enabled = cropping) { cropping = false }
-        HorizontalPager(
-            pager,
-            verticalAlignment = Alignment.Top,
-            userScrollEnabled = !cropping,
-            key = { sources[it].name },
-        ) { page ->
-            Column {
-                SourceTitle(sources[page], sources)
-                PicturePage(sources[page])
+        // A pager of its own for each list: when the offered sources shrink (the mode switch off
+        // in the draft) the old pager's layout would otherwise ask the new, shorter list for a
+        // page it no longer has (IndexOutOfBounds, seen on the tablet in S6). The key and the
+        // pages read the list defensively too.
+        key(sources) {
+            HorizontalPager(
+                pager,
+                verticalAlignment = Alignment.Top,
+                userScrollEnabled = !cropping,
+                key = { sources.getOrNull(it)?.name ?: it },
+            ) { page ->
+                sources.getOrNull(page)?.let { source ->
+                    Column {
+                        SourceTitle(source, sources)
+                        PicturePage(source)
+                    }
+                }
             }
         }
         Caption()

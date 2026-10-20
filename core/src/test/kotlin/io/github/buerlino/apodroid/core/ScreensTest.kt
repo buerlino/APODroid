@@ -11,7 +11,6 @@ import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -166,333 +165,6 @@ class ScreensTest {
         assertEquals(Record(NASA, pic(NASA), t0), missing.screens.getValue(HOME).record)
     }
 
-    @Test
-    fun aSecondTickRestartsTheClockOnlyWhenNoColumnTookTurns() {
-        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
-        val now = t0 + h1
-        val first = columnsChanged(cols(listOf(APOD)), cols(listOf(APOD, NASA), listOf(APOD)), t0, records, stored(), now)
-        assertTrue(first.restarted)
-        assertEquals(now, first.clock)
-        for (screen in Screen.entries) assertEquals(now, first.screens.getValue(screen).record.stamp)
-        // The tick doesn't end the current picture at once.
-        assertEquals(emptyList(), due(cols(listOf(APOD, NASA), listOf(APOD)), apply(records, first), clock = now, now = now + h1).sets)
-
-        val second = columnsChanged(cols(listOf(APOD, NASA), listOf(APOD)), cols(listOf(APOD, NASA)), t0, records, stored(), now)
-        assertFalse(second.restarted)
-        assertEquals(t0, second.clock)
-        assertEquals(emptyMap(), second.screens)
-    }
-
-    @Test
-    fun anEmptiedColumnTickedAgainStartsOnTheOtherScreensSource() {
-        // Home was emptied with a record on Earth.
-        val lock = Record(APOD, pic(APOD), t0)
-        val before = cols(emptyList(), all)
-        run {
-            val records = mapOf(HOME to Record(EARTH, pic(EARTH), t0), LOCK to lock)
-            assertEquals(EARTH, records.getValue(HOME).owner)
-            val t3 = t0 + h3
-            val turn = due(before, records, now = t3)
-            assertTrue(turn.restarted)
-            assertEquals(listOf(pic(NASA) to setOf(LOCK)), turn.sets)
-            assertNull(turn.screens[HOME])
-            val turned = apply(records, turn)
-            // Home is ticked like Lock: no restart, it starts on Lock's source and stamp.
-            val tick = columnsChanged(before, cols(all), t3, turned, stored(), t3 + h1)
-            assertFalse(tick.restarted)
-            assertEquals(Record(NASA, pic(EARTH), t3), tick.screens.getValue(HOME).record)
-            val ticked = apply(turned, tick)
-            val run = due(cols(all), ticked, clock = t3, now = t3 + h1)
-            assertEquals(listOf(pic(NASA) to setOf(HOME)), run.sets)
-            // One wallpaper from then on.
-            val next = due(cols(all), apply(ticked, run), clock = t3, now = t3 + h3)
-            assertEquals(listOf(pic(EARTH) to setOf(HOME, LOCK)), next.sets)
-        }
-    }
-
-    @Test
-    fun anEmptiedColumnTickedAgainMovesOnWithTheOtherScreenDueARetry() {
-        // Lock's set failed at the turn's end: it's still on APOD with the old stamp.
-        val records = mapOf(HOME to Record(EARTH, pic(EARTH), t0), LOCK to Record(APOD, pic(APOD), t0))
-        val t3 = t0 + h3
-        val tick = columnsChanged(cols(emptyList(), all), cols(all), t3, records, stored(), t3 + h1)
-        assertEquals(Record(APOD, pic(EARTH), t0), tick.screens.getValue(HOME).record)
-        val run = due(cols(all), apply(records, tick), clock = t3, now = t3 + h1)
-        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), run.sets)
-    }
-
-    @Test
-    fun anEmptiedColumnTickedAgainWithoutTheOtherScreensSourceStartsOnItsFirstWithAPicture() {
-        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
-        val stored = stored(files = setOf(APOD, EARTH))
-        val tick = columnsChanged(cols(emptyList(), listOf(APOD)), cols(listOf(NASA, EARTH), listOf(APOD)), t0, records, stored, t0 + h1)
-        assertTrue(tick.restarted)
-        assertEquals(Record(EARTH, pic(APOD), t0 + h1), tick.screens.getValue(HOME).record)
-    }
-
-    // A set by hand: it changes the settings (no holds)
-
-    private fun byHand(
-        tab: Source,
-        screens: Set<Screen>,
-        columns: Map<Screen, List<Source>>,
-        records: Map<Screen, Record>,
-        stored: Stored = stored(),
-        allSources: Boolean = true,
-        clock: Instant? = t0,
-        now: Instant = t0 + h1,
-    ) = setByHand(tab, screens, allSources, columns, clock, records, stored, now)
-
-    private val both = setOf(HOME, LOCK)
-
-    @Test
-    fun theSourceGoesOnExactlyTheChosenScreensAndTheOthersStay() {
-        val columns = cols(listOf(NASA), listOf(APOD, EARTH))
-        assertEquals(cols(emptyList(), all), byHand(NASA, setOf(LOCK), columns, emptyMap())!!.columns)
-        assertEquals(cols(listOf(NASA), all), byHand(NASA, both, columns, emptyMap())!!.columns)
-        assertEquals(cols(listOf(APOD, NASA), listOf(EARTH)), byHand(APOD, setOf(HOME), columns, emptyMap())!!.columns)
-    }
-
-    @Test
-    fun apodModeSetsWhereToExactlyTheChosenScreens() {
-        val lock = apodColumns(setOf(LOCK))
-        for (screens in listOf(setOf(HOME), setOf(LOCK), both)) {
-            assertEquals(apodColumns(screens), byHand(APOD, screens, lock, emptyMap(), allSources = false)!!.columns)
-        }
-        // The stand-in's tab counts as APOD.
-        val video = stored(posts + (APOD to post(APOD, d2, video = true)), StandIn.NASA)
-        assertEquals(apodColumns(both), byHand(NASA, both, lock, emptyMap(), video, allSources = false)!!.columns)
-    }
-
-    @Test
-    fun theClockRestartsWhenAChosenScreenTakesTurns() {
-        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
-        val at = t0 + h1
-        val turns = byHand(EARTH, setOf(HOME), cols(listOf(APOD), listOf(APOD, NASA)), records)!!
-        assertEquals(cols(listOf(APOD, EARTH), listOf(APOD, NASA)), turns.columns)
-        assertEquals(Plan(at, true, mapOf(HOME to Due(Record(EARTH, null, at), false), LOCK to Due(Record(APOD, pic(APOD), at), false))), turns.plan)
-        // A chosen screen without turns: the clock stays, though the other screen takes turns.
-        val one = byHand(EARTH, setOf(HOME), cols(emptyList(), listOf(APOD, NASA, EARTH)), records)!!
-        assertEquals(cols(listOf(EARTH), listOf(APOD, NASA)), one.columns)
-        assertEquals(Plan(t0, false, mapOf(HOME to Due(Record(EARTH, null, t0), false))), one.plan)
-    }
-
-    @Test
-    fun theChosenScreensGetTheSourceAndBothAreOneSet() {
-        val records = mapOf(HOME to Record(NASA, pic(NASA), t0), LOCK to Record(EARTH, pic(EARTH), t0))
-        val hand = byHand(APOD, both, cols(listOf(NASA, EARTH)), records)!!
-        val at = t0 + h1
-        assertEquals(cols(all), hand.columns)
-        val after = apply(records, hand.plan)
-        assertEquals(Record(APOD, null, at), after.getValue(HOME))
-        assertEquals(Record(APOD, null, at), after.getValue(LOCK))
-        val plan = due(hand.columns, after, clock = at, now = at)
-        assertFalse(plan.restarted)
-        assertEquals(listOf(pic(APOD) to both), plan.sets)
-    }
-
-    @Test
-    fun theOtherScreenTakesTheNewStampOnlyWhenItHadTheCurrentOne() {
-        val t1 = t0 + h3
-        val at = t1 + h1
-        // Lock's set failed at the turn's end: it's still on APOD with the old stamp.
-        val retry = mapOf(HOME to Record(NASA, pic(NASA), t1), LOCK to Record(APOD, pic(APOD), t0))
-        val hand = byHand(EARTH, setOf(HOME), cols(all), retry, clock = t1, now = at)!!
-        assertEquals(setOf(HOME), hand.plan.screens.keys)
-        // Lock moves on at the next run, Home shows Earth.
-        val next = due(cols(all), apply(retry, hand.plan), clock = at, now = at)
-        assertEquals(listOf(pic(EARTH) to setOf(HOME), pic(NASA) to setOf(LOCK)), next.sets)
-        assertEquals(Record(NASA, pic(NASA), at), next.screens.getValue(LOCK).record)
-        // On the current turn: the new stamp, the owner and the picture kept.
-        val current = mapOf(HOME to Record(NASA, pic(NASA), t1), LOCK to Record(NASA, pic(NASA), t1))
-        val fresh = byHand(EARTH, setOf(HOME), cols(all), current, clock = t1, now = at)!!
-        assertEquals(Due(Record(NASA, pic(NASA), at), false), fresh.plan.screens.getValue(LOCK))
-    }
-
-    @Test
-    fun theOtherScreenLosingTheSourceIsAnEarlyChange() {
-        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(EARTH, pic(EARTH), t0))
-        val at = t0 + h1
-        val hand = byHand(EARTH, setOf(HOME), cols(listOf(APOD, NASA), all), records)!!
-        assertEquals(cols(listOf(APOD, NASA, EARTH), listOf(APOD, NASA)), hand.columns)
-        val plan = due(hand.columns, apply(records, hand.plan), clock = at, now = at)
-        // Lock's owner unticked: the next source for the rest of the turn, its stamp kept.
-        assertEquals(listOf(pic(EARTH) to setOf(HOME), pic(APOD) to setOf(LOCK)), plan.sets)
-        assertEquals(Record(APOD, pic(APOD), at), plan.screens.getValue(LOCK).record)
-        // An emptied column is left alone.
-        val alone = byHand(EARTH, setOf(HOME), cols(listOf(APOD), listOf(EARTH)), records)!!
-        assertEquals(cols(listOf(APOD, EARTH), emptyList()), alone.columns)
-        val run = due(alone.columns, apply(records, alone.plan), clock = at, now = at)
-        assertEquals(listOf(pic(EARTH) to setOf(HOME)), run.sets)
-        assertNull(run.screens[LOCK])
-    }
-
-    @Test
-    fun aColumnThatWasEmptyStartsOnTheSource() {
-        // Home was emptied with a stale record on NASA.
-        val records = mapOf(HOME to Record(NASA, pic(NASA), t0 - h3), LOCK to Record(NASA, pic(NASA), t0))
-        val at = t0 + h1
-        val hand = byHand(EARTH, both, cols(emptyList(), listOf(APOD, NASA)), records)!!
-        assertEquals(cols(listOf(EARTH), all), hand.columns)
-        assertEquals(Record(EARTH, null, at), hand.plan.screens.getValue(HOME).record)
-        assertEquals(listOf(pic(EARTH) to both), due(hand.columns, apply(records, hand.plan), clock = at, now = at).sets)
-    }
-
-    @Test
-    fun settingsAlreadySoStartTheSourcesTurnOrSetItAgain() {
-        val home = cols(listOf(APOD, NASA), emptyList())
-        val at = t0 + h1
-        // Another source's turn: the source's turn starts now.
-        val nasa = mapOf(HOME to Record(NASA, pic(NASA), t0))
-        val turn = byHand(APOD, setOf(HOME), home, nasa)!!
-        assertEquals(home, turn.columns)
-        assertTrue(turn.plan.restarted)
-        val run = due(home, apply(nasa, turn.plan), clock = at, now = at)
-        assertEquals(listOf(pic(APOD) to setOf(HOME)), run.sets)
-        // At its end the next source, a whole turn later.
-        val end = due(home, apply(apply(nasa, turn.plan), run), clock = at, now = at + h3)
-        assertEquals(listOf(pic(NASA) to setOf(HOME)), end.sets)
-        // Already on the source (✓ with a new part): set again.
-        val apod = mapOf(HOME to Record(APOD, pic(APOD), t0))
-        val again = byHand(APOD, setOf(HOME), home, apod)!!
-        assertEquals(listOf(pic(APOD) to setOf(HOME)), due(home, apply(apod, again.plan), clock = at, now = at).sets)
-        // A one-source screen: set again, the clock stays.
-        val one = cols(listOf(APOD), emptyList())
-        val single = byHand(APOD, setOf(HOME), one, apod)!!
-        assertEquals(one, single.columns)
-        assertFalse(single.plan.restarted)
-        assertEquals(listOf(pic(APOD) to setOf(HOME)), due(one, apply(apod, single.plan)).sets)
-    }
-
-    @Test
-    fun nothingToSetChangesNothing() {
-        val video = posts + (APOD to post(APOD, d2, video = true))
-        val records = mapOf(HOME to Record(APOD, pic(APOD), t0))
-        // "Skip it" on APOD's video tab, both modes.
-        assertNull(byHand(APOD, both, cols(listOf(APOD), emptyList()), records, stored(video, StandIn.SKIP)))
-        assertNull(byHand(APOD, both, apodColumns(setOf(HOME)), records, stored(video, StandIn.SKIP), allSources = false))
-        // The stand-in or the user's own picture not there yet, a source not stored.
-        assertNull(byHand(APOD, both, apodColumns(setOf(HOME)), records, stored(video - NASA, StandIn.NASA), allSources = false))
-        assertNull(byHand(APOD, both, apodColumns(setOf(HOME)), records, stored(video, StandIn.OWN, own = false), allSources = false))
-        assertNull(byHand(NASA, both, cols(listOf(APOD), emptyList()), records, stored(files = setOf(APOD))))
-        // APOD's video tab with a stand-in: set as APOD's.
-        val onNasa = mapOf(HOME to Record(NASA, pic(NASA), t0))
-        val nasa = byHand(APOD, setOf(LOCK), cols(listOf(NASA), emptyList()), onNasa, stored(video, StandIn.NASA))!!
-        assertEquals(cols(listOf(NASA), listOf(APOD)), nasa.columns)
-        assertEquals(listOf(pic(NASA) to setOf(LOCK)), due(nasa.columns, apply(onNasa, nasa.plan), stored(video, StandIn.NASA)).sets)
-    }
-
-    // The simulation of 2026-10-20: each case as the settings after the set and the due pictures over the next posts
-
-    @Test
-    fun homeNasaLockApodThenApodOnBoth() {
-        val records = mapOf(HOME to Record(NASA, pic(NASA), t0), LOCK to Record(APOD, pic(APOD), t0))
-        val at = t0 + h1
-        val hand = byHand(APOD, both, cols(listOf(NASA), listOf(APOD)), records)!!
-        // Home takes turns APOD/NASA with APOD now, Lock is APOD.
-        assertEquals(cols(listOf(APOD, NASA), listOf(APOD)), hand.columns)
-        assertEquals(at, hand.plan.clock)
-        var r = apply(records, hand.plan)
-        val now = due(hand.columns, r, clock = at, now = at)
-        assertEquals(listOf(pic(APOD) to both), now.sets)
-        r = apply(r, now)
-        // The turn ends: Home NASA, Lock stays APOD.
-        val turn = due(hand.columns, r, clock = at, now = at + h3)
-        assertEquals(listOf(pic(NASA) to setOf(HOME)), turn.sets)
-        r = apply(r, turn)
-        // APOD posts: Lock at once, Home at its next APOD turn.
-        val apod2 = stored(posts + (APOD to post(APOD, d2)))
-        val post = due(hand.columns, r, apod2, clock = at + h3, now = at + h3 + h1)
-        assertEquals(listOf(pic(APOD, d2) to setOf(LOCK)), post.sets)
-        r = apply(r, post)
-        assertEquals(listOf(pic(APOD, d2) to setOf(HOME)), due(hand.columns, r, apod2, clock = at + h3, now = at + h3 + h3).sets)
-    }
-
-    @Test
-    fun earthOnHomeOnlyLeavesLocksPictureWithTheNewStamp() {
-        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(NASA, pic(NASA), t0))
-        val at = t0 + h1
-        val hand = byHand(EARTH, setOf(HOME), cols(all, listOf(NASA, EARTH)), records)!!
-        assertEquals(cols(all, listOf(NASA)), hand.columns)
-        var r = apply(records, hand.plan)
-        assertEquals(Record(NASA, pic(NASA), at), r.getValue(LOCK))
-        val now = due(hand.columns, r, clock = at, now = at)
-        // Earth now with a new turn; Lock's picture stays.
-        assertEquals(listOf(pic(EARTH) to setOf(HOME)), now.sets)
-        r = apply(r, now)
-        assertEquals(Record(EARTH, pic(EARTH), at), r.getValue(HOME))
-        // A whole turn later APOD on Home; NASA posts: Lock at once.
-        val nasa2 = stored(posts + (NASA to post(NASA, d2)))
-        val turn = due(hand.columns, r, nasa2, clock = at, now = at + h3)
-        assertEquals(listOf(pic(APOD) to setOf(HOME), pic(NASA, d2) to setOf(LOCK)), turn.sets)
-    }
-
-    @Test
-    fun apodOnBothThenAnApodVideoShowsTheStandInByTheSettings() {
-        val records = mapOf(HOME to Record(EARTH, pic(EARTH), t0), LOCK to Record(APOD, pic(APOD), t0))
-        val at = t0 + h1
-        val hand = byHand(APOD, both, cols(listOf(EARTH), listOf(APOD)), records, stored(standIn = StandIn.NASA))!!
-        assertEquals(cols(listOf(APOD, EARTH), listOf(APOD)), hand.columns)
-        var r = apply(records, hand.plan)
-        val now = due(hand.columns, r, stored(standIn = StandIn.NASA), clock = at, now = at)
-        assertEquals(listOf(pic(APOD) to both), now.sets)
-        r = apply(r, now)
-        // An APOD video: Home has APOD ticked, so its APOD turn shows NASA, and Lock too.
-        val video = stored(posts + (APOD to post(APOD, d2, video = true)), StandIn.NASA)
-        val standIn = due(hand.columns, r, video, clock = at, now = at + h1)
-        assertEquals(listOf(pic(NASA) to both), standIn.sets)
-        r = apply(r, standIn)
-        // Home's turn ends: Earth; Lock keeps NASA standing in.
-        assertEquals(listOf(pic(EARTH) to setOf(HOME)), due(hand.columns, r, video, clock = at, now = at + h3).sets)
-    }
-
-    @Test
-    fun apodModeWithLockSetOnHomeLeavesTheLockScreenAlone() {
-        val records = mapOf(LOCK to Record(APOD, pic(APOD), t0))
-        val hand = byHand(APOD, setOf(HOME), apodColumns(setOf(LOCK)), records, allSources = false)!!
-        // "Where" is Home.
-        assertEquals(apodColumns(setOf(HOME)), hand.columns)
-        assertEquals(setOf(HOME), hand.plan.screens.keys)
-        var r = apply(records, hand.plan)
-        val now = due(hand.columns, r)
-        assertEquals(listOf(pic(APOD) to setOf(HOME)), now.sets)
-        r = apply(r, now)
-        // APOD posts: Home only; the lock screen keeps its picture.
-        val next = due(hand.columns, r, stored(posts + (APOD to post(APOD, d2))))
-        assertEquals(listOf(pic(APOD, d2) to setOf(HOME)), next.sets)
-        assertNull(next.screens[LOCK])
-    }
-
-    @Test
-    fun apodModeStandInSetByHandFollowsAChangedVideoDayChoice() {
-        // The case that failed with the hold: Earth goes on.
-        val video = posts + (APOD to post(APOD, d2, video = true))
-        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
-        val where = apodColumns(both)
-        val hand = byHand(NASA, both, where, records, stored(video, StandIn.NASA), allSources = false)!!
-        assertEquals(where, hand.columns)
-        var r = apply(records, hand.plan)
-        val now = due(where, r, stored(video, StandIn.NASA))
-        assertEquals(listOf(pic(NASA) to both), now.sets)
-        r = apply(r, now)
-        assertEquals(Record(APOD, pic(NASA), t0), r.getValue(HOME))
-        // The video-day choice changed to Earth: the owner APOD alone decides (Store.settingChanged forgets).
-        val earth = stored(video, StandIn.EARTH)
-        val forgotten = r.filterValues { it.owner == APOD }.mapValues { it.value.forget() }
-        assertEquals(both, forgotten.keys)
-        assertEquals(listOf(pic(EARTH) to both), due(where, r + forgotten, earth).sets)
-        // Without the forget too.
-        assertEquals(listOf(pic(EARTH) to both), due(where, r, earth).sets)
-    }
-
-    @Test
-    fun skipItOnApodsVideoTabChangesNothing() {
-        val video = stored(posts + (APOD to post(APOD, d2, video = true)), StandIn.SKIP)
-        val records = mapOf(HOME to Record(NASA, pic(NASA), t0), LOCK to Record(APOD, pic(APOD), t0))
-        assertNull(byHand(APOD, both, cols(listOf(NASA), listOf(APOD)), records, video))
-        assertNull(byHand(APOD, setOf(HOME), apodColumns(setOf(LOCK)), records, video, allSources = false))
-    }
-
     // Forgetting and starting
 
     @Test
@@ -501,14 +173,71 @@ class ScreensTest {
         assertEquals(Record(NASA, null, t0), records.getValue(HOME))
         val plan = due(cols(all, emptyList()), records)
         assertEquals(listOf(pic(NASA) to setOf(HOME)), plan.sets)
-        // The daily switch going on: the clock restarts, the screens on the current turn take it.
+    }
+
+    // Set: the clock restarts, the records forgotten
+
+    @Test
+    fun setRestartsTheClockAndForgetsTheRecordsOnTheCurrentTurn() {
         val t1 = t0 + h3
+        // Lock is still due a retry from the turn before.
         val stale = mapOf(HOME to Record(NASA, pic(NASA), t0), LOCK to Record(APOD, pic(APOD), t0 - h3))
-        val restart = restartAndForget(t0, stale, t0 + h1)
-        assertEquals(Record(NASA, null, t0 + h1), restart.screens.getValue(HOME).record)
-        assertEquals(Record(APOD, null, t0 - h3), restart.screens.getValue(LOCK).record)
-        val next = due(cols(all), apply(stale, restart), clock = restart.clock, now = t1)
-        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), next.sets)
+        val restart = restartAndForget(cols(all), cols(all), t0, stale, t0 + h1)
+        assertTrue(restart.plan.restarted)
+        assertEquals(t0 + h1, restart.plan.clock)
+        assertEquals(emptySet(), restart.drop)
+        assertEquals(Record(NASA, null, t0 + h1), restart.plan.screens.getValue(HOME).record)
+        assertEquals(Record(APOD, null, t0 - h3), restart.plan.screens.getValue(LOCK).record)
+        // At once: Home gets its owner's picture again, Lock moves on to the next source.
+        val now = due(cols(all), apply(stale, restart.plan), clock = restart.plan.clock, now = t0 + h1)
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), now.sets)
+        // The turn is over: both move on together.
+        val next = due(cols(all), apply(apply(stale, restart.plan), now), clock = restart.plan.clock, now = t1 + h1)
+        assertEquals(listOf(pic(EARTH) to setOf(HOME, LOCK)), next.sets)
+    }
+
+    @Test
+    fun setPutsTheSamePictureOnAgainSoAChangedFitOrOwnPictureShows() {
+        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
+        assertEquals(emptyList(), due(cols(listOf(APOD)), records).sets)
+        val restart = restartAndForget(cols(listOf(APOD)), cols(listOf(APOD)), t0, records, t0 + h1)
+        val plan = due(cols(listOf(APOD)), apply(records, restart.plan), clock = restart.plan.clock, now = t0 + h1)
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), plan.sets)
+        assertFalse(plan.restarted)
+    }
+
+    @Test
+    fun setLeavesAScreenWithAnEmptyColumnAndItsRecordAlone() {
+        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(EARTH, pic(EARTH), t0))
+        val restart = restartAndForget(cols(listOf(APOD)), cols(listOf(NASA), emptyList()), t0, records, t0 + h1)
+        assertEquals(setOf(HOME), restart.plan.screens.keys)
+        val plan = due(cols(listOf(NASA), emptyList()), apply(records, restart.plan), clock = restart.plan.clock, now = t0 + h1)
+        assertEquals(listOf(pic(NASA) to setOf(HOME)), plan.sets)
+        assertNull(plan.screens[LOCK])
+    }
+
+    @Test
+    fun aColumnTickedAgainAtSetStartsOnTheOtherScreensSource() {
+        // Home was emptied while its record was on Earth; Lock takes turns and is on NASA.
+        val records = mapOf(HOME to Record(EARTH, pic(EARTH), t0), LOCK to Record(NASA, pic(NASA), t0))
+        val restart = restartAndForget(cols(emptyList(), all), cols(all), t0, records, t0 + h1)
+        assertEquals(setOf(HOME), restart.drop)
+        assertEquals(setOf(LOCK), restart.plan.screens.keys)
+        val after = apply(records, restart.plan) - restart.drop
+        val plan = due(cols(all), after, clock = restart.plan.clock, now = t0 + h1)
+        // One wallpaper: Home starts on Lock's source with the new stamp.
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), plan.sets)
+        assertEquals(Record(NASA, pic(NASA), t0 + h1), plan.screens.getValue(HOME).record)
+    }
+
+    @Test
+    fun aColumnTickedAgainAtSetWithoutTheOtherScreensSourceStartsOnItsFirstWithAPicture() {
+        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
+        val restart = restartAndForget(cols(emptyList(), listOf(APOD)), cols(listOf(NASA, EARTH), listOf(APOD)), t0, records, t0 + h1)
+        val after = apply(records, restart.plan) - restart.drop
+        val plan = due(cols(listOf(NASA, EARTH), listOf(APOD)), after, stored(files = setOf(APOD, EARTH)), restart.plan.clock, t0 + h1)
+        assertEquals(Record(EARTH, pic(EARTH), t0 + h1), plan.screens.getValue(HOME).record)
+        assertEquals(listOf(pic(APOD) to setOf(LOCK), pic(EARTH) to setOf(HOME)), plan.sets)
     }
 
     @Test

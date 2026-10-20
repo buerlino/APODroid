@@ -30,7 +30,7 @@ packages unattended): `night.md`.
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in:
   `picture(source)`), `Record` (owner, picture, stamp, `Hold`; `forget()`), and the pure
   functions returning a `Plan` (clock, records, `sets` grouped by picture): `dueWallpapers`
-  (each run), `setByHand`, `columnsChanged`, `restartAndForget` (tests in `ScreensTest`).
+  (each run), `setByHand`, `columnsChanged`, `restartAndForget`, and `videoDayKept` for the page's status line (tests in `ScreensTest`).
   `core/.../Migration.kt` (0.6.0, M2): `migrate`, 0.5.0's prefs → 0.6.0's keys, run once by
   `Store.migrateOnce` (tests in `MigrationTest`).
 - `app/.../Store.kt`: per source (`post(source)`, `imageFile(source)`; APOD's keys unprefixed
@@ -40,16 +40,18 @@ packages unattended): `night.md`.
   (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
   `columns`, `hasTurns`, `setAllSources`, `setColumns` (the mode and the grid; `sources` is the
   union), `record(screen)` (home unprefixed, lock `lock.`;
-  `wallpaperSource`/`Date`/`Url`/`SetAt` are the page's screen's), `stored()` (posts, files,
+  `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
+  is APOD mode's screen), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
   wallpaper lock), `setByHand(tab, screens)` (button, ✓), `settingChanged(Changed)` (forget,
   then `setDue`), `tabPicture(tab)`, `set(picture, screens)` (the flags per screen; a photo with
   an EXIF orientation goes upright through `setBitmap`), `cropPosition(post)`, `save` (the original, else the stored picture; returns `Saved`), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
-- `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
+- `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs in APOD mode;
+  `screens` from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`, `SetChoices` for the set button and ✓), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
   the settings (`Settings`; with the switch "All NASA pictures" `Grid`, `SetMenu`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `tick(screen, source)`, `chooseVideoDays`, `canSetNow`, `setWallpaperNow(screens)`);
-  `follow()` redraws while resumed when `Store.watch` sees the job set or store a post.
+  `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post.
   `app/.../DailyJob.kt`: the job (id 1); `ensure` reschedules it only when its timing changes.
 
 ## Working on the phone

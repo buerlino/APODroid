@@ -300,8 +300,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     when a set screen takes turns). In APOD mode at the end of the Wallpaper section, on the
     screens "Where" names. With the switch on (M3) "Set as wallpaper ▾" under "Change every"
     opens a menu Home screen / Lock screen / Both (the shown tab may be ticked nowhere); when
-    the tab has nothing to set it says so instead of opening. ✓ in crop mode sets both screens
-    with the switch on until M4 gives it the menu. **Always shown** (user,
+    the tab has nothing to set it says so instead of opening. ✓ in crop mode opens the same menu
+    (M4, `SetChoices`). **Always shown** (user,
     2026-10-17, U4; was only while the switch is off, user 2026-10-16): with tabs and turns the
     app no longer picks the one picture alone, so the user needs a way to set the one they're
     looking at (before, only ⛶ then ✓). On APOD's video tab it sets the stand-in, also with
@@ -317,7 +317,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. A box below the tile
   (user, 2026-10-16; neutral since U5, 2026-10-18: `surfaceVariant` fill, `outline` border) says why the wallpaper didn't change
   and what to do; the text follows the settings (daily off / keep / my picture with or without a
-  picture). "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
+  picture). With the switch on (M4; also with turns) it says what takes APOD's place ("This
+  APOD is a video, so your own picture takes its place.", "… so NASA's Image of the Day takes
+  its place." or "… takes its place once it has loaded.", "… so it's skipped." with "Skip it";
+  placeholders), and with APOD ticked nowhere only "This APOD is a video.". "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
   (`videoNoticeHidden`, no confirmation). The second help text besides the pause hint (the problem box is a status, not help). `refresh()` stores the
   entry without a picture and deletes the previous `apod.jpg`; `isCurrent` doesn't need one.
 - **Fetch** in `:core`: newest post → `Post(source, date, title, imageUrl, pageUrl, isVideo,
@@ -343,7 +346,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   APOD reaches an open page up to an hour late; not the job: a page open just before a new
   post would hold the wallpaper back until the job's next run) and, while the switch is on, sets a new one at once; it
   also redraws when the job stored a new one in the background, and while open it follows the
-  job's sets, stored posts and problems (a prefs listener while resumed; WP5d). **Pull to refresh** (user,
+  job's sets, stored posts and problems (a prefs listener while resumed, WP5d; either screen's record since M4). **Pull to refresh** (user,
   2026-10-16; material3's `PullToRefreshBox`) always fetches, also when it comes during a
   running update (the run after it keeps the force); a new picture is set at once while
   the switch is on, nothing is set while it's off. A changed title or explanation for the same
@@ -360,7 +363,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   stored no problem and ended the run; `isStop()` in `Store` tells them apart). Each `Store.update` (page, pull, job) stores how its check
   went: a success (a refresh, or today's APOD already stored) sets `checkedAt` and clears
   `problem`; a failure stores `problem` (and `httpCode`). Per source (WP3: `nasa.problem`, …);
-  one box, the first source in use with a problem (APOD's first), prefixed with its name
+  one box: in APOD mode the first tab with a problem (APOD's first); with the switch on (all
+  three fetched) the shown tab's, else the first ticked source's (M4, proposed, for the user to
+  approve), prefixed with its name
   ("NASA Image of the Day: …"; its `problemNoticeKey` starts `nasa:`) unless it's APOD's with
   APOD ticked alone. The video-day
   texts (user approved, 2026-10-16): "This APOD is a video, so NASA's Image of the Day is the
@@ -378,16 +383,25 @@ set it as wallpaper, and on video days kept the old wallpaper.
   problem box, but the battery hint below it. So on a day whose APOD is stored, opening the page clears a pull's failure:
   nothing is wrong until the next picture is due. Under the switch, while it's on:
   "Wallpaper changed 16 Oct, 06:12" (`wallpaperSetAt`, any successful set; 12/24 h as the
-  system), or "Video day, wallpaper kept"; before the first set nothing. The page re-reads both
+  system), or "Video day, wallpaper kept" (`:core`'s `videoDayKept`: APOD ticked there, its turn,
+  nothing standing in; with turns "Skip it" passes the turn, so nothing is kept); before the
+  first set nothing. In APOD mode for the screen "Where" names (with Lock the `lock.*` record).
+  With the switch on (M4) one line while both screens show the same picture, else a line per
+  screen set or kept: "Home screen changed 16 Oct, 06:12 · NASA Image of the Day", "Lock screen:
+  video day, wallpaper kept" (placeholders); the user's own picture " · My picture". The page re-reads both
   around each update and after a set.
-- **Tabs (0.5.0, WP4):** with two or more sources in use (the ticked ones; with APOD alone, on a
-  video day also the video-day source), a segmented row above the picture
-  ("APOD | NASA | Earth"), opening on the source on the wallpaper (else the first) until the user
+- **Tabs (0.5.0, WP4; 0.6.0, M4, 2026-10-20):** with the switch "All NASA pictures" on always
+  three, else (APOD mode) on an APOD video day APOD and the video-day source; a segmented row
+  above the picture ("APOD | NASA | Earth"), opening on the **picture's** source (a stand-in's
+  own tab, not APOD's; the user's own picture has none) on the home screen, else the lock
+  screen's, else APOD (APOD mode: the screen "Where" names, `pageScreen`) until the user
   picks one; the pick survives rotation, not a restart. The shown tab drives the picture, ⛶,
   ★, title, date and explanation; switching closes crop mode. With tabs (U2, 2026-10-17) a
   source line above the title, "NASA Image of the Day · 17 October 2026" (" · Video" on video
-  days), replaces the date line below it, and an "On wallpaper" chip at the picture's top left
-  (⛶'s and ★'s dark style; none on the ▶ tile, hidden in crop mode) marks the post that's on the wallpaper. Tabs stay
+  days), replaces the date line below it, and a chip at the picture's top left
+  (⛶'s and ★'s dark style; none on the ▶ tile, hidden in crop mode) marks the post on a screen,
+  from the records (`Store.screenState`): with the switch on "On home screen", "On lock screen"
+  or "On wallpaper" (both); in APOD mode "On wallpaper" for the screen "Where" names (M4). Tabs stay
   short; with one source the caption is 0.4.0's: title, then date. "Set as wallpaper now" and ✓ set
   the shown tab's picture (APOD's video tab: what the video-day setting says, with turns too
   since M2; with "Keep" nothing). The boxes show
@@ -549,7 +563,7 @@ wake and fail offline).
 
 ## Next features
 
-**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, 2026-10-20, the page not yet; the how and the layout in `plan-0.6.0.md`).
+**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, 2026-10-20; the how and the layout in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).

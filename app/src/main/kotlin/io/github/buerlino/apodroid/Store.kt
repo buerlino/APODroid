@@ -41,6 +41,7 @@ import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.originalUrl
 import io.github.buerlino.apodroid.core.restartAndForget
 import io.github.buerlino.apodroid.core.setByHand as planByHand
+import io.github.buerlino.apodroid.core.videoDayKept
 import io.github.buerlino.apodroid.core.renditionUrl
 import io.github.buerlino.apodroid.core.wallpaperFrame as coreWallpaperFrame
 import java.io.File
@@ -105,6 +106,13 @@ sealed interface Problem {
     data object SiteChanged : Problem
     data object Storage : Problem
 }
+
+/**
+ * What a screen shows for the page: its [picture] (null: never set or forgotten), when a set
+ * last worked there ([setAt]), and whether an APOD video day kept its picture ([kept],
+ * [videoDayKept]).
+ */
+data class ScreenState(val picture: Picture?, val setAt: Instant?, val kept: Boolean)
 
 /**
  * Settings and each source's newest post in SharedPreferences, the pictures in the app's private
@@ -339,31 +347,17 @@ class Store(private val context: Context) {
     }
 
     /**
-     * The screen the page reads: home's, unless only the lock screen has a column (APOD mode with
-     * "Where" = Lock: after the migration home's record is empty there).
+     * The screen APOD mode's page reads: home's, unless only the lock screen has a column
+     * ("Where" = Lock: after the migration home's record is empty there).
      */
-    private val pageScreen: Screen
+    val pageScreen: Screen
         get() = columns.let { if (it[Screen.HOME].orEmpty().isEmpty() && it[Screen.LOCK].orEmpty().isNotEmpty()) Screen.LOCK else Screen.HOME }
 
-    /**
-     * Whose picture the page's screen ([pageScreen]) shows, with [wallpaperDate] and
-     * [wallpaperUrl]: a stand-in is its own source's; the user's own picture counts as APOD's (it
-     * stands in for the APOD video); never set: APOD.
-     */
-    val wallpaperSource: Source
-        get() = record(pageScreen)?.let { (it.picture as? Picture.Of)?.source ?: if (it.picture == Picture.Own) Source.APOD else it.owner } ?: Source.APOD
-
-    /** The date of the post on the page's screen; none for the user's own picture. */
-    val wallpaperDate: LocalDate?
-        get() = (record(pageScreen)?.picture as? Picture.Of)?.date
-
-    /** The picture URL of the post on the page's screen ([Post.isNoted]). */
-    val wallpaperUrl: String?
-        get() = (record(pageScreen)?.picture as? Picture.Of)?.url
-
-    /** When a set on the page's screen last worked (the job, the page or a button). */
-    val wallpaperSetAt: Instant?
-        get() = instant(pageScreen.key("wallpaperSetAt"))
+    /** What the page says about [screen]: from its record, the chip, the opening tab and its status line. */
+    fun screenState(screen: Screen): ScreenState {
+        val record = record(screen)
+        return ScreenState(record?.picture, instant(screen.key("wallpaperSetAt")), videoDayKept(columns[screen].orEmpty(), record, stored()))
+    }
 
     /** When a check of [source] last worked: a refresh, or finding today's post already stored. */
     fun checkedAt(source: Source): Instant? = instant(source.key("checkedAt"))
@@ -382,10 +376,15 @@ class Store(private val context: Context) {
      * before a rotation (they run in this process), until [stopWatching]. Android holds the listener weakly: keep the one returned.
      */
     fun watch(action: () -> Unit) = OnSharedPreferenceChangeListener { _, key ->
-        if (key == "wallpaperSetAt" || key == "lock.wallpaperSetAt" || Source.entries.any { key in listOf(it.key("date"), it.key("imageUrl"), it.key("title"), it.key("explanation"), it.key("savedUri"), it.key("problem"), it.key("httpCode")) }) {
+        if (key in recordKeys || Source.entries.any { key in listOf(it.key("date"), it.key("imageUrl"), it.key("title"), it.key("explanation"), it.key("savedUri"), it.key("problem"), it.key("httpCode")) }) {
             action()
         }
     }.also(prefs::registerOnSharedPreferenceChangeListener)
+
+    /** Both screens' records and when they were set: the open page follows a set on either screen. */
+    private val recordKeys = Screen.entries.flatMap { screen ->
+        listOf("wallpaperSource", "wallpaperPicture", "wallpaperDate", "wallpaperUrl", "hold", "wallpaperSetAt").map(screen::key)
+    }.toSet()
 
     fun stopWatching(listener: OnSharedPreferenceChangeListener) = prefs.unregisterOnSharedPreferenceChangeListener(listener)
 

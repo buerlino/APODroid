@@ -255,12 +255,33 @@ set it as wallpaper, and on video days kept the old wallpaper.
 - **Settings** (SharedPreferences; 0.6.0's layout built in M3, 2026-10-20, its texts and the
   night's defaults approved by the user the same day from the tablet's screenshots; the order
   and the list since S2, Set applies the setup since S4, 2026-10-20, texts placeholders until
-  the user's look): **Wallpaper**: the daily switch; the status lines (while the stored daily
-  switch is on); in APOD mode **Where**, with the switch "All NASA pictures" on **Pictures
-  from** (the list) and, while the daily switch is on and a column takes turns, "Change every";
-  "Size"; while the daily switch is on "If APOD is a video", "Wi-Fi only" (F2) and "Save every
-  picture" (F5); **Set as wallpaper**, always. Then, in both modes and states, a divider and
-  the switch "All NASA pictures". (S5 groups them under "Setup" and "Advanced settings".)
+  the user's look; S5's grouping and highlight, 2026-10-20 night): **Wallpaper**: the daily
+  switch; the status lines (while the stored daily switch is on); **Setup ▸/▾**, a header that
+  opens and closes the draft's settings (a button for screen readers, "expanded"/"collapsed";
+  closed: a summary of the **stored** setup under it, "APOD on both screens" in APOD mode, else
+  "NASA on home screen, Earth on both screens", then " · turns every 6 h" while a screen takes
+  turns and the daily switch is on, then " · Fill" or " · Fit"): in APOD mode **Where**, with
+  the switch "More NASA pictures" on **Pictures from** (the list) and, while the daily switch
+  is on and a column takes turns, "Change every"; "Size"; while the daily switch is on "If APOD
+  is a video". Closed at a fresh start; it opens by itself while the draft differs from the
+  store in it, when "More NASA pictures" is turned (the area swaps), and closes after a Set
+  that saved (also "Setup saved. Nothing to set yet."; a failed set leaves it open). Its state
+  and Advanced's survive a rotation (the saved state). **Set as wallpaper**, always, after
+  Setup. **Advanced settings ▸/▾**, closed by default: while the daily switch is on "Wi-Fi
+  only" (F2) and "Save every picture" (F5); then, in both modes and states, the switch "More
+  NASA pictures" (no divider since S5).
+  - **The highlight** (S5): each draft setting that differs from the stored setup shows in the
+    theme's `tertiary` until Set: its heading, a segmented row's chosen segment
+    (`tertiaryContainer` / `onTertiaryContainer`) and the row's borders (`tertiary`), the
+    list's row (tick box, name, dropdown) where that source's screens differ, the video
+    dropdown's border and text (another choice, or a newly picked "my picture" while it's
+    chosen), the mode switch and its label, ⛶ (or ✓) while the shown post's draft part differs
+    from the stored one, the "Setup" header while anything in it differs (the shown mode's
+    "Where" or list, "Change every", "Size", "If APOD is a video"; not ⛶), "Advanced settings"
+    while the mode does. Not the daily switch, "Wi-Fi only", "Save every picture" (they act
+    at once). Screen readers: a highlighted control's state adds "not set yet" ("Selected, not
+    set yet", "Checked, not set yet", "On, not set yet"; the headers "collapsed, not set
+    yet").
   - **Set applies the setup** (user, 2026-10-20 evening; S4; why: a change took effect at once,
     "but maybe I'm not done"; Next features, 0.6.0). **A draft
     until Set:** "Where", the list (ticks and dropdowns), "Change every",
@@ -308,7 +329,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     switch on the job sets the rest later.
   - A switch for the daily change ("Change wallpaper automatically", user 2026-10-17: with
     turns it isn't daily): at once both ways since S4f2 (above); the pref `daily`.
-  - **All NASA pictures** (renamed "More NASA pictures" in S5: user, 2026-10-20 evening, after a
+  - **More NASA pictures** (was "All NASA pictures" until S5: user, 2026-10-20 evening, after a
     review called the mockup's "Extended API mode" a developer's word; 0.6.0, M3; the pref `allSources`, default off: APOD mode). Part of
     the draft: "Where" and the list swap at once and the page offers the new mode's sources;
     Set saves it and reschedules the job (its period follows the mode). Each mode keeps its
@@ -330,8 +351,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "NASA" (a checkbox), the dropdown "NASA on: Home screen". The prefs are the columns `home`
     and `lock` (comma lists, `Store.list`; `Store.columns` is the list with the switch on, else
     APOD on the screens "Where" names, `apodColumns`). With a column of two or more, while the
-    daily switch is on, **Change every** [Day | 12 h | 6 h | 3 h] (`Store.interval`, default
-    Day) below the list; hiding it moves the page only after a tick. 0.5.0's chips and M3's grid are gone.
+    daily switch is on, **Change every** [24 h | 12 h | 6 h | 3 h] (`Store.interval`, default
+    24 h, the pref `DAY`; "Day" until S5) below the list; hiding it moves the page only after a tick. 0.5.0's chips and M3's grid are gone.
     While the daily switch is off "Where" or the list still shows (S4; S2 hid them), so a
     one-off Set uses settings the user can see.
   - **Weekday dialog** (user, 2026-10-17): ticking NASA or Earth where it wasn't ticked on
@@ -352,7 +373,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   - **If APOD is a video** (was "On video days"; one setting for both modes): a dropdown (M3,
     2026-10-20: a `DropdownMenu` under an outlined button "Skip it ▾", ✓ before the chosen
     one; were four radios), under its heading after "Size" in both modes (S2; M3 had it under
-    APOD's grid row), hidden while the daily switch is off; with the switch "All NASA pictures"
+    APOD's grid row), hidden while the daily switch is off; with the switch "More NASA pictures"
     on greyed out while APOD has no tick (so the page doesn't move). Never greyed out otherwise (0.5.0 greyed it with two or more ticked, under a grey line).
     The choices: "Skip it" (`VideoDays.KEEP`; was "Keep the previous picture"), NASA Image of
     the Day, Earth Observatory (0.5.0, WP3; `VideoDays.NASA`, `.EARTH`), or "Use my picture"

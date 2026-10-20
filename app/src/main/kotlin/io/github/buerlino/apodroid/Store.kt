@@ -192,7 +192,7 @@ class Store(private val context: Context) {
     val videoDays: VideoDays
         get() = enumValue(prefs.getString("videoDays", null)) ?: VideoDays.KEEP
 
-    /** The switch "All NASA pictures": off is APOD mode ("Where"), on the list ([columns]). */
+    /** The switch "More NASA pictures": off is APOD mode ("Where"), on the list ([columns]). */
     val allSources: Boolean
         get() = prefs.getBoolean("allSources", false)
 

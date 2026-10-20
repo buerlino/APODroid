@@ -164,6 +164,7 @@ class MainActivity : ComponentActivity() {
     /** ★ is downloading the original; taps wait for it. */
     private var saving by mutableStateOf(false)
     private var daily by mutableStateOf(false)
+    private var wifiOnly by mutableStateOf(false)
     private var where by mutableStateOf(Where.BOTH)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
 
@@ -202,6 +203,7 @@ class MainActivity : ComponentActivity() {
         weekdayDialog = savedInstanceState?.getBoolean("weekdayDialog") == true
         tab = savedInstanceState?.getString("tab")?.let { name -> Source.entries.firstOrNull { it.name == name } }
         daily = store.daily
+        wifiOnly = store.wifiOnly
         pauseHintHidden = store.pauseHintHidden
         videoNoticeDate = store.videoNoticeDate
         videoNoticeHidden = store.videoNoticeHidden
@@ -657,6 +659,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun switchWifiOnly(on: Boolean) {
+        wifiOnly = on
+        store.wifiOnly = on
+        rescheduleJob()
+    }
+
     private fun closeWeekdayDialog(forever: Boolean) {
         weekdayDialog = false
         if (forever) {
@@ -1109,6 +1117,13 @@ class MainActivity : ComponentActivity() {
             }
             if (daily) statusLines().forEach {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (daily) Row(
+                Modifier.fillMaxWidth().toggleable(wifiOnly, role = Role.Switch, onValueChange = ::switchWifiOnly),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Wi-Fi only", Modifier.weight(1f))
+                Switch(checked = wifiOnly, onCheckedChange = null)
             }
 
             if (!allSources) {

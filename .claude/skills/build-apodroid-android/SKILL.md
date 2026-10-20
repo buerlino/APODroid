@@ -24,8 +24,13 @@ packages unattended): `night.md`.
   `core/.../Frame.kt`: `wallpaperFrame`, the part of the picture the wallpaper shows, which is
   also the crop hint (tests in `FrameTest`; a hint widened for landscape was tried and dropped,
   `CLAUDE.md`, Wallpaper).
-  `core/.../Turn.kt`: `nextTurn`, whose turn it is with two or more sources, and `turnSlack`
-  (tests in `TurnTest`).
+  `core/.../Turn.kt`: `nextTurn`, whose turn it is with two or more sources, `isTurnOver`,
+  `nextSource` and `turnSlack` (tests in `TurnTest`).
+  `core/.../Screens.kt` (0.6.0, M1; `Store` doesn't use it until M2): `Screen`, `apodColumns`,
+  `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in:
+  `picture(source)`), `Record` (owner, picture, stamp, `Hold`; `forget()`), and the pure
+  functions returning a `Plan` (clock, records, `sets` grouped by picture): `dueWallpapers`
+  (each run), `setByHand`, `columnsChanged`, `restartAndForget` (tests in `ScreensTest`).
 - `app/.../Store.kt`: per source (`post(source)`, `imageFile(source)`; APOD's keys unprefixed
   and `apod.jpg`, the others `nasa.<key>` / `earth.<key>` and `nasa.jpg` / `earth.jpg`) prefs (also `daily`, `pauseHintHidden`; `checkedAt`, `problem`, `httpCode`,
   `wallpaperSetAt` for the problem and status lines), `update(force)` (what the page, the pull

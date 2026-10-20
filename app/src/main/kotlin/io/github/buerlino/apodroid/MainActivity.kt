@@ -96,16 +96,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
@@ -113,6 +109,8 @@ import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.Source
+import io.github.buerlino.apodroid.core.placing
+import io.github.buerlino.apodroid.core.screensOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -174,11 +172,14 @@ class MainActivity : ComponentActivity() {
     /** The ticked sources ([Store.sources]), on any screen. */
     private var ticked by mutableStateOf(listOf(Source.APOD))
 
-    /** The switch "All NASA pictures" ([Store.allSources]): the grid instead of "Where". */
+    /** The switch "All NASA pictures" ([Store.allSources]): the list instead of "Where". */
     private var allSources by mutableStateOf(false)
 
-    /** The grid's ticks per screen ([Store.columns]); a column with two or more takes turns every [interval]. */
+    /** The list's ticks per screen ([Store.columns]); a column with two or more takes turns every [interval]. */
     private var columns by mutableStateOf(emptyMap<Screen, List<Source>>())
+
+    /** The screens each source had last in the list ([Store.lastScreens]): an unticked row's dropdown. */
+    private var lastScreens by mutableStateOf(emptyMap<Source, Set<Screen>>())
     private var interval by mutableStateOf(Interval.DAY)
 
     private var weekdayNoticeHidden by mutableStateOf(false)
@@ -218,6 +219,7 @@ class MainActivity : ComponentActivity() {
         ticked = store.sources
         allSources = store.allSources
         columns = store.columns
+        lastScreens = Source.entries.associateWith(store::lastScreens)
         interval = store.interval
         weekdayNoticeHidden = store.weekdayNoticeHidden
         hasFallback = store.fallbackFile.exists()
@@ -558,7 +560,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * The shown tab's picture on [screens], set by hand ([Store.setByHand]: with the daily change
-     * on it changes the settings, so the grid, "Where" and "Change every" are read again, and the
+     * on it changes the settings, so the list, "Where" and "Change every" are read again, and the
      * job follows them); on the APOD tab on a video day what the video-day setting says. The
      * button: in APOD mode the screens "Where" names, with the switch "All NASA pictures" on the
      * menu's choice (also ✓'s).
@@ -579,10 +581,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** The settings a set by hand may change: "Where", the grid and "Change every". */
+    /** The settings a set by hand may change: "Where", the list and "Change every". */
     private fun readSettings() {
         where = store.where
         columns = store.columns
+        lastScreens = Source.entries.associateWith(store::lastScreens)
         interval = store.interval
         ticked = store.sources
     }
@@ -639,17 +642,17 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Ticks or unticks [source] in [screen]'s column of the grid (not the last tick) and fetches
-     * what's new ([Store.setColumns]). While the daily change is on, a
-     * tick that changes what a screen shows sets it ([load]); one that only adds to a turning
-     * screen waits for its turn. Ticking NASA or Earth Observatory where it wasn't ticked
-     * anywhere says they post on weekdays only.
+     * The list: [source] on exactly [screens] (a tick, a new dropdown choice; none: an untick, not
+     * of the last ticked source), then what's new is fetched ([Store.setColumns]). While the daily
+     * change is on, a change to what a screen shows sets it ([load]); a source only added to a
+     * turning screen waits for its turn. Ticking NASA or Earth Observatory where it wasn't
+     * ticked anywhere says they post on weekdays only.
      */
-    private fun tick(screen: Screen, source: Source) {
-        val column = columns[screen].orEmpty()
-        val new = columns + (screen to if (source in column) column - source else Source.entries.filter { it in column || it == source })
-        if (new.values.all { it.isEmpty() }) return
+    private fun place(source: Source, screens: Set<Screen>) {
+        val new = columns.placing(source, screens)
+        if (new == columns || new.values.all { it.isEmpty() }) return
         val added = columns.values.none { source in it }
+        lastScreens = lastScreens + (source to screens.ifEmpty { columns.screensOf(source) })
         columns = new
         ticked = Source.entries.filter { s -> new.values.any { s in it } }
         // Off the main thread: the ticks wait for a set the job may be doing.
@@ -662,7 +665,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The switch "All NASA pictures" ([Store.setAllSources]): the first time on, the grid starts
+     * The switch "All NASA pictures" ([Store.setAllSources]): the first time on, the list starts
      * from "Where". Works like a tick: while the daily change is on what the
      * new mode puts on a screen is set ([load]); the job's period follows the mode.
      */
@@ -1172,10 +1175,11 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Wallpaper (the daily switch and its status line; in APOD mode "Where", "Size", "If APOD is a
-     * video" and the set button; with the switch "All NASA pictures" on "Size"), with that switch
-     * on the grid with "If it's a video" under APOD's row, "Change every" and the set menu; then
-     * the mode switch.
+     * Wallpaper: the daily switch; while it's on its status lines, in APOD mode "Where", with the
+     * switch "All NASA pictures" on the list ("Pictures from") and "Change every", then "Size",
+     * "If APOD is a video", "Wi-Fi only" and "Save every picture"; while it's off "Size" alone.
+     * The set buttons in both states (APOD mode's at the end of the section, the menu after
+     * "Change every" or "Size"). Then the mode switch.
      */
     @Composable
     private fun Settings() {
@@ -1183,9 +1187,6 @@ class MainActivity : ComponentActivity() {
         val change = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let(::saveFallback) }
         val pickAndChoose = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let { saveFallback(it, choose = true) } }
         val request = PickVisualMediaRequest(PickVisualMedia.ImageOnly)
-        val videoDaysChoice = @Composable { label: String?, enabled: Boolean ->
-            VideoDaysChoice(label, enabled, pick = { pickAndChoose.launch(request) }, change = { change.launch(request) })
-        }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Heading("Wallpaper")
             Row(
@@ -1195,67 +1196,75 @@ class MainActivity : ComponentActivity() {
                 Text("Change wallpaper automatically", Modifier.weight(1f))
                 Switch(checked = daily, onCheckedChange = null)
             }
-            if (daily) statusLines().forEach {
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (daily) Row(
-                Modifier.fillMaxWidth().toggleable(wifiOnly, role = Role.Switch, onValueChange = ::switchWifiOnly),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Wi-Fi only", Modifier.weight(1f))
-                Switch(checked = wifiOnly, onCheckedChange = null)
-            }
-            if (daily) SaveEverySwitch()
-
-            if (!allSources) {
-                Heading("Where")
-                // One height for all: a label that wraps (a narrow pane, a large font) made its segment taller.
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    val labels = mapOf(Where.HOME to "Home screen", Where.LOCK to "Lock screen", Where.BOTH to "Both")
-                    Where.entries.forEachIndexed { i, w ->
-                        SegmentedButton(
-                            selected = where == w,
-                            onClick = {
-                                if (where != w) {
-                                    where = w; store.where = w
-                                    applyNow(Changed.WHERE)
-                                }
-                            },
-                            shape = SegmentedButtonDefaults.itemShape(i, Where.entries.size),
-                            modifier = Modifier.fillMaxHeight(),
-                        ) { Text(labels.getValue(w)) }
-                    }
+            if (daily) {
+                statusLines().forEach {
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                FitChoice()
-
+                if (!allSources) {
+                    Heading("Where")
+                    // One height for all: a label that wraps (a narrow pane, a large font) made its segment taller.
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                        val labels = mapOf(Where.HOME to "Home screen", Where.LOCK to "Lock screen", Where.BOTH to "Both")
+                        Where.entries.forEachIndexed { i, w ->
+                            SegmentedButton(
+                                selected = where == w,
+                                onClick = {
+                                    if (where != w) {
+                                        where = w; store.where = w
+                                        applyNow(Changed.WHERE)
+                                    }
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(i, Where.entries.size),
+                                modifier = Modifier.fillMaxHeight(),
+                            ) { Text(labels.getValue(w)) }
+                        }
+                    }
+                } else {
+                    PictureList()
+                    // Hiding it moves the page only after a tick.
+                    if (columns.values.any { it.size >= 2 }) {
+                        Heading("Change every")
+                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                            val labels = mapOf(Interval.DAY to "Day", Interval.H12 to "12 h", Interval.H6 to "6 h", Interval.H3 to "3 h")
+                            Interval.entries.forEachIndexed { i, choice ->
+                                SegmentedButton(
+                                    selected = interval == choice,
+                                    onClick = { chooseInterval(choice) },
+                                    shape = SegmentedButtonDefaults.itemShape(i, Interval.entries.size),
+                                    modifier = Modifier.fillMaxHeight(),
+                                ) { Text(labels.getValue(choice)) }
+                            }
+                        }
+                    }
+                    SetMenu()
+                }
+            }
+            FitChoice()
+            if (daily) {
                 Heading("If APOD is a video")
-                videoDaysChoice(null, true)
-
+                // With the list: greyed out, not hidden, while APOD has no tick, so the page doesn't move.
+                VideoDaysChoice(
+                    enabled = !allSources || columns.values.any { Source.APOD in it },
+                    pick = { pickAndChoose.launch(request) },
+                    change = { change.launch(request) },
+                )
+                Row(
+                    Modifier.fillMaxWidth().toggleable(wifiOnly, role = Role.Switch, onValueChange = ::switchWifiOnly),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Wi-Fi only", Modifier.weight(1f))
+                    Switch(checked = wifiOnly, onCheckedChange = null)
+                }
+                SaveEverySwitch()
+            }
+            if (!allSources) {
                 // Also while the daily change is on: the shown picture may not be the one on the wallpaper.
                 Button(
                     onClick = { setWallpaperNow() },
                     enabled = post != null,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 ) { Text("Set as wallpaper now") }
-            } else {
-                FitChoice()
-                HorizontalDivider(Modifier.padding(vertical = 16.dp))
-                Grid(videoDaysChoice)
-                // Hiding it moves the page only after a tick.
-                if (columns.values.any { it.size >= 2 }) {
-                    Heading("Change every")
-                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                        val labels = mapOf(Interval.DAY to "Day", Interval.H12 to "12 h", Interval.H6 to "6 h", Interval.H3 to "3 h")
-                        Interval.entries.forEachIndexed { i, choice ->
-                            SegmentedButton(
-                                selected = interval == choice,
-                                onClick = { chooseInterval(choice) },
-                                shape = SegmentedButtonDefaults.itemShape(i, Interval.entries.size),
-                                modifier = Modifier.fillMaxHeight(),
-                            ) { Text(labels.getValue(choice)) }
-                        }
-                    }
-                }
+            } else if (!daily) {
                 SetMenu()
             }
 
@@ -1287,72 +1296,68 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * "Pictures from": a row per source (its short name, so one line at any font size), a tick box
-     * for the home and the lock screen in columns of one width; "If it's a video" ([videoDaysChoice])
-     * under APOD's row, greyed out while APOD has no tick. The last tick can't be removed.
+     * "Pictures from": a row per source, a tick box with its short name and a dropdown Home screen
+     * / Lock screen / Both ([place]). An unticked row's dropdown is greyed out and shows the
+     * screens the source had last ([lastScreens]); a tick puts it there. The last ticked row
+     * can't be unticked.
      */
     @Composable
-    private fun Grid(videoDaysChoice: @Composable (String?, Boolean) -> Unit) {
-        val heads = mapOf(Screen.HOME to "Home", Screen.LOCK to "Lock")
-        val headStyle = MaterialTheme.typography.titleSmall
-        // 72 dp, or wider when a large font makes a head wider (at font scale 2.0 "Home" broke
-        // inside the word): the heads never wrap, and the boxes stay centred under them.
-        val measurer = rememberTextMeasurer()
-        val widestHead = heads.values.maxOf { measurer.measure(it, headStyle, softWrap = false).size.width }
-        val cell = Modifier.width(max(72.dp, with(LocalDensity.current) { widestHead.toDp() } + 8.dp))
-        val screenNames = mapOf(Screen.HOME to "home screen", Screen.LOCK to "lock screen")
-        val ticks = columns.values.sumOf { it.size }
-        Row(verticalAlignment = Alignment.Bottom) {
-            Box(Modifier.weight(1f)) { Heading("Pictures from") }
-            Screen.entries.forEach { screen ->
-                Text(
-                    heads.getValue(screen),
-                    cell,
-                    style = headStyle,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    softWrap = false,
-                )
-            }
-        }
+    private fun PictureList() {
+        val labels = mapOf(Where.HOME to "Home screen", Where.LOCK to "Lock screen", Where.BOTH to "Both")
+        val tickedCount = Source.entries.count { s -> columns.values.any { s in it } }
+        Heading("Pictures from")
         Source.entries.forEach { source ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(source.shortLabel, Modifier.weight(1f))
-                Screen.entries.forEach { screen ->
-                    val checked = source in columns[screen].orEmpty()
-                    Box(cell, contentAlignment = Alignment.Center) {
-                        Checkbox(
-                            checked = checked,
-                            onCheckedChange = { tick(screen, source) },
-                            // The last tick stays.
-                            enabled = !(checked && ticks == 1),
-                            modifier = Modifier.semantics { contentDescription = "${source.shortLabel} on the ${screenNames.getValue(screen)}" },
-                        )
-                    }
+            val on = columns.screensOf(source)
+            val shown = on.ifEmpty { lastScreens[source] ?: Screen.entries.toSet() }
+            val checked = on.isNotEmpty()
+            val name = labels.getValue(Where.entries.first { it.screens == shown })
+            // Wraps the dropdown under the name when both don't fit on one line (a large font, a narrow pane).
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    Modifier.toggleable(
+                        checked,
+                        // The last tick stays.
+                        enabled = !(checked && tickedCount == 1),
+                        role = Role.Checkbox,
+                        onValueChange = { place(source, if (it) shown else emptySet()) },
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = checked, onCheckedChange = null, enabled = !(checked && tickedCount == 1))
+                    Text(source.shortLabel, Modifier.padding(start = 8.dp, end = 16.dp), softWrap = false)
                 }
-            }
-            if (source == Source.APOD) {
-                Box(Modifier.padding(start = 16.dp)) {
-                    // Greyed out, not hidden, while APOD has no tick: the page doesn't move.
-                    videoDaysChoice("If it's a video", columns.values.any { Source.APOD in it })
+                Box {
+                    var open by remember { mutableStateOf(false) }
+                    OutlinedButton(onClick = { open = true }, enabled = checked) {
+                        Text("$name ▾", Modifier.clearAndSetSemantics { contentDescription = "${source.shortLabel} on: $name" })
+                    }
+                    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                        Where.entries.forEach { w ->
+                            DropdownMenuItem(
+                                text = { Text(labels.getValue(w)) },
+                                onClick = { open = false; place(source, w.screens) },
+                                leadingIcon = { Text(if (w.screens == shown) "✓" else "") },
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 
     /**
-     * "If APOD is a video": a dropdown with the four choices, after [label] when given; while
+     * "If APOD is a video": a dropdown with the four choices; while
      * "Use my picture" is chosen "Change picture" beside it. Choosing it with nothing picked
      * opens the picker at once ([pick]).
      */
     @Composable
-    private fun VideoDaysChoice(label: String?, enabled: Boolean, pick: () -> Unit, change: () -> Unit) {
+    private fun VideoDaysChoice(enabled: Boolean, pick: () -> Unit, change: () -> Unit) {
         var open by remember { mutableStateOf(false) }
-        val disabled = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-            if (label != null) {
-                Text(label, color = if (enabled) Color.Unspecified else disabled)
-            }
             Box {
                 val name = videoDays.label
                 OutlinedButton(onClick = { open = true }, enabled = enabled) {
@@ -1520,7 +1525,7 @@ private val Source.label
         Source.EARTH -> "Earth Observatory"
     }
 
-/** The source's short name: its tab above the picture, its row in the grid (and its tick boxes' screen-reader labels), the status line. */
+/** The source's short name: its tab above the picture, its row in the list (and its tick box and dropdown labels), the status line. */
 private val Source.shortLabel
     get() = when (this) {
         Source.APOD -> "APOD"

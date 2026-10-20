@@ -12,8 +12,9 @@ import kotlin.concurrent.thread
 
 /**
  * Runs every ~6 hours with network (with turns of 3 hours, every 3): [Store.update], which fetches
- * the newest post of each source in use unless already stored, and sets the wallpaper once per
- * post and turn. A failed run is retried with the job's backoff.
+ * the newest post of each source in use unless already stored, and sets each screen's wallpaper
+ * once per post and turn; then, with "Save every picture", saves their new posts
+ * ([Store.saveInUse]). A failed run is retried with the job's backoff.
  */
 class DailyJob : JobService() {
     @Volatile
@@ -21,9 +22,18 @@ class DailyJob : JobService() {
 
     override fun onStartJob(params: JobParameters): Boolean {
         worker = thread {
-            val result = runCatching { Store(this).update(force = false) }
+            val store = Store(this)
+            val result = runCatching { store.update(force = false) }
             result.onSuccess { if (it != null) Log.i("APODroid", "Daily job: $it") }
             result.onFailure { Log.w("APODroid", "Daily job failed: $it", it) }
+            // Save every picture: also after a failed run (a failing source mustn't stop the others'
+            // saves), not after a stop. A failed save doesn't retry the job; the next run tries again.
+            val stopped = result.exceptionOrNull().let { it is InterruptedException || it?.isStop() == true }
+            if (!stopped) {
+                runCatching { store.saveInUse() }
+                    .onSuccess { if (it != null) Log.i("APODroid", "Daily job: $it") }
+                    .onFailure { Log.w("APODroid", "Daily job's saves ended: $it") }
+            }
             jobFinished(params, result.isFailure)
         }
         return true
@@ -49,26 +59,28 @@ class DailyJob : JobService() {
         fun ensure(context: Context): Boolean {
             val pending = scheduler(context).getPendingJob(ID)
             val job = job(context)
-            return pending != null && pending.intervalMillis == job.intervalMillis && pending.flexMillis == job.flexMillis ||
+            return pending != null && pending.intervalMillis == job.intervalMillis && pending.flexMillis == job.flexMillis &&
+                pending.networkType == job.networkType ||
                 scheduler(context).schedule(job) == JobScheduler.RESULT_SUCCESS
         }
 
         /**
-         * Every 6 hours, with any flex (so scheduling runs it at once). With turns, as often as a
-         * turn lasts, up to 6 hours, with a short flex so the turns come at even times.
+         * Every 6 hours, with any flex (so scheduling runs it at once). With turns (a column with
+         * two or more), as often as a turn lasts, up to 6 hours, with a short flex so the turns
+         * come at even times.
          */
         private fun job(context: Context): JobInfo {
             val store = Store(context)
             val sixHours = TimeUnit.HOURS.toMillis(6)
             return JobInfo.Builder(ID, ComponentName(context, DailyJob::class.java))
                 .apply {
-                    if (store.sources.size < 2) {
+                    if (!store.hasTurns) {
                         setPeriodic(sixHours)
                     } else {
                         setPeriodic(minOf(TimeUnit.HOURS.toMillis(store.interval.hours), sixHours), TimeUnit.MINUTES.toMillis(15))
                     }
                 }
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .setRequiredNetworkType(if (store.wifiOnly) JobInfo.NETWORK_TYPE_UNMETERED else JobInfo.NETWORK_TYPE_ANY)
                 .setPersisted(true)
                 .build()
         }

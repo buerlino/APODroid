@@ -45,6 +45,8 @@ data class Post(
     val isVideo: Boolean,
     /** The paragraph about the picture, plain text; empty if not found. */
     val explanation: String = "",
+    /** Who made the picture, with its label ("Credit & Copyright: …"); APOD only, null without one. */
+    val credit: String? = null,
 ) {
     /**
      * A name for the saved picture, without extension:
@@ -175,18 +177,22 @@ private fun wpDate(date: String): LocalDate = try {
     throw SiteChanged("Bad date: $date", e)
 }
 
-internal fun parseApod(body: String): Post {
-    val p = wpPosts(body).firstOrNull() ?: throw SiteChanged("No post")
+internal fun parseApod(body: String): Post = apodPosts(body).firstOrNull() ?: throw SiteChanged("No post")
+
+/** APOD posts, newest first. */
+internal fun apodPosts(body: String): Sequence<Post> = wpPosts(body).asSequence().map { p ->
+    val content = p.content?.rendered.orEmpty()
     // Video days may have no featured_image at all (16 Oct 2026).
-    val isVideo = isVideo(p.content?.rendered.orEmpty())
-    return Post(
+    val isVideo = isVideo(content)
+    Post(
         source = Source.APOD,
         date = wpDate(p.date),
         title = cleanTitle(p.title?.rendered.orEmpty()),
         imageUrl = if (isVideo) null else p.featured_image?.file ?: throw SiteChanged("No image"),
         pageUrl = p.link,
         isVideo = isVideo,
-        explanation = explanation(p.content?.rendered.orEmpty()),
+        explanation = explanation(content),
+        credit = credit(content),
     )
 }
 
@@ -266,6 +272,32 @@ internal fun explanation(content: String): String {
     val html = content.substring(from, end).split(lineBreak, limit = 2)[0]
     return plainText(html).removePrefix("Explanation:").trim()
 }
+
+/**
+ * The first hero meta row whose `<th>` names a credit ("Credit", "Credit & Copyright:", "Color
+ * Credit:", …), as "<label>: <value>"; null without one. A value with its own label ("Image
+ * Credit: …", "Video Credit: …", under a plain "Credit") is shown as is. Lines (`<br>`) are
+ * joined with "; ".
+ */
+internal fun credit(content: String): String? {
+    val row = metaRow.findAll(content).firstOrNull { "Credit" in it.groupValues[1] } ?: return null
+    val label = plainText(row.groupValues[1]).trimEnd(':', ' ')
+    val value = plainText(row.groupValues[2].replace(lineBreak, "; "))
+        .replace(spaceBefore, "$1").replace(spaceAfter, "(")
+        .replace(emptyLines, "; ").trim(';', ' ')
+    return when {
+        value.isEmpty() -> null
+        ownLabel.containsMatchIn(value) -> value
+        else -> "$label: $value"
+    }
+}
+
+private val metaRow = Regex("""media-detail-hero__meta-row.*?<th[^>]*>(.*?)</th>\s*<td[^>]*>(.*?)</td>""", RegexOption.DOT_MATCHES_ALL)
+private val ownLabel = Regex("""^[\p{L} &]*Credit[\p{L} &]*:""")
+// Stripped tags leave "JAXA , ISAS", "( MTU )" and "License :"; empty lines leave "; ;", a line ending in a comma ",;".
+private val spaceBefore = Regex("""\s+([,;:)])""")
+private val spaceAfter = Regex("""\(\s+""")
+private val emptyLines = Regex(""",?;(\s*;)*\s*""")
 
 private fun plainText(html: String) = decodeEntities(html.replace(tag, "")).replace(space, " ").trim()
 

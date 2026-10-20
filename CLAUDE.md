@@ -666,7 +666,10 @@ switch-on still runs) set once, not twice (user, 2026-10-20 night; B6, 2026-10-2
 the same picture twice, 0.6 s apart): an on while a switch-on run goes owes one run after it,
 which that run pays when it got past its set's check of the switch (`Updated.wentToSet`), so
 only a run that gave up (the switch off at its check) leaves the last on to run once more and
-the taps never end on with nothing set (`:core`'s `SwitchRuns`, `SwitchRunsTest`). **No reschedule stops a running run** (user, 2026-10-20 evening; S4f3):
+the taps never end on with nothing set (`:core`'s `SwitchRuns`, `SwitchRunsTest`). An off and on
+that come after the run's set (during its redraw: taps about 0.35–1 s apart on the tablet) owe a
+run that sets the same picture once more and schedules the job (B6's fix round: the off had
+cancelled it). **No reschedule stops a running run** (user, 2026-10-20 evening; S4f3):
 scheduling the job's id again stops a run, so a Set with turns during a run delayed its saves
 to the next run (an `ensure` with another timing too). While a run goes (`DailyJob`'s count of
 runs, process-wide: the page and the job share one process), `schedule` and `ensure` only note

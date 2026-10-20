@@ -101,6 +101,51 @@ class ApodTest {
         assertFalse(parseApod(post(explanation = "<a href='https://youtu.be/abc'>video</a>$youtube")).isVideo)
     }
 
+    // Made-up hero meta rows shaped like the real ones (whitespace and tabs around the cells).
+    private fun row(th: String, td: String) =
+        "<tr class=\"media-detail-hero__meta-row\">\n\t<th scope=\"row\" class=\"label\">$th</th>\n\t<td class=\"p-sm\">\n\t\t$td\t</td>\n</tr>"
+
+    private fun creditOf(vararg rows: String): String? =
+        credit("<table class=\"media-detail-hero__meta-table\"><tbody>${rows.joinToString("")}</tbody></table>")
+
+    @Test
+    fun readsTheCreditWithThePostsOwnLabel() {
+        val date = row("Date", "October 1, 2026")
+        val by = "<a href='https://example.org/'>Ann Example</a>"
+        assertEquals("Credit: Ann Example", creditOf(date, row("Credit", by), row("Authors &amp; editors:", "Someone")))
+        assertEquals("Credit: Ann Example", creditOf(row("Credit:", by)))
+        assertEquals("Credit & Copyright: Ann Example", creditOf(row("Credit &amp; Copyright:", by)))
+        assertEquals("Credit & License: Ann Example", creditOf(row("Credit &amp;  License", by)))
+        assertEquals("Credit and Copyright: Ann Example", creditOf(row("Credit and Copyright:", by)))
+        assertEquals("Color Credit: Ann Example", creditOf(row("Color Credit:", by)))
+        assertEquals("Credit: NASA", creditOf(row("A service of:", "ASD at NASA"), row("Credit", "NASA")))
+    }
+
+    @Test
+    fun aValueWithItsOwnLabelIsShownAsIs() {
+        assertEquals("Image Credit & Copyright: Ann Example", creditOf(row("Credit", "Image Credit &amp; Copyright: Ann Example")))
+        assertEquals("Video Credit: ESA", creditOf(row("Credit", "<strong>Video Credit:</strong> <a href='x'>ESA</a>")))
+    }
+
+    @Test
+    fun joinsLinesAndTidiesTheText() {
+        assertEquals(
+            "Image Credit: JAXA, ISAS; Processing: Bo Made (MTU); Text: Cy Up",
+            creditOf(row("Credit", "Image Credit: <a href='a'>JAXA</a> , <a href='b'>ISAS</a><br />Processing: Bo Made ( <a href='c'>MTU</a> )<br><br />\n<br/>Text: Cy Up<br>")),
+        )
+        assertEquals("Image Credit: X; Processing & License: Y", creditOf(row("Credit", "Image Credit: X,<br>Processing &amp; License : Y")))
+        assertEquals("Credit: Stars’ Light", creditOf(row("Credit", "Stars&#8217;   Light")))
+    }
+
+    @Test
+    fun noCreditRowIsNoCredit() {
+        assertEquals(null, creditOf(row("Date", "October 1, 2026")))
+        assertEquals(null, creditOf(row("Credit", " <br> ")))
+        assertEquals(null, creditOf())
+        assertEquals(null, parseApod(post()).credit)
+        assertEquals("Credit: Ann Example", parseApod(post(explanation = "x</p><tr class='media-detail-hero__meta-row'><th>Credit</th><td>Ann Example</td></tr>")).credit)
+    }
+
     @Test
     fun withoutTheHeroMarkerLooksAboveTheTitle() {
         val youtube = "<iframe src='https://www.youtube.com/embed/abc'></iframe>"

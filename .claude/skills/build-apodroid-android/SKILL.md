@@ -16,7 +16,7 @@ packages unattended): `night.md`.
 
 - `core/.../Post.kt`: `Source`, `Post`, `fetchLatest(source, userAgent)`, `parseLatest`
   (`parseApod`, `nasaPosts`, `earthPosts`), `download(url, to, userAgent)`, `renditionUrl`,
-  `originalUrl`, title, video and explanation parsing, `Post.fileName`. Tests with made-up data
+  `originalUrl`, title, video, explanation and credit parsing (`apodPosts`, `credit`), `Post.fileName`. Tests with made-up data
   shaped like the real responses: APOD in `ApodTest` (also the HTTP part), NASA, Earth and the
   URLs in `SourcesTest`, whose `readsEveryRealPost` reads `private/` when it's there. Real
   responses in `private/` (`latest.json`, `last100.json`, `iotd-feed-2026-10-16.xml`,

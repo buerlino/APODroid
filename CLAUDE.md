@@ -177,6 +177,15 @@ GET https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_pa
 - **Explanation:** the hero's `media-detail-hero__description` paragraph up to its first `<br>`
   (after it come site notes and "Tomorrow's picture"), tags stripped, without the label. Present
   on all 100 posts, 660 to 1323 characters.
+- **Credit** (0.6.0, F4, 2026-10-20; `Post.credit`, APOD only): the first hero
+  `media-detail-hero__meta-row` whose `<th>` holds "Credit", as "<label>: <value>" with the
+  post's own label (`Credit`, `Credit & Copyright`, `Credit & License`, `Credit and Copyright`,
+  `Color Credit`; one colon), or the value as is when it has its own ("Image Credit: …",
+  "Video Credit: …", 35 of 100 under a plain "Credit"). `<br>` → "; ", tags stripped, entities
+  decoded, and the gaps stripped tags leave tidied (" ,", " :", " )", "( ", "; ;", ",;").
+  All 100 posts have one, 12 to 254 characters (`SourcesTest.readsEveryRealPost`). NASA's feed
+  names a credit in 1 of 60 items, Earth's only in `content` (about 100× the data per check):
+  null for both (user, 2026-10-20).
 
 Risk: this is the site's internal WordPress API, not a documented public API. The category id or
 the fields could change. Keep the parsing in `:core`, tolerant (`ignoreUnknownKeys`, nullable
@@ -422,6 +431,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the shown tab's picture (APOD's video tab: what the video-day setting says, with turns too
   since M2; with "Keep" nothing). The boxes show
   on every tab (the video notice's "Tap ▶ …" only on APOD's, user); pull refreshes every source in use.
+- **Credit** (F4, 2026-10-20; the text to approve on the tablet): one line under the date
+  (APOD mode: title, date, credit) or, with tabs, under the title on APOD's tab; smaller and
+  greyer than the explanation (`bodySmall`, `onSurfaceVariant`), at most two lines with an
+  ellipsis, all of it while the explanation is open (a cut credit makes the caption
+  expandable too). The pref `credit` is written with the post; a post stored by 0.5.0 has
+  none, so nothing shows until the next post (no refetch, no migration).
 - **Explanation (user, 2026-10-17, U2; was a ▾ beside the title):** its first two lines under
   the title, with "more" below while they cut it off; a tap on it or the title shows it all,
   another hides it. A short one (Earth's one sentence) has no "more" and doesn't expand. Screen

@@ -158,7 +158,8 @@ the system share sheet. No `FileProvider`, no picture file.
 1 of 60 items (the others only on each image page); Earth has one on 33 of 40 posts, but in
 `content` only (each check 0.6 KB → about 61 KB) and mostly "NASA Earth Observatory".
 
-Decided (user, 2026-10-04): show the credit under the date.
+Built for 0.6.0 (F4, 2026-10-20; `CLAUDE.md`, Data source and The app; the device check and
+the text are in `plan-0.6.0.md`). Decided (user, 2026-10-04): show the credit under the date.
 
 Checked on the 100 posts in `private/last100.json`: every post has a
 `media-detail-hero__meta-row` whose `<th>` contains "Credit". The label varies: `Credit` 45,

@@ -304,6 +304,8 @@ class Store(private val context: Context) {
             pageUrl = prefs.getString(source.key("pageUrl"), null).orEmpty(),
             isVideo = prefs.getBoolean(source.key("isVideo"), false),
             explanation = prefs.getString(source.key("explanation"), null).orEmpty(),
+            // APOD only; a post stored by 0.5.0 has none until the next one.
+            credit = prefs.getString(source.key("credit"), null),
         )
     }
 
@@ -315,6 +317,7 @@ class Store(private val context: Context) {
         putString(source.key("pageUrl"), post.pageUrl)
         putBoolean(source.key("isVideo"), post.isVideo)
         putString(source.key("explanation"), post.explanation)
+        putString(source.key("credit"), post.credit)
     }
 
     /**
@@ -393,7 +396,7 @@ class Store(private val context: Context) {
      * before a rotation (they run in this process), until [stopWatching]. Android holds the listener weakly: keep the one returned.
      */
     fun watch(action: () -> Unit) = OnSharedPreferenceChangeListener { _, key ->
-        if (key in recordKeys || Source.entries.any { key in listOf(it.key("date"), it.key("imageUrl"), it.key("title"), it.key("explanation"), it.key("savedUri"), it.key("problem"), it.key("httpCode")) }) {
+        if (key in recordKeys || Source.entries.any { key in listOf(it.key("date"), it.key("imageUrl"), it.key("title"), it.key("explanation"), it.key("credit"), it.key("savedUri"), it.key("problem"), it.key("httpCode")) }) {
             action()
         }
     }.also(prefs::registerOnSharedPreferenceChangeListener)

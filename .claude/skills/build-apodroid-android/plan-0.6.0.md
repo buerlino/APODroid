@@ -290,6 +290,11 @@ and a drawn Material icon), to be seen on a device.
 
 ### [ ] F4. Image credit (Opus, medium)
 
+**Status (2026-10-20, day):** built and unit-tested (`credit`, 5 tests in `ApodTest`, all 100
+real posts in `readsEveryRealPost`; the build check passes); the device checks and the text are
+open until the tablet is free. Differed from the plan: " :" (one post, "Processing & License :")
+and ",;" (a line ending in a comma, the 254-character one) are tidied too; `parseApod` reads
+through `apodPosts`, as NASA's and Earth's parsers do, so the test reads all 100.
 `features.md` item 7 has the parsing. Settled: **APOD only** (user, 2026-10-20; NASA's feed
 names a credit in 1 of 60 items, Earth's is in `content` only, about 100× the data per check,
 and mostly "NASA Earth Observatory").

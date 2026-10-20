@@ -846,7 +846,8 @@ class MainActivity : ComponentActivity() {
         var expanded by rememberSaveable(post.source, post.date) { mutableStateOf(false) }
         // Whether the two-line preview cuts the explanation off; a short one has nothing to expand.
         var cut by remember(post.explanation) { mutableStateOf(false) }
-        val expandable = cut || expanded
+        var creditCut by remember(post.credit) { mutableStateOf(false) }
+        val expandable = cut || creditCut || expanded
         val tabs = sources.size > 1
         val chip = if (tabs) chipText(post) else null
         // Back leaves crop mode without setting; the dragged position stays for the job.
@@ -951,6 +952,18 @@ class MainActivity : ComponentActivity() {
                 Text(post.title, style = MaterialTheme.typography.titleLarge)
                 if (!tabs) {
                     Text(dateLine, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                // APOD's only; all of it while the explanation is open.
+                post.credit?.let { credit ->
+                    Text(
+                        credit,
+                        Modifier.padding(top = 2.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = if (expanded) Int.MAX_VALUE else 2,
+                        overflow = TextOverflow.Ellipsis,
+                        onTextLayout = { if (!expanded) creditCut = it.hasVisualOverflow },
+                    )
                 }
             }
             if (post.explanation.isNotEmpty()) {

@@ -382,6 +382,13 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `setBitmap` (user, 2026-10-05): Android 16 measures it unturned but draws it turned, so it
   came out stretched, with or without a crop. Only changed when the date is new and the
   download is a complete, decodable image.
+  **Home and lock set separately** (M0, 2026-10-20; tablet, Android 15; the FP6 unchecked):
+  both flags make one shared wallpaper (`dumpsys wallpaper`: `id=154: mWhich=3`, "Lock
+  wallpaper state" empty); `FLAG_SYSTEM` alone first moves the shared one to the lock screen
+  and sets home anew (`System id=155: mWhich=1`, `Lock id=154: mWhich=2`: home NASA, lock
+  still APOD); `FLAG_LOCK` alone replaces only the lock one (`Lock id=156: mWhich=2`, home
+  still 155); both flags again leave one shared wallpaper and no lock one (`id=157:
+  mWhich=3`, "Lock wallpaper state" empty). No screen went blank.
 - **Choosing the part (user, 2026-10-05):** a ⛶ at the bottom left of the picture (mirroring
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the

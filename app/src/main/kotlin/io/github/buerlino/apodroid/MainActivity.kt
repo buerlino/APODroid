@@ -611,6 +611,8 @@ class MainActivity : ComponentActivity() {
                 load()
             }
             choice == VideoDays.MINE -> applyNow(Changed.VIDEO_DAYS, videoOnly = true)
+            // "Skip it": a screen with turns passes APOD's turn on at once (no forget: dueOn keeps a held stand-in).
+            daily -> lifecycleScope.launch { load() }
         }
         // The video-day source's tab went: show the one now in its place.
         if (choice.source == null && isStale()) lifecycleScope.launch { show() }

@@ -310,7 +310,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" (on a video day) also sets at once, but not by hand (`Store.settingChanged`, M2:
     the affected screens' records forgotten, then the normal set; no hold, the clock stays);
     turning the switch on sets today's picture again (`forgetWallpaper`), which also puts APOD
-    back after another wallpaper. "Skip it" on a video day sets nothing.
+    back after another wallpaper. "Skip it" on a video day: a screen showing APOD alone keeps its picture, a screen that takes turns passes APOD's turn to the next source at once.
   - No help texts (user: the labels explain themselves), except the pause hint (Background
     update), the video-day notice and the planned ⓘ (Save every picture).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;

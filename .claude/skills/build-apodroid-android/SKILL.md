@@ -70,7 +70,7 @@ packages unattended): `night.md`.
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
   all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, then the job scheduled (`scheduleJob`) or cancelled by the stored `daily`);
   `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post.
-  `app/.../DailyJob.kt`: the job (id 1; after `update`, `saveInUse` unless stopped); `ensure` reschedules it only when its timing or its network type (Wi-Fi only) changes; while a run goes `schedule` and `ensure` are only noted and `rescheduleNoted` does them at the run's end, `cancel` stops it at once (S4f3).
+  `app/.../DailyJob.kt`: the job (id 1; after `update`, `saveInUse` unless stopped); `ensure` reschedules it only when its timing or its network type (Wi-Fi only) changes; while a run goes `schedule` and `ensure` are only noted and `rescheduleNoted` does them at the end of a run that didn't fail (a failed one keeps the note for its retry, B5), `cancel` stops it at once and drops the note (S4f3); the bookkeeping is `core/.../JobRuns.kt` (`JobRuns`, `Reschedule`; `JobRunsTest`): a reschedule with no run going drops a kept note.
 
 ## Working on the phone
 

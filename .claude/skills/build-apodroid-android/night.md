@@ -107,7 +107,7 @@ setup"). S2 was stopped by hand during its tablet check: its review run (`script
 S2 --no-worker --tablet no`, as S4 and S5 replace what that check tests) merges it before S4
 can start. S4, S4f1, V4 and the night's rows before them are merged (the night of 2026-10-20).
 
-The next night (user, 2026-10-20 evening; the plan, Remaining 3b): **B1, S4f2, S5, F6**; the tablet is free by
+The next night (user, 2026-10-20 evening; the plan, Remaining 3b): **B1, S4f2, S4f3, S5, F6**; the tablet is free by
 night (pascaline has it by day). **S6** waits for the user's look at S5 (its After names `the user`); V3, V5 and
 V6 wait for S6, as they test the final tree.
 
@@ -126,13 +126,14 @@ V6 wait for S6, as they test the final tree.
 | 11 | S4 | Set applies the setup: the draft, `Store.saveSetup`, the old set paths gone | winston | opus, high | yes | S2 | plan S4 |
 | 12 | B1 | The status line after Set with "Skip it" on a video day | winston | sonnet, medium | yes | S4 | plan B1 |
 | 13 | S4f2 | The daily switch applies at once, both ways | winston | opus, medium | yes | B1 | plan S4f2 |
-| 14 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" | winston | opus, medium | yes | S4f2 | plan S5 |
-| 15 | F6 | A size limit for the job's saves | winston | opus, medium | yes | S5 | plan F6 |
-| 16 | S6 | The picture side: the title dropdown, swipe between sources, no Share | winston | opus, high | yes | S5, the user | plan S6 |
-| 17 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S6 | plan V + plan V3 |
-| 18 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
-| 19 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | S6 | plan V + plan V5 |
-| 20 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S6 | plan V + plan V6 |
+| 14 | S4f3 | Set doesn't stop a running job | winston | opus, medium | yes | S4f2 | plan S4f3 |
+| 15 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" | winston | opus, medium | yes | S4f3 | plan S5 |
+| 16 | F6 | A size limit for the job's saves | winston | opus, medium | yes | S5 | plan F6 |
+| 17 | S6 | The picture side: the title dropdown, swipe between sources, no Share | winston | opus, high | yes | S5, the user | plan S6 |
+| 18 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S6 | plan V + plan V3 |
+| 19 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
+| 20 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | S6 | plan V + plan V5 |
+| 21 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S6 | plan V + plan V6 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

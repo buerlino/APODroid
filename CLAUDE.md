@@ -605,7 +605,9 @@ Failures return `needsReschedule` (30 s exponential backoff). Set with the daily
 schedules the job after its set: with turns afresh (`DailyJob.schedule`: the period starts with
 the restarted clock; `ensure` would keep the old windows and the first turn would end up to a
 period late), otherwise `ensure` (a fresh one without turns runs at once and would set first); off
-cancels it. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
+cancels it. **No reschedule may stop a running run** (user, 2026-10-20 evening; S4f3, not built
+yet): scheduling the job's id again stops a run, so a Set during a run delayed its saves to the
+next run; while a run goes, the reschedule waits for its end. Off still stops a run. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
 schedules it again when `daily` is on and the job is missing or has another timing
 (`DailyJob.ensure`; scheduling the same id again would stop a running job).

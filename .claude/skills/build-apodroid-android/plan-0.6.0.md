@@ -236,6 +236,7 @@ Advanced settings ▸                                closed by default
 | S4 | Set applies the setup: the draft, `Store.saveSetup`, the old set paths gone | Opus, high |
 | B1 | The status line after Set with "Skip it" on a video day (regression 2) | Sonnet, medium |
 | S4f2 | The daily switch applies at once, both ways | Opus, medium |
+| S4f3 | Set doesn't stop a running job (pass 5's side effect) | Opus, medium |
 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" | Opus, medium |
 | F6 | A size limit for the job's saves ("Largest original", default 20 MB) | Opus, medium |
 | S6 | The picture side: the title dropdown, swipe between sources, no Share | Opus, high |
@@ -263,7 +264,7 @@ claude --model opus --effort medium "Do F5 in .claude/skills/build-apodroid-andr
 claude --model opus --effort medium "Do F1f1 and F5f1 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do C in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 scripts/pipeline.sh S2 --no-worker --tablet no    # S2's review and merge (S1 is merged)
-scripts/night.sh --until <HH:MM>    # B1, S4f2, S5, F6: the queue in night.md
+scripts/night.sh --until <HH:MM>    # B1, S4f2, S4f3, S5, F6: the queue in night.md
 scripts/night.sh --until <HH:MM>    # after the user's look at S5: S6, then V3, V5, V6
 scripts/night.sh --until <HH:MM>    # V1–V6: the queue in night.md
 claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -339,10 +340,16 @@ reading; their build check passed, 108 tests with `private/`):
    and V6 wait for S6 (by night), as they test the final tree.
 3b. **The evening of 2026-10-20** (user, after the night's report): S4's texts kept ("Set as
    wallpaper", ✓'s "Done", "Setup saved. Nothing to set yet."); `dev` fast-forwarded into
-   master. S5 and S6 by night after all (the user), the user's look between them. New: **B1** (the regression's status line),
-   **S4f2** (the daily switch at once, both ways), **F6** (a size limit for the job's saves).
+   master. S5 and S6 by night after all (the user), the user's look between them. Three of
+   S4's night defaults asked and approved: a failed set wins the toast, Set in crop mode keeps
+   the dragged part, a screen whose column is empty after Set keeps its record. The rest of
+   2a47f00's list (technical: the order of scheduling and update, when the list is saved, the
+   offered sources) stands as pass 4 checked it, not asked.
+   New: **B1** (the regression's status line), **S4f2** (the daily switch at once, both ways),
+   **S4f3** (Set doesn't stop a running job: pass 5's side effect, fixed, not accepted),
+   **F6** (a size limit for the job's saves).
    The tablet is free by night (pascaline uses it by day). **The next night:** B1 → S4f2 →
-   S5 → F6. The user looks at S5 (and the button that moves after Set, the report's question)
+   S4f3 → S5 → F6. The user looks at S5 (and the button that moves after Set, the report's question)
    in the morning; S6 waits for that look (night.md: an After naming the user). **The night
    after:** S6, then V3, V5, V6.
 4. **V7** after the night of V3–V6 (turns over hours: the night's later rows and the
@@ -812,9 +819,36 @@ evening): the daily switch leaves the draft.
   Extended API mode; no crash.
 - **Done when:** the checks pass, the tablet passes, `CLAUDE.md` says the new rule.
 
+### [ ] S4f3. Set doesn't stop a running job (Opus, medium)
+
+After S4f2 (both change how Set and the switch schedule). Pass 5's side effect (2026-10-20
+night), which the user wants fixed (the same evening): Set with turns calls
+`DailyJob.schedule`, and scheduling the job's id again stops a running run, so its saves
+("Save every picture") wait for the next run. The same holds for `ensure` when the timing
+changed (Set without turns after a change of the list, "Wi-Fi only", the switch going on).
+- **The rule:** no reschedule stops a running run. While the job runs (a process-wide flag in
+  `DailyJob`, set in `onStartJob`, cleared when the run ends; the page and the job share one
+  process), a wanted `schedule` or `ensure` is noted instead, and the run does it itself
+  right after `jobFinished`. Turning the daily switch off still cancels at once, also a
+  running run (off is off).
+- If the process dies before the noted reschedule, `onResume`'s `ensure` covers a changed
+  timing; a fresh period for the same timing is then lost (turns stay on their clock, the job
+  may come up to a period off): accept, say so in `CLAUDE.md`. Night default if a simpler way
+  fits better (e.g. a pref instead of the flag), with the alternative in the report.
+- **Files:** `DailyJob.kt`, `MainActivity.kt` (the calls at Set, the switch, "Wi-Fi only"),
+  `CLAUDE.md` (Background update: the rule; drop pass 5's "known side effect" wherever it is
+  written), the skill's "Where things are".
+- **Tablet:** a long run (`cmd jobscheduler run -f`, with the proxy in
+  `private/wp7-handoff/proxy/` stalling one source so it lasts), Set with turns during it: the
+  run isn't stopped (`logcat`: no "stopped", its saves logged at the end with "Save every
+  picture" on), then `dumpsys jobscheduler` shows the job scheduled afresh with the new
+  timing; Set with no run going still reschedules at once; the switch off during a run stops
+  it. If the proxy can't be set up, say so under Not tested.
+- **Done when:** the checks pass, the tablet passes, `CLAUDE.md` says the rule.
+
 ### [ ] S5. Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" (Opus, medium)
 
-After S4f2 (the daily switch at once). The layout, the summary and the highlight of "Set
+After S4f3 (S4f2: the daily switch at once). The layout, the summary and the highlight of "Set
 applies the setup" above.
 - "Setup": a header row ("Setup ▸/▾", the summary under it while closed) that opens and closes
   the area (`rememberSaveable`); it opens by itself while the draft differs from the store in

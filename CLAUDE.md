@@ -290,8 +290,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     not fixed), APOD mode's only (the grid has its columns). Default: both. Its segments, like the tabs' and "Change every"'s, share one
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
-  - **Fit** [Fill | Fit] (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; texts
-    placeholders): in APOD mode under "Where", with the switch on above the grid's divider. One
+  - **Size** [Fill | Fit] (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; the heading
+    "Size" (was "Fit") and the choices approved by the user in C, 2026-10-20): in APOD mode under "Where", with the switch on above the grid's divider. One
     setting for both screens, so one picture is still one set. Fill: the screen's shape cut from
     the picture (⛶ chooses where). Fit: all of it, as large as fits, centred on black
     (Wallpaper). No ⛶ with Fit; choosing Fit closes crop mode. A change while the daily switch
@@ -431,10 +431,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the shown tab's picture (APOD's video tab: what the video-day setting says, with turns too
   since M2; with "Keep" nothing). The boxes show
   on every tab (the video notice's "Tap ▶ …" only on APOD's, user); pull refreshes every source in use.
-- **Credit** (F4, 2026-10-20; the text to approve on the tablet): one line under the date
+- **Credit** (F4, 2026-10-20; approved by the user in C the same day): one line under the date
   (APOD mode: title, date, credit) or, with tabs, under the title on APOD's tab; smaller and
-  greyer than the explanation (`bodySmall`, `onSurfaceVariant`), at most two lines with an
-  ellipsis, all of it while the explanation is open (a cut credit makes the caption
+  greyer than the explanation (`bodySmall`, `onSurfaceVariant`), one line with an
+  ellipsis while the explanation is closed (C; was two), all of it while the explanation is open (a cut credit makes the caption
   expandable too). The pref `credit` is written with the post; a post stored by 0.5.0 has
   none, so nothing shows until the next post or a pull (`refresh` stores what it fetched; no
   migration).
@@ -476,8 +476,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   still APOD); `FLAG_LOCK` alone replaces only the lock one (`Lock id=156: mWhich=2`, home
   still 155); both flags again leave one shared wallpaper and no lock one (`id=157:
   mWhich=3`, "Lock wallpaper state" empty). No screen went blank.
-- **Share** (0.6.0, F3, 2026-10-20; built, the glyph waits to be seen on a device): ⤴ (U+2934, the
-  user's pick from ⤴, ↗, ⇪ and a drawn icon) in ★'s dark circle, left of ★; on video days at the ▶
+- **Share** (0.6.0, F3, 2026-10-20; the glyph approved by the user in C the same day): ⤴ (U+2934, the
+  user's pick from ⤴, ↗, ⇪ and a drawn icon; ↗ and ⇪ compared on the tablet and rejected) at 28 sp,
+  larger than ★'s 24 sp (at 24 it looked small beside ★), in ★'s dark circle of the same size, left of ★; on video days at the ▶
   tile's bottom right (the link works). Screen readers "Share". A tap opens the system share sheet
   (`ACTION_SEND`, `text/plain`) with "<title>\n<page link>" of the shown tab's post; no picture, no
   `FileProvider`.
@@ -513,9 +514,10 @@ original downloads outside the refresh lock (a refresh doesn't wait for a 10 MB 
 to the gallery holds it, and if a newer APOD was stored meanwhile it saves nothing, says so and
 redraws the page.
 
-**Save every picture** (0.6.0, F5, 2026-10-20; the pref `saveEvery`, default off; the ⓘ's text a
-placeholder): a switch under "Wi-Fi only" while the daily switch is on, with a small ⓘ
-("About saving") that opens a dialog with the sizes. After each job run (not the page's), also
+**Save every picture** (0.6.0, F5, 2026-10-20; the pref `saveEvery`, default off; the ⓘ's text
+approved by the user in C, 2026-10-20): a switch under "Wi-Fi only" while the daily switch is on, with a small ⓘ
+("About saving") that opens a dialog: "Each new picture is saved full size to Pictures/APODroid: a few hundred
+MB a month or more." (OK; the per-source sizes dropped in C). After each job run (not the page's), also
 after a failed one, not after a stop, `Store.saveInUse` saves each source in use's stored post
 in order APOD → NASA → Earth, as ★ does (`save`: the original, else the stored picture). The set
 in use is `:core`'s `sourcesInUse`, the one `update` fetches (the ticked sources, held pictures'
@@ -525,7 +527,7 @@ deleted in the gallery isn't saved again (★ still checks it). So APOD mode sav
 video day the stand-in; "Skip it" or "my picture" saves nothing. One skipped while ★ saves
 (`BUSY`) or failed is logged, doesn't retry the job, and the next run tries. A stop ends it:
 `save` rethrows an interrupted download (`isStop()`) instead of falling back. Built and
-unit-tested; the device checks and the ⓘ text wait for the tablet. **One try of the original
+unit-tested; the device checks wait for the tablet (V). **One try of the original
 per post** (user, 2026-10-20, from a review by reading; F5f1): a stopped save noted nothing, so
 each retry of the job and each later run downloaded the original from zero (a 97 MB NASA
 original on a slow connection, all day). The job notes the try first (`<source>.saveTried`,

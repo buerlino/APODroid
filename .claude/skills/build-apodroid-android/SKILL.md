@@ -15,7 +15,7 @@ packages unattended): `night.md`.
 ## Where things are
 
 - `core/.../Post.kt`: `Source`, `Post`, `fetchLatest(source, userAgent)`, `parseLatest`
-  (`parseApod`, `nasaPosts`, `earthPosts`), `download(url, to, userAgent)`, `renditionUrl`,
+  (`parseApod`, `nasaPosts`, `earthPosts`), `download(url, to, userAgent, limit)` (`TooLarge` over the limit, F6), `renditionUrl`,
   `originalUrl`, title, video, explanation and credit parsing (`apodPosts`, `credit`), `Post.fileName`. Tests with made-up data
   shaped like the real responses: APOD in `ApodTest` (also the HTTP part), NASA, Earth and the
   URLs in `SourcesTest`, whose `readsEveryRealPost` reads `private/` when it's there. Real
@@ -57,8 +57,8 @@ packages unattended): `night.md`.
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
   is APOD mode's screen), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
-  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`), `tabPicture(tab)`, `set(picture, screens)` (the flags per screen; a photo with
-  an EXIF orientation goes upright through `setBitmap`; with `fit` the `fitted` bitmap), `cropPosition(post)`, `save` (the original, else the stored picture; returns `Saved`), `imageBounds`,
+  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `tabPicture(tab)`, `set(picture, screens)` (the flags per screen; a photo with
+  an EXIF orientation goes upright through `setBitmap`; with `fit` the `fitted` bitmap), `cropPosition(post)`, `save` (the original, else the stored picture; the job's `limit`; returns `Saved`), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs in APOD mode;
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;

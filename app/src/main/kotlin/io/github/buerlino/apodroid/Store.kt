@@ -34,6 +34,7 @@ import io.github.buerlino.apodroid.core.StandIn
 import io.github.buerlino.apodroid.core.StorageFailed
 import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.Stored
+import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.download
@@ -332,6 +333,14 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("saveEvery", false)
         set(value) = prefs.edit { putBoolean("saveEvery", value) }
 
+    /**
+     * "Largest original" (F6), in MB (0: no limit): the job's saves ([saveInUse]) don't download
+     * an original over it and save the stored picture instead. ★ ignores it.
+     */
+    var saveLimit: Int
+        get() = prefs.getInt("saveLimit", 20)
+        set(value) = prefs.edit { putInt("saveLimit", value) }
+
     /** The user hid the hint about Android pausing the app, accepting the warning. */
     var pauseHintHidden: Boolean
         get() = prefs.getBoolean("pauseHintHidden", false)
@@ -575,7 +584,8 @@ class Store(private val context: Context) {
      * even if deleted in the gallery since). One skipped while ★ saves ([Saved.BUSY]) or failed
      * is tried by the next run; a stop ends it (thrown). The original once per post: the try is
      * noted first (`saveTried`, its picture URL), so after a stop the next job save is the stored
-     * picture. Returns what it saved for the log, or null.
+     * picture. An original over [saveLimit] isn't downloaded in full: the stored picture instead,
+     * no retry. Returns what it saved for the log, or null.
      */
     fun saveInUse(): String? {
         if (!saveEvery) return null
@@ -588,7 +598,7 @@ class Store(private val context: Context) {
             if (Thread.currentThread().isInterrupted) throw InterruptedException()
             if (original) prefs.edit(commit = true) { putString(post.source.key("saveTried"), post.imageUrl) }
             val result = try {
-                save(post, original).also { prefs.edit { remove(post.source.key("saveTried")) } }
+                save(post, original, limit = saveLimit * 1_000_000L).also { prefs.edit { remove(post.source.key("saveTried")) } }
             } catch (e: Exception) {
                 if (e.isStop()) throw e
                 Log.w("APODroid", "Couldn't save ${post.source} ${post.date}: $e")
@@ -752,19 +762,23 @@ class Store(private val context: Context) {
      * permission on Android 10+), unless it's there already (a quick double tap); if the
      * original fails, the stored picture. Saves nothing when the stored post isn't [post] any
      * more: a refresh stored a new one meanwhile. Without [tryOriginal] (the job's second save of a
-     * post, [saveInUse]) the stored picture at once. The download runs outside
+     * post, [saveInUse]) the stored picture at once; with a [limit] (bytes, 0: none; the job's) an
+     * original over it is dropped once that's known ([TooLarge]) for the stored picture. The download runs outside
      * the lock, so a refresh doesn't wait for it. One save at a time: [Saved.BUSY] while another
      * runs.
      */
-    fun save(post: Post, tryOriginal: Boolean = true): Saved {
+    fun save(post: Post, tryOriginal: Boolean = true, limit: Long = 0): Saved {
         if (!saving.compareAndSet(false, true)) return Saved.BUSY
         var original: File? = null
         try {
             val url = post.takeIf(::isStored)?.let(::originalUrl) ?: return Saved.STALE
             val loaded = tryOriginal && try {
                 original = File.createTempFile("original", ".part", context.cacheDir)
-                download(url, original, userAgent)
+                download(url, original, userAgent, limit)
                 isImage(original)
+            } catch (e: TooLarge) {
+                Log.i("APODroid", "Original over the limit, saving the stored picture: $e")
+                false
             } catch (e: IOException) {
                 // A stopped job's save ends, not falls back ([saveInUse]).
                 if (e.isStop()) throw e

@@ -17,9 +17,13 @@
         android:icon="@mipmap/ic_launcher"
         android:label="APODroid"
         android:theme="@android:style/Theme.Material.NoActionBar">
+        <!-- singleTop: one page. A start whose intent differs from the task's first one (am start -n
+             after the launcher, or the reverse) put a second page on top, without the draft, and
+             its onCreate deleted the draft's picture the page under it used (B4). -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

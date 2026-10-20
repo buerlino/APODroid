@@ -618,9 +618,16 @@ schedules the job after its set: with turns afresh (`DailyJob.schedule`: the per
 the restarted clock; `ensure` would keep the old windows and the first turn would end up to a
 period late), otherwise `ensure` (a fresh one without turns runs at once and would set first); off
 cancels it. Turning the daily switch on (S4f2) does the same after setting the stored setup
-afresh (`Store.startAfresh`); off cancels at once. **No reschedule may stop a running run** (user, 2026-10-20 evening; S4f3, not built
-yet): scheduling the job's id again stops a run, so a Set during a run delayed its saves to the
-next run; while a run goes, the reschedule waits for its end. Off still stops a run. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
+afresh (`Store.startAfresh`); off cancels at once. **No reschedule stops a running run** (user, 2026-10-20 evening; S4f3):
+scheduling the job's id again stops a run, so a Set with turns during a run delayed its saves
+to the next run (an `ensure` with another timing too). While a run goes (`DailyJob`'s count of
+runs, process-wide: the page and the job share one process), `schedule` and `ensure` only note
+what's wanted (afresh wins), and the run does it after `jobFinished`, by the stored setup then
+and only while `daily` is on. Off still cancels at once, a running run too, and drops the note.
+Accepted: the process dying before the run's end loses the note; `onResume`'s `ensure` covers a
+changed timing, but a fresh period for the same timing is lost (turns stay on their clock, the
+job may come up to a period off). A noted reschedule after a failed run replaces its backoff
+retry (a job without turns runs at once anyway). The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
 schedules it again when `daily` is on and the job is missing or has another timing
 (`DailyJob.ensure`; scheduling the same id again would stop a running job).

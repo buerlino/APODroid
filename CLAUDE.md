@@ -377,8 +377,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   days), replaces the date line below it, and an "On wallpaper" chip at the picture's top left
   (⛶'s and ★'s dark style; none on the ▶ tile, hidden in crop mode) marks the post that's on the wallpaper. Tabs stay
   short; with one source the caption is 0.4.0's: title, then date. "Set as wallpaper now" and ✓ set
-  the shown tab's picture (APOD's video tab: what the video-day setting says; with turns
-  nothing). The boxes show
+  the shown tab's picture (APOD's video tab: what the video-day setting says, with turns too
+  since M2; with "Keep" nothing). The boxes show
   on every tab (the video notice's "Tap ▶ …" only on APOD's, user); pull refreshes every source in use.
 - **Explanation (user, 2026-10-17, U2; was a ▾ beside the title):** its first two lines under
   the title, with "more" below while they cut it off; a tap on it or the title shows it all,

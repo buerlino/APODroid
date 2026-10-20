@@ -34,9 +34,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
@@ -1142,7 +1141,6 @@ class MainActivity : ComponentActivity() {
      * "Use my picture" is chosen "Change picture" beside it. Choosing it with nothing picked
      * opens the picker at once ([pick]).
      */
-    @OptIn(ExperimentalLayoutApi::class)
     @Composable
     private fun VideoDaysChoice(label: String?, enabled: Boolean, pick: () -> Unit, change: () -> Unit) {
         var open by remember { mutableStateOf(false) }

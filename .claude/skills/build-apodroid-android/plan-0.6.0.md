@@ -278,8 +278,8 @@ Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `Daily
 it while the daily switch is on sets the wallpaper again at once, like "Where" (user,
 2026-10-20).
 **Status (2026-10-20, day):** built and unit-tested (`fitFrame`, 4 tests; the build check
-passes); the device checks and the texts ("Fit" over [Fill | Fit]) are open until the tablet
-is free.
+passes); the texts approved by the user in C (the heading "Size" over [Fill | Fit]); the device
+checks are open (V1/V2).
 - The pref `fit` (default off: Fill, today's behaviour), a segmented row "Fit" [Fill | Fit]
   (placeholder) in the Wallpaper section in both modes (the layout: APOD mode under "Where",
   with the switch on after the switches under the daily one).
@@ -328,8 +328,8 @@ bilinear step, which can make fine detail (stars) jagged or drop it.
 ### [ ] F3. Share (Sonnet, medium)
 
 **Status (2026-10-20, day):** built (`ShareButton`, `share` in `MainActivity.kt`; the build
-check passes); the device checks and the user's look at the glyph are open until the tablet is
-free (C, then V1).
+check passes); the glyph ⤴ approved by the user in C, at 28 sp (★ stays 24 sp); the device
+checks are open (V1/V2).
 
 `features.md` item 6 has the how. Settled: the glyph ⤴ (U+2934; user, 2026-10-20, from ⤴, ↗, ⇪
 and a drawn Material icon), to be seen on a device.
@@ -346,8 +346,8 @@ and a drawn Material icon), to be seen on a device.
 ### [ ] F4. Image credit (Opus, medium)
 
 **Status (2026-10-20, day):** built and unit-tested (`credit`, 5 tests in `ApodTest`, all 100
-real posts in `readsEveryRealPost`; the build check passes); the device checks and the text are
-open until the tablet is free. Differed from the plan: " :" (one post, "Processing & License :")
+real posts in `readsEveryRealPost`; the build check passes); the text approved by the user in C
+(one line closed, was two); the device checks are open (V1/V2). Differed from the plan: " :" (one post, "Processing & License :")
 and ",;" (a line ending in a comma, the 254-character one) are tidied too; `parseApod` reads
 through `apodPosts`, as NASA's and Earth's parsers do, so the test reads all 100.
 `features.md` item 7 has the parsing. Settled: **APOD only** (user, 2026-10-20; NASA's feed
@@ -383,8 +383,8 @@ and mostly "NASA Earth Observatory").
 ### [ ] F5. Save every picture (Opus, medium)
 
 **Status (2026-10-20, day):** built and unit-tested (`sourcesInUse` and `toSave` in
-`core/.../Saving.kt`, 7 tests in `SavingTest`; the build check passes); the device checks and the
-ⓘ text are open until the tablet is free. As planned; `update` asks `sourcesInUse` for each
+`core/.../Saving.kt`, 7 tests in `SavingTest`; the build check passes); the ⓘ text approved by the
+user in C (the per-source sizes dropped); the device checks are open (V1/V2). As planned; `update` asks `sourcesInUse` for each
 source in turn, so APOD's refresh still decides the stand-in.
 `features.md` item 8 has the switch and the ⓘ. Settled (user, 2026-10-20): **every source in
 use, not APOD only** (APOD only would favour it), and on a failed original the smaller copy, as
@@ -452,7 +452,13 @@ back to the stored picture and is noted.
 - Device: in V2.
 - Done when: the tests pass, the build check passes, and `CLAUDE.md` says it.
 
-### [ ] C. Early look on the tablet (Opus, medium; on the user's go-ahead)
+### [x] C. Early look on the tablet (Opus, medium; on the user's go-ahead)
+
+**Status (2026-10-20, day):** the user saw the screenshots and answered; built (winston, run 10):
+⤴ kept, drawn at 28 sp (↗ and ⇪ rejected); the heading "Size" over [Fill | Fit] in both modes;
+the credit one line with an ellipsis while the explanation is closed; the ⓘ text "Each new
+picture is saved full size to Pictures/APODroid: a few hundred MB a month or more.". In
+`CLAUDE.md`.
 
 User, 2026-10-20: the glyph and the texts are seen before V, as a change there is cheap now and
 costs a rerun later; but only when the user says the tablet is free (pascaline's until then).

@@ -13,7 +13,8 @@ import kotlin.concurrent.thread
 /**
  * Runs every ~6 hours with network (with turns of 3 hours, every 3): [Store.update], which fetches
  * the newest post of each source in use unless already stored, and sets each screen's wallpaper
- * once per post and turn. A failed run is retried with the job's backoff.
+ * once per post and turn; then, with "Save every picture", saves their new posts
+ * ([Store.saveInUse]). A failed run is retried with the job's backoff.
  */
 class DailyJob : JobService() {
     @Volatile
@@ -21,9 +22,18 @@ class DailyJob : JobService() {
 
     override fun onStartJob(params: JobParameters): Boolean {
         worker = thread {
-            val result = runCatching { Store(this).update(force = false) }
+            val store = Store(this)
+            val result = runCatching { store.update(force = false) }
             result.onSuccess { if (it != null) Log.i("APODroid", "Daily job: $it") }
             result.onFailure { Log.w("APODroid", "Daily job failed: $it", it) }
+            // Save every picture: also after a failed run (a failing source mustn't stop the others'
+            // saves), not after a stop. A failed save doesn't retry the job; the next run tries again.
+            val stopped = result.exceptionOrNull().let { it is InterruptedException || it?.isStop() == true }
+            if (!stopped) {
+                runCatching { store.saveInUse() }
+                    .onSuccess { if (it != null) Log.i("APODroid", "Daily job: $it") }
+                    .onFailure { Log.w("APODroid", "Daily job's saves ended: $it") }
+            }
             jobFinished(params, result.isFailure)
         }
         return true

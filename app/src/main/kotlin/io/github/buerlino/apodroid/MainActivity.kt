@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -165,6 +166,7 @@ class MainActivity : ComponentActivity() {
     private var saving by mutableStateOf(false)
     private var daily by mutableStateOf(false)
     private var wifiOnly by mutableStateOf(false)
+    private var saveEvery by mutableStateOf(false)
     private var where by mutableStateOf(Where.BOTH)
     private var fit by mutableStateOf(false)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
@@ -205,6 +207,7 @@ class MainActivity : ComponentActivity() {
         tab = savedInstanceState?.getString("tab")?.let { name -> Source.entries.firstOrNull { it.name == name } }
         daily = store.daily
         wifiOnly = store.wifiOnly
+        saveEvery = store.saveEvery
         pauseHintHidden = store.pauseHintHidden
         videoNoticeDate = store.videoNoticeDate
         videoNoticeHidden = store.videoNoticeHidden
@@ -666,6 +669,12 @@ class MainActivity : ComponentActivity() {
         wifiOnly = on
         store.wifiOnly = on
         rescheduleJob()
+    }
+
+    /** Save every picture: the job's, so nothing is saved now; its next run saves. */
+    private fun switchSaveEvery(on: Boolean) {
+        saveEvery = on
+        store.saveEvery = on
     }
 
     /** Fill or Fit, both screens: with Fit there's no part to choose, so crop mode closes; the screens follow at once while the daily change is on. */
@@ -1152,6 +1161,7 @@ class MainActivity : ComponentActivity() {
                 Text("Wi-Fi only", Modifier.weight(1f))
                 Switch(checked = wifiOnly, onCheckedChange = null)
             }
+            if (daily) SaveEverySwitch()
 
             if (!allSources) {
                 Heading("Where")
@@ -1350,6 +1360,42 @@ class MainActivity : ComponentActivity() {
             choices.forEach { (text, screens) ->
                 DropdownMenuItem(text = { Text(text) }, onClick = { close(); setWallpaperNow(screens) })
             }
+        }
+    }
+
+    /** "Save every picture" with a small ⓘ beside the label, which says what it costs. */
+    @Composable
+    private fun SaveEverySwitch() {
+        var info by rememberSaveable { mutableStateOf(false) }
+        Row(
+            Modifier.fillMaxWidth().toggleable(saveEvery, role = Role.Switch, onValueChange = ::switchSaveEvery),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Not filling: the ⓘ stays beside the label, also when a large font wraps it.
+            Text("Save every picture", Modifier.weight(1f, fill = false))
+            Text(
+                "ⓘ",
+                Modifier
+                    .clickable(role = Role.Button, onClick = { info = true })
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .clearAndSetSemantics { contentDescription = "About saving" },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.weight(1f))
+            Switch(checked = saveEvery, onCheckedChange = null)
+        }
+        if (info) {
+            AlertDialog(
+                onDismissRequest = { info = false },
+                confirmButton = { TextButton(onClick = { info = false }) { Text("OK") } },
+                text = {
+                    Text(
+                        "Each new picture is saved full size to Pictures/APODroid. " +
+                            "APOD's are 2–10 MB, NASA's up to about 100 MB, Earth Observatory's up to 3 MB: " +
+                            "a few hundred MB a month or more.",
+                    )
+                },
+            )
         }
     }
 

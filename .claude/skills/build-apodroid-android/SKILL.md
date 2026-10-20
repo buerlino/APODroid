@@ -32,6 +32,8 @@ packages unattended): `night.md`.
   `picture(source)`), `Record` (owner, picture, stamp, `Hold`; `forget()`), and the pure
   functions returning a `Plan` (clock, records, `sets` grouped by picture): `dueWallpapers`
   (each run), `setByHand`, `columnsChanged`, `restartAndForget`, and `videoDayKept` for the page's status line (tests in `ScreensTest`).
+  `core/.../Saving.kt` (0.6.0, F5): `sourcesInUse` (what the job fetches and saves) and
+  `toSave` (Save every picture's choice; tests in `SavingTest`).
   `core/.../Migration.kt` (0.6.0, M2): `migrate`, 0.5.0's prefs → 0.6.0's keys, run once by
   `Store.migrateOnce` (tests in `MigrationTest`).
 - `app/.../Store.kt`: per source (`post(source)`, `imageFile(source)`; APOD's keys unprefixed
@@ -44,7 +46,7 @@ packages unattended): `night.md`.
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
   is APOD mode's screen), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
-  wallpaper lock), `setByHand(tab, screens)` (button, ✓), `settingChanged(Changed)` (forget,
+  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`), `setByHand(tab, screens)` (button, ✓), `settingChanged(Changed)` (forget,
   then `setDue`), `tabPicture(tab)`, `set(picture, screens)` (the flags per screen; a photo with
   an EXIF orientation goes upright through `setBitmap`; with `fit` the `fitted` bitmap), `cropPosition(post)`, `save` (the original, else the stored picture; returns `Saved`), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
@@ -53,7 +55,7 @@ packages unattended): `night.md`.
   the settings (`Settings`; with the switch "All NASA pictures" `Grid`, `SetMenu`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `tick(screen, source)`, `chooseVideoDays`, `canSetNow`, `setWallpaperNow(screens)`);
   `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post.
-  `app/.../DailyJob.kt`: the job (id 1); `ensure` reschedules it only when its timing or its network type (Wi-Fi only) changes.
+  `app/.../DailyJob.kt`: the job (id 1; after `update`, `saveInUse` unless stopped); `ensure` reschedules it only when its timing or its network type (Wi-Fi only) changes.
 
 ## Working on the phone
 

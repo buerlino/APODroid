@@ -333,7 +333,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     turning the switch on sets today's picture again (`forgetWallpaper`), which also puts APOD
     back after another wallpaper. "Skip it" on a video day: a screen showing APOD alone keeps its picture, a screen that takes turns passes APOD's turn to the next source at once.
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice and the planned ⓘ (Save every picture).
+    update), the video-day notice and the ⓘ (Save every picture, Save).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. A box below the tile
   (user, 2026-10-16; neutral since U5, 2026-10-18: `surfaceVariant` fill, `outline` border) says why the wallpaper didn't change
@@ -501,6 +501,20 @@ deleting the file in the gallery empties it again. No star on video days. The
 original downloads outside the refresh lock (a refresh doesn't wait for a 10 MB save); the copy
 to the gallery holds it, and if a newer APOD was stored meanwhile it saves nothing, says so and
 redraws the page.
+
+**Save every picture** (0.6.0, F5, 2026-10-20; the pref `saveEvery`, default off; the ⓘ's text a
+placeholder): a switch under "Wi-Fi only" while the daily switch is on, with a small ⓘ
+("About saving") that opens a dialog with the sizes. After each job run (not the page's), also
+after a failed one, not after a stop, `Store.saveInUse` saves each source in use's stored post
+in order APOD → NASA → Earth, as ★ does (`save`: the original, else the stored picture). The set
+in use is `:core`'s `sourcesInUse`, the one `update` fetches (the ticked sources, held pictures'
+sources, the stand-in on an APOD video day); the choice is `toSave` (`SavingTest`): no video, no
+post without its picture, none whose `savedDate`/`savedUrl` match. No URI check, so a picture
+deleted in the gallery isn't saved again (★ still checks it). So APOD mode saves APOD, on a
+video day the stand-in; "Skip it" or "my picture" saves nothing. One skipped while ★ saves
+(`BUSY`) or failed is logged, doesn't retry the job, and the next run tries. A stop ends it:
+`save` rethrows an interrupted download (`isStop()`) instead of falling back. Built and
+unit-tested; the device checks and the ⓘ text wait for the tablet.
 
 ### Background update
 
@@ -694,7 +708,7 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
   (user, 2026-10-20): NASA's feed names a credit in 1 of 60 items (the rest only on each image
   page), Earth's is in `content` only (each check 0.6 KB → about 61 KB) and mostly "NASA Earth
   Observatory".
-- **Save every picture:** a switch for the job, default off, with a small ⓘ next to it: saved
+- **Save every picture** (built, F5; Save): a switch for the job, default off, with a small ⓘ next to it: saved
   pictures are full resolution, and saving every day takes a lot of space (user, 2026-10-04).
   **Every source in use, not APOD only** (user, 2026-10-20: APOD only would favour it): after
   each run the job saves each in-use source's stored post (the same set it fetches: the ticked

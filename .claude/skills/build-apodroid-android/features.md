@@ -179,6 +179,8 @@ stripped they run together: "…NSF/AURAImage Processing: …") and sometimes st
 
 ### [ ] 8. Save every picture (0.6.0)
 
+Built and unit-tested (`plan-0.6.0.md` F5, 2026-10-20; `CLAUDE.md`, Save); device checks open.
+
 With 0.5.0's sources: **every source in use**, not APOD only (user, 2026-10-20: APOD only
 would favour it), and on a failed original the stored picture, as ★ does. What it saves, its
 edge cases and the ⓘ's figures: `plan-0.6.0.md` F5, which overrides the APOD-only lines below.

@@ -326,6 +326,10 @@ and mostly "NASA Earth Observatory").
 
 ### [ ] F5. Save every picture (Opus, medium)
 
+**Status (2026-10-20, day):** built and unit-tested (`sourcesInUse` and `toSave` in
+`core/.../Saving.kt`, 7 tests in `SavingTest`; the build check passes); the device checks and the
+ⓘ text are open until the tablet is free. As planned; `update` asks `sourcesInUse` for each
+source in turn, so APOD's refresh still decides the stand-in.
 `features.md` item 8 has the switch and the ⓘ. Settled (user, 2026-10-20): **every source in
 use, not APOD only** (APOD only would favour it), and on a failed original the smaller copy, as
 ★ does.

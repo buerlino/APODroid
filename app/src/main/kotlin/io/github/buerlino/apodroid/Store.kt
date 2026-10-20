@@ -45,6 +45,8 @@ import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.originalUrl
 import io.github.buerlino.apodroid.core.restartAndForget
 import io.github.buerlino.apodroid.core.setByHand as planByHand
+import io.github.buerlino.apodroid.core.sourcesInUse
+import io.github.buerlino.apodroid.core.toSave
 import io.github.buerlino.apodroid.core.videoDayKept
 import io.github.buerlino.apodroid.core.renditionUrl
 import io.github.buerlino.apodroid.core.wallpaperFrame as coreWallpaperFrame
@@ -268,6 +270,11 @@ class Store(private val context: Context) {
     var wifiOnly: Boolean
         get() = prefs.getBoolean("wifiOnly", false)
         set(value) = prefs.edit { putBoolean("wifiOnly", value) }
+
+    /** Save every picture (F5): after each job run, each source in use's new post goes to the gallery ([saveInUse]). */
+    var saveEvery: Boolean
+        get() = prefs.getBoolean("saveEvery", false)
+        set(value) = prefs.edit { putBoolean("saveEvery", value) }
 
     /** The user hid the hint about Android pausing the app, accepting the warning. */
     var pauseHintHidden: Boolean
@@ -496,12 +503,9 @@ class Store(private val context: Context) {
      */
     fun update(force: Boolean, page: Boolean = false): String? {
         var failure: Exception? = null
-        val ticked = columns.values.flatten() + Screen.entries.mapNotNull { record(it)?.hold?.source }
-        val used = if (page && allSources) Source.entries else ticked
-        val standIn = videoDays.source.takeIf { Source.APOD in ticked }
-        // APOD first: its refresh tells whether the stand-in is needed.
         for (source in Source.entries) {
-            if (source !in used && (source != standIn || apod?.isVideo != true)) continue
+            // Asked for each source: APOD's refresh (first) tells whether the stand-in is in use.
+            if (!(page && allSources) && source !in inUse()) continue
             // A stopped job (DailyJob.onStopJob) ends the run: no more downloads, no set.
             if (Thread.currentThread().isInterrupted) throw InterruptedException()
             try {
@@ -519,6 +523,35 @@ class Store(private val context: Context) {
             throw failure
         }
         return done
+    }
+
+    /** The sources in use ([sourcesInUse]): what the job fetches and [saveInUse] saves. */
+    private fun inUse() = sourcesInUse(columns, Screen.entries.mapNotNull { record(it)?.hold?.source }, videoDays.source, apod?.isVideo == true)
+
+    /**
+     * Blocking, the job's, after each run but a stopped one, while [saveEvery] is on: [save]s
+     * each source in use's stored post, as ★ does ([toSave]: not a video, nor one noted as saved,
+     * even if deleted in the gallery since). One skipped while ★ saves ([Saved.BUSY]) or failed
+     * is tried by the next run; a stop ends it (thrown). Returns what it saved for the log, or null.
+     */
+    fun saveInUse(): String? {
+        if (!saveEvery) return null
+        val saved = Source.entries.mapNotNull { source ->
+            prefs.getString(source.key("savedDate"), null)?.let { source to Picture.Of(source, LocalDate.parse(it), prefs.getString(source.key("savedUrl"), null)) }
+        }.toMap()
+        val done = mutableListOf<String>()
+        for (post in toSave(inUse(), stored(), saved)) {
+            if (Thread.currentThread().isInterrupted) throw InterruptedException()
+            val result = try {
+                save(post)
+            } catch (e: Exception) {
+                if (e.isStop()) throw e
+                Log.w("APODroid", "Couldn't save ${post.source} ${post.date}: $e")
+                continue
+            }
+            done += "${post.source} ${post.date} ${result.name.lowercase()}"
+        }
+        return done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "saved: ")
     }
 
     /**
@@ -731,6 +764,8 @@ class Store(private val context: Context) {
                 download(url, original, userAgent)
                 isImage(original)
             } catch (e: IOException) {
+                // A stopped job's save ends, not falls back ([saveInUse]).
+                if (e.isStop()) throw e
                 Log.w("APODroid", "Original failed, saving the stored picture: $e")
                 false
             }
@@ -778,7 +813,7 @@ class Store(private val context: Context) {
 private fun Source.key(name: String) = if (this == Source.APOD) name else "${this.name.lowercase()}.$name"
 
 /** A stopped job's interrupted download ([download]); a read timeout is an [InterruptedIOException] too, but the network's. */
-private fun Exception.isStop() = this is InterruptedIOException && this !is SocketTimeoutException
+fun Throwable.isStop() = this is InterruptedIOException && this !is SocketTimeoutException
 
 /** A screen's record key: home's as is (the keys before 0.6.0), the lock screen's `lock.<name>`. */
 private fun Screen.key(name: String) = if (this == Screen.HOME) name else "lock.$name"

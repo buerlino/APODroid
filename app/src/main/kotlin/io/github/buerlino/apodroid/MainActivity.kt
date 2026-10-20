@@ -51,6 +51,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -89,6 +91,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -139,12 +142,24 @@ class MainActivity : ComponentActivity() {
     /** The stored APOD: whether today is a video day. */
     private var apod by mutableStateOf<Post?>(null)
 
-    /** The shown tab's post, whose picture, ⛶, ★ and explanation the page shows. */
-    private var post by mutableStateOf<Post?>(null)
+    /**
+     * Each offered source's stored post ([show]): every page of the pager draws its own, so a
+     * neighbour shows while dragging.
+     */
+    private var posts by mutableStateOf(emptyMap<Source, Post>())
 
-    /** The tab the user chose; null opens on the source on the wallpaper. Survives rotation, not a restart. */
+    /** Their pictures, decoded for the screen ([decodeForScreen]); none on video days. At most three. */
+    private var pictures by mutableStateOf(emptyMap<Source, ImageBitmap>())
+
+    /** The shown source's post: the boxes and the caption below the pager, ⛶'s part, Set's crop. */
+    private val post
+        get() = posts[shown]
+
+    /** [show] calls: only the last one started draws (it read the store last). */
+    private var showing = 0
+
+    /** The source the user chose (the dropdown, a swipe); null opens on the source on the wallpaper. Survives rotation, not a restart. */
     private var tab by mutableStateOf<Source?>(null)
-    private var picture by mutableStateOf<ImageBitmap?>(null)
     private var loading by mutableStateOf(false)
 
     /**
@@ -160,7 +175,7 @@ class MainActivity : ComponentActivity() {
     private var problemSource by mutableStateOf(Source.APOD)
     private var checkedAt by mutableStateOf<Instant?>(null)
 
-    /** What each screen shows, from its record ([Store.screenState]): the chip, the opening tab, the status lines. */
+    /** What each screen shows, from its record ([Store.screenState]): the chip, the opening page, the status lines. */
     private var screens by mutableStateOf(emptyMap<Screen, ScreenState>())
 
     /** APOD mode's screen ([Store.pageScreen]): the lock screen's record with "Where" = Lock. */
@@ -168,7 +183,9 @@ class MainActivity : ComponentActivity() {
 
     /** On an APOD video day: the stand-in is stored ([Store.tabPicture] of APOD), for the video notice with the switch on. */
     private var standInReady by mutableStateOf(false)
-    private var saved by mutableStateOf(false)
+
+    /** The offered sources whose stored post ★ saved ([Store.isSaved]). */
+    private var saved by mutableStateOf(emptySet<Source>())
 
     /** ★ is downloading the original; taps wait for it. */
     private var saving by mutableStateOf(false)
@@ -206,7 +223,7 @@ class MainActivity : ComponentActivity() {
     /**
      * The setup last set ([Store.setup]), which the job follows: what reports what is set reads
      * it (the status lines, the chip, the video notice, the problem box, the battery hint, the
-     * opening tab), the controls the draft.
+     * opening page), the controls the draft.
      */
     private var stored by mutableStateOf(Setup(false, Where.BOTH, emptyMap(), Interval.DAY, false, VideoDays.KEEP, emptyMap()))
 
@@ -339,7 +356,7 @@ class MainActivity : ComponentActivity() {
         if (loading || switching || following?.isActive == true) return
         following = lifecycleScope.launch {
             readStatus()
-            if (isStale()) show() else saved = withContext(Dispatchers.IO) { store.isSaved(shown) }
+            if (isStale()) show() else readSaved()
         }
     }
 
@@ -360,9 +377,9 @@ class MainActivity : ComponentActivity() {
         get() = stored.columns.ticked() == listOf(Source.APOD)
 
     /**
-     * The tabs, the sources the page offers (and fetches), by the draft: with the switch "All
-     * NASA pictures" on all three; in APOD mode APOD, on an APOD video day also the source chosen
-     * for video days.
+     * The pager's pages, the sources the page offers (and fetches), by the draft: with the switch
+     * "More NASA pictures" on all three; in APOD mode APOD, on an APOD video day also the source
+     * chosen for video days.
      */
     private val sources
         get() = if (allSources) Source.entries else listOfNotNull(Source.APOD, videoDays.source.takeIf { apod?.isVideo == true })
@@ -371,9 +388,10 @@ class MainActivity : ComponentActivity() {
     private fun pictureSource(screen: Screen) = (screens[screen]?.picture as? Picture.Of)?.source
 
     /**
-     * The tab shown: the one chosen, else the source of the picture on the wallpaper (a stand-in's
-     * own tab), else the first. With the switch on (stored) the home screen's picture, else the
-     * lock screen's; in APOD mode the one on the screen "Where" names ([pageScreen]).
+     * The source shown, the pager's settled page: the one chosen, else the source of the picture
+     * on the wallpaper (a stand-in's own page), else the first. With the switch on (stored) the
+     * home screen's picture, else the lock screen's; in APOD mode the one on the screen "Where"
+     * names ([pageScreen]).
      */
     private val shown
         get() = sources.let { s ->
@@ -382,7 +400,7 @@ class MainActivity : ComponentActivity() {
         }
 
     /**
-     * Shows the shown tab's stored post (also when the daily job stored a new one while the page
+     * Shows the offered sources' stored posts (also when the daily job stored a new one while the page
      * was in the background), then runs [Store.update]: fetches the newest of each source in use
      * unless the stored one is today's or was checked within the hour (always with [force], pull
      * to refresh) and sets the wallpaper while the daily change is on. Called while one runs, it
@@ -408,7 +426,7 @@ class MainActivity : ComponentActivity() {
             result.getOrNull()?.done?.let { Log.i("APODroid", "Page: $it") }
             failure?.let { Log.w("APODroid", "Update failed: $it", it) }
             failed = failure != null
-            saved = withContext(Dispatchers.IO) { store.isSaved(shown) }
+            readSaved()
             loading = false
             // A pull meanwhile keeps its spinner until its own fetch ends.
             if (loadAgain != true) refreshing = false
@@ -434,12 +452,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** The page doesn't show the shown tab's stored post (or has no picture for it yet). */
-    private fun isStale() = picture == null || post?.source != shown || store.post(shown) != post
+    /** The page doesn't show an offered source's stored post (or has no picture for it yet). */
+    private fun isStale() = sources.any { source ->
+        val post = posts[source]
+        store.post(source) != post || (post != null && !post.isVideo && source !in pictures)
+    }
+
+    private suspend fun readSaved() {
+        val offered = sources
+        saved = withContext(Dispatchers.IO) { offered.filter(store::isSaved).toSet() }
+    }
 
     /**
      * What the last check and the last sets stored (also the job's), the stored setup, and the
-     * stored APOD, which decides the tabs.
+     * stored APOD, which decides the pages.
      */
     private fun readStatus() {
         stored = store.setup
@@ -453,7 +479,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * One problem box, by the stored setup. In APOD mode the first of APOD and its video-day
-     * source with a problem (APOD's first). With the switch on the shown tab's, else the first
+     * source with a problem (APOD's first). With the switch on the shown source's, else the first
      * ticked source's.
      */
     private fun readProblem() {
@@ -522,7 +548,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * The chip on [post]'s picture: the screens whose record shows it, by the picture's source (a
-     * stand-in's on its own tab; the user's own picture has no tab). With the switch on "On home
+     * stand-in's on its own page; the user's own picture has none). With the switch on "On home
      * screen", "On lock screen" or "On wallpaper" (both); in APOD mode "On wallpaper" for the
      * screen "Where" names.
      */
@@ -544,31 +570,42 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Shows the shown tab's stored post. Another tab, date or picture closes crop mode; a changed
-     * title or explanation for the same date doesn't.
+     * Shows each offered source's stored post, for the pager's pages; a picture already decoded
+     * for the same date and picture stays. Another date or picture of the shown source closes
+     * crop mode; a changed title or explanation for the same date doesn't.
      */
     private suspend fun show() {
-        val source = shown
-        val latest = store.post(source)
+        val run = ++showing
+        val offered = sources
+        val latest = offered.mapNotNull { source -> store.post(source)?.let { source to it } }.toMap()
         // Video days have no picture (an entry stored by 0.3.1 may still have a still frame).
-        val bitmap = if (latest == null || latest.isVideo) null else withContext(Dispatchers.IO) {
-            store.imageFile(source).takeIf { it.exists() }?.let { decodeForScreen(it) }?.asImageBitmap()
+        val kept = latest.mapNotNull { (source, post) ->
+            val old = posts[source]
+            pictures[source]?.takeIf { !post.isVideo && old?.date == post.date && old.imageUrl == post.imageUrl }?.let { source to it }
+        }.toMap()
+        val decoded = withContext(Dispatchers.IO) {
+            latest.filter { (source, post) -> !post.isVideo && source !in kept }.mapNotNull { (source, _) ->
+                store.imageFile(source).takeIf { it.exists() }?.let { decodeForScreen(it) }?.let { source to it.asImageBitmap() }
+            }.toMap()
         }
-        val isSaved = withContext(Dispatchers.IO) { store.isSaved(source) }
-        // Another tab was chosen meanwhile: its show() draws it.
-        if (source != shown) return
-        if (source != post?.source || latest?.date != post?.date || latest?.imageUrl != post?.imageUrl) cropping = false
-        post = latest
-        picture = bitmap
+        val isSaved = withContext(Dispatchers.IO) { offered.filter(store::isSaved).toSet() }
+        // A later show() read the store after this one: it draws.
+        if (run != showing) return
+        val old = posts[shown]
+        val new = latest[shown]
+        if (old?.date != new?.date || old?.imageUrl != new?.imageUrl) cropping = false
+        posts = latest
+        pictures = kept + decoded
         saved = isSaved
     }
 
+    /** The dropdown's choice or the page a swipe settled on. Crop mode closes. */
     private fun showTab(source: Source) {
         tab = source
         cropping = false
-        // With the switch on the problem box follows the shown tab.
+        // With the switch on the problem box follows the shown source.
         readProblem()
-        lifecycleScope.launch { show() }
+        if (isStale()) lifecycleScope.launch { show() }
     }
 
     /**
@@ -739,7 +776,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The draft's video-day choice. On a video day the stand-in's tab follows it, and another
+     * The draft's video-day choice. On a video day the stand-in's page follows it, and another
      * source's picture is fetched for it ([load]). "Use my picture" with nothing picked (neither
      * set nor in the draft) opens the picker first ([pickFirst]): the choice is made only once a
      * picture is there, so backing out keeps the one before. Only a draft: nothing is set until
@@ -821,13 +858,12 @@ class MainActivity : ComponentActivity() {
         if (store.daily && !DailyJob.ensure(this)) toast("Couldn't schedule the daily change")
     }
 
-    private fun savePicture() {
+    private fun savePicture(post: Post) {
         if (saving) return
-        if (saved) {
+        if (post.source in saved) {
             toast("Already saved")
             return
         }
-        val post = post ?: return
         saving = true
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching { store.save(post) } }
@@ -842,8 +878,8 @@ class MainActivity : ComponentActivity() {
                 load()
                 return@launch
             }
-            // The shown tab's, which may not be the saved one's any more.
-            saved = withContext(Dispatchers.IO) { store.isSaved(shown) }
+            // Each page's own, which may not be the saved one's any more.
+            readSaved()
             toast(
                 when (result.getOrNull()) {
                     Saved.ORIGINAL -> "Saved to Pictures/APODroid"
@@ -901,17 +937,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun share(post: Post) {
-        val send = Intent(Intent.ACTION_SEND)
-            .setType("text/plain")
-            .putExtra(Intent.EXTRA_TEXT, "${post.title}\n${post.pageUrl}")
-        try {
-            startActivity(Intent.createChooser(send, null))
-        } catch (_: ActivityNotFoundException) {
-            toast("Nothing to share with")
-        }
-    }
-
     /** Android 13+ confirms a copy itself. */
     private fun copy(label: String, text: String) {
         getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(label, text))
@@ -930,8 +955,7 @@ class MainActivity : ComponentActivity() {
             if (maxWidth < 600.dp) {
                 PullToRefreshBox(isRefreshing = refreshing, onRefresh = ::pullToRefresh) {
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                        Tabs()
-                        Picture()
+                        PictureSide()
                         HorizontalDivider()
                         Settings()
                     }
@@ -940,8 +964,7 @@ class MainActivity : ComponentActivity() {
                 Row {
                     PullToRefreshBox(isRefreshing = refreshing, onRefresh = ::pullToRefresh, modifier = Modifier.weight(0.55f)) {
                         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                            Tabs()
-                            Picture()
+                            PictureSide()
                         }
                     }
                     VerticalDivider()
@@ -954,42 +977,188 @@ class MainActivity : ComponentActivity() {
         if (weekdayDialog) WeekdayDialog()
     }
 
-    /** A segmented row, one tab per source in use, only with two or more. */
+    /**
+     * The picture side: the shown source's title and picture in a pager over the sources the page
+     * offers, so a swipe shows the previous or the next one (title and picture slide, stopping at
+     * the ends); in crop mode a drag moves the frame instead. The boxes and the caption below show
+     * the page that settled, the shown source.
+     */
     @Composable
-    private fun Tabs() {
+    private fun PictureSide() {
         val sources = sources
-        if (sources.size < 2) return
-        val shown = shown
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp).height(IntrinsicSize.Min)) {
-            sources.forEachIndexed { i, source ->
-                SegmentedButton(
-                    selected = source == shown,
-                    onClick = { if (source != shown) showTab(source) },
-                    shape = SegmentedButtonDefaults.itemShape(i, sources.size),
-                    modifier = Modifier.fillMaxHeight(),
-                ) { Text(source.shortLabel) }
+        val index = sources.indexOf(shown)
+        // Afresh when the offered sources change, on the shown one.
+        val pager = remember(sources) { PagerState(index.coerceAtLeast(0)) { sources.size } }
+        // The page a swipe settled on is the shown source.
+        LaunchedEffect(pager) {
+            snapshotFlow { pager.settledPage }.collect { page ->
+                sources.getOrNull(page)?.let { if (it != shown) showTab(it) }
+            }
+        }
+        // The shown source changed otherwise (the dropdown, the picture on the wallpaper): the pager follows.
+        LaunchedEffect(pager, index) {
+            if (index >= 0 && pager.currentPage != index) pager.animateScrollToPage(index)
+        }
+        // Back leaves crop mode without keeping the part; ⛶ opens on the draft's again.
+        BackHandler(enabled = cropping) { cropping = false }
+        HorizontalPager(
+            pager,
+            verticalAlignment = Alignment.Top,
+            userScrollEnabled = !cropping,
+            key = { sources[it].name },
+        ) { page ->
+            Column {
+                SourceTitle(sources[page], sources)
+                PicturePage(sources[page])
+            }
+        }
+        Caption()
+    }
+
+    /**
+     * The source's short name, large; with two or more sources "▾" and a menu of them, ✓ before
+     * the shown one.
+     */
+    @Composable
+    private fun SourceTitle(source: Source, sources: List<Source>) {
+        val menu = sources.size > 1
+        var open by remember { mutableStateOf(false) }
+        // The tap target at least 48 dp tall.
+        Box(Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp)) {
+            Text(
+                if (menu) "${source.shortLabel} ▾" else source.shortLabel,
+                Modifier
+                    .then(if (menu) Modifier.clickable(role = Role.DropdownList) { open = true } else Modifier)
+                    .clearAndSetSemantics { contentDescription = "Picture from: ${source.label}" }
+                    .padding(8.dp),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                sources.forEach { choice ->
+                    DropdownMenuItem(
+                        text = { Text(choice.shortLabel) },
+                        onClick = {
+                            open = false
+                            if (choice != shown) showTab(choice)
+                        },
+                        leadingIcon = { Text(if (choice == source) "✓" else "") },
+                    )
+                }
             }
         }
     }
 
+    /**
+     * One page of the pager: [source]'s stored picture with the chip, ⛶ and ★, or the ▶ tile on a
+     * video day; a spinner while there's none yet, or why it failed.
+     */
     @Composable
-    private fun Picture() {
-        val apod = apod
-        val post = post
-        val picture = picture
+    private fun PicturePage(source: Source) {
+        val post = posts[source]
+        val picture = pictures[source]
         if (post == null || (picture == null && !post.isVideo)) {
-            Column {
-                Box(Modifier.fillMaxWidth().aspectRatio(3f / 2f), contentAlignment = Alignment.Center) {
-                    when {
-                        loading -> CircularProgressIndicator()
-                        failed -> Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(problem?.let(::problemText) ?: "Couldn't load today's picture.", textAlign = TextAlign.Center)
-                            TextButton(onClick = ::load) { Text("Try again") }
-                        }
+            Box(Modifier.fillMaxWidth().aspectRatio(3f / 2f), contentAlignment = Alignment.Center) {
+                when {
+                    loading -> CircularProgressIndicator()
+                    failed && source == shown -> Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(problem?.let(::problemText) ?: "Couldn't load today's picture.", textAlign = TextAlign.Center)
+                        TextButton(onClick = ::load) { Text("Try again") }
                     }
                 }
-                BatteryNotice()
             }
+            return
+        }
+        if (picture == null) {
+            VideoTile(post)
+            return
+        }
+        val chip = if (sources.size > 1) chipText(post) else null
+        // Only the shown page crops; the pager doesn't move meanwhile.
+        val crop = cropping && source == shown
+        Box(contentAlignment = Alignment.BottomEnd) {
+            Image(
+                bitmap = picture,
+                contentDescription = post.title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(picture.width.toFloat() / picture.height)
+                    .then(if (crop) Modifier.cropFrame(picture, post) else Modifier.clickable { openPage(post.pageUrl) }),
+                contentScale = ContentScale.FillWidth,
+            )
+            // Not over the crop frame.
+            if (chip != null && !crop) {
+                Text(
+                    chip,
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            // ✓ keeps the chosen part in the draft (Set stores it). With Fit there's no part to choose.
+            if (!fit) {
+                IconButton(
+                    onClick = {
+                        if (!crop) {
+                            cropPosition = draftPosition(post)
+                            cropping = true
+                        } else {
+                            keepPart(post)
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                        .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                ) {
+                    // The draft's part differs from the stored one: in tertiary until Set.
+                    val partChanged = draftPosition(post) != storedPosition(post)
+                    Text(
+                        if (crop) "✓" else "⛶",
+                        Modifier.clearAndSetSemantics {
+                            contentDescription = if (crop) "Done" else "Choose the wallpaper's part"
+                            if (partChanged) stateDescription = "not set yet"
+                        },
+                        color = if (partChanged) MaterialTheme.colorScheme.tertiary else Color.White,
+                        fontSize = 24.sp,
+                    )
+                }
+            }
+            IconButton(
+                onClick = { savePicture(post) },
+                modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
+            ) {
+                val isSaved = source in saved
+                Text(
+                    if (isSaved) "★" else "☆",
+                    Modifier.clearAndSetSemantics {
+                        contentDescription = when {
+                            saving -> "Saving"
+                            isSaved -> "Saved"
+                            else -> "Save"
+                        }
+                    },
+                    color = Color.White.copy(alpha = if (saving) 0.4f else 1f),
+                    fontSize = 24.sp,
+                )
+            }
+        }
+    }
+
+    /**
+     * Below the pager, for the shown source only (so the height doesn't jump while dragging):
+     * every box that applies (problem, video notice, battery hint), then the caption. With none
+     * stored yet only the battery hint.
+     */
+    @Composable
+    private fun Caption() {
+        val apod = apod
+        val post = post
+        if (post == null || (post.source !in pictures && !post.isVideo)) {
+            BatteryNotice()
             return
         }
         var expanded by rememberSaveable(post.source, post.date) { mutableStateOf(false) }
@@ -997,86 +1166,9 @@ class MainActivity : ComponentActivity() {
         var cut by remember(post.explanation) { mutableStateOf(false) }
         var creditCut by remember(post.credit) { mutableStateOf(false) }
         val expandable = cut || creditCut || expanded
-        val tabs = sources.size > 1
-        val chip = if (tabs) chipText(post) else null
-        // Back leaves crop mode without keeping the part; ⛶ opens on the draft's again.
-        BackHandler(enabled = cropping) { cropping = false }
+        val named = sources.size > 1
         Column {
-            // Every box that applies shows: problem, video notice, battery hint.
             val shownProblem = problem?.takeIf { problemKey(it) != problemNoticeKey }
-            if (picture == null) VideoTile(post) else Box(contentAlignment = Alignment.BottomEnd) {
-                Image(
-                    bitmap = picture,
-                    contentDescription = post.title,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(picture.width.toFloat() / picture.height)
-                        .then(if (cropping) Modifier.cropFrame(picture, post) else Modifier.clickable { openPage(post.pageUrl) }),
-                    contentScale = ContentScale.FillWidth,
-                )
-                // Not over the crop frame.
-                if (chip != null && !cropping) {
-                    Text(
-                        chip,
-                        Modifier
-                            .align(Alignment.TopStart)
-                            .padding(8.dp)
-                            .background(Color.Black.copy(alpha = 0.4f), CircleShape)
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-                // ✓ keeps the chosen part in the draft (Set stores it). With Fit there's no part to choose.
-                if (!fit) {
-                    IconButton(
-                        onClick = {
-                            if (!cropping) {
-                                cropPosition = draftPosition(post)
-                                cropping = true
-                            } else {
-                                keepPart(post)
-                            }
-                        },
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(8.dp)
-                            .background(Color.Black.copy(alpha = 0.4f), CircleShape),
-                    ) {
-                        // The draft's part differs from the stored one: in tertiary until Set.
-                        val partChanged = draftPosition(post) != storedPosition(post)
-                        Text(
-                            if (cropping) "✓" else "⛶",
-                            Modifier.clearAndSetSemantics {
-                                contentDescription = if (cropping) "Done" else "Choose the wallpaper's part"
-                                if (partChanged) stateDescription = "not set yet"
-                            },
-                            color = if (partChanged) MaterialTheme.colorScheme.tertiary else Color.White,
-                            fontSize = 24.sp,
-                        )
-                    }
-                }
-                Row {
-                    ShareButton(post)
-                    IconButton(
-                        onClick = ::savePicture,
-                        modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
-                    ) {
-                        Text(
-                            if (saved) "★" else "☆",
-                            Modifier.clearAndSetSemantics {
-                                contentDescription = when {
-                                    saving -> "Saving"
-                                    saved -> "Saved"
-                                    else -> "Save"
-                                }
-                            },
-                            color = Color.White.copy(alpha = if (saving) 0.4f else 1f),
-                            fontSize = 24.sp,
-                        )
-                    }
-                }
-            }
             if (shownProblem != null) {
                 NoticeBox({ TextButton(onClick = { dismissProblem(shownProblem) }) { Text("Dismiss") } }, problem = true) {
                     Text(problemText(shownProblem), style = MaterialTheme.typography.bodyMedium)
@@ -1084,7 +1176,7 @@ class MainActivity : ComponentActivity() {
             }
             if (apod?.isVideo == true && !videoNoticeHidden && videoNoticeDate != apod.date.toString()) VideoNotice()
             BatteryNotice()
-            // With tabs a source line names the source; with one source the caption stays as 0.4.0's.
+            // With two or more sources a source line names it; with one the caption stays as 0.4.0's.
             val dateLine = post.date.format(dateFormat) + if (post.isVideo) " · Video" else ""
             Column(
                 Modifier
@@ -1096,7 +1188,7 @@ class MainActivity : ComponentActivity() {
                     )
                     .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = if (post.explanation.isEmpty()) 16.dp else 4.dp),
             ) {
-                if (tabs) {
+                if (named) {
                     Text(
                         "${post.source.label} · $dateLine",
                         style = MaterialTheme.typography.bodyMedium,
@@ -1104,7 +1196,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 Text(post.title, style = MaterialTheme.typography.titleLarge)
-                if (!tabs) {
+                if (!named) {
                     Text(dateLine, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 // APOD's only; one line, all of it while the explanation is open.
@@ -1173,24 +1265,6 @@ class MainActivity : ComponentActivity() {
                 color = Color.White,
                 fontSize = 48.sp,
             )
-            Box(Modifier.align(Alignment.BottomEnd)) { ShareButton(apod) }
-        }
-    }
-
-    /** ⤴ shares the title and the page link through the system share sheet. */
-    @Composable
-    private fun ShareButton(post: Post) {
-        IconButton(
-            onClick = { share(post) },
-            modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
-        ) {
-            Text(
-                "⤴",
-                Modifier.clearAndSetSemantics { contentDescription = "Share" },
-                color = Color.White,
-                // Larger than ★'s 24 sp: ⤴ is a thinner glyph (user, C); still inside the circle.
-                fontSize = 28.sp,
-            )
         }
     }
 
@@ -1201,7 +1275,7 @@ class MainActivity : ComponentActivity() {
      */
     @Composable
     private fun VideoNotice() {
-        // ▶ is only on the APOD tab.
+        // ▶ is only on APOD's page.
         val watch = if (post?.isVideo == true) " Tap ▶ to watch it on NASA's site." else ""
         val kept = "This APOD is a video, so your wallpaper stays as it was."
         // What is set, not the draft.
@@ -1734,7 +1808,7 @@ private val Source.label
         Source.EARTH -> "Earth Observatory"
     }
 
-/** The source's short name: its tab above the picture, its row in the list (and its tick box and dropdown labels), the status line. */
+/** The source's short name: the title above the picture and its menu, its row in the list (and its tick box and dropdown labels), the status line. */
 private val Source.shortLabel
     get() = when (this) {
         Source.APOD -> "APOD"

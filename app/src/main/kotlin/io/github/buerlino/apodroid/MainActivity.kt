@@ -109,6 +109,7 @@ import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.Source
+import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
 import kotlinx.coroutines.Dispatchers
@@ -162,31 +163,49 @@ class MainActivity : ComponentActivity() {
 
     /** ★ is downloading the original; taps wait for it. */
     private var saving by mutableStateOf(false)
-    private var daily by mutableStateOf(false)
     private var wifiOnly by mutableStateOf(false)
     private var saveEvery by mutableStateOf(false)
+
+    // The draft: what the settings show and change, until Set saves it all ([Store.saveSetup]).
+    // Kept across a rotation and the system killing the app (onSaveInstanceState), not a restart.
+    private var daily by mutableStateOf(false)
     private var where by mutableStateOf(Where.BOTH)
     private var fit by mutableStateOf(false)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
 
-    /** The ticked sources ([Store.sources]), on any screen. */
-    private var ticked by mutableStateOf(listOf(Source.APOD))
-
-    /** The switch "All NASA pictures" ([Store.allSources]): the list instead of "Where". */
+    /** The switch "All NASA pictures": the list instead of "Where", all three sources offered. */
     private var allSources by mutableStateOf(false)
 
-    /** The list's ticks per screen ([Store.columns]); a column with two or more takes turns every [interval]. */
-    private var columns by mutableStateOf(emptyMap<Screen, List<Source>>())
+    /** The list's ticks per screen ([Store.list]), kept in APOD mode too. */
+    private var list by mutableStateOf(emptyMap<Screen, List<Source>>())
 
     /** The screens each source had last in the list ([Store.lastScreens]): an unticked row's dropdown. */
     private var lastScreens by mutableStateOf(emptyMap<Source, Set<Screen>>())
     private var interval by mutableStateOf(Interval.DAY)
 
+    /** ⛶'s part per source ([Store.parts]); ✓ notes the shown post's. */
+    private var parts by mutableStateOf(emptyMap<Source, Part>())
+
+    /** A "my picture" picked and not set yet ([Store.draftFallbackFile]). */
+    private var draftFallback by mutableStateOf(false)
+
+    /**
+     * The setup last set ([Store.setup]), which the job follows: what reports what is set reads
+     * it (the status lines, the chip, the video notice, the problem box, the battery hint, the
+     * opening tab), the controls the draft.
+     */
+    private var stored by mutableStateOf(Setup(false, false, Where.BOTH, emptyMap(), Interval.DAY, false, VideoDays.KEEP, emptyMap()))
+
+    /** "My picture" as set ([Store.fallbackFile]). */
+    private var hasFallback by mutableStateOf(false)
+
+    /** "Set as wallpaper" is running. */
+    private var setting by mutableStateOf(false)
+
     private var weekdayNoticeHidden by mutableStateOf(false)
 
     /** The weekday dialog shows. */
     private var weekdayDialog by mutableStateOf(false)
-    private var hasFallback by mutableStateOf(false)
     private var batteryLimited by mutableStateOf(false)
     private var mayHibernate by mutableStateOf(false)
     private var pauseHintHidden by mutableStateOf(false)
@@ -206,23 +225,24 @@ class MainActivity : ComponentActivity() {
         store = Store(this)
         weekdayDialog = savedInstanceState?.getBoolean("weekdayDialog") == true
         tab = savedInstanceState?.getString("tab")?.let { name -> Source.entries.firstOrNull { it.name == name } }
-        daily = store.daily
         wifiOnly = store.wifiOnly
         saveEvery = store.saveEvery
         pauseHintHidden = store.pauseHintHidden
         videoNoticeDate = store.videoNoticeDate
         videoNoticeHidden = store.videoNoticeHidden
         problemNoticeKey = store.problemNoticeKey
-        where = store.where
-        fit = store.fit
-        videoDays = store.videoDays
-        ticked = store.sources
-        allSources = store.allSources
-        columns = store.columns
-        lastScreens = Source.entries.associateWith(store::lastScreens)
-        interval = store.interval
         weekdayNoticeHidden = store.weekdayNoticeHidden
+        stored = store.setup
         hasFallback = store.fallbackFile.exists()
+        val draft = savedInstanceState?.getBundle("draft")?.let(::readDraft)
+        // A start without a saved draft drops the draft's picture too.
+        if (draft == null) store.draftFallbackFile.delete()
+        useDraft(draft ?: stored)
+        draftFallback = draft != null && savedInstanceState.getBoolean("draftFallback") && store.draftFallbackFile.exists()
+        lastScreens = Source.entries.associateWith { source ->
+            savedInstanceState?.getString("lastScreens.${source.name}")?.let { name -> Where.entries.firstOrNull { it.name == name }?.screens }
+                ?: store.lastScreens(source)
+        }
         enableEdgeToEdge()
         setContent {
             val colors = if (Build.VERSION.SDK_INT >= 31) dynamicDarkColorScheme(this) else darkColorScheme()
@@ -236,12 +256,35 @@ class MainActivity : ComponentActivity() {
         super.onSaveInstanceState(outState)
         outState.putString("tab", tab?.name)
         outState.putBoolean("weekdayDialog", weekdayDialog)
+        outState.putBundle("draft", draft().toBundle())
+        outState.putBoolean("draftFallback", draftFallback)
+        lastScreens.forEach { (source, screens) ->
+            outState.putString("lastScreens.${source.name}", Where.entries.firstOrNull { it.screens == screens }?.name)
+        }
     }
+
+    /** The draft as a [Setup], for Set and the saved state. */
+    private fun draft() = Setup(daily, allSources, where, list, interval, fit, videoDays, parts)
+
+    private fun useDraft(setup: Setup) {
+        daily = setup.daily
+        allSources = setup.allSources
+        where = setup.where
+        list = setup.list
+        interval = setup.interval
+        fit = setup.fit
+        videoDays = setup.videoDays
+        parts = setup.parts
+    }
+
+    /** The draft's columns: APOD mode's from "Where", else the list. A column with two or more takes turns every [interval]. */
+    private val columns
+        get() = draft().columns
 
     override fun onResume() {
         super.onResume()
         // Hibernation or a force stop deleted the job; scheduling runs it at once.
-        if (daily && !DailyJob.ensure(this)) Log.w("APODroid", "Couldn't schedule the daily job again")
+        if (store.daily && !DailyJob.ensure(this)) Log.w("APODroid", "Couldn't schedule the daily job again")
         checkPausing()
         load()
         watcher = store.watch(::follow)
@@ -278,13 +321,14 @@ class MainActivity : ComponentActivity() {
         mayHibernate = Build.VERSION.SDK_INT >= 31 && !packageManager.isAutoRevokeWhitelisted
     }
 
-    /** APOD is ticked alone: no turns, and the video-day setting applies. */
+    /** APOD is ticked alone in the stored setup: the status line and the problem box don't name it. */
     private val apodAlone
-        get() = ticked == listOf(Source.APOD)
+        get() = stored.columns.ticked() == listOf(Source.APOD)
 
     /**
-     * The tabs: with the switch "All NASA pictures" on all three; in APOD mode APOD, on an APOD
-     * video day also the source chosen for video days.
+     * The tabs, the sources the page offers (and fetches), by the draft: with the switch "All
+     * NASA pictures" on all three; in APOD mode APOD, on an APOD video day also the source chosen
+     * for video days.
      */
     private val sources
         get() = if (allSources) Source.entries else listOfNotNull(Source.APOD, videoDays.source.takeIf { apod?.isVideo == true })
@@ -294,12 +338,12 @@ class MainActivity : ComponentActivity() {
 
     /**
      * The tab shown: the one chosen, else the source of the picture on the wallpaper (a stand-in's
-     * own tab), else the first. With the switch on the home screen's picture, else the lock
-     * screen's; in APOD mode the one on the screen "Where" names ([pageScreen]).
+     * own tab), else the first. With the switch on (stored) the home screen's picture, else the
+     * lock screen's; in APOD mode the one on the screen "Where" names ([pageScreen]).
      */
     private val shown
         get() = sources.let { s ->
-            val onScreens = if (allSources) Screen.entries.mapNotNull(::pictureSource) else listOfNotNull(pictureSource(pageScreen))
+            val onScreens = if (stored.allSources) Screen.entries.mapNotNull(::pictureSource) else listOfNotNull(pictureSource(pageScreen))
             tab?.takeIf { it in s } ?: onScreens.firstOrNull { it in s } ?: s.first()
         }
 
@@ -320,13 +364,15 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             readStatus()
             if (isStale()) show()
-            val result = withContext(Dispatchers.IO) { runCatching { store.update(force, page = true) } }
+            val offered = sources
+            val result = withContext(Dispatchers.IO) { runCatching { store.update(force, page = true, show = offered) } }
             // Also when this update found nothing new: another one (the job's) may have.
             readStatus()
             if (isStale()) show()
-            result.onSuccess { if (it != null) Log.i("APODroid", "Page: $it") }
-            result.onFailure { Log.w("APODroid", "Update failed: $it", it) }
-            failed = result.isFailure
+            val failure = result.exceptionOrNull() ?: result.getOrNull()?.failure
+            result.getOrNull()?.done?.let { Log.i("APODroid", "Page: $it") }
+            failure?.let { Log.w("APODroid", "Update failed: $it", it) }
+            failed = failure != null
             saved = withContext(Dispatchers.IO) { store.isSaved(shown) }
             loading = false
             val again = loadAgain
@@ -341,10 +387,12 @@ class MainActivity : ComponentActivity() {
     private fun isStale() = picture == null || post?.source != shown || store.post(shown) != post
 
     /**
-     * What the last check and the last sets stored (also the job's), and the stored APOD, which
-     * decides the tabs.
+     * What the last check and the last sets stored (also the job's), the stored setup, and the
+     * stored APOD, which decides the tabs.
      */
     private fun readStatus() {
+        stored = store.setup
+        hasFallback = store.fallbackFile.exists()
         apod = store.apod
         pageScreen = store.pageScreen
         screens = Screen.entries.associateWith(store::screenState)
@@ -353,11 +401,16 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * One problem box. In APOD mode the first tab with a problem (APOD's first). With the switch
-     * on (all three fetched) the shown tab's, else the first ticked source's.
+     * One problem box, by the stored setup. In APOD mode the first of APOD and its video-day
+     * source with a problem (APOD's first). With the switch on the shown tab's, else the first
+     * ticked source's.
      */
     private fun readProblem() {
-        val candidates = if (allSources) listOf(shown) + ticked else sources
+        val candidates = if (stored.allSources) {
+            listOf(shown) + stored.columns.ticked()
+        } else {
+            listOfNotNull(Source.APOD, stored.videoDays.source.takeIf { apod?.isVideo == true })
+        }
         problemSource = candidates.firstOrNull { store.problem(it) != null } ?: shown
         problem = store.problem(problemSource)
         checkedAt = store.checkedAt(problemSource)
@@ -400,7 +453,7 @@ class MainActivity : ComponentActivity() {
                     pictureSuffix(state.picture)
             }
         }
-        if (!allSources) return listOfNotNull(screens[pageScreen]?.let { line("Wallpaper", it) })
+        if (!stored.allSources) return listOfNotNull(screens[pageScreen]?.let { line("Wallpaper", it) })
         val home = screens[Screen.HOME]
         val lock = screens[Screen.LOCK]
         if (home != null && lock != null && home.picture != null && home.picture == lock.picture && home.kept == lock.kept) {
@@ -412,7 +465,7 @@ class MainActivity : ComponentActivity() {
     /** " · NASA" on the status line, none for APOD's with APOD ticked alone; the user's own " · My picture" with the switch on. */
     private fun pictureSuffix(picture: Picture?): String = when (picture) {
         is Picture.Of -> if (picture.source == Source.APOD && apodAlone) "" else " · ${picture.source.shortLabel}"
-        Picture.Own -> if (allSources) " · My picture" else ""
+        Picture.Own -> if (stored.allSources) " · My picture" else ""
         null -> ""
     }
 
@@ -423,12 +476,12 @@ class MainActivity : ComponentActivity() {
      * screen "Where" names.
      */
     private fun chipText(post: Post): String? {
-        val on = (if (allSources) Screen.entries else listOf(pageScreen)).filter { screen ->
+        val on = (if (stored.allSources) Screen.entries else listOf(pageScreen)).filter { screen ->
             (screens[screen]?.picture as? Picture.Of)?.let { it.source == post.source && post.isNoted(it.date, it.url) } == true
         }
         return when {
             on.isEmpty() -> null
-            !allSources || on.size == 2 -> "On wallpaper"
+            !stored.allSources || on.size == 2 -> "On wallpaper"
             on.single() == Screen.HOME -> "On home screen"
             else -> "On lock screen"
         }
@@ -445,19 +498,16 @@ class MainActivity : ComponentActivity() {
      */
     private suspend fun show() {
         val source = shown
-        val stored = store.post(source)
+        val latest = store.post(source)
         // Video days have no picture (an entry stored by 0.3.1 may still have a still frame).
-        val bitmap = if (stored == null || stored.isVideo) null else withContext(Dispatchers.IO) {
+        val bitmap = if (latest == null || latest.isVideo) null else withContext(Dispatchers.IO) {
             store.imageFile(source).takeIf { it.exists() }?.let { decodeForScreen(it) }?.asImageBitmap()
         }
         val isSaved = withContext(Dispatchers.IO) { store.isSaved(source) }
         // Another tab was chosen meanwhile: its show() draws it.
         if (source != shown) return
-        if (source != post?.source || stored?.date != post?.date || stored?.imageUrl != post?.imageUrl) {
-            cropping = false
-            cropPosition = store.cropPosition(stored)
-        }
-        post = stored
+        if (source != post?.source || latest?.date != post?.date || latest?.imageUrl != post?.imageUrl) cropping = false
+        post = latest
         picture = bitmap
         saved = isSaved
     }
@@ -484,22 +534,9 @@ class MainActivity : ComponentActivity() {
         return BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
     }
 
+    /** Part of the draft: sets nothing and leaves the job as it is until Set. */
     private fun switchDaily(on: Boolean) {
-        if (on && !DailyJob.schedule(this)) {
-            toast("Couldn't schedule the daily change")
-            return
-        }
-        if (!on) DailyJob.cancel(this)
         daily = on
-        store.daily = on
-        // Sets today's picture again, also when it was set before (the wallpaper may have changed since).
-        // Off the main thread: forgetting waits for a set the job may be doing.
-        if (on) {
-            lifecycleScope.launch {
-                withContext(Dispatchers.IO) { store.forgetWallpaper() }
-                load()
-            }
-        }
     }
 
     private fun openAppInfo() {
@@ -541,143 +578,89 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Whether the shown tab has a picture to set ([Store.tabPicture]); if not, a toast says why.
-     * Checked before the set menu opens.
+     * "Set as wallpaper": saves the draft ([Store.saveSetup]: the clock restarts, both records
+     * forgotten), sets each screen what it says ([Store.update] with set, also with the daily
+     * change off: a one-off set), then schedules or cancels the job as the draft's daily switch
+     * says (after the set: without turns the job runs at once and would set first, so the toast
+     * would say nothing was set).
      */
-    private fun canSetNow(): Boolean {
-        val post = post ?: return false
-        if (store.tabPicture(post.source) != null) return true
-        val waiting = videoDays.source?.takeIf { post.isVideo }
-        toast(
-            when {
-                waiting != null -> "${waiting.possessive} hasn't loaded yet"
-                post.isVideo -> "Video day: wallpaper kept"
-                else -> "No picture yet"
-            },
-        )
-        return false
-    }
-
-    /**
-     * The shown tab's picture on [screens], set by hand ([Store.setByHand]: with the daily change
-     * on it changes the settings, so the list, "Where" and "Change every" are read again, and the
-     * job follows them); on the APOD tab on a video day what the video-day setting says. The
-     * button: in APOD mode the screens "Where" names, with the switch "All NASA pictures" on the
-     * menu's choice (also ✓'s).
-     */
-    private fun setWallpaperNow(screens: Set<Screen> = where.screens) {
-        val post = post ?: return
-        if (!canSetNow()) return
-        cropping = false
+    private fun setAsWallpaper() {
+        if (setting) return
+        setting = true
+        // Crop mode still open: the dragged part counts, as after ✓.
+        if (cropping) post?.let { keepPart(it) }
+        val setup = draft()
+        val offered = sources
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { store.setByHand(post.source, screens) } }
-            result.onFailure { Log.w("APODroid", "Set failed: $it", it) }
-            // Also after a failed set: the settings may have changed before it.
-            readSettings()
-            rescheduleJob()
-            readStatus()
-            if (isStale()) show()
-            toast(if (result.getOrNull()?.set == true) "Wallpaper set" else "Couldn't set the wallpaper")
-        }
-    }
-
-    /** The settings a set by hand may change: "Where", the list and "Change every". */
-    private fun readSettings() {
-        where = store.where
-        columns = store.columns
-        lastScreens = Source.entries.associateWith(store::lastScreens)
-        interval = store.interval
-        ticked = store.sources
-    }
-
-    /**
-     * A setting changed ([change]): while the daily change is on, the screens it affects follow at
-     * once ([Store.settingChanged]: not a set by hand, so the clock stays; while it's
-     * off, only the button sets). [videoOnly] for the video-day settings, which change nothing on
-     * an image day.
-     */
-    private fun applyNow(change: Changed, videoOnly: Boolean = false) {
-        if (!daily || (videoOnly && apod?.isVideo != true)) return
-        lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { store.settingChanged(change) } }
-            result.onFailure { Log.w("APODroid", "Set failed: $it", it) }
-            readStatus()
-            if (isStale()) show()
-            when {
-                result.isFailure -> toast("Couldn't set the wallpaper")
-                result.getOrNull() != null -> toast("Wallpaper set")
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    store.saveSetup(setup)
+                    store.update(force = false, page = true, show = offered, set = true)
+                }
             }
+            draftFallback = store.draftFallbackFile.exists()
+            if (!setup.daily) {
+                DailyJob.cancel(this@MainActivity)
+            } else if (!DailyJob.ensure(this@MainActivity)) {
+                toast("Couldn't schedule the daily change")
+            }
+            setting = false
+            val updated = result.getOrNull()
+            result.exceptionOrNull()?.let { Log.w("APODroid", "Set failed: $it", it) }
+            updated?.done?.let { Log.i("APODroid", "Set: $it") }
+            updated?.failure?.let { Log.w("APODroid", "Set: $it", it) }
+            failed = updated?.failure != null || result.isFailure
+            readStatus()
+            if (isStale()) show()
+            toast(
+                when {
+                    updated == null || updated.setFailed -> "Couldn't set the wallpaper"
+                    updated.done != null -> "Wallpaper set"
+                    else -> "Setup saved. Nothing to set yet."
+                },
+            )
         }
     }
 
     /**
-     * On a video day another source's picture is fetched first ([load], which also sets it while
-     * the daily change is on), the user's own is set at once; with "Skip it" a screen with APOD
-     * alone keeps its picture and one with turns passes APOD's turn on at once ([load]). "Use my
-     * picture" with nothing picked opens the picker first ([pickFirst]): the choice is made only
-     * once a picture is there, so backing out keeps the one before.
+     * The draft's video-day choice. On a video day the stand-in's tab follows it, and another
+     * source's picture is fetched for it ([load]). "Use my picture" with nothing picked (neither
+     * set nor in the draft) opens the picker first ([pickFirst]): the choice is made only once a
+     * picture is there, so backing out keeps the one before.
      */
     private fun chooseVideoDays(choice: VideoDays, pickFirst: () -> Unit = {}) {
         if (videoDays == choice) return
-        if (choice == VideoDays.MINE && !hasFallback) {
+        if (choice == VideoDays.MINE && !hasFallback && !draftFallback) {
             pickFirst()
             return
         }
         videoDays = choice
-        store.videoDays = choice
-        readStatus()
-        when {
-            apod?.isVideo != true -> {}
-            choice.source != null -> lifecycleScope.launch {
-                // Forget the records first, off the main thread; load() then fetches and sets the stand-in.
-                if (daily) withContext(Dispatchers.IO) { runCatching { store.settingChanged(Changed.VIDEO_DAYS) } }
-                load()
-            }
-            choice == VideoDays.MINE -> applyNow(Changed.VIDEO_DAYS, videoOnly = true)
-            // "Skip it": a screen with turns passes APOD's turn on at once (no forget: a screen with APOD alone keeps its picture).
-            daily -> lifecycleScope.launch { load() }
-        }
-        // The video-day source's tab went: show the one now in its place.
-        if (choice.source == null && isStale()) lifecycleScope.launch { show() }
+        if (apod?.isVideo == true) load()
     }
 
     /**
-     * The list: [source] on exactly [screens] (a tick, a new dropdown choice; none: an untick, not
-     * of the last ticked source), then what's new is fetched ([Store.setColumns]). While the daily
-     * change is on, a change to what a screen shows sets it ([load]); a source only added to a
-     * turning screen waits for its turn. Ticking NASA or Earth Observatory where it wasn't
+     * The draft's list: [source] on exactly [screens] (a tick, a new dropdown choice; none: an
+     * untick, not of the last ticked source). Ticking NASA or Earth Observatory where it wasn't
      * ticked anywhere says they post on weekdays only.
      */
     private fun place(source: Source, screens: Set<Screen>) {
-        val new = columns.placing(source, screens)
-        if (new == columns || new.values.all { it.isEmpty() }) return
-        val added = columns.values.none { source in it }
-        lastScreens = lastScreens + (source to screens.ifEmpty { columns.screensOf(source) })
-        columns = new
-        ticked = Source.entries.filter { s -> new.values.any { s in it } }
-        // Off the main thread: the ticks wait for a set the job may be doing.
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO) { store.setColumns(new) }
-            rescheduleJob()
-            load()
-        }
+        val new = list.placing(source, screens)
+        if (new == list || new.values.all { it.isEmpty() }) return
+        val added = list.values.none { source in it }
+        lastScreens = lastScreens + (source to screens.ifEmpty { list.screensOf(source) })
+        list = new
         if (added && source != Source.APOD && !weekdayNoticeHidden) weekdayDialog = true
     }
 
     /**
-     * The switch "All NASA pictures" ([Store.setAllSources]): the first time on, the list starts
-     * from "Where". Works like a tick: while the daily change is on what the
-     * new mode puts on a screen is set ([load]); the job's period follows the mode.
+     * The draft's switch "All NASA pictures": "Where" and the list swap, and the page offers (and
+     * fetches, [load]) the new mode's sources. The first time on, the list starts from the
+     * draft's "Where".
      */
     private fun switchAllSources(on: Boolean) {
         allSources = on
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO) { store.setAllSources(on) }
-            columns = store.columns
-            ticked = store.sources
-            rescheduleJob()
-            load()
-        }
+        if (on && !store.hasList && list == store.list) list = apodColumns(where.screens)
+        load()
     }
 
     private fun switchWifiOnly(on: Boolean) {
@@ -692,13 +675,10 @@ class MainActivity : ComponentActivity() {
         store.saveEvery = on
     }
 
-    /** Fill or Fit, both screens: with Fit there's no part to choose, so crop mode closes; the screens follow at once while the daily change is on. */
+    /** The draft's Fill or Fit: with Fit there's no part to choose, so crop mode closes. */
     private fun chooseFit(on: Boolean) {
-        if (fit == on) return
         fit = on
-        store.fit = on
         if (on) cropping = false
-        applyNow(Changed.FIT)
     }
 
     private fun closeWeekdayDialog(forever: Boolean) {
@@ -709,17 +689,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** The new interval waits for the next turn. */
-    private fun chooseInterval(choice: Interval) {
-        if (interval == choice) return
-        interval = choice
-        store.interval = choice
-        rescheduleJob()
-    }
-
-    /** The job runs as often as a turn of 3 hours needs. */
+    /** "Wi-Fi only" changes the job's network at once, by the stored setup (only Set schedules by the draft). */
     private fun rescheduleJob() {
-        if (daily && !DailyJob.ensure(this)) toast("Couldn't schedule the daily change")
+        if (store.daily && !DailyJob.ensure(this)) toast("Couldn't schedule the daily change")
     }
 
     private fun savePicture() {
@@ -756,8 +728,9 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Copies the picked picture to [Store.fallbackFile]; a failed pick keeps the previous one.
-     * With [choose] (picked on choosing "Use my picture") the choice follows once it's there.
+     * Copies the picked picture to [Store.draftFallbackFile] (Set renames it into place); a failed
+     * pick keeps the previous one. With [choose] (picked on choosing "Use my picture") the choice
+     * follows once it's there.
      */
     private fun saveFallback(uri: Uri, choose: Boolean = false) {
         lifecycleScope.launch {
@@ -765,19 +738,28 @@ class MainActivity : ComponentActivity() {
                 val part = File(filesDir, "fallback.part")
                 val ok = runCatching {
                     contentResolver.openInputStream(uri)!!.use { input -> part.outputStream().use { input.copyTo(it) } }
-                }.isSuccess && isImage(part) && part.renameTo(store.fallbackFile)
+                }.isSuccess && isImage(part) && part.renameTo(store.draftFallbackFile)
                 part.delete()
                 ok
             }
-            if (!ok) toast("Couldn't use that picture")
-            hasFallback = store.fallbackFile.exists()
-            when {
-                !ok -> {}
-                choose -> chooseVideoDays(VideoDays.MINE)
-                videoDays == VideoDays.MINE -> applyNow(Changed.MY_PICTURE, videoOnly = true)
+            if (!ok) {
+                toast("Couldn't use that picture")
+                return@launch
             }
+            draftFallback = true
+            if (choose) chooseVideoDays(VideoDays.MINE)
         }
     }
+
+    /** ✓: crop mode closes and the frame's place is [post]'s part in the draft. */
+    private fun keepPart(post: Post) {
+        parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition))
+        cropping = false
+    }
+
+    /** ⛶'s part of [post] in the draft: the middle unless ✓ noted one for this post. */
+    private fun draftPosition(post: Post): Float =
+        parts[post.source]?.takeIf { post.isNoted(it.date, it.url) }?.position ?: 0.5f
 
     private fun openPage(url: String) {
         try {
@@ -885,7 +867,7 @@ class MainActivity : ComponentActivity() {
         val expandable = cut || creditCut || expanded
         val tabs = sources.size > 1
         val chip = if (tabs) chipText(post) else null
-        // Back leaves crop mode without setting; the dragged position stays for the job.
+        // Back leaves crop mode without keeping the part; ⛶ opens on the draft's again.
         BackHandler(enabled = cropping) { cropping = false }
         Column {
             // Every box that applies shows: problem, video notice, battery hint.
@@ -913,32 +895,31 @@ class MainActivity : ComponentActivity() {
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
-                // ✓ sets the chosen part at once; with the switch on it asks which screens, as the set button does.
-                // With Fit there's no part to choose.
-                var setMenu by remember { mutableStateOf(false) }
-                if (!fit) Box(Modifier.align(Alignment.BottomStart)) {
+                // ✓ keeps the chosen part in the draft (Set stores it). With Fit there's no part to choose.
+                if (!fit) {
                     IconButton(
                         onClick = {
-                            when {
-                                !cropping -> cropping = true
-                                !allSources -> setWallpaperNow()
-                                canSetNow() -> setMenu = true
+                            if (!cropping) {
+                                cropPosition = draftPosition(post)
+                                cropping = true
+                            } else {
+                                keepPart(post)
                             }
                         },
                         modifier = Modifier
+                            .align(Alignment.BottomStart)
                             .padding(8.dp)
                             .background(Color.Black.copy(alpha = 0.4f), CircleShape),
                     ) {
                         Text(
                             if (cropping) "✓" else "⛶",
                             Modifier.clearAndSetSemantics {
-                                contentDescription = if (cropping) "Set as wallpaper" else "Choose the wallpaper's part"
+                                contentDescription = if (cropping) "Done" else "Choose the wallpaper's part"
                             },
                             color = Color.White,
                             fontSize = 24.sp,
                         )
                     }
-                    SetChoices(setMenu && cropping) { setMenu = false }
                 }
                 Row {
                     ShareButton(post)
@@ -1088,22 +1069,24 @@ class MainActivity : ComponentActivity() {
         // ▶ is only on the APOD tab.
         val watch = if (post?.isVideo == true) " Tap ▶ to watch it on NASA's site." else ""
         val kept = "This APOD is a video, so your wallpaper stays as it was."
-        val other = videoDays.source
-        val apodTicked = columns.values.any { Source.APOD in it }
+        // What is set, not the draft.
+        val other = stored.videoDays.source
+        val apodTicked = stored.columns.values.any { Source.APOD in it }
+        val mine = stored.videoDays == VideoDays.MINE
         val text = when {
-            !daily || (allSources && !apodTicked) -> "This APOD is a video.$watch"
-            allSources -> when {
+            !stored.daily || (stored.allSources && !apodTicked) -> "This APOD is a video.$watch"
+            stored.allSources -> when {
                 other != null && standInReady -> "This APOD is a video, so ${other.possessive} takes its place.$watch"
                 other != null -> "This APOD is a video. ${other.possessive} takes its place once it has loaded.$watch"
-                videoDays == VideoDays.MINE && hasFallback -> "This APOD is a video, so your own picture takes its place.$watch"
-                videoDays == VideoDays.MINE -> "This APOD is a video, so it's skipped.$watch Pick a picture below to use it on video days."
+                mine && hasFallback -> "This APOD is a video, so your own picture takes its place.$watch"
+                mine -> "This APOD is a video, so it's skipped.$watch Pick a picture below to use it on video days."
                 else -> "This APOD is a video, so it's skipped.$watch To change that, choose another picture for video days below."
             }
             other != null && pictureSource(pageScreen) == other -> "This APOD is a video, so ${other.possessive} is the wallpaper.$watch"
             other != null -> "This APOD is a video. ${other.possessive} becomes the wallpaper once it has loaded.$watch"
-            videoDays == VideoDays.MINE && hasFallback ->
+            mine && hasFallback ->
                 "This APOD is a video, so your own picture is the wallpaper.$watch"
-            videoDays == VideoDays.MINE -> "$kept$watch Pick a picture below to use it on video days."
+            mine -> "$kept$watch Pick a picture below to use it on video days."
             else -> "$kept$watch To change that, choose another picture for video days below."
         }
         NoticeBox({
@@ -1165,21 +1148,21 @@ class MainActivity : ComponentActivity() {
             }
             if (travel <= 0f) return@pointerInput
             val move = { delta: Float -> cropPosition = (cropPosition + delta / travel).coerceIn(0f, 1f) }
-            val end = { store.setCropPosition(post, cropPosition) }
             if (horizontal) {
-                detectHorizontalDragGestures(onDragEnd = end, onDragCancel = end) { change, delta -> change.consume(); move(delta) }
+                detectHorizontalDragGestures { change, delta -> change.consume(); move(delta) }
             } else {
-                detectVerticalDragGestures(onDragEnd = end, onDragCancel = end) { change, delta -> change.consume(); move(delta) }
+                detectVerticalDragGestures { change, delta -> change.consume(); move(delta) }
             }
         }
     }
 
     /**
-     * Wallpaper: the daily switch; while it's on its status lines, in APOD mode "Where", with the
-     * switch "All NASA pictures" on the list ("Pictures from") and "Change every", then "Size",
-     * "If APOD is a video", "Wi-Fi only" and "Save every picture"; while it's off "Size" alone.
-     * The set buttons in both states (APOD mode's at the end of the section, the menu after
-     * "Change every" or "Size"). Then the mode switch.
+     * Wallpaper, all of it the draft until "Set as wallpaper" (S4): the daily switch, under it the
+     * status lines while the stored daily change is on; in APOD mode "Where", with the switch "All
+     * NASA pictures" on the list ("Pictures from") and, while the daily switch is on and a column
+     * takes turns, "Change every"; "Size"; while the daily switch is on "If APOD is a video",
+     * "Wi-Fi only" and "Save every picture" (these two act at once); the set button. Then the
+     * mode switch.
      */
     @Composable
     private fun Settings() {
@@ -1196,47 +1179,42 @@ class MainActivity : ComponentActivity() {
                 Text("Change wallpaper automatically", Modifier.weight(1f))
                 Switch(checked = daily, onCheckedChange = null)
             }
-            if (daily) {
+            // What is set, so by the stored switch.
+            if (stored.daily) {
                 statusLines().forEach {
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (!allSources) {
-                    Heading("Where")
-                    // One height for all: a label that wraps (a narrow pane, a large font) made its segment taller.
+            }
+            if (!allSources) {
+                Heading("Where")
+                // One height for all: a label that wraps (a narrow pane, a large font) made its segment taller.
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                    val labels = mapOf(Where.HOME to "Home screen", Where.LOCK to "Lock screen", Where.BOTH to "Both")
+                    Where.entries.forEachIndexed { i, w ->
+                        SegmentedButton(
+                            selected = where == w,
+                            onClick = { where = w },
+                            shape = SegmentedButtonDefaults.itemShape(i, Where.entries.size),
+                            modifier = Modifier.fillMaxHeight(),
+                        ) { Text(labels.getValue(w)) }
+                    }
+                }
+            } else {
+                PictureList()
+                // Hiding it moves the page only after a tick.
+                if (daily && columns.values.any { it.size >= 2 }) {
+                    Heading("Change every")
                     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                        val labels = mapOf(Where.HOME to "Home screen", Where.LOCK to "Lock screen", Where.BOTH to "Both")
-                        Where.entries.forEachIndexed { i, w ->
+                        val labels = mapOf(Interval.DAY to "Day", Interval.H12 to "12 h", Interval.H6 to "6 h", Interval.H3 to "3 h")
+                        Interval.entries.forEachIndexed { i, choice ->
                             SegmentedButton(
-                                selected = where == w,
-                                onClick = {
-                                    if (where != w) {
-                                        where = w; store.where = w
-                                        applyNow(Changed.WHERE)
-                                    }
-                                },
-                                shape = SegmentedButtonDefaults.itemShape(i, Where.entries.size),
+                                selected = interval == choice,
+                                onClick = { interval = choice },
+                                shape = SegmentedButtonDefaults.itemShape(i, Interval.entries.size),
                                 modifier = Modifier.fillMaxHeight(),
-                            ) { Text(labels.getValue(w)) }
+                            ) { Text(labels.getValue(choice)) }
                         }
                     }
-                } else {
-                    PictureList()
-                    // Hiding it moves the page only after a tick.
-                    if (columns.values.any { it.size >= 2 }) {
-                        Heading("Change every")
-                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                            val labels = mapOf(Interval.DAY to "Day", Interval.H12 to "12 h", Interval.H6 to "6 h", Interval.H3 to "3 h")
-                            Interval.entries.forEachIndexed { i, choice ->
-                                SegmentedButton(
-                                    selected = interval == choice,
-                                    onClick = { chooseInterval(choice) },
-                                    shape = SegmentedButtonDefaults.itemShape(i, Interval.entries.size),
-                                    modifier = Modifier.fillMaxHeight(),
-                                ) { Text(labels.getValue(choice)) }
-                            }
-                        }
-                    }
-                    SetMenu()
                 }
             }
             FitChoice()
@@ -1257,16 +1235,12 @@ class MainActivity : ComponentActivity() {
                 }
                 SaveEverySwitch()
             }
-            if (!allSources) {
-                // Also while the daily change is on: the shown picture may not be the one on the wallpaper.
-                Button(
-                    onClick = { setWallpaperNow() },
-                    enabled = post != null,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                ) { Text("Set as wallpaper now") }
-            } else if (!daily) {
-                SetMenu()
-            }
+            // One button, both modes, the daily switch on or off: it applies the whole draft.
+            Button(
+                onClick = ::setAsWallpaper,
+                enabled = !setting,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) { Text("Set as wallpaper") }
 
             HorizontalDivider(Modifier.padding(vertical = 16.dp))
             Row(
@@ -1378,36 +1352,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             if (videoDays == VideoDays.MINE) {
-                TextButton(onClick = change, enabled = enabled) { Text(if (hasFallback) "Change picture" else "Pick picture") }
-            }
-        }
-    }
-
-    /** With the switch "All NASA pictures" on: the set button asks which screens. */
-    @Composable
-    private fun SetMenu() {
-        var open by remember { mutableStateOf(false) }
-        Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Button(
-                onClick = { if (canSetNow()) open = true },
-                enabled = post != null,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Set as wallpaper ▾", Modifier.clearAndSetSemantics { contentDescription = "Set as wallpaper" }) }
-            SetChoices(open) { open = false }
-        }
-    }
-
-    /** The set menu's choices, Home screen / Lock screen / Both, for the set button and ✓. */
-    @Composable
-    private fun SetChoices(open: Boolean, close: () -> Unit) {
-        DropdownMenu(expanded = open, onDismissRequest = close) {
-            val choices = listOf(
-                "Home screen" to setOf(Screen.HOME),
-                "Lock screen" to setOf(Screen.LOCK),
-                "Both" to Screen.entries.toSet(),
-            )
-            choices.forEach { (text, screens) ->
-                DropdownMenuItem(text = { Text(text) }, onClick = { close(); setWallpaperNow(screens) })
+                TextButton(onClick = change, enabled = enabled) { Text(if (hasFallback || draftFallback) "Change picture" else "Pick picture") }
             }
         }
     }
@@ -1464,7 +1409,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun BatteryNotice() {
-        if (daily && (batteryLimited || mayHibernate) && !pauseHintHidden) PauseHint()
+        if (stored.daily && (batteryLimited || mayHibernate) && !pauseHintHidden) PauseHint()
     }
 
     /** Names only the settings still missing; hiding it asks first, with what will happen. */
@@ -1552,3 +1497,39 @@ private val VideoDays.label
 
 private val dateFormat = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH)
 private val dayFormat = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
+
+/** The sources ticked on any screen, in order. */
+private fun Map<Screen, List<Source>>.ticked(): List<Source> = Source.entries.filter { s -> values.any { s in it } }
+
+/** The draft in the saved state (a rotation, the system killing the app). */
+private fun Setup.toBundle() = Bundle().apply {
+    putBoolean("daily", daily)
+    putBoolean("allSources", allSources)
+    putString("where", where.name)
+    Screen.entries.forEach { screen -> putString("list.${screen.name}", list[screen].orEmpty().joinToString(",") { it.name }) }
+    putString("interval", interval.name)
+    putBoolean("fit", fit)
+    putString("videoDays", videoDays.name)
+    parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.url.orEmpty()}") }
+}
+
+/** [toBundle]'s draft, or null when it can't be read. */
+private fun readDraft(bundle: Bundle): Setup? = runCatching {
+    Setup(
+        daily = bundle.getBoolean("daily"),
+        allSources = bundle.getBoolean("allSources"),
+        where = Where.valueOf(bundle.getString("where")!!),
+        list = Screen.entries.associateWith { screen ->
+            val names = bundle.getString("list.${screen.name}").orEmpty().split(',')
+            Source.entries.filter { it.name in names }
+        },
+        interval = Interval.valueOf(bundle.getString("interval")!!),
+        fit = bundle.getBoolean("fit"),
+        videoDays = VideoDays.valueOf(bundle.getString("videoDays")!!),
+        parts = Source.entries.mapNotNull { source ->
+            bundle.getString("part.${source.name}")?.split('|', limit = 3)?.let { (date, position, url) ->
+                source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat())
+            }
+        }.toMap(),
+    )
+}.getOrNull()

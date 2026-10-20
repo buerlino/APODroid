@@ -20,7 +20,6 @@ import android.util.Size
 import android.view.Display
 import androidx.core.content.edit
 import androidx.core.net.toUri
-import io.github.buerlino.apodroid.core.Due
 import io.github.buerlino.apodroid.core.Frame
 import io.github.buerlino.apodroid.core.HttpStatus
 import io.github.buerlino.apodroid.core.OWN_PICTURE
@@ -35,7 +34,6 @@ import io.github.buerlino.apodroid.core.StorageFailed
 import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.Stored
 import io.github.buerlino.apodroid.core.apodColumns
-import io.github.buerlino.apodroid.core.columnsChanged
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.download
 import io.github.buerlino.apodroid.core.dueWallpapers
@@ -44,7 +42,6 @@ import io.github.buerlino.apodroid.core.fitFrame
 import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.originalUrl
 import io.github.buerlino.apodroid.core.restartAndForget
-import io.github.buerlino.apodroid.core.setByHand as planByHand
 import io.github.buerlino.apodroid.core.sourcesInUse
 import io.github.buerlino.apodroid.core.toSave
 import io.github.buerlino.apodroid.core.videoDayKept
@@ -67,12 +64,33 @@ enum class Where(val screens: Set<Screen>) {
     BOTH(Screen.entries.toSet()),
 }
 
+/** ⛶'s part of a source's post: the post's [date] and picture [url], where the frame sits ([position], 0–1). */
+data class Part(val date: LocalDate, val url: String?, val position: Float)
+
 /**
- * What [Store.setByHand] did: [set] the wallpaper, and the setting it [changed], for the page to
- * light up: with the switch "All NASA pictures" on the source whose row changed, in APOD mode
- * [Source.APOD] for "Where"; null when the settings were so already or the daily change is off.
+ * Everything "Set as wallpaper" saves at once ([Store.saveSetup]); the page's draft until then.
+ * [list] is the list's columns, kept in APOD mode too; [parts] ⛶'s part per source.
  */
-data class HandSet(val set: Boolean, val changed: Source?)
+data class Setup(
+    val daily: Boolean,
+    val allSources: Boolean,
+    val where: Where,
+    val list: Map<Screen, List<Source>>,
+    val interval: Interval,
+    val fit: Boolean,
+    val videoDays: VideoDays,
+    val parts: Map<Source, Part>,
+) {
+    /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
+    val columns: Map<Screen, List<Source>>
+        get() = if (allSources) list else apodColumns(where.screens)
+}
+
+/**
+ * What [Store.update] did: [done] for the log (null: nothing was set), whether a set failed
+ * ([setFailed]), and the first failure, a fetch's or a set's ([failure]; the job retries).
+ */
+data class Updated(val done: String?, val setFailed: Boolean, val failure: Exception?)
 
 /**
  * What fills APOD's turn on an APOD video day ("If APOD is a video", both modes): "Skip it"
@@ -83,21 +101,6 @@ enum class VideoDays(val standIn: StandIn, val source: Source? = standIn.source)
     NASA(StandIn.NASA),
     EARTH(StandIn.EARTH),
     MINE(StandIn.OWN),
-}
-
-/** A changed setting, which isn't a set by hand ([Store.settingChanged]). */
-enum class Changed {
-    /** APOD mode's "Where": every screen (with the grid none). */
-    WHERE,
-
-    /** The video-day choice: the screens showing what stands in APOD's place. */
-    VIDEO_DAYS,
-
-    /** "Change picture": the screens showing the user's own picture. */
-    MY_PICTURE,
-
-    /** Fill / Fit: every screen with a tick (one left alone keeps its picture as it was set). */
-    FIT,
 }
 
 /** How long each source's turn lasts with two or more sources ticked. */
@@ -174,73 +177,83 @@ class Store(private val context: Context) {
 
     val fallbackFile = File(context.filesDir, "fallback.jpg")
 
+    /** A "my picture" picked on the page, not set yet: Set renames it to [fallbackFile]. */
+    val draftFallbackFile = File(context.filesDir, "fallback-draft.jpg")
+
     /** Sent with each request; the version comes from `versionName` in app/build.gradle.kts. */
     private val userAgent = "APODroid/${context.packageManager.getPackageInfo(context.packageName, 0).versionName}" +
         " (+https://github.com/buerlino/APODroid)"
 
-    /** APOD mode's "Where" (the grid has its own columns). */
-    var where: Where
+    /** APOD mode's "Where" (the list has its own columns). */
+    val where: Where
         get() = enumValue(prefs.getString("where", null)) ?: Where.BOTH
-        set(value) = prefs.edit { putString("where", value.name) }
 
-    var videoDays: VideoDays
+    val videoDays: VideoDays
         get() = enumValue(prefs.getString("videoDays", null)) ?: VideoDays.KEEP
-        set(value) = prefs.edit { putString("videoDays", value.name) }
 
-    /** The switch "All NASA pictures": off is APOD mode ("Where"), on the grid ([columns]). */
+    /** The switch "All NASA pictures": off is APOD mode ("Where"), on the list ([columns]). */
     val allSources: Boolean
         get() = prefs.getBoolean("allSources", false)
 
     /**
-     * The sources ticked for each screen, in order: in APOD mode APOD on the screens "Where"
-     * names, with the switch on the grid's columns (`home`, `lock`). An empty column leaves its
-     * screen alone; one with two or more takes turns.
+     * The list's columns (`home`, `lock`) whatever the mode, for the page's draft; before the
+     * list was first saved, APOD on the screens "Where" names (the list starts from "Where").
      */
-    val columns: Map<Screen, List<Source>>
-        get() = if (!allSources) apodColumns(where.screens) else Screen.entries.associateWith { screen ->
+    val list: Map<Screen, List<Source>>
+        get() = if (!prefs.contains("home")) apodColumns(where.screens) else Screen.entries.associateWith { screen ->
             val names = prefs.getString(screen.name.lowercase(), null)?.split(',').orEmpty()
             Source.entries.filter { it.name in names }
         }
+
+    /** The list was saved once ([list]); before, it starts from "Where". */
+    val hasList: Boolean
+        get() = prefs.contains("home")
+
+    /**
+     * The sources ticked for each screen, in order: in APOD mode APOD on the screens "Where"
+     * names, with the switch on the [list]. An empty column leaves its screen alone; one with two
+     * or more takes turns.
+     */
+    val columns: Map<Screen, List<Source>>
+        get() = if (!allSources) apodColumns(where.screens) else list
 
     /** A column takes turns: the job runs as often as a turn needs. */
     val hasTurns: Boolean
         get() = columns.values.any { it.size >= 2 }
 
-    /** The sources ticked on any screen, in order (APOD mode: APOD). */
-    val sources: List<Source>
-        get() = columns.values.flatten().toSet().let { ticked -> Source.entries.filter { it in ticked } }.ifEmpty { listOf(Source.APOD) }
+    /** The setup last set ("Set as wallpaper"), which the job follows. */
+    val setup: Setup
+        get() = Setup(daily, allSources, where, list, interval, fit, videoDays, parts)
 
     /**
-     * Turns the switch "All NASA pictures" on or off, like a tick ([columnsChanged]: the clock
-     * restarts when turns begin), and forgets both records: the new mode's settings decide what
-     * shows. The first time it goes on, the grid starts from "Where".
-     * Then [update] or [settingChanged] sets what changed, while the daily change is on.
+     * Blocking. "Set as wallpaper": saves [setup] in one commit (the list with [putColumns], so
+     * [lastScreens] follows; ⛶'s parts), the draft "my picture" renamed into place first, then
+     * [restartAndForget]: the clock restarts and the records of the screens with a column are
+     * forgotten, so the next [setDue] gives each screen what the setup says afresh (a changed Fit
+     * or "my picture" too, with the same picture). A screen whose column was empty starts
+     * without a record. The caller then schedules or cancels the job and runs [update] with `set`.
      */
-    fun setAllSources(on: Boolean): Unit = synchronized(wallpaperLock) {
-        if (on == allSources) return
+    fun saveSetup(setup: Setup): Unit = synchronized(wallpaperLock) {
+        if (draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
         val before = columns
+        val restart = restartAndForget(before, setup.columns, turnStartedAt, records(), Instant.now())
         prefs.edit(commit = true) {
-            putBoolean("allSources", on)
-            if (on && !prefs.contains("home")) {
-                for (screen in Screen.entries) putString(screen.name.lowercase(), if (screen in where.screens) Source.APOD.name else "")
+            putBoolean("daily", setup.daily)
+            putBoolean("allSources", setup.allSources)
+            putString("where", setup.where.name)
+            // Before the first time on, the list stays unsaved, so it still starts from "Where".
+            if (setup.allSources || prefs.contains("home")) putColumns(setup.list, list)
+            putString("interval", setup.interval.name)
+            putBoolean("fit", setup.fit)
+            putString("videoDays", setup.videoDays.name)
+            for ((source, part) in setup.parts) {
+                putString(source.key("cropDate"), part.date.toString())
+                putString(source.key("cropUrl"), part.url)
+                putFloat(source.key("cropPosition"), part.position)
             }
+            putPlan(restart.plan)
+            restart.drop.forEach { remove(it.key("wallpaperSource")) }
         }
-        val now = Instant.now()
-        val plan = columnsChanged(before, columns, turnStartedAt, records(), stored(), now)
-        val records = records() + plan.screens.mapValues { it.value.record }
-        write(plan.copy(screens = records.mapValues { Due(it.value.forget(), false) }))
-    }
-
-    /**
-     * The grid's ticks ([columns] with the switch on): the clock restarts when no column took
-     * turns before ([columnsChanged]). Then [update] sets what changed, while the daily change is on.
-     */
-    fun setColumns(after: Map<Screen, List<Source>>): Unit = synchronized(wallpaperLock) {
-        val before = columns
-        if (after == before) return
-        val plan = columnsChanged(before, after, turnStartedAt, records(), stored(), Instant.now())
-        prefs.edit(commit = true) { putColumns(after, before) }
-        write(plan)
     }
 
     /**
@@ -263,9 +276,8 @@ class Store(private val context: Context) {
         (enumValue<Where>(prefs.getString(source.key("lastScreens"), null)) ?: Where.BOTH).screens
 
     /** How long a turn lasts. */
-    var interval: Interval
+    val interval: Interval
         get() = enumValue(prefs.getString("interval", null)) ?: Interval.DAY
-        set(value) = prefs.edit { putString("interval", value.name) }
 
     /** The user hid the dialog saying NASA and Earth Observatory post on weekdays only. */
     var weekdayNoticeHidden: Boolean
@@ -280,14 +292,12 @@ class Store(private val context: Context) {
      * Whether the user turned the daily change on. Hibernation or a force stop deletes the job,
      * so the page schedules it again when this is on.
      */
-    var daily: Boolean
+    val daily: Boolean
         get() = prefs.getBoolean("daily", false)
-        set(value) = prefs.edit { putBoolean("daily", value) }
 
     /** Fit (F1): all of the picture on black instead of the screen's shape cut from it (Fill); both screens. */
-    var fit: Boolean
+    val fit: Boolean
         get() = prefs.getBoolean("fit", false)
-        set(value) = prefs.edit { putBoolean("fit", value) }
 
     /** The job waits for an unmetered network (F2); the page and the buttons use any. */
     var wifiOnly: Boolean
@@ -354,8 +364,8 @@ class Store(private val context: Context) {
      * What [screen] shows, so each post is set once: whose turn it is (`wallpaperSource`, the
      * name from 0.5.0), the picture (`wallpaperPicture`: a source's name with `wallpaperDate` and
      * `wallpaperUrl`, or [OWN_PICTURE]) and the turn's stamp (`wallpaperStamp`); null when the app
-     * never set that screen. Home's keys are unprefixed, the lock screen's `lock.`. A dev build's
-     * hold keys (`hold`, `holdPost`, `holdOwnerPost`, before S1) are ignored.
+     * never set that screen, or Set started it afresh ([saveSetup]). Home's keys are unprefixed,
+     * the lock screen's `lock.`.
      */
     fun record(screen: Screen): Record? {
         val owner = enumValue<Source>(prefs.getString(screen.key("wallpaperSource"), null)) ?: return null
@@ -436,15 +446,6 @@ class Store(private val context: Context) {
 
     private fun instant(key: String) = prefs.getLong(key, 0).takeIf { it > 0 }?.let(Instant::ofEpochMilli)
 
-    /**
-     * The daily switch turned on: the clock restarts and both records are forgotten
-     * ([restartAndForget]: owner kept, the screens on the current turn take the new stamp), so
-     * the next [update] puts the current sources' pictures on again.
-     */
-    fun forgetWallpaper(): Unit = synchronized(wallpaperLock) {
-        write(restartAndForget(turnStartedAt, records(), Instant.now()))
-    }
-
     /** True when [source]'s stored post is today's (the dates are US Eastern). */
     fun isCurrent(source: Source): Boolean =
         post(source)?.let { it.date == LocalDate.now(ZoneId.of("America/New_York")) && isComplete(it) } == true
@@ -510,20 +511,21 @@ class Store(private val context: Context) {
     }
 
     /**
-     * Blocking. What the page and the daily job both run: [refresh] each source in use unless its
-     * stored post is today's (always with [force], pull to refresh) or, for the [page] (an open
-     * or a pull), it was checked within the hour ([checkedRecently]), then, while the daily
-     * change is on, sets what each screen is due ([setDue]). The sources in use: the ones ticked
-     * on any screen, and on an APOD video day the stand-in, while APOD is ticked somewhere; the page with the
-     * switch "All NASA pictures" on fetches all three. A failing source doesn't stop the others,
-     * and its stored picture still counts; the first failure is thrown after setting (the job
-     * retries). Returns what it did for the log, or null when there was nothing to set.
+     * Blocking. What the page, Set and the daily job run: [refresh] each source in use and each
+     * of [show] (the sources the page offers, so one ticked in its draft only has a picture)
+     * unless its stored post is today's (always with [force], pull to refresh) or, for the [page]
+     * (an open, a pull, Set), it was checked within the hour ([checkedRecently]), then, while the
+     * daily change is on or with [set] (Set, also with it off), sets what each screen is due
+     * ([setDue]). The sources in use: the ones ticked on any screen, and on an APOD video day the
+     * stand-in, while APOD is ticked somewhere. A failing source doesn't stop the others, and its
+     * stored picture still counts. Only a stop is thrown; every other failure is in the result
+     * (the job retries).
      */
-    fun update(force: Boolean, page: Boolean = false): String? {
+    fun update(force: Boolean, page: Boolean = false, show: Collection<Source> = emptyList(), set: Boolean = false): Updated {
         var failure: Exception? = null
         for (source in Source.entries) {
             // Asked for each source: APOD's refresh (first) tells whether the stand-in is in use.
-            if (!(page && allSources) && source !in inUse()) continue
+            if (source !in show && source !in inUse()) continue
             // A stopped job (DailyJob.onStopJob) ends the run: no more downloads, no set.
             if (Thread.currentThread().isInterrupted) throw InterruptedException()
             try {
@@ -534,13 +536,10 @@ class Store(private val context: Context) {
             }
         }
         if (Thread.currentThread().isInterrupted) throw InterruptedException()
-        val done = if (daily) setDue() else null
-        if (failure != null) {
-            // The caller logs only the failure.
-            if (done != null) Log.i("APODroid", "Despite the failure: $done")
-            throw failure
-        }
-        return done
+        if (!daily && !set) return Updated(null, false, failure)
+        val (done, setFailure) = setDue()
+        if (failure != null && done != null) Log.i("APODroid", "Despite the failure: $done")
+        return Updated(done, setFailure != null, failure ?: setFailure)
     }
 
     /** The sources in use ([sourcesInUse]): what the job fetches and [saveInUse] saves. */
@@ -594,10 +593,10 @@ class Store(private val context: Context) {
      * written first when it restarts, then the sets (one with both flags when both screens are
      * due the same picture), each screen's record right after its own set. A failed set leaves
      * that record as it was, so the retry sets that screen only; the other sets still run, and
-     * the first failure is thrown after them. Under one lock, as the page and the job may both
-     * get here. Returns what it set for the log, or null when nothing.
+     * the first failure is returned with them. Under one lock, as the page and the job may both
+     * get here. Returns what it set for the log (null when nothing) and the first failed set.
      */
-    private fun setDue(): String? = synchronized(wallpaperLock) {
+    private fun setDue(): Pair<String?, Exception?> = synchronized(wallpaperLock) {
         val now = Instant.now()
         val stored = stored()
         val plan = dueWallpapers(columns, turnStartedAt, Duration.ofHours(interval.hours), records(), stored, now)
@@ -614,11 +613,7 @@ class Store(private val context: Context) {
             prefs.edit(commit = true) { screens.forEach { putRecord(it, plan.screens.getValue(it).record); putSetAt(it) } }
             done += "$picture on ${screens.joinToString("+")}"
         }
-        if (failure != null) {
-            if (done.isNotEmpty()) Log.i("APODroid", "Despite the failed set: ${done.joinToString()}")
-            throw failure
-        }
-        done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: ")
+        done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: ") to failure
     }
 
     private fun SharedPreferences.Editor.putSetAt(screen: Screen) = putLong(screen.key("wallpaperSetAt"), System.currentTimeMillis())
@@ -636,59 +631,6 @@ class Store(private val context: Context) {
      * Earth's, or the user's own; null with "Skip it" or nothing stored yet).
      */
     fun tabPicture(tab: Source): Picture? = stored().picture(tab)
-
-    /**
-     * Blocking. The set button and ✓, from [tab] on [screens] (`:core`'s [planByHand]). With the
-     * daily change on it changes the settings, so they always say what each screen gets (no
-     * holds): the tab's source (APOD in APOD mode and on APOD's video tab) ticked for exactly
-     * [screens] ("Where" in APOD mode), the clock and the records, in one commit, then the normal
-     * set ([setDue]: the source's picture, on an APOD video day the stand-in). A failed set keeps
-     * the new settings; the next run sets them. With it off a one-off set of [tab]'s picture
-     * ([tabPicture]), the records noted for the chip, the settings untouched. Nothing to set:
-     * nothing changes.
-     */
-    fun setByHand(tab: Source, screens: Set<Screen>): HandSet = synchronized(wallpaperLock) {
-        val stored = stored()
-        if (!daily) {
-            val picture = stored.picture(tab) ?: return HandSet(false, null)
-            set(picture, screens, stored)
-            val records = records()
-            val owner = if (allSources) tab else Source.APOD
-            prefs.edit(commit = true) {
-                screens.forEach { putRecord(it, (records[it] ?: Record(owner)).copy(picture = picture)); putSetAt(it) }
-            }
-            return HandSet(true, null)
-        }
-        val before = columns
-        val hand = planByHand(tab, screens, allSources, before, turnStartedAt, records(), stored, Instant.now()) ?: return HandSet(false, null)
-        prefs.edit(commit = true) {
-            if (allSources) putColumns(hand.columns, before) else putString("where", Where.entries.first { it.screens == screens }.name)
-            putPlan(hand.plan)
-        }
-        val done = setDue()
-        HandSet(done != null, if (hand.columns == before) null else if (allSources) tab else Source.APOD)
-    }
-
-    /**
-     * Blocking. A setting changed ([change]), which isn't a set by hand: forgets the affected
-     * screens' records ([Record.forget]: picture dropped, owner and stamp kept), then
-     * sets what is due ([setDue]); no clock restart. Returns what it set, or null.
-     */
-    fun settingChanged(change: Changed): String? = synchronized(wallpaperLock) {
-        val columns = columns
-        val affected = records().filter { (screen, record) ->
-            when (change) {
-                // The grid has its own columns.
-                Changed.WHERE -> !allSources
-                // In APOD's place: APOD's turn.
-                Changed.VIDEO_DAYS -> record.owner == Source.APOD
-                Changed.MY_PICTURE -> record.picture == Picture.Own
-                Changed.FIT -> columns[screen].orEmpty().isNotEmpty()
-            }
-        }
-        write(Plan(turnStartedAt, false, affected.mapValues { Due(it.value.forget(), false) }))
-        setDue()
-    }
 
     /**
      * [refresh] unless [source]'s stored post is today's (always with [force]), noting how it
@@ -734,11 +676,13 @@ class Store(private val context: Context) {
         return if (post.isNoted(date, prefs.getString(source.key("cropUrl"), null))) prefs.getFloat(source.key("cropPosition"), 0.5f) else 0.5f
     }
 
-    fun setCropPosition(post: Post, position: Float) = prefs.edit {
-        putString(post.source.key("cropDate"), post.date.toString())
-        putString(post.source.key("cropUrl"), post.imageUrl)
-        putFloat(post.source.key("cropPosition"), position)
-    }
+    /** ⛶'s stored part per source, for the page's draft ([Setup.parts]); the job uses [cropPosition]. */
+    val parts: Map<Source, Part>
+        get() = Source.entries.mapNotNull { source ->
+            prefs.getString(source.key("cropDate"), null)?.let {
+                source to Part(LocalDate.parse(it), prefs.getString(source.key("cropUrl"), null), prefs.getFloat(source.key("cropPosition"), 0.5f))
+            }
+        }.toMap()
 
     /**
      * Blocking. Sets [picture] on [screens] (both: one set with both flags, one wallpaper); the

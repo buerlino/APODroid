@@ -24,8 +24,9 @@ class DailyJob : JobService() {
         worker = thread {
             val store = Store(this)
             val result = runCatching { store.update(force = false) }
-            result.onSuccess { if (it != null) Log.i("APODroid", "Daily job: $it") }
-            result.onFailure { Log.w("APODroid", "Daily job failed: $it", it) }
+            val failure = result.exceptionOrNull() ?: result.getOrNull()?.failure
+            result.getOrNull()?.done?.let { Log.i("APODroid", "Daily job: $it") }
+            if (failure != null) Log.w("APODroid", "Daily job failed: $failure", failure)
             // Save every picture: also after a failed run (a failing source mustn't stop the others'
             // saves), not after a stop. A failed save doesn't retry the job; the next run tries again.
             val stopped = result.exceptionOrNull().let { it is InterruptedException || it?.isStop() == true }
@@ -34,7 +35,7 @@ class DailyJob : JobService() {
                     .onSuccess { if (it != null) Log.i("APODroid", "Daily job: $it") }
                     .onFailure { Log.w("APODroid", "Daily job's saves ended: $it") }
             }
-            jobFinished(params, result.isFailure)
+            jobFinished(params, failure != null)
         }
         return true
     }

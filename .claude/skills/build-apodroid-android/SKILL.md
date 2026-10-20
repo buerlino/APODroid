@@ -52,7 +52,7 @@ packages unattended): `night.md`.
   the settings (`Settings`; with the switch "All NASA pictures" `Grid`, `SetMenu`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `tick(screen, source)`, `chooseVideoDays`, `canSetNow`, `setWallpaperNow(screens)`);
   `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post.
-  `app/.../DailyJob.kt`: the job (id 1); `ensure` reschedules it only when its timing changes.
+  `app/.../DailyJob.kt`: the job (id 1); `ensure` reschedules it only when its timing or its network type (Wi-Fi only) changes.
 
 ## Working on the phone
 

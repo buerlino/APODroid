@@ -243,8 +243,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   right. Pull to refresh works on the picture side only. The tablet (711 dp in portrait) shows
   two panes both ways.
 - **Settings** (SharedPreferences; 0.6.0's layout built in M3, 2026-10-20, texts placeholders
-  until the user approves them on the device): **Wallpaper** (the daily switch, the status line;
-  in APOD mode **Where**, "If APOD is a video", the set button), with the switch "All NASA
+  until the user approves them on the device): **Wallpaper** (the daily switch, the status line,
+  "Wi-Fi only" (F2) while the switch is on; in APOD mode **Where**, "If APOD is a video", the set button), with the switch "All NASA
   pictures" on, after a divider, **Pictures from** (the grid with "If it's a video" under APOD's
   row, "Change every", the set menu); then a divider and the switch "All NASA pictures", in both
   modes.
@@ -473,7 +473,7 @@ redraws the page.
 
 (Decided 2026-10-01.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
 AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
-periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`; toggling it reschedules the job (`DailyJob.ensure` counts another network type as another timing); the page and the buttons still use any network. Each run, and each page
+periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`, so on mobile data turns wait too, also between stored pictures; toggling it reschedules the job (`DailyJob.ensure` counts another network type as another timing); the page and the buttons still use any network. Each run, and each page
 open or pull (2026-10-16, one path): `Store.update(force)`, `refresh(source)` for each source
 in use unless its stored post is today's (always with `force`), then, while `daily` is on,
 `setDue()`: what each screen is due (`:core`'s `dueWallpapers`, Turns), set where it isn't
@@ -665,8 +665,8 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
 
 1. Huge pictures (2 Oct 2026, 37.7 MB PNG) cost mobile data, and on a slow connection the
    download may not finish within the roughly 10 minutes Android gives a job (each retry starts
-   over). Left open (user, 2026-10-04): it happened once. The planned rendition and Wi-Fi only
-   switch cover most of it. Seen on 2026-10-07 (`cmd jobscheduler timeout`): a stopped job's
+   over). Left open (user, 2026-10-04): it happened once. The rendition (0.5.0) and the Wi-Fi only
+   switch (F2) cover most of it. Seen on 2026-10-07 (`cmd jobscheduler timeout`): a stopped job's
    partial download is thrown away and the retry starts from zero. Since WP7g a stop interrupts
    the run (`onStopJob`): `download()` ends within one chunk, `Store.update` sets nothing more
    (tablet, U7: the run ended within a second, no `.part` left; the retry came 6½ min later, as

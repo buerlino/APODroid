@@ -64,8 +64,16 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   needed it (gridload's rule, 2026-10-02). Current ones: `Post.isNoted` letting a missing
   `wallpaperUrl`, `savedUrl` or `cropUrl` (0.4.0's prefs) match by date alone (0.4.0 → 0.5.0,
   WP7d), so the update sets nothing and keeps ★ and the crop: drop that, but not the user's own
-  picture's match by date, two releases after F-Droid ships past 0.5.0. (`Store.daily` taking its
-  first value from `getPendingJob`, 0.1.2 → 0.2.0, was removed in 0.4.0.)
+  picture's match by date, two releases after F-Droid ships past 0.5.0. 0.5.0 → 0.6.0 (M2,
+  2026-10-20): `Store.migrateOnce` with `:core`'s `migrate` (`Migration.kt`, `MigrationTest`), a
+  one-time write at the first `Store` use while `allSources` is missing (page or job, a fresh
+  install too), under a lock shared by every `Store`, in one commit: `allSources` on unless
+  `sources` is APOD alone; with it on `home`/`lock` = `sources` in the columns `where` named;
+  the record copied to `lock.*` with Both and Lock, home's cleared with Lock (unknown: set by the
+  first run that needs it); the owner APOD in APOD mode, the picture "own" for 0.5.0's APOD with
+  no URL on an APOD video date, the stamp `turnStartedAt`. Drop it two releases after F-Droid
+  ships past 0.6.0. (`Store.daily` taking its first value from `getPendingJob`, 0.1.2 → 0.2.0,
+  was removed in 0.4.0.)
 
 ## Setup and distribution (copied from gridload)
 
@@ -243,15 +251,24 @@ set it as wallpaper, and on video days kept the old wallpaper.
     2026-10-17): a row of filter chips, "APOD | NASA | Earth" with ✓ on the selected ones (U3,
     2026-10-18; were tick boxes with the full names, 72 dp each), equal widths, as many on a line as
     the widest fits (`EqualGrid`, WP8, 2026-10-18: from font scale 1.5 on the FP6's 372 dp the
-    ticked labels broke inside the word; now two per line there) (`Store.sources`, pref `sources`
-    = `APOD,NASA`). Default APOD alone, so an update changes nothing; the last chip is greyed out. With two or more,
+    ticked labels broke inside the word; now two per line there). Since M2 (2026-10-20, until
+    M3's grid replaces them) the chips are read as the migration reads 0.5.0's `sources`: APOD
+    alone is APOD mode, anything else turns `allSources` on with the ticks in the columns
+    "Where" names (`Store.sources`' setter). Default APOD alone, so an update changes nothing; the last chip is greyed out. With two or more,
     **Change every** [Day | 12 h | 6 h | 3 h] (`Store.interval`, default Day) and they take
     turns (Background update, Turns).
   - **Weekday dialog** (user, 2026-10-17): ticking NASA or Earth says they post on weekdays only
     and Friday's pictures come back on weekends; "Dismiss" (again at the next such tick) and
     "Don't show again" (`weekdayNoticeHidden`). Not for the video-day choice. No text on the page.
+  - **The mode and the grid** (0.6.0, M2, 2026-10-20; the controls are M3's): pref
+    `allSources` (the switch "All NASA pictures", off: APOD mode), with it on the columns
+    `home` and `lock` (comma lists, `Store.columns`; APOD mode's columns are APOD on the screens
+    "Where" names, `apodColumns`). `Store.setAllSources` (the first time on, the grid starts
+    from "Where"; works like a tick and forgets both records, so every hold goes) and
+    `Store.setColumns` (`columnsChanged`: a changed column clears its screen's hold, the clock
+    restarts only when no column took turns before).
   - **Where** (was "Wallpaper on" until U3): home screen, lock screen, or both (user: a setting,
-    not fixed). Default: both. Its segments, like the tabs' and "Change every"'s, share one
+    not fixed), APOD mode's only (the grid has its columns). Default: both. Its segments, like the tabs' and "Change every"'s, share one
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
   - **If APOD is a video** (was "On video days", shown only with APOD
@@ -259,8 +276,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
     and vanished at a second tick, moving the page). With two or more ticked the choices are
     greyed out, the stored one stays selected for when APOD is alone again, under one grey line
     "The next source takes its turn." (the one help text this adds): with turns a
-    video APOD skips its turn, and the video notice and "Video day, wallpaper kept" don't
-    show. The choices: keep the previous picture, NASA Image of the Day, Earth Observatory (0.5.0,
+    video APOD skipped its turn, and the video notice and "Video day, wallpaper kept" don't
+    show. Since M2 (2026-10-20) the stored choice fills APOD's turn with turns too (Turns);
+    the greying and the line go in M3. The choices: keep the previous picture, NASA Image of the Day, Earth Observatory (0.5.0,
     WP3; `VideoDays.NASA`, `.EARTH`), or use my own picture (user). Default: keep, as
     the Tasker task did. The other source is fetched only on APOD video days (after APOD's
     refresh, which tells); its newest post is the wallpaper, set once per its date; choosing it
@@ -268,14 +286,18 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picked once with the system photo picker (`PickVisualMedia`, no permission) and copied to
     `files/fallback.jpg`; chosen but nothing picked → keep.
   - **Set as wallpaper now**, at the end of the Wallpaper section, with the same two settings:
-    the shown tab's picture, which starts that source's turn. **Always shown** (user,
+    the shown tab's picture, set by hand (`Store.setByHand`, M2: held on the screens "Where"
+    names until their next normal change, Background update, Turns; with turns the clock
+    restarts; with the switch "All NASA pictures" on too until M3's menu). **Always shown** (user,
     2026-10-17, U4; was only while the switch is off, user 2026-10-16): with tabs and turns the
     app no longer picks the one picture alone, so the user needs a way to set the one they're
-    looking at (before, only ⛶ then ✓). On APOD's video tab with turns it sets nothing ("Video
-    day: wallpaper kept"). While the switch is on, changing "Where", picking or changing "my
-    picture" or choosing "Use my picture" (on a video day) also sets it at once; turning the
-    switch on sets today's picture again (`forgetWallpaper`), which also puts APOD back after
-    another wallpaper. "Keep" on a video day sets nothing.
+    looking at (before, only ⛶ then ✓). On APOD's video tab it sets the stand-in, also with
+    turns (M2); with "Keep" or nothing loaded nothing ("Video day: wallpaper kept"). While the
+    switch is on, changing "Where", picking or changing "my picture" or choosing "Use my
+    picture" (on a video day) also sets at once, but not by hand (`Store.settingChanged`, M2:
+    the affected screens' records forgotten, then the normal set; no hold, the clock stays);
+    turning the switch on sets today's picture again (`forgetWallpaper`), which also puts APOD
+    back after another wallpaper. "Keep" on a video day sets nothing.
   - No help texts (user: the labels explain themselves), except the pause hint (Background
     update), the video-day notice, the grey line under "If APOD is a video" with turns (U4) and
     the planned ⓘ (Save every picture).
@@ -427,37 +449,62 @@ redraws the page.
 AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
 periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. Each run, and each page
 open or pull (2026-10-16, one path): `Store.update(force)`, `refresh(source)` for each source
-in use unless its stored post is today's (always with `force`), then, while `daily` is on, set
-`wallpaperFile()` if its source, date and picture URL aren't `wallpaperSource` +
-`wallpaperDate` + `wallpaperUrl` (the post last set, also by the set-now button; 0.5.0, WP3: a
-missing `wallpaperSource` is APOD, so 0.4.0's `wallpaperDate` carries over; the user's own
-picture counts as APOD's, with no URL; the URL since WP7d, 2026-10-18: a site may post a second
-picture on the same date, never seen in the 60 feed items). The sources in
-use: the ticked ones, and with APOD alone on an APOD video day the one chosen for video days.
-One failing doesn't stop the others, and its stored picture still counts (user, 2026-10-17,
+in use unless its stored post is today's (always with `force`), then, while `daily` is on,
+`setDue()`: what each screen is due (`:core`'s `dueWallpapers`, Turns), set where it isn't
+what the screen's record notes. **A record per screen** (0.6.0, M2, 2026-10-20): home's the
+unprefixed keys (as before), the lock screen's under `lock.`: `wallpaperSource` (whose turn,
+the owner), `wallpaperPicture` (the picture's source or `own`) with `wallpaperDate` and
+`wallpaperUrl` (the URL since WP7d, 2026-10-18: a site may post a second picture on the same
+date, never seen in the 60 feed items; none matches by date), `wallpaperStamp` (the turn it
+belongs to), `hold`/`holdPost`/`holdOwnerPost` (set by hand) and `wallpaperSetAt`. Both screens
+due the same picture: one set with both flags (one wallpaper); else `FLAG_SYSTEM` and
+`FLAG_LOCK` each (M0). Each screen's record is written right after its own set; a failed set
+leaves it, so the retry sets that screen only. A set by hand (the button, ✓) writes the clock
+and the records only after the set worked. The page reads home's record, the lock screen's
+when only it has a column (APOD mode with "Where" = Lock). The sources in use (the job): the
+ones ticked on either screen, the source of each picture held by hand (its newer post is set),
+and on an APOD video day the stand-in, while APOD is ticked somewhere or held; the page with
+`allSources` on fetches all three. One failing doesn't stop the others, and its stored picture still counts (user, 2026-10-17,
 after a code review: a failed check ended the current turn early, and a weekend shows Friday's
 stored picture anyway); the set is logged "Despite the failure: …" and the job retries. A
 separate
 date is needed because a refresh with the switch off downloads without setting. On a video
 day with "keep" nothing is saved, so switching to "my picture" later that day takes effect on
 the next run or page open. `refresh()` and `save()` hold one lock, as the page and the job can
-run at once; the `wallpaperDate` check and every set hold another (not the refresh lock: ★
-would wait seconds for a set), so a page and a job running at once set once.
+run at once; `setDue()`, every set and every change to the records or columns hold another (not
+the refresh lock: ★ would wait seconds for a set), so a page and a job running at once set once;
+the page calls them off the main thread.
 Failures return `needsReschedule` (30 s exponential backoff). Turning the switch on runs the job
 at once. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
 schedules it again when `daily` is on and the job is missing or has another timing
 (`DailyJob.ensure`; scheduling the same id again would stop a running job).
 
-**Turns** (0.5.0, WP5; proposed 2026-10-16, approved by the user 2026-10-17). With two or
-more ticked, `wallpaperFile()` is the source whose turn it is: the one on the wallpaper until
-`turnStartedAt` is the interval old (less 30 min: the job may run up to its flex early), or at
-once when it's unticked or has nothing to show; then the next ticked one in order (APOD → NASA
-→ Earth, round to itself) with a stored picture; an APOD video has none. A newer post of the source on the wallpaper is set at once and keeps its turn. A turn
-starts when the source changes, with any set by the user (button, ✓, a setting; `startTurn`),
-when the switch goes on (`forgetWallpaper`), and when a second source is ticked (so ticking
-doesn't end the current turn). Changing the interval waits for the next run. The job: with
-turns, period `min(interval, 6 h)` with a 15 min flex (Android raises it to 5 % of the period:
+**Turns** (0.5.0, WP5; proposed 2026-10-16, approved by the user 2026-10-17; per screen since
+0.6.0, M1/M2, 2026-10-20, the rules in `Screens.kt`). A column with two or more takes turns on
+**one shared clock**, `turnStartedAt`, read once per run for both screens: a screen whose
+`wallpaperStamp` isn't the clock's value is due its next source in order (APOD → NASA → Earth,
+round to itself) with a stored picture, and takes the value. The clock restarts (written
+first) when the turn is `interval` old (less 30 min: the job may run up to its flex early),
+never for an early change (the owner unticked, or with nothing to show: no picture yet, an
+APOD video with "Keep"), which moves the owner but not the stamp, so it ends with the turn. A
+newer post of the owner is set at once and keeps its turn. **The stand-in** fills APOD's turn
+on an APOD video day on every screen where APOD is ticked, with turns too (NASA's, Earth's or
+the user's own picture; with "Keep" a screen with APOD alone keeps its picture, one with turns
+passes to the next source); the record keeps APOD as the owner. **A set by hand** (button, ✓;
+`setByHand`) changes the picture, not the owner, and holds it until that screen's next normal
+change (its turn ends; on a one-source screen that source posts); a newer post of the held
+picture's source is set and keeps the hold; any tick in the screen's column ends it. It
+restarts the clock when a set screen takes turns, stamping the screens on the current turn.
+No hold on a screen with no ticks nor for a one-source screen's own source. **A changed
+setting** ("Where", the video-day choice, "my picture") forgets the affected screens' records
+(picture and hold dropped, owner and stamp kept), then the normal set; the clock stays. The
+daily switch going on restarts the clock and forgets both records (`forgetWallpaper`), so the
+current sources' pictures go on again. A screen with no record (the lock screen after
+migrating "Home", a fresh install) starts on the other screen's owner if ticked there, else
+the first ticked source with a picture. A second tick restarts the clock only when no column
+took turns before (so ticking doesn't end the current picture). Changing the interval waits
+for the next run. The job: with turns (a column with two or more, `Store.hasTurns`), period `min(interval, 6 h)` with a 15 min flex (Android raises it to 5 % of the period:
 18 min at 6 h), so turns come at even times; such a job doesn't run at once when scheduled, so
 switching on offline waits up to a period. With one source 0.4.0's job (6 h, flex 6 h).
 A `turnStartedAt` in the future (the clock set back) counts as a turn that is over
@@ -490,7 +537,7 @@ wake and fail offline).
 
 ## Next features
 
-**0.6.0: APOD first** (user, 2026-10-19; not built; the how and the layout in `plan-0.6.0.md`).
+**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, 2026-10-20, the settings and the page not yet; the how and the layout in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).
@@ -533,14 +580,14 @@ video days worked only with APOD alone (it shows at once that it was a video day
   and the opening tab follow the picture's source (a stand-in's tab), not whose turn it is.
 - Home and lock set separately: checked on the tablet only first (M0); the FP6 (Android 16)
   sees it in the final pass (user).
-- Migration (move to Stack when built): a one-time write at 0.6.0's first start, not a read
-  fallback (home's record is the unprefixed keys, so a read can't make it unknown). 0.5.0's
-  `sources` and `where` become the mode and the columns; the wallpaper record is copied to the
-  lock screen with Both and Lock, and home's is cleared with Lock; with Home the lock screen is
-  unknown (the app never set it). Under a lock (the page and the job may both start first);
-  0.5.0's own picture (APOD's, no URL, on a video date) becomes "own"; in APOD mode the owner
-  is always APOD (0.5.0 noted a stand-in as the wallpaper's source). A fresh install runs it
-  too and only writes the mode.
+- Migration (built, M2, 2026-10-20; Stack, Migrations): a one-time write at 0.6.0's first
+  start, not a read fallback (home's record is the unprefixed keys, so a read can't make it
+  unknown). 0.5.0's `sources` and `where` become the mode and the columns; the wallpaper record
+  is copied to the lock screen with Both and Lock, and home's is cleared with Lock; with Home
+  the lock screen is unknown (the app never set it). Under a lock (the page and the job may
+  both start first); 0.5.0's own picture (APOD's, no URL, on a video date) becomes "own"; in
+  APOD mode the owner is always APOD (0.5.0 noted a stand-in as the wallpaper's source). A
+  fresh install runs it too and only writes the mode.
 
 **0.5.0: more NASA pictures of the day** (user, 2026-10-16, from the repo's first GitHub issue;
 packages in `plan-0.5.0.md` in the skill, with the details still only proposed). NASA Image of

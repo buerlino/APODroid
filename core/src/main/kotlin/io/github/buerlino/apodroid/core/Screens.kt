@@ -198,12 +198,14 @@ private fun dueOn(column: List<Source>, record: Record, current: Instant?, store
  * Whether an APOD video day kept the picture of a screen with [column] and [record] (the page's
  * "video day, wallpaper kept"): APOD is ticked there and it's APOD's turn (APOD alone, or no
  * other source had a picture), and nothing stands in on it ("Skip it", the stand-in not stored
- * or not set yet). With turns "Skip it" passes the turn on, so that screen kept nothing.
+ * or not set yet). With turns "Skip it" passes the turn on, so that screen kept nothing. A record
+ * without a picture (forgotten by Set, or written by a first video day) counts only when the
+ * screen was [everSet] (`wallpaperSetAt`): then a picture is still on it.
  */
-fun videoDayKept(column: List<Source>, record: Record?, stored: Stored): Boolean {
+fun videoDayKept(column: List<Source>, record: Record?, stored: Stored, everSet: Boolean = true): Boolean {
     if (Source.APOD !in column || stored.post(Source.APOD)?.isVideo != true) return false
-    val picture = record?.picture ?: return false
-    if (record.owner != Source.APOD) return false
+    if (record == null || record.owner != Source.APOD) return false
+    val picture = record.picture ?: return everSet
     val standIn = stored.picture(Source.APOD) ?: return true
     return !shows(picture, standIn)
 }

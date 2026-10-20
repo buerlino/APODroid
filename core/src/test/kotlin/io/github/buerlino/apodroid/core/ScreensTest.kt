@@ -323,9 +323,20 @@ class ScreensTest {
         assertFalse(videoDayKept(listOf(NASA), Record(NASA, pic(NASA)), stored(videoDay)))
         // With turns "Skip it" passed the turn on.
         assertFalse(videoDayKept(all, Record(NASA, pic(NASA)), stored(videoDay)))
-        // Never set, or forgotten: the next set decides.
         assertFalse(videoDayKept(listOf(APOD), null, stored(videoDay)))
-        assertFalse(videoDayKept(listOf(APOD), Record(APOD), stored(videoDay)))
+    }
+
+    @Test
+    fun aRecordForgottenBySetAfterASetIsKept() {
+        // Set drops the picture, "Skip it" alone sets nothing; the screen was set before.
+        assertTrue(videoDayKept(listOf(APOD), Record(APOD), stored(videoDay, StandIn.SKIP), everSet = true))
+        assertFalse(videoDayKept(listOf(APOD), null, stored(videoDay), everSet = true))
+    }
+
+    @Test
+    fun aFreshInstallsFirstVideoDayKeepsNothing() {
+        // The record dueWallpapers writes with "Skip it": owner APOD, no picture, never set.
+        assertFalse(videoDayKept(listOf(APOD), Record(APOD), stored(videoDay, StandIn.SKIP), everSet = false))
     }
 
     @Test

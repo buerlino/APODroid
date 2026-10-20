@@ -434,7 +434,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   nothing is wrong until the next picture is due. Under the switch, while it's on:
   "Wallpaper changed 16 Oct, 06:12" (`wallpaperSetAt`, any successful set; 12/24 h as the
   system), or "Video day, wallpaper kept" (`:core`'s `videoDayKept`: APOD ticked there, its turn,
-  nothing standing in; with turns "Skip it" passes the turn, so nothing is kept); before the
+  nothing standing in; with turns "Skip it" passes the turn, so nothing is kept; a record without a
+  picture, as Set leaves it, counts when the screen was set before, `wallpaperSetAt`, else not: a
+  fresh install's first video day shows no line, B1); before the
   first set nothing. In APOD mode for the screen "Where" names (with Lock the `lock.*` record).
   With the switch on (M4) one line while both screens show the same picture, else a line per
   screen set or kept: "Home screen changed 16 Oct, 06:12 · NASA", "Lock screen: video day,

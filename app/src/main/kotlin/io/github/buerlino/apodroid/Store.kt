@@ -412,7 +412,8 @@ class Store(private val context: Context) {
     /** What the page says about [screen]: from its record, the chip, the opening tab and its status line. */
     fun screenState(screen: Screen): ScreenState {
         val record = record(screen)
-        return ScreenState(record?.picture, instant(screen.key("wallpaperSetAt")), videoDayKept(columns[screen].orEmpty(), record, stored()))
+        val setAt = instant(screen.key("wallpaperSetAt"))
+        return ScreenState(record?.picture, setAt, videoDayKept(columns[screen].orEmpty(), record, stored(), setAt != null))
     }
 
     /** When a check of [source] last worked: a refresh, or finding today's post already stored. */

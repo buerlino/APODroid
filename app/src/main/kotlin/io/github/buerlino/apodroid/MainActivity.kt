@@ -630,7 +630,8 @@ class MainActivity : ComponentActivity() {
      * The draft's video-day choice. On a video day the stand-in's tab follows it, and another
      * source's picture is fetched for it ([load]). "Use my picture" with nothing picked (neither
      * set nor in the draft) opens the picker first ([pickFirst]): the choice is made only once a
-     * picture is there, so backing out keeps the one before.
+     * picture is there, so backing out keeps the one before. Only a draft: nothing is set until
+     * Set, which with "Skip it" leaves the screen's picture alone (the status line says "kept").
      */
     private fun chooseVideoDays(choice: VideoDays, pickFirst: () -> Unit = {}) {
         if (videoDays == choice) return

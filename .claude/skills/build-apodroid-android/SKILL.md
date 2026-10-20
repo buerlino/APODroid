@@ -251,6 +251,32 @@ packages unattended): `night.md`.
   of it, the picker in APOD mode, the race for "Where" Home or Both (Lock is the case that
   copies), an upgrade from a real 0.5.0 APK (the state was made by `run-as`). Evidence in the
   run's `tablet/`.
+  V3 (2026-10-21 night, debug build of dev d2bf03c, after S6 and B1–B6, passed): Set in both
+  modes with the daily switch on and off: a draft (Earth ticked, Fit, "Where", the mode) wrote
+  no pref and set nothing; Set saved it, restarted `turnStartedAt` and set each screen afresh
+  (grid: APOD on both, one set `mWhich=3`; APOD mode "Where" Home only home, Both one set; with
+  the switch off a one-off set with Fit, no job); the job's next run in the same turn set
+  nothing, a turn later home Earth and lock NASA, each by itself. The daily switch: off with a
+  Fit draft cancelled the job and kept the draft; on with a Fill draft set the stored Fit
+  (`mCropHint` the whole 800×1340) and scheduled the job, Fill still the draft. The title
+  dropdown (✓ before the shown one) and the swipe with each source's own post, stopping at the
+  ends: grid mode three sources, APOD mode on a NASA stand-in day APOD and NASA, a plain day the
+  name alone. A faked APOD video day (`isVideo`), home APOD + NASA taking turns, lock APOD alone:
+  NASA, Earth and "my picture" on both screens with owner APOD (stamps kept), "Skip it" passed
+  home's turn to NASA (owner NASA, stamp kept) and kept the lock screen ("Lock screen: video
+  day, wallpaper kept"); APOD mode "Where" Both: each stand-in set, "Skip it" set nothing. The
+  page opened on the stand-in's page, the notices as approved. B1: APOD mode, "Skip it", switch
+  off and on: the records forgotten, "Video day, wallpaper kept" shows; with turns on home: home
+  NASA, "Home screen changed … · NASA" and the lock screen's kept line. Set and a Fit tap in
+  one `input` line: Set saved "Where" only, Setup closed with its header in `tertiary`, Fit
+  still the draft. Pull to refresh with APOD's `date` faked a day back (the page open skipped
+  it by the hour rule): fetched, `date` back to today, the picture set (`Page: wallpaper
+  set`). Landscape: two panes, the grid draft kept. Font scale 2.0 at `wm density 344`: the
+  list (dropdowns wrap under the names), "Change every", Fill/Fit, the status lines with the
+  short names, the credit with its ellipsis; the video dropdown's "▾" wraps to a second line
+  under "NASA Image of the Day" (for the user's eyes). No crash (`exit-info`: force stops and
+  kills only). Not checked: a set failing on one screen and its retry (nothing on the tablet
+  makes a set fail; `ScreensTest` covers the rule). Screenshots in the run's `tablet/`.
   Regression 2 (2026-10-20 night, dev 0d6df20, after S4f1, passed) didn't check: the open page
   following a job that changes only the lock screen (job and page share one process), a set
   that fails on one screen and its retry (nothing makes a set fail), the "Skip it" toast (rosie

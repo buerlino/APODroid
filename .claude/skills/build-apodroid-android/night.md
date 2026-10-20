@@ -100,9 +100,14 @@ them over; they stay because `scripts/pipeline.test.sh` resolves M0, M1 and F2. 
 isn't PASS stays unmerged with its results on its branch, and the rows after it still run (none
 rests on another). The regression after them reruns dev's debug build; let it run.
 
-Then (user, 2026-10-20 afternoon): **S1–S3**, a set by hand that changes the settings (the
-plan's decisions). V3, V5 and V6 wait for them (After S3), as they test the final tree; V4 had
-started before. By day they run by pipeline one after another, outside night.sh.
+Then (user, 2026-10-20 afternoon): **S1–S2**, a set by hand that changes the settings (the
+plan's decisions). S3 dropped the same evening: **S4–S6**, settings as a draft that Set applies,
+the setup and advanced areas, the title dropdown and swipe (the plan's "Set applies the
+setup"). S2 was stopped by hand during its tablet check: its review run (`scripts/pipeline.sh
+S2 --no-worker --tablet no`, as S4 and S5 replace what that check tests) merges it before S4
+can start. S4, S5 and S6 run by day, one at a time, the user looking at each on the tablet
+before the next (the plan, Remaining 3a). V3, V5 and V6 wait for S6, as they test the final
+tree; V4 had started before.
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -116,11 +121,13 @@ started before. By day they run by pipeline one after another, outside night.sh.
 | 8 | V2 | Tablet pass: F4, F5 and F5f1 | rosie | opus, high | no | — | plan V + plan V2 |
 | 9 | S1 | `:core` and `Store`: a set by hand changes the settings, no holds | winston | opus, high | yes | — | plan S1 |
 | 10 | S2 | Settings: the list instead of the grid, the order, the daily switch off | winston | opus, medium | yes | S1 | plan S2 |
-| 11 | S3 | The page: the set button under the picture, its menu, the highlight | winston | opus, medium | yes | S2 | plan S3 |
-| 12 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S3 | plan V + plan V3 |
-| 13 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
-| 14 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | S3 | plan V + plan V5 |
-| 15 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S3 | plan V + plan V6 |
+| 11 | S4 | Set applies the setup: the draft, `Store.saveSetup`, the old set paths gone | winston | opus, high | yes | S2 | plan S4 |
+| 12 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" | winston | opus, medium | yes | S4 | plan S5 |
+| 13 | S6 | The picture side: the title dropdown, swipe between sources, no Share | winston | opus, high | yes | S5 | plan S6 |
+| 14 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S6 | plan V + plan V3 |
+| 15 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
+| 16 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | S6 | plan V + plan V5 |
+| 17 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S6 | plan V + plan V6 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

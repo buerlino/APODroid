@@ -302,8 +302,18 @@ and mostly "NASA Earth Observatory").
 - The page: one line under the date (APOD mode: title, date, credit) or, with tabs, under the
   title on APOD's tab; at most two lines with an ellipsis, all of it while the explanation is
   open. Smaller and greyer than the explanation.
-- Tests: each label shape, a `<br>` joined with "; ", entities, none; every APOD post in
-  `private/last100.json` has one (`readsEveryRealPost`).
+- **Seen in `private/last100.json` (2026-10-20, before building):** all 100 have a credit row;
+  the `<th>` is "Credit" 45×, "Credit &amp; Copyright:" 27×, "Credit &amp; Copyright" 14×,
+  "Credit:" 11×, "Color Credit:", "Credit &amp; License", "Credit and Copyright:" once each
+  (the other rows are "Date", "Authors &amp; editors:", "A service of:", "Hat tip:"). Under a
+  plain "Credit" the value often carries its own label: "Image Credit &amp; Copyright: Guy
+  Bardon", "Image Credit: JAXA , ISAS", "Video Credit: …" (35 posts), so show such a value as
+  is and prefix the `<th>`'s label only when the value has none. Tags stripped leave spaces
+  before punctuation ("JAXA , ISAS", "( MTU )"): tidy " ," " ;" " )" "( ". `<br>` → "; " gives
+  "; ;" and ";;" twice (empty lines): collapse them. 21 have a "; " part (Processing, Text,
+  Music); lengths 4 ("NASA") to 255 characters.
+- Tests: each label shape, a value with its own label, a `<br>` joined with "; ", the tidying,
+  entities, none; every APOD post in `private/last100.json` has one (`readsEveryRealPost`).
 - Device (the tablet): a short credit and the longest of the 100 (251 characters; fake it by
   prefs on a debug build), APOD mode and with tabs, the explanation open and closed.
 - Done when: the tests pass, the user has seen it and approved the text, and `CLAUDE.md` (Data

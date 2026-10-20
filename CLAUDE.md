@@ -272,11 +272,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
     2026-10-20 evening: a setting that changes how the whole app works must act at once; S4 had
     it in the draft): off writes `daily` and cancels the job; on writes it, starts the stored
     setup afresh (`Store.startAfresh`: `restartAndForget` with the stored columns, the clock
-    restarts, both records forgotten, as 0.5.0's switch did), `update(page = true, show, set =
-    true)` sets the **stored** setup, then the job is scheduled as after Set; the other draft
-    changes stay a draft. Toasts "Wallpaper set" or "Couldn't set the wallpaper", none when
-    nothing was set (the status line says it). Turned on while a Set or an update runs, its run
-    goes beside it (the store's locks keep the sets apart). What the draft's switch hid (the
+    restarts, both records forgotten, as 0.5.0's switch did), `update(page = true, show)` sets
+    the **stored** setup while `daily` is still on, then the job is scheduled as after Set; the
+    other draft changes stay a draft. Toasts "Wallpaper set" or "Couldn't set the wallpaper",
+    none when nothing was set (the status line says it). Turned on while a Set, an update or its
+    own run goes: one run after it (S4f2's fix round, from the audit: beside it, either run
+    could set first and the other's toast said nothing or "Nothing to set yet"); a page update
+    meanwhile waits for it, and Set is disabled while it runs. Off is off: off drops a waiting
+    run, and a running one restarts nothing and sets nothing more once `daily` is off. What the draft's switch hid (the
     rows below) follows the one switch. **Two kinds of state on the
     page:** the controls and the sources the page offers (the tabs) follow the draft, so
     turning "All NASA pictures" on offers and fetches all three at once (`Store.update`'s
@@ -287,7 +290,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     switch schedule or cancel (Set by the stored switch, after saving the draft). **At once, as before:** "Wi-Fi only", "Save every picture" (they
     change no picture) and ★.
   - **Set as wallpaper**: one button at the end of the Wallpaper section, both modes, the daily
-    switch on or off, no Home / Lock / Both menu, enabled unless a Set runs. It saves the whole
+    switch on or off, no Home / Lock / Both menu, enabled unless a Set or the daily switch's run goes. It saves the whole
     draft in one commit (`Store.saveSetup`: the settings, the list with its `lastScreens`, the
     parts, "my picture" renamed from `fallback-draft.jpg` to `fallback.jpg`), restarts the
     clock and forgets the records (`:core`'s `restartAndForget`; Turns), then

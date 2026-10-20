@@ -62,7 +62,7 @@ packages unattended): `night.md`.
   `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs in APOD mode;
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
-  the daily switch (`daily`, at once: `switchDaily`, then `scheduleJob()` after its set, as Set's); the draft (S4: `where`, `list`, `interval`, `fit`, `videoDays`, `parts`, `draftFallback`,
+  the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob()` after its set, as Set's; on while a load, Set or switch-on runs: `switchAgain`, run by `runNext` after it, as `loadAgain`); the draft (S4: `where`, `list`, `interval`, `fit`, `videoDays`, `parts`, `draftFallback`,
   `allSources`; `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`;
   ✓ `keepPart`, `draftPosition`); the settings (`Settings`; with the switch "All NASA pictures" `PictureList`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,

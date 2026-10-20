@@ -180,6 +180,19 @@ packages unattended): `night.md`.
 - 0.6.0 (the night of 2026-10-20 on the tablet, debug builds; the morning's short names, F1,
   F3, F4, F5, F1f1 and F5f1 not on a device yet): what V1–V7 and P still have to check is
   listed in `plan-0.6.0.md`, V and P. Each V row updates this bullet with what it checked.
+  V1 (2026-10-20, debug build of dev, passed): Fit with a wide picture (APOD's real
+  1787×1340, Earth's real map 1942×1340, a made-up star field 3726×2484) and a tall one (a
+  made-up 600×2000 in `files/apod.jpg`), with the grid (Both columns one set, `mWhich=3`;
+  home APOD and lock Earth set separately) and in APOD mode ("Where" Both one set, Lock and
+  Home only their screen); Fit's hint is the whole 800×1340 bitmap, Fill's the centred crop
+  again; each Fill/Fit change and the mode switch with the daily switch on set at once and
+  `turnStartedAt` stayed; no ⛶ with Fit, and Fit closes an open crop mode. A made-up JPEG with
+  EXIF orientation 6 as "my picture" (a faked APOD video day) with Fit: upright, the circle
+  round. Share: "<title>\n<page link>" in the share sheet's preview from APOD's and NASA's
+  tabs and from the ▶ tile (NASA has no video posts, so the tile is APOD's only). Seen only
+  for the user's eyes: the star field with Fit shows faint dots where Fill shows crisp stars
+  (a 4.7× shrink of 1–3 px stars; a made-up field, not a real APOD), and the lock screen only
+  in grid mode (APOD mode's by `dumpsys wallpaper`). Screenshots in the run's `tablet/`.
 - 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
   device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
   for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked

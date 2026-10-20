@@ -22,6 +22,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,7 +58,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -70,6 +73,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
@@ -77,6 +81,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -99,6 +104,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -175,7 +182,7 @@ class MainActivity : ComponentActivity() {
     private var fit by mutableStateOf(false)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
 
-    /** The switch "All NASA pictures": the list instead of "Where", all three sources offered. */
+    /** The switch "More NASA pictures": the list instead of "Where", all three sources offered. */
     private var allSources by mutableStateOf(false)
 
     /** The list's ticks per screen ([Store.list]), kept in APOD mode too. */
@@ -200,6 +207,12 @@ class MainActivity : ComponentActivity() {
 
     /** "My picture" as set ([Store.fallbackFile]). */
     private var hasFallback by mutableStateOf(false)
+
+    /** "Setup" is open: by hand, by itself while the draft differs, closed after a Set that worked (S5). */
+    private var setupOpen by mutableStateOf(false)
+
+    /** "Advanced settings" is open; closed by default. */
+    private var advancedOpen by mutableStateOf(false)
 
     /** "Set as wallpaper" is running. */
     private var setting by mutableStateOf(false)
@@ -232,6 +245,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         store = Store(this)
         weekdayDialog = savedInstanceState?.getBoolean("weekdayDialog") == true
+        setupOpen = savedInstanceState?.getBoolean("setupOpen") == true
+        advancedOpen = savedInstanceState?.getBoolean("advancedOpen") == true
         tab = savedInstanceState?.getString("tab")?.let { name -> Source.entries.firstOrNull { it.name == name } }
         daily = store.daily
         wifiOnly = store.wifiOnly
@@ -265,6 +280,8 @@ class MainActivity : ComponentActivity() {
         super.onSaveInstanceState(outState)
         outState.putString("tab", tab?.name)
         outState.putBoolean("weekdayDialog", weekdayDialog)
+        outState.putBoolean("setupOpen", setupOpen)
+        outState.putBoolean("advancedOpen", advancedOpen)
         outState.putBundle("draft", draft().toBundle())
         outState.putBoolean("draftFallback", draftFallback)
         lastScreens.forEach { (source, screens) ->
@@ -695,6 +712,8 @@ class MainActivity : ComponentActivity() {
             failed = updated?.failure != null || result.isFailure
             readStatus()
             if (isStale()) show()
+            // Saved: "Setup" closes on its summary. A failure leaves it open.
+            if (updated != null && !updated.setFailed) setupOpen = false
             toast(
                 when {
                     updated == null || updated.setFailed -> "Couldn't set the wallpaper"
@@ -738,12 +757,13 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The draft's switch "All NASA pictures": "Where" and the list swap, and the page offers (and
-     * fetches, [load]) the new mode's sources. The first time on, the list starts from the
-     * draft's "Where".
+     * The draft's switch "More NASA pictures": "Where" and the list swap, so "Setup" opens, and
+     * the page offers (and fetches, [load]) the new mode's sources. The first time on, the list
+     * starts from the draft's "Where".
      */
     private fun switchAllSources(on: Boolean) {
         allSources = on
+        setupOpen = true
         if (on && !store.hasList && list == store.list) list = apodColumns(where.screens)
         load()
     }
@@ -846,7 +866,12 @@ class MainActivity : ComponentActivity() {
     }
 
     /** ⛶'s part of [post] in the draft: the middle unless ✓ noted one for this post. */
-    private fun draftPosition(post: Post): Float =
+    private fun draftPosition(post: Post): Float = position(parts, post)
+
+    /** ⛶'s stored part of [post] ([Store.parts]), for the highlight. */
+    private fun storedPosition(post: Post): Float = position(stored.parts, post)
+
+    private fun position(parts: Map<Source, Part>, post: Post): Float =
         parts[post.source]?.takeIf { post.isNoted(it.date, it.url) }?.position ?: 0.5f
 
     private fun openPage(url: String) {
@@ -999,12 +1024,15 @@ class MainActivity : ComponentActivity() {
                             .padding(8.dp)
                             .background(Color.Black.copy(alpha = 0.4f), CircleShape),
                     ) {
+                        // The draft's part differs from the stored one: in tertiary until Set.
+                        val partChanged = draftPosition(post) != storedPosition(post)
                         Text(
                             if (cropping) "✓" else "⛶",
                             Modifier.clearAndSetSemantics {
                                 contentDescription = if (cropping) "Done" else "Choose the wallpaper's part"
+                                if (partChanged) stateDescription = "not set yet"
                             },
-                            color = Color.White,
+                            color = if (partChanged) MaterialTheme.colorScheme.tertiary else Color.White,
                             fontSize = 24.sp,
                         )
                     }
@@ -1245,12 +1273,14 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Wallpaper: the daily switch (at once, S4f2), under it the status lines while it's on; then,
-     * the draft until "Set as wallpaper" (S4), in APOD mode "Where", with the switch "All
-     * NASA pictures" on the list ("Pictures from") and, while the daily switch is on and a column
-     * takes turns, "Change every"; "Size"; while the daily switch is on "If APOD is a video",
-     * "Wi-Fi only" and "Save every picture" (these two act at once); the set button. Then the
-     * mode switch.
+     * Wallpaper: the daily switch (at once, S4f2), under it the status lines while it's on. Then
+     * "Setup" (S5), a header that opens and closes the draft's settings (closed: the summary of
+     * what is stored): in APOD mode "Where", with the switch "More NASA pictures" on the list
+     * ("Pictures from") and, while the daily switch is on and a column takes turns, "Change
+     * every"; "Size"; while the daily switch is on "If APOD is a video". The set button, always.
+     * Then "Advanced settings", closed by default: while the daily switch is on "Wi-Fi only" and
+     * "Save every picture" (these two act at once), and the mode switch. A setting the draft
+     * changed and Set hasn't saved shows in `tertiary` ([highlight]).
      */
     @Composable
     private fun Settings() {
@@ -1258,6 +1288,9 @@ class MainActivity : ComponentActivity() {
         val change = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let(::saveFallback) }
         val pickAndChoose = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let { saveFallback(it, choose = true) } }
         val request = PickVisualMediaRequest(PickVisualMedia.ImageOnly)
+        val setupChanged = setupChanged()
+        // Opens by itself while the draft differs (a rotation, the system killing the app).
+        LaunchedEffect(setupChanged) { if (setupChanged) setupOpen = true }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Heading("Wallpaper")
             Row(
@@ -1272,55 +1305,31 @@ class MainActivity : ComponentActivity() {
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            if (!allSources) {
-                Heading("Where")
-                // One height for all: a label that wraps (a narrow pane, a large font) made its segment taller.
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    val labels = mapOf(Where.HOME to "Home screen", Where.LOCK to "Lock screen", Where.BOTH to "Both")
-                    Where.entries.forEachIndexed { i, w ->
-                        SegmentedButton(
-                            selected = where == w,
-                            onClick = { where = w },
-                            shape = SegmentedButtonDefaults.itemShape(i, Where.entries.size),
-                            modifier = Modifier.fillMaxHeight(),
-                        ) { Text(labels.getValue(w)) }
+            Header("Setup", setupOpen, setupChanged, summary = setupSummary()) { setupOpen = !setupOpen }
+            if (setupOpen) {
+                if (!allSources) {
+                    Heading("Where", where != stored.where)
+                    Segments(Where.entries.map { it to it.label }, where, where != stored.where) { where = it }
+                } else {
+                    PictureList()
+                    // Hiding it moves the page only after a tick.
+                    if (daily && columns.values.any { it.size >= 2 }) {
+                        val changed = interval != stored.interval
+                        Heading("Change every", changed)
+                        Segments(Interval.entries.map { it to it.label }, interval, changed) { interval = it }
                     }
                 }
-            } else {
-                PictureList()
-                // Hiding it moves the page only after a tick.
-                if (daily && columns.values.any { it.size >= 2 }) {
-                    Heading("Change every")
-                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                        val labels = mapOf(Interval.DAY to "Day", Interval.H12 to "12 h", Interval.H6 to "6 h", Interval.H3 to "3 h")
-                        Interval.entries.forEachIndexed { i, choice ->
-                            SegmentedButton(
-                                selected = interval == choice,
-                                onClick = { interval = choice },
-                                shape = SegmentedButtonDefaults.itemShape(i, Interval.entries.size),
-                                modifier = Modifier.fillMaxHeight(),
-                            ) { Text(labels.getValue(choice)) }
-                        }
-                    }
+                Heading("Size", fit != stored.fit)
+                Segments(listOf(false to "Fill", true to "Fit"), fit, fit != stored.fit, ::chooseFit)
+                if (daily) {
+                    Heading("If APOD is a video", videoDaysChanged())
+                    // With the list: greyed out, not hidden, while APOD has no tick, so the page doesn't move.
+                    VideoDaysChoice(
+                        enabled = !allSources || columns.values.any { Source.APOD in it },
+                        pick = { pickAndChoose.launch(request) },
+                        change = { change.launch(request) },
+                    )
                 }
-            }
-            FitChoice()
-            if (daily) {
-                Heading("If APOD is a video")
-                // With the list: greyed out, not hidden, while APOD has no tick, so the page doesn't move.
-                VideoDaysChoice(
-                    enabled = !allSources || columns.values.any { Source.APOD in it },
-                    pick = { pickAndChoose.launch(request) },
-                    change = { change.launch(request) },
-                )
-                Row(
-                    Modifier.fillMaxWidth().toggleable(wifiOnly, role = Role.Switch, onValueChange = ::switchWifiOnly),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Wi-Fi only", Modifier.weight(1f))
-                    Switch(checked = wifiOnly, onCheckedChange = null)
-                }
-                SaveEverySwitch()
             }
             // One button, both modes, the daily switch on or off: it applies the whole draft.
             Button(
@@ -1329,30 +1338,147 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             ) { Text("Set as wallpaper") }
 
-            HorizontalDivider(Modifier.padding(vertical = 16.dp))
-            Row(
-                Modifier.fillMaxWidth().toggleable(allSources, role = Role.Switch, onValueChange = ::switchAllSources),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("All NASA pictures", Modifier.weight(1f))
-                Switch(checked = allSources, onCheckedChange = null)
+            val modeChanged = allSources != stored.allSources
+            Header("Advanced settings", advancedOpen, modeChanged) { advancedOpen = !advancedOpen }
+            if (advancedOpen) {
+                if (daily) {
+                    Row(
+                        Modifier.fillMaxWidth().toggleable(wifiOnly, role = Role.Switch, onValueChange = ::switchWifiOnly),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Wi-Fi only", Modifier.weight(1f))
+                        Switch(checked = wifiOnly, onCheckedChange = null)
+                    }
+                    SaveEverySwitch()
+                }
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .toggleable(allSources, role = Role.Switch, onValueChange = ::switchAllSources)
+                        .semantics { if (modeChanged) stateDescription = "${if (allSources) "On" else "Off"}, not set yet" },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("More NASA pictures", Modifier.weight(1f), color = highlight(modeChanged))
+                    val colors = MaterialTheme.colorScheme
+                    Switch(
+                        checked = allSources,
+                        onCheckedChange = null,
+                        colors = if (!modeChanged) SwitchDefaults.colors() else SwitchDefaults.colors(
+                            checkedTrackColor = colors.tertiary,
+                            checkedThumbColor = colors.onTertiary,
+                            uncheckedBorderColor = colors.tertiary,
+                            uncheckedThumbColor = colors.tertiary,
+                        ),
+                    )
+                }
             }
         }
     }
 
-    /** "Size": Fill (the screen's shape cut from the picture; ⛶ chooses which part) or Fit (all of it on black). */
+    /** Anything in "Setup" the draft changed: what the shown mode's settings differ in from the stored setup. */
+    private fun setupChanged(): Boolean =
+        (if (allSources) Source.entries.any(::rowChanged) else where != stored.where) ||
+            interval != stored.interval || fit != stored.fit || videoDaysChanged()
+
+    /** The list's row for [source] puts it on other screens than the stored list. */
+    private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
+
+    /** Another video-day choice, or a newly picked "my picture" while it's chosen. */
+    private fun videoDaysChanged() = videoDays != stored.videoDays || (videoDays == VideoDays.MINE && draftFallback)
+
+    /**
+     * "Setup"'s summary while it's closed, of the stored setup: "APOD on both screens" (APOD
+     * mode), else each ticked source "NASA on home screen", joined by ", "; " · turns every 6 h"
+     * while a screen takes turns and the daily switch is on; " · Fill" or " · Fit".
+     */
+    private fun setupSummary(): String {
+        fun on(screens: Set<Screen>) = when (Where.entries.first { it.screens == screens }) {
+            Where.HOME -> "home screen"
+            Where.LOCK -> "lock screen"
+            Where.BOTH -> "both screens"
+        }
+        val sources = if (!stored.allSources) {
+            "APOD on ${on(stored.where.screens)}"
+        } else {
+            stored.list.ticked().joinToString(", ") { "${it.shortLabel} on ${on(stored.list.screensOf(it))}" }
+        }
+        val turns = if (daily && stored.columns.values.any { it.size >= 2 }) " · turns every ${stored.interval.label}" else ""
+        return "$sources$turns · ${if (stored.fit) "Fit" else "Fill"}"
+    }
+
+    /**
+     * A segmented row, one height for all (a label that wraps, a narrow pane, a large font, made
+     * its segment taller). [changed]: the draft's choice isn't stored, so it shows in `tertiary`.
+     */
     @Composable
-    private fun FitChoice() {
-        Heading("Size")
+    private fun <T> Segments(choices: List<Pair<T, String>>, chosen: T, changed: Boolean, choose: (T) -> Unit) {
+        val colors = MaterialTheme.colorScheme
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            listOf(false to "Fill", true to "Fit").forEachIndexed { i, (on, label) ->
+            choices.forEachIndexed { i, (value, label) ->
                 SegmentedButton(
-                    selected = fit == on,
-                    onClick = { chooseFit(on) },
-                    shape = SegmentedButtonDefaults.itemShape(i, 2),
-                    modifier = Modifier.fillMaxHeight(),
+                    selected = chosen == value,
+                    onClick = { choose(value) },
+                    shape = SegmentedButtonDefaults.itemShape(i, choices.size),
+                    modifier = Modifier.fillMaxHeight().semantics {
+                        if (changed && chosen == value) stateDescription = "Selected, not set yet"
+                    },
+                    colors = if (!changed) SegmentedButtonDefaults.colors() else SegmentedButtonDefaults.colors(
+                        activeContainerColor = colors.tertiaryContainer,
+                        activeContentColor = colors.onTertiaryContainer,
+                        activeBorderColor = colors.tertiary,
+                        inactiveBorderColor = colors.tertiary,
+                    ),
                 ) { Text(label) }
             }
+        }
+    }
+
+    /**
+     * A header that opens and closes its section ("Setup ▸", "Setup ▾"), a button for screen
+     * readers ("expanded", "collapsed"); [summary] under it while it's closed. [changed]: in `tertiary`.
+     */
+    @Composable
+    private fun Header(text: String, open: Boolean, changed: Boolean, summary: String? = null, toggle: () -> Unit) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = toggle)
+                .semantics { stateDescription = (if (open) "expanded" else "collapsed") + if (changed) ", not set yet" else "" }
+                .padding(top = 8.dp, bottom = 4.dp),
+        ) {
+            Text(
+                "$text ${if (open) "▾" else "▸"}",
+                Modifier.clearAndSetSemantics { contentDescription = text },
+                style = MaterialTheme.typography.titleSmall,
+                color = if (changed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+            )
+            if (!open && summary != null) {
+                Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+
+    /** A highlighted control's text: `tertiary` while the draft differs from the stored setup, else the default. */
+    @Composable
+    private fun highlight(changed: Boolean) = if (changed) MaterialTheme.colorScheme.tertiary else Color.Unspecified
+
+    /** An outlined dropdown's border and text, in `tertiary` while [changed]. */
+    @Composable
+    private fun DropdownButton(text: String, description: String, enabled: Boolean, changed: Boolean, onClick: () -> Unit) {
+        val tertiary = MaterialTheme.colorScheme.tertiary
+        OutlinedButton(
+            onClick = onClick,
+            enabled = enabled,
+            border = if (changed && enabled) BorderStroke(1.dp, tertiary) else ButtonDefaults.outlinedButtonBorder(enabled),
+            colors = if (changed) ButtonDefaults.outlinedButtonColors(contentColor = tertiary) else ButtonDefaults.outlinedButtonColors(),
+        ) {
+            Text(
+                text,
+                Modifier.clearAndSetSemantics {
+                    contentDescription = description
+                    if (changed) stateDescription = "not set yet"
+                },
+            )
         }
     }
 
@@ -1364,14 +1490,16 @@ class MainActivity : ComponentActivity() {
      */
     @Composable
     private fun PictureList() {
-        val labels = mapOf(Where.HOME to "Home screen", Where.LOCK to "Lock screen", Where.BOTH to "Both")
         val tickedCount = Source.entries.count { s -> columns.values.any { s in it } }
         Heading("Pictures from")
         Source.entries.forEach { source ->
             val on = columns.screensOf(source)
             val shown = on.ifEmpty { lastScreens[source] ?: Screen.entries.toSet() }
             val checked = on.isNotEmpty()
-            val name = labels.getValue(Where.entries.first { it.screens == shown })
+            val name = Where.entries.first { it.screens == shown }.label
+            // The row differs from the stored list: its tick box, name and dropdown in tertiary.
+            val changed = rowChanged(source)
+            val tertiary = MaterialTheme.colorScheme.tertiary
             // Wraps the dropdown under the name when both don't fit on one line (a large font, a narrow pane).
             FlowRow(
                 Modifier.fillMaxWidth(),
@@ -1385,21 +1513,24 @@ class MainActivity : ComponentActivity() {
                         enabled = !(checked && tickedCount == 1),
                         role = Role.Checkbox,
                         onValueChange = { place(source, if (it) shown else emptySet()) },
-                    ),
+                    ).semantics { if (changed) stateDescription = "${if (checked) "Checked" else "Not checked"}, not set yet" },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Checkbox(checked = checked, onCheckedChange = null, enabled = !(checked && tickedCount == 1))
-                    Text(source.shortLabel, Modifier.padding(start = 8.dp, end = 16.dp), softWrap = false)
+                    Checkbox(
+                        checked = checked,
+                        onCheckedChange = null,
+                        enabled = !(checked && tickedCount == 1),
+                        colors = if (changed) CheckboxDefaults.colors(checkedColor = tertiary, uncheckedColor = tertiary) else CheckboxDefaults.colors(),
+                    )
+                    Text(source.shortLabel, Modifier.padding(start = 8.dp, end = 16.dp), color = highlight(changed), softWrap = false)
                 }
                 Box {
                     var open by remember { mutableStateOf(false) }
-                    OutlinedButton(onClick = { open = true }, enabled = checked) {
-                        Text("$name ▾", Modifier.clearAndSetSemantics { contentDescription = "${source.shortLabel} on: $name" })
-                    }
+                    DropdownButton("$name ▾", "${source.shortLabel} on: $name", enabled = checked, changed = changed) { open = true }
                     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                         Where.entries.forEach { w ->
                             DropdownMenuItem(
-                                text = { Text(labels.getValue(w)) },
+                                text = { Text(w.label) },
                                 onClick = { open = false; place(source, w.screens) },
                                 leadingIcon = { Text(if (w.screens == shown) "✓" else "") },
                             )
@@ -1421,9 +1552,7 @@ class MainActivity : ComponentActivity() {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
             Box {
                 val name = videoDays.label
-                OutlinedButton(onClick = { open = true }, enabled = enabled) {
-                    Text("$name ▾", Modifier.clearAndSetSemantics { contentDescription = "If APOD is a video: $name" })
-                }
+                DropdownButton("$name ▾", "If APOD is a video: $name", enabled, videoDaysChanged()) { open = true }
                 DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                     VideoDays.entries.forEach { choice ->
                         DropdownMenuItem(
@@ -1539,11 +1668,11 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun Heading(text: String) {
+    private fun Heading(text: String, changed: Boolean = false) {
         Text(
             text,
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
+            color = if (changed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(top = 8.dp),
         )
     }
@@ -1571,6 +1700,23 @@ private val Source.possessive
         Source.APOD -> "the APOD"
         Source.NASA -> "NASA's Image of the Day"
         Source.EARTH -> "Earth Observatory's Image of the Day"
+    }
+
+/** "Where"'s segments and the list's dropdowns. */
+private val Where.label
+    get() = when (this) {
+        Where.HOME -> "Home screen"
+        Where.LOCK -> "Lock screen"
+        Where.BOTH -> "Both"
+    }
+
+/** "Change every"'s segments and the Setup summary. */
+private val Interval.label
+    get() = when (this) {
+        Interval.DAY -> "24 h"
+        Interval.H12 -> "12 h"
+        Interval.H6 -> "6 h"
+        Interval.H3 -> "3 h"
     }
 
 /** The video-day choice in its dropdown. */

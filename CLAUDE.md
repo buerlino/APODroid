@@ -662,9 +662,11 @@ and only while `daily` is on. Off still cancels at once, a running run too, and 
 Accepted: the process dying before the run's end loses the note; `onResume`'s `ensure` covers a
 changed timing, but a fresh period for the same timing is lost (turns stay on their clock, the
 job may come up to a period off). **A failed run keeps its backoff retry** (user, 2026-10-20
-night; B5, not built yet: S4f3 let a reschedule noted during a failed run replace the retry, so
-with turns the retry waited up to a period): the note waits for the end of a run that didn't
-fail. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
+night; B5: S4f3 let a reschedule noted during a failed run replace the retry, so with turns
+the retry waited up to a period): the note waits for the end of a run that didn't fail (the
+retry, usually within a minute). A `schedule` or `ensure` done with no run going (a Set,
+`onResume`, "Wi-Fi only") drops a kept note, so an old note doesn't restart the period after a
+later Set (`:core`'s `JobRuns`, `JobRunsTest`). The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
 schedules it again when `daily` is on and the job is missing or has another timing
 (`DailyJob.ensure`; scheduling the same id again would stop a running job).

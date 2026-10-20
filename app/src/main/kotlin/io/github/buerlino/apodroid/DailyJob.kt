@@ -7,6 +7,8 @@ import android.app.job.JobService
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
+import io.github.buerlino.apodroid.core.JobRuns
+import io.github.buerlino.apodroid.core.Reschedule
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
@@ -18,14 +20,15 @@ import kotlin.concurrent.thread
  *
  * No reschedule stops a running run (S4f3): scheduling the job's id again would stop it, so while
  * one goes [schedule] and [ensure] only note what's wanted, and the run does it after
- * [jobFinished]. [cancel] (the daily switch off) still stops it at once.
+ * [jobFinished], unless it failed: then the note waits for the next run that doesn't fail, so the
+ * backoff retry stays (B5). [cancel] (the daily switch off) still stops it at once.
  */
 class DailyJob : JobService() {
     @Volatile
     private var worker: Thread? = null
 
     override fun onStartJob(params: JobParameters): Boolean {
-        synchronized(lock) { runs++ }
+        runs.started()
         worker = thread {
             val store = Store(this)
             val result = runCatching { store.update(force = false) }
@@ -41,7 +44,7 @@ class DailyJob : JobService() {
                     .onFailure { Log.w("APODroid", "Daily job's saves ended: $it") }
             }
             jobFinished(params, failure != null)
-            rescheduleNoted(this)
+            rescheduleNoted(this, failed = failure != null)
         }
         return true
     }
@@ -52,28 +55,19 @@ class DailyJob : JobService() {
         return true
     }
 
-    /** What a reschedule asked for while a run went: [ensure], or [schedule] afresh (wins). */
-    private enum class Noted { ENSURE, SCHEDULE }
-
     companion object {
         private const val ID = 1
 
         /** The page and the job share one process: the runs going ([onStartJob] to its end) and what they owe. */
-        private val lock = Any()
-        private var runs = 0
-        private var noted: Noted? = null
+        private val runs = JobRuns()
 
         /**
          * Schedules the job afresh (its period starts now). While a run goes, only noted: the
-         * run does it when it ends ([rescheduleNoted]); `true` then.
+         * run does it when it ends ([rescheduleNoted]); `true` then. Else at once, and a note a
+         * failed run kept is dropped.
          */
         fun schedule(context: Context): Boolean {
-            synchronized(lock) {
-                if (runs > 0) {
-                    noted = Noted.SCHEDULE
-                    return true
-                }
-            }
+            if (runs.note(Reschedule.SCHEDULE)) return true
             return scheduler(context).schedule(job(context)) == JobScheduler.RESULT_SUCCESS
         }
 
@@ -83,12 +77,7 @@ class DailyJob : JobService() {
          * same id again stops a running job, so while a run goes it's only noted, as [schedule].
          */
         fun ensure(context: Context): Boolean {
-            synchronized(lock) {
-                if (runs > 0) {
-                    if (noted == null) noted = Noted.ENSURE
-                    return true
-                }
-            }
+            if (runs.note(Reschedule.ENSURE)) return true
             val pending = scheduler(context).getPendingJob(ID)
             val job = job(context)
             return pending != null && pending.intervalMillis == job.intervalMillis && pending.flexMillis == job.flexMillis &&
@@ -119,24 +108,23 @@ class DailyJob : JobService() {
 
         /** Off is off: cancels the job, a running run too, and drops a noted reschedule. */
         fun cancel(context: Context) {
-            synchronized(lock) { noted = null }
+            runs.drop()
             scheduler(context).cancel(ID)
         }
 
         /**
          * A run's end, after [jobFinished]: does what a reschedule noted meanwhile, by the stored
-         * setup as it is now, while the daily switch is still on. The process dying first loses
-         * it: `onResume`'s [ensure] then covers a changed timing, not a fresh period.
+         * setup as it is now, while the daily switch is still on. After a failed run the note is
+         * kept for the next run that doesn't fail (a reschedule now would replace the backoff
+         * retry). The process dying first loses it: `onResume`'s [ensure] then covers a changed
+         * timing, not a fresh period.
          */
-        private fun rescheduleNoted(context: Context) {
-            val wanted = synchronized(lock) {
-                runs--
-                if (runs > 0) null else noted.also { noted = null }
-            }
+        private fun rescheduleNoted(context: Context, failed: Boolean) {
+            val wanted = runs.finished(failed)
             if (wanted == null || !Store(context).daily) return
             val ok = when (wanted) {
-                Noted.SCHEDULE -> schedule(context)
-                Noted.ENSURE -> ensure(context)
+                Reschedule.SCHEDULE -> schedule(context)
+                Reschedule.ENSURE -> ensure(context)
             }
             if (ok) Log.i("APODroid", "Daily job: rescheduled after the run (${wanted.name.lowercase()})")
             else Log.w("APODroid", "Daily job: couldn't reschedule after the run")

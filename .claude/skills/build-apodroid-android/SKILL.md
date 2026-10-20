@@ -64,7 +64,9 @@ packages unattended): `night.md`.
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
   the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob()` after its set, as Set's; on while a load, Set or switch-on runs: `switchAgain`, run by `runNext` after it, as `loadAgain`); the draft (S4: `where`, `list`, `interval`, `fit`, `videoDays`, `parts`, `draftFallback`,
   `allSources`; `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`;
-  ✓ `keepPart`, `draftPosition`); the settings (`Settings`; with the switch "All NASA pictures" `PictureList`; `VideoDaysChoice`, the
+  ✓ `keepPart`, `draftPosition`, `storedPosition`); the settings (`Settings`: `Header` for "Setup" and "Advanced settings", `setupOpen`/`advancedOpen`
+  in the saved state, `setupSummary` of the stored setup; the highlight: `setupChanged`, `rowChanged`, `videoDaysChanged`, `highlight`, `Segments`
+  (the segmented rows), `DropdownButton`; with the switch "More NASA pictures" `PictureList`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
   all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, then the job scheduled (`scheduleJob`) or cancelled by the stored `daily`);
   `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post.

@@ -108,6 +108,7 @@ import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
+import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.Source
@@ -146,13 +147,18 @@ class MainActivity : ComponentActivity() {
     private var failed by mutableStateOf(false)
     private var problem by mutableStateOf<Problem?>(null)
 
-    /** Whose check [problem] and [checkedAt] are: APOD's, or on a video day the video-day source's. */
+    /** Whose check [problem] and [checkedAt] are ([readProblem]). */
     private var problemSource by mutableStateOf(Source.APOD)
     private var checkedAt by mutableStateOf<Instant?>(null)
-    private var wallpaperSetAt by mutableStateOf<Instant?>(null)
-    private var wallpaperSource by mutableStateOf(Source.APOD)
-    private var wallpaperDate by mutableStateOf<LocalDate?>(null)
-    private var wallpaperUrl by mutableStateOf<String?>(null)
+
+    /** What each screen shows, from its record ([Store.screenState]): the chip, the opening tab, the status lines. */
+    private var screens by mutableStateOf(emptyMap<Screen, ScreenState>())
+
+    /** APOD mode's screen ([Store.pageScreen]): the lock screen's record with "Where" = Lock. */
+    private var pageScreen by mutableStateOf(Screen.HOME)
+
+    /** On an APOD video day: the stand-in is stored ([Store.tabPicture] of APOD), for the video notice with the switch on. */
+    private var standInReady by mutableStateOf(false)
     private var saved by mutableStateOf(false)
 
     /** ★ is downloading the original; taps wait for it. */
@@ -268,15 +274,25 @@ class MainActivity : ComponentActivity() {
         get() = ticked == listOf(Source.APOD)
 
     /**
-     * One tab per source in use: the ticked ones; with APOD alone, on an APOD video day also the
-     * source chosen for video days.
+     * The tabs: with the switch "All NASA pictures" on all three; in APOD mode APOD, on an APOD
+     * video day also the source chosen for video days.
      */
     private val sources
-        get() = if (apodAlone) listOfNotNull(Source.APOD, videoDays.source.takeIf { apod?.isVideo == true }) else ticked
+        get() = if (allSources) Source.entries else listOfNotNull(Source.APOD, videoDays.source.takeIf { apod?.isVideo == true })
 
-    /** The tab shown: the one chosen, else the source on the wallpaper, else the first. */
+    /** The source of the picture on [screen]; none for the user's own picture or a screen never set. */
+    private fun pictureSource(screen: Screen) = (screens[screen]?.picture as? Picture.Of)?.source
+
+    /**
+     * The tab shown: the one chosen, else the source of the picture on the wallpaper (a stand-in's
+     * own tab), else the first. With the switch on the home screen's picture, else the lock
+     * screen's; in APOD mode the one on the screen "Where" names ([pageScreen]).
+     */
     private val shown
-        get() = sources.let { s -> tab?.takeIf { it in s } ?: wallpaperSource.takeIf { it in s } ?: s.first() }
+        get() = sources.let { s ->
+            val onScreens = if (allSources) Screen.entries.mapNotNull(::pictureSource) else listOfNotNull(pictureSource(pageScreen))
+            tab?.takeIf { it in s } ?: onScreens.firstOrNull { it in s } ?: s.first()
+        }
 
     /**
      * Shows the shown tab's stored post (also when the daily job stored a new one while the page
@@ -316,19 +332,26 @@ class MainActivity : ComponentActivity() {
     private fun isStale() = picture == null || post?.source != shown || store.post(shown) != post
 
     /**
-     * What the last check and the last set stored (also the job's), and the stored APOD, which
-     * decides the tabs. One problem box: APOD's problem, else on a video day that of the source
-     * chosen for video days.
+     * What the last check and the last sets stored (also the job's), and the stored APOD, which
+     * decides the tabs.
      */
     private fun readStatus() {
         apod = store.apod
-        problemSource = sources.firstOrNull { store.problem(it) != null } ?: sources.first()
+        pageScreen = store.pageScreen
+        screens = Screen.entries.associateWith(store::screenState)
+        standInReady = apod?.isVideo == true && store.tabPicture(Source.APOD) != null
+        readProblem()
+    }
+
+    /**
+     * One problem box. In APOD mode the first tab with a problem (APOD's first). With the switch
+     * on (all three fetched) the shown tab's, else the first ticked source's.
+     */
+    private fun readProblem() {
+        val candidates = if (allSources) listOf(shown) + ticked else sources
+        problemSource = candidates.firstOrNull { store.problem(it) != null } ?: shown
         problem = store.problem(problemSource)
         checkedAt = store.checkedAt(problemSource)
-        wallpaperSetAt = store.wallpaperSetAt
-        wallpaperSource = store.wallpaperSource
-        wallpaperDate = store.wallpaperDate
-        wallpaperUrl = store.wallpaperUrl
     }
 
     /**
@@ -354,18 +377,51 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Under the daily switch: when the wallpaper last changed, from where when it isn't APOD or
-     * two or more sources are ticked, or that a video day kept it.
+     * two or more sources are ticked, or that a video day kept it ([ScreenState.kept]). In APOD
+     * mode one line, for the screen "Where" names. With the switch on one line while both
+     * screens show the same picture, else one per screen that was set or kept ("Home screen
+     * changed …", "Lock screen: video day, wallpaper kept").
      */
-    private fun statusText(): String? = when {
-        apodAlone && apod?.isVideo == true && when (videoDays) {
-            VideoDays.KEEP -> true
-            VideoDays.MINE -> !hasFallback
-            else -> wallpaperSource != videoDays.source
-        } -> "Video day, wallpaper kept"
-        else -> wallpaperSetAt?.let {
-            val time = if (DateFormat.is24HourFormat(this)) "d MMM, HH:mm" else "d MMM, h:mm\u00A0a"
-            "Wallpaper changed " + it.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern(time, Locale.ENGLISH)) +
-                if (wallpaperSource == Source.APOD && apodAlone) "" else " · ${wallpaperSource.label}"
+    private fun statusLines(): List<String> {
+        fun line(name: String, state: ScreenState, setAt: Instant? = state.setAt): String? = when {
+            state.kept -> if (name == "Wallpaper") "Video day, wallpaper kept" else "$name: video day, wallpaper kept"
+            else -> setAt?.let {
+                val time = if (DateFormat.is24HourFormat(this)) "d MMM, HH:mm" else "d MMM, h:mm\u00A0a"
+                "$name changed " + it.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern(time, Locale.ENGLISH)) +
+                    pictureSuffix(state.picture)
+            }
+        }
+        if (!allSources) return listOfNotNull(screens[pageScreen]?.let { line("Wallpaper", it) })
+        val home = screens[Screen.HOME]
+        val lock = screens[Screen.LOCK]
+        if (home != null && lock != null && home.picture != null && home.picture == lock.picture && home.kept == lock.kept) {
+            return listOfNotNull(line("Wallpaper", home, listOfNotNull(home.setAt, lock.setAt).maxOrNull()))
+        }
+        return listOfNotNull(home?.let { line("Home screen", it) }, lock?.let { line("Lock screen", it) })
+    }
+
+    /** " · NASA Image of the Day" on the status line, none for APOD's with APOD ticked alone; the user's own " · My picture" with the switch on. */
+    private fun pictureSuffix(picture: Picture?): String = when (picture) {
+        is Picture.Of -> if (picture.source == Source.APOD && apodAlone) "" else " · ${picture.source.label}"
+        Picture.Own -> if (allSources) " · My picture" else ""
+        null -> ""
+    }
+
+    /**
+     * The chip on [post]'s picture: the screens whose record shows it, by the picture's source (a
+     * stand-in's on its own tab; the user's own picture has no tab). With the switch on "On home
+     * screen", "On lock screen" or "On wallpaper" (both); in APOD mode "On wallpaper" for the
+     * screen "Where" names.
+     */
+    private fun chipText(post: Post): String? {
+        val on = (if (allSources) Screen.entries else listOf(pageScreen)).filter { screen ->
+            (screens[screen]?.picture as? Picture.Of)?.let { it.source == post.source && post.isNoted(it.date, it.url) } == true
+        }
+        return when {
+            on.isEmpty() -> null
+            !allSources || on.size == 2 -> "On wallpaper"
+            on.single() == Screen.HOME -> "On home screen"
+            else -> "On lock screen"
         }
     }
 
@@ -400,6 +456,8 @@ class MainActivity : ComponentActivity() {
     private fun showTab(source: Source) {
         tab = source
         cropping = false
+        // With the switch on the problem box follows the shown tab.
+        readProblem()
         lifecycleScope.launch { show() }
     }
 
@@ -495,9 +553,9 @@ class MainActivity : ComponentActivity() {
      * The shown tab's picture on [screens], set by hand ([Store.setByHand]: held, and with turns
      * the clock restarts); on the APOD tab on a video day what the video-day setting says. The
      * button: in APOD mode the screens "Where" names, with the switch "All NASA pictures" on the
-     * menu's choice. ✓ (until M4's menu): with the switch on both screens.
+     * menu's choice (also ✓'s).
      */
-    private fun setWallpaperNow(screens: Set<Screen> = if (allSources) Screen.entries.toSet() else where.screens) {
+    private fun setWallpaperNow(screens: Set<Screen> = where.screens) {
         val post = post ?: return
         if (!canSetNow()) return
         cropping = false
@@ -768,7 +826,7 @@ class MainActivity : ComponentActivity() {
         var cut by remember(post.explanation) { mutableStateOf(false) }
         val expandable = cut || expanded
         val tabs = sources.size > 1
-        val onWallpaper = tabs && post.source == wallpaperSource && post.isNoted(wallpaperDate, wallpaperUrl)
+        val chip = if (tabs) chipText(post) else null
         // Back leaves crop mode without setting; the dragged position stays for the job.
         BackHandler(enabled = cropping) { cropping = false }
         Column {
@@ -785,9 +843,9 @@ class MainActivity : ComponentActivity() {
                     contentScale = ContentScale.FillWidth,
                 )
                 // Not over the crop frame.
-                if (onWallpaper && !cropping) {
+                if (chip != null && !cropping) {
                     Text(
-                        "On wallpaper",
+                        chip,
                         Modifier
                             .align(Alignment.TopStart)
                             .padding(8.dp)
@@ -797,22 +855,31 @@ class MainActivity : ComponentActivity() {
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
-                IconButton(
-                    // ✓ sets the chosen part at once.
-                    onClick = { if (cropping) setWallpaperNow() else cropping = true },
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(8.dp)
-                        .background(Color.Black.copy(alpha = 0.4f), CircleShape),
-                ) {
-                    Text(
-                        if (cropping) "✓" else "⛶",
-                        Modifier.clearAndSetSemantics {
-                            contentDescription = if (cropping) "Set as wallpaper" else "Choose the wallpaper's part"
+                // ✓ sets the chosen part at once; with the switch on it asks which screens, as the set button does.
+                var setMenu by remember { mutableStateOf(false) }
+                Box(Modifier.align(Alignment.BottomStart)) {
+                    IconButton(
+                        onClick = {
+                            when {
+                                !cropping -> cropping = true
+                                !allSources -> setWallpaperNow()
+                                canSetNow() -> setMenu = true
+                            }
                         },
-                        color = Color.White,
-                        fontSize = 24.sp,
-                    )
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                    ) {
+                        Text(
+                            if (cropping) "✓" else "⛶",
+                            Modifier.clearAndSetSemantics {
+                                contentDescription = if (cropping) "Set as wallpaper" else "Choose the wallpaper's part"
+                            },
+                            color = Color.White,
+                            fontSize = 24.sp,
+                        )
+                    }
+                    SetChoices(setMenu && cropping) { setMenu = false }
                 }
                 IconButton(
                     onClick = ::savePicture,
@@ -837,7 +904,7 @@ class MainActivity : ComponentActivity() {
                     Text(problemText(shownProblem), style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            if (apodAlone && apod?.isVideo == true && !videoNoticeHidden && videoNoticeDate != apod.date.toString()) VideoNotice()
+            if (apod?.isVideo == true && !videoNoticeHidden && videoNoticeDate != apod.date.toString()) VideoNotice()
             BatteryNotice()
             // With tabs a source line names the source; with one source the caption stays as 0.4.0's.
             val dateLine = post.date.format(dateFormat) + if (post.isVideo) " · Video" else ""
@@ -919,16 +986,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Says why the wallpaper didn't change on a video day and what the user can do; follows the settings. */
+    /**
+     * Says why the wallpaper didn't change on a video day and what the user can do; follows the
+     * settings. With the switch on (also with turns) what takes APOD's place; with APOD ticked
+     * nowhere only that it's a video.
+     */
     @Composable
     private fun VideoNotice() {
         // ▶ is only on the APOD tab.
         val watch = if (post?.isVideo == true) " Tap ▶ to watch it on NASA's site." else ""
         val kept = "This APOD is a video, so your wallpaper stays as it was."
         val other = videoDays.source
+        val apodTicked = columns.values.any { Source.APOD in it }
         val text = when {
-            !daily -> "This APOD is a video.$watch"
-            other != null && wallpaperSource == other -> "This APOD is a video, so ${other.possessive} is the wallpaper.$watch"
+            !daily || (allSources && !apodTicked) -> "This APOD is a video.$watch"
+            allSources -> when {
+                other != null && standInReady -> "This APOD is a video, so ${other.possessive} takes its place.$watch"
+                other != null -> "This APOD is a video. ${other.possessive} takes its place once it has loaded.$watch"
+                videoDays == VideoDays.MINE && hasFallback -> "This APOD is a video, so your own picture takes its place.$watch"
+                videoDays == VideoDays.MINE -> "This APOD is a video, so it's skipped.$watch Pick a picture below to use it on video days."
+                else -> "This APOD is a video, so it's skipped.$watch To change that, choose another picture for video days below."
+            }
+            other != null && pictureSource(pageScreen) == other -> "This APOD is a video, so ${other.possessive} is the wallpaper.$watch"
             other != null -> "This APOD is a video. ${other.possessive} becomes the wallpaper once it has loaded.$watch"
             videoDays == VideoDays.MINE && hasFallback ->
                 "This APOD is a video, so your own picture is the wallpaper.$watch"
@@ -1026,7 +1105,7 @@ class MainActivity : ComponentActivity() {
                 Text("Change wallpaper automatically", Modifier.weight(1f))
                 Switch(checked = daily, onCheckedChange = null)
             }
-            if (daily) statusText()?.let {
+            if (daily) statusLines().forEach {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
@@ -1193,15 +1272,21 @@ class MainActivity : ComponentActivity() {
                 enabled = post != null,
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Set as wallpaper ▾", Modifier.clearAndSetSemantics { contentDescription = "Set as wallpaper" }) }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                val choices = listOf(
-                    "Home screen" to setOf(Screen.HOME),
-                    "Lock screen" to setOf(Screen.LOCK),
-                    "Both" to Screen.entries.toSet(),
-                )
-                choices.forEach { (text, screens) ->
-                    DropdownMenuItem(text = { Text(text) }, onClick = { open = false; setWallpaperNow(screens) })
-                }
+            SetChoices(open) { open = false }
+        }
+    }
+
+    /** The set menu's choices, Home screen / Lock screen / Both, for the set button and ✓. */
+    @Composable
+    private fun SetChoices(open: Boolean, close: () -> Unit) {
+        DropdownMenu(expanded = open, onDismissRequest = close) {
+            val choices = listOf(
+                "Home screen" to setOf(Screen.HOME),
+                "Lock screen" to setOf(Screen.LOCK),
+                "Both" to Screen.entries.toSet(),
+            )
+            choices.forEach { (text, screens) ->
+                DropdownMenuItem(text = { Text(text) }, onClick = { close(); setWallpaperNow(screens) })
             }
         }
     }

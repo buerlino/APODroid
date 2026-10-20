@@ -207,6 +207,30 @@ packages unattended): `night.md`.
   `saveTried` of another URL again), NASA's already saved. The ⓘ dialog's text as approved.
   Not checked: a stop during NASA's or Earth's original (the same code path), the job's
   real ~10 min deadline (only `timeout`). Screenshots in the run's `tablet/`.
+  V4 (2026-10-20, debug build of dev, passed): only NASA failing (the proxy stalling
+  `www.nasa.gov`, a pull with "All NASA pictures" on): `nasa.problem` network, the box "NASA
+  Image of the Day: Couldn't reach NASA's site. Check the connection." on APOD's, NASA's and
+  Earth's (unticked) tabs. The job's sources (the proxy's log, hosts with a rule): Home APOD +
+  Earth, Lock Earth connected only to science.nasa.gov and its assets, `nasa.checkedAt` untouched;
+  the stand-in on home's turning column (APOD's turn, a faked APOD video day, NASA standing in):
+  only `www.nasa.gov`, NASA's picture set on home alone (owner APOD, stamp and `turnStartedAt`
+  kept, the lock screen untouched), the notice "… so NASA's Image of the Day takes its place.".
+  The migration race: a 0.5.0 state by `run-as` (APOD, "Where" = Lock), `run -f` and `am start`
+  in one shell line: one "Migrated from 0.5.0" (on the page's thread; the job's run succeeded
+  2 s later), home's record moved to `lock.*`, every other key and value the same. The open page
+  followed a job run that set only the lock screen (NASA's newer post; the page skipped it by
+  the hour rule): "Lock screen changed …" and NASA's title and chip "On lock screen" updated,
+  home's id unchanged. The picker in grid mode on a faked video day with no `fallback.jpg`:
+  "Use my picture" opened it at once; Back kept NASA and set nothing; reopened, rotated to
+  landscape while open, then a pick: `MINE`, the file copied, home set at once (`mWhich=1`, the
+  record "own", no hold, the clock kept), "Change picture" beside the dropdown; "Change picture"
+  replaced the file and set home again. The chip in APOD mode with "Where" = Lock shows only with
+  tabs (as built): on a faked video day with NASA standing in, "On wallpaper" on NASA's tab, the
+  page opening there, only the lock screen set; on a plain day no chip and the status line from
+  the lock screen's record. Not checked: a rotation during "Change picture"'s picker, backing out
+  of it, the picker in APOD mode, the race for "Where" Home or Both (Lock is the case that
+  copies), an upgrade from a real 0.5.0 APK (the state was made by `run-as`). Evidence in the
+  run's `tablet/`.
 - 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
   device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
   for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked

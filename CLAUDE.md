@@ -29,6 +29,7 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
+  Only APODroid's nights use the tablet HA24BZ2Y (user, 2026-10-20: pascaline's nights leave it alone).
 
 ## How the user works (2026-10-01)
 
@@ -299,7 +300,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     switch on the job sets the rest later.
   - A switch for the daily change ("Change wallpaper automatically", user 2026-10-17: with
     turns it isn't daily): part of the draft until S4f2, then at once both ways (above).
-  - **All NASA pictures** (0.6.0, M3; the pref `allSources`, default off: APOD mode). Part of
+  - **All NASA pictures** (renamed "More NASA pictures" in S5: user, 2026-10-20 evening, after a
+    review called the mockup's "Extended API mode" a developer's word; 0.6.0, M3; the pref `allSources`, default off: APOD mode). Part of
     the draft: "Where" and the list swap at once and the page offers the new mode's sources;
     Set saves it and reschedules the job (its period follows the mode). Each mode keeps its
     settings: "Where" is APOD mode's, the list the other's (`Store.list`, kept in APOD mode
@@ -684,7 +686,7 @@ video days worked only with APOD alone (it shows at once that it was a video day
   turns too. Four choices in both modes, never greyed: "Skip it" (was "Keep"), NASA, Earth, my
   picture. A dropdown after "Size" in both modes (S2).
 - **Set applies the setup** (user, 2026-10-20 evening, from a mockup; built in S4; S5 and S6
-  follow: "Setup" and "Advanced settings", the highlight, "24 h", "Extended API mode", the title
+  follow: "Setup" and "Advanced settings", the highlight, "24 h", "More NASA pictures", the title
   dropdown and the swipe, no Share). Every setting, ⛶'s part, "my picture" and the mode switch
   are a draft until "Set as wallpaper", one button in both modes, which saves it all, restarts
   the clock, forgets the records and sets both screens afresh (The app, Settings; Turns). Why:

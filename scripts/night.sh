@@ -107,7 +107,9 @@ josh_input() {
   echo "# night.md: the commands josh replies with"; h2 "$night" "Commands josh replies with"
   echo "# Results so far (every night header and RESULT line of .coord/log.md)"
   [[ -f "$coord/log.md" ]] && grep -E '^## |RESULT ' "$coord/log.md" | tail -n 80
-  echo; echo "# The last Opus pass reply"; last_pass_reply "$coord/log.md"
+  # Only this night's pass counts (night.md): an earlier night's QUEUE line would reorder tonight's queue.
+  [[ -f "$coord/log.md" ]] && awk '/^## / { buf = "" } { buf = buf $0 "\n" } END { printf "%s", buf }' "$coord/log.md" > "$josh_dir/tonight.md"
+  echo; echo "# The last Opus pass reply (this night's)"; last_pass_reply "$josh_dir/tonight.md"
   echo; echo "# The log's last 20 lines"; [[ -f "$coord/log.md" ]] && tail -n 20 "$coord/log.md"
   return 0
 }

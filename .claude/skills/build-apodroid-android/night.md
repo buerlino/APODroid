@@ -109,7 +109,8 @@ can start. S4, S4f1, V4 and the night's rows before them are merged (the night o
 
 The next night (user, 2026-10-20 evening; the plan, Remaining 3b): **B1, S4f2, S4f3, S5, F6**; the tablet is free by
 night (pascaline has it by day). **S6** waits for the user's look at S5 (its After names `the user`); V3, V5 and
-V6 wait for S6, as they test the final tree.
+V6 wait for S6, as they test the final tree. **Only APODroid's nights use the tablet** (user, 2026-10-20
+evening; pascaline's nights leave HA24BZ2Y alone, the user tells them).
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -127,7 +128,7 @@ V6 wait for S6, as they test the final tree.
 | 12 | B1 | The status line after Set with "Skip it" on a video day | winston | sonnet, medium | yes | S4 | plan B1 |
 | 13 | S4f2 | The daily switch applies at once, both ways | winston | opus, medium | yes | B1 | plan S4f2 |
 | 14 | S4f3 | Set doesn't stop a running job | winston | opus, medium | yes | S4f2 | plan S4f3 |
-| 15 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" | winston | opus, medium | yes | S4f3 | plan S5 |
+| 15 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "More NASA pictures" | winston | opus, medium | yes | S4f3 | plan S5 |
 | 16 | F6 | A size limit for the job's saves | winston | opus, medium | yes | S5 | plan F6 |
 | 17 | S6 | The picture side: the title dropdown, swipe between sources, no Share | winston | opus, high | yes | S5, the user | plan S6 |
 | 18 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S6 | plan V + plan V3 |
@@ -141,6 +142,8 @@ comes when no queue step can run.
 ## Commands josh replies with
 
 The first that applies:
+Here "the last Opus pass" is the last one of **this night** (after its `## <date> night` header); an earlier
+night's pass, its FIX lines and its QUEUE line count for nothing (night.sh shows only this night's).
 1. The last Opus pass has a FIX line whose ID has no RESULT line yet: that FIX, in the pass's order, as
    `scripts/pipeline.sh <ID> --model <m> --effort <e> --tablet <yes|no> --branch <b> "<prompt>"`, with the FIX
    line's values and its prompt verbatim; leave out `--branch` when the line says `new`.
@@ -206,7 +209,8 @@ Judge the diff against the criteria and `CLAUDE.md`; read other files only to ch
 - a rule of `CLAUDE.md` broken: a new dependency or permission, a help text, a notification, network on the main
   thread, Android in `:core`;
 - the plan's rules for the package (for 0.6.0: one reading of the clock; grouping by the due picture, not by the
-  columns; a set by hand changes the settings, never a hold (since S1); the stand-in; forgetting keeps the owner and the stamp; the migration is a
+  columns; Set applies the whole setup, no set by hand and no hold (since S4); the daily switch acts at once (from
+  S4f2); the stand-in; forgetting keeps the owner and the stamp; the migration is a
   one-time write at the first start, under a lock, and sets nothing at the first run);
 - logic without a test, a test that passes for the wrong reason, a fixed bug without a regression test;
 - what R8 can break (serialized classes, reflection);
@@ -230,7 +234,8 @@ Reply APPROVED, or FIX with at most five findings: file:line, the concrete failu
   one screenshot per screen state, named for what it shows.
 - **The smoke list**, after the package's own checks on every check of winston's work (not in a device package
   such as M0, which runs 0.5.0's code): the app starts; the page loads in APOD mode and, once the switch exists,
-  with "All NASA pictures" on; "Set as wallpaper now" sets the wallpaper (`dumpsys wallpaper`); a forced job run
+  with the mode switch on ("All NASA pictures", "More NASA pictures" from S5); a draft change and "Set as
+  wallpaper" set the wallpaper (`dumpsys wallpaper`); a forced job run
   (`cmd jobscheduler run -f io.github.buerlino.apodroid 1`, daily switch on) ends as a successful run in
   `dumpsys jobscheduler` (the log names a set, or is silent when there was nothing to set);
   `logcat` shows no crash. About 5 minutes. A failure here is a FIX even when the package's own checks passed
@@ -262,12 +267,13 @@ minutes; when time runs short, keep the order below and name what was left under
 3. **APOD mode as 0.5.0** (`CLAUDE.md`, The app; "All NASA pictures" off, or 0.5.0's settings before M3): the page
    with title, then date (no source line and no tabs with APOD alone, except the video-day source's tab on a
    video day) and the explanation ("more", the tap, the long presses); pull to refresh; ⛶ with ✓ and
-   Back; ★ (then delete the saved file, the skill says how); "Where" each way with "Set as wallpaper now"
+   Back; ★ (then delete the saved file, the skill says how); "Where" each way with "Set as wallpaper"
    (`dumpsys wallpaper`); the daily switch on and off (`dumpsys jobscheduler`) and a forced run; a faked video day
    with each choice (the ▶ tile, the video notice and its buttons); the problem box offline (the skill: the firewall
    chain or the proxy, set back after) and its Dismiss; the battery hint.
-4. **With "All NASA pictures" on** (once M3 is merged): three tabs and their pictures, the grid with Home and Lock
-   different and then equal (`dumpsys wallpaper`), the set menu, the mode back and forth (each keeps its settings),
+4. **With the mode switch on** ("More NASA pictures" from S5): the three sources and their pictures (tabs; the
+   title dropdown and the swipe from S6), the list ("Pictures from") with Home and Lock different and then equal,
+   each applied with "Set as wallpaper" (`dumpsys wallpaper`), the mode back and forth (each keeps its settings),
    a turn ended with `turn.sh`.
 5. **The edges:** a rotation and two panes, font scale 2.0 at the phone's width (`wm density 344`), `am kill` and
    reopen, no crash in `logcat` and `dumpsys activity exit-info`.

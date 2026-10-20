@@ -32,7 +32,7 @@ screen, asked before the user has seen the app; updaters never get a first boot)
     button.
   - **On**: always three sources to browse (the title dropdown and the swipe since S6; tabs
     before), whatever is ticked; the shown source's title, explanation and (F4) credit; the
-    settings as in "Set applies the setup" below. Named "Extended API mode" since S5.
+    settings as in "Set applies the setup" below. Named "More NASA pictures" since S5.
   - Each mode keeps its own settings: "Where" belongs to APOD mode, the list to the other.
     The first time the switch goes on, the list starts from "Where" (APOD ticked under Home,
     Lock or both). "If APOD is a video" is one setting for both modes.
@@ -109,7 +109,7 @@ in APOD mode a change of "Where" alone would be safe to set at once.
 
 - **A draft until Set.** "Where", the list (ticks and screen dropdowns),
   "Change every", "Size", "If APOD is a video", a newly picked "my picture", ⛶'s part and
-  "Extended API mode" change only the page. The job keeps the setup last set. A rotation and
+  "More NASA pictures" change only the page. The job keeps the setup last set. A rotation and
   the system killing the app keep the draft (Android's saved state); closing the app drops it.
   - **The daily switch applies at once, both ways** (user, 2026-10-20 evening, after S4's
     night: "a setting that impacts how the entire app works should be instant"; S4f2; S4 had
@@ -123,7 +123,7 @@ in APOD mode a change of "Where" alone would be safe to set at once.
     new post drops a draft part, as a new picture starts centred. ✓ no longer sets the
     wallpaper (it did since 0.3.1).
 - **Two kinds of state on the page.** The controls and the sources the page offers (the title
-  dropdown and the swipe; the tabs until S6) follow the draft: turning "Extended API mode" on
+  dropdown and the swipe; the tabs until S6) follow the draft: turning "More NASA pictures" on
   in the draft offers all three at once and fetches them. Everything that reports what is set
   follows the stored setup: the status lines (only while the stored daily switch is on), the
   chip, the video notice, the problem box, the battery hint, the Setup summary.
@@ -150,7 +150,9 @@ in APOD mode a change of "Where" alone would be safe to set at once.
   `tertiary` colour until Set, then turn back to normal (orange stays the problem box's). No
   extra line. ⛶ too, while its part differs from the stored one.
 - **"Change every"** [24 h | 12 h | 6 h | 3 h] ("Day" becomes "24 h"; the pref stays `DAY`).
-- **"Extended API mode"** is the new name of the switch "All NASA pictures" (the pref stays
+- **"More NASA pictures"** (user, 2026-10-20 evening, after a review: the mockup's "Extended
+  API mode" is a developer's word, and the switch is the only way to NASA and Earth) is the
+  new name of the switch "All NASA pictures" (the pref stays
   `allSources`).
 - **The title instead of the tabs:** the shown source's short name ("APOD", "NASA", "Earth")
   above the picture, large; with two or more sources a dropdown ("APOD ▾", ✓ before the shown
@@ -186,7 +188,7 @@ Setup ▸                                           closed: the header and the s
 APOD on both screens, NASA on home screen · turns every 24 h · Fill      is set
   (open, Setup ▾:)
   Where   [Home screen | Lock screen | Both]       APOD mode
-  Pictures from                                    Extended API mode
+  Pictures from                                    More NASA pictures
     [✓] APOD    [Both ▾]
     [✓] NASA    [Home screen ▾]
     [ ] Earth   [Both ▾]                           greyed out, the screens it had last
@@ -198,11 +200,11 @@ Advanced settings ▸                                closed by default
   [switch] Wi-Fi only                              daily switch on
   [switch] Save every picture ⓘ                    daily switch on
     Largest original  [20 MB ▾]                    "Save every picture" on (F6)
-  [switch] Extended API mode
+  [switch] More NASA pictures
 ```
 
 - **Setup** opens by itself while the draft differs from the store (the mockup opens it with a
-  change), and a set that worked closes it. Turning "Extended API mode" opens it too, since
+  change), and a set that worked closes it. Turning "More NASA pictures" opens it too, since
   "Where" and the list swap.
 - **The summary** says what is stored, not the draft: "APOD on both screens" (APOD mode), else
   each ticked source "<short name> on <home screen | lock screen | both screens>", joined by
@@ -237,7 +239,7 @@ Advanced settings ▸                                closed by default
 | B1 | The status line after Set with "Skip it" on a video day (regression 2) | Sonnet, medium |
 | S4f2 | The daily switch applies at once, both ways | Opus, medium |
 | S4f3 | Set doesn't stop a running job (pass 5's side effect) | Opus, medium |
-| S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" | Opus, medium |
+| S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "More NASA pictures" | Opus, medium |
 | F6 | A size limit for the job's saves ("Largest original", default 20 MB) | Opus, medium |
 | S6 | The picture side: the title dropdown, swipe between sources, no Share | Opus, high |
 | V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 by night, V7 by day | Opus, high |
@@ -279,8 +281,8 @@ user's own phone, touched only in P. The build check:
 
 ## Done
 
-Built by the night shift of 2026-10-20 (`night.md`; the report `.coord/reports/2026-10-20-night.md`
-is gitignored), merged on `dev`, approved by the user that morning (texts and night defaults from
+Built by the night shifts of 2026-10-20 (`night.md`; the reports
+`.coord/reports/2026-10-20-morning-shift.md` and `2026-10-20-evening-shift.md` are gitignored), merged on `dev`, approved by the user that morning (texts and night defaults from
 the tablet's screenshots) and fast-forwarded into master. Their notes: the report commits. (The
 headings stay: night.md's queue rows and `scripts/pipeline.test.sh` resolve them.)
 
@@ -348,7 +350,9 @@ reading; their build check passed, 108 tests with `private/`):
    New: **B1** (the regression's status line), **S4f2** (the daily switch at once, both ways),
    **S4f3** (Set doesn't stop a running job: pass 5's side effect, fixed, not accepted),
    **F6** (a size limit for the job's saves).
-   The tablet is free by night (pascaline uses it by day). **The next night:** B1 → S4f2 →
+   **Only APODroid's nights use the tablet** (user, 2026-10-20 evening: pascaline's rules
+   also name HA24BZ2Y, with their own device lock this repo can't see; the user tells
+   pascaline's nights to leave it). **The next night:** B1 → S4f2 →
    S4f3 → S5 → F6. The user looks at S5 (and the button that moves after Set, the report's question)
    in the morning; S6 waits for that look (night.md: an After naming the user). **The night
    after:** S6, then V3, V5, V6.
@@ -743,7 +747,7 @@ rearranges it, S6 the picture side), so the tablet sees the new rules first.
   - **With the daily switch off**, "Where" (APOD mode) or the list (the switch on) shows again
     (S2 hid them), so a one-off Set uses settings the user can see. "Change every" and "If APOD
     is a video" stay hidden then, as in the layout.
-  - **"Extended API mode"** in the draft swaps "Where" and the list at once (as now) and the
+  - **"More NASA pictures"** in the draft swaps "Where" and the list at once (as now) and the
     sources the page offers.
 - **Files:** `Store.kt`, `MainActivity.kt`, `core/.../Screens.kt`, `ScreensTest`, `CLAUDE.md`
   ("Set applies the setup" into The app, Settings and the button, ✓, "my picture"; Background
@@ -754,7 +758,7 @@ rearranges it, S6 the picture side), so the tablet sees the new rules first.
 - **Tablet (debug build):**
   - A draft change sets nothing: `dumpsys wallpaper` ids, the prefs and `dumpsys jobscheduler`
     unchanged, for each setting, the daily switch too (on → no job; off → the job stays).
-  - Set puts on each screen what the setup says: APOD mode with each "Where"; Extended API mode
+  - Set puts on each screen what the setup says: APOD mode with each "Where"; More NASA pictures
     with a column that takes turns (`turnStartedAt` now, both records fresh); the daily switch
     off: a one-off set, the job cancelled; on: the job scheduled.
   - Set after changing only Fit: both screens set again with the new size.
@@ -779,16 +783,28 @@ From regression 2 (2026-10-20 night; the user: a bug, its own package before S5)
   Should: "Video day, wallpaper kept" (nothing was set). The cause (read in the code,
   2026-10-20): Set forgets the record's picture (`restartAndForget` → `Record.forget`, owner
   kept), "Skip it" alone sets nothing, so the picture stays null, and `videoDayKept` returns
-  false on `record?.picture ?: return false`. A forgotten record (owner APOD, no picture) on
-  APOD's video day with nothing standing in is a kept wallpaper; a record that was never
-  there (a fresh install) still isn't.
+  false on `record?.picture ?: return false`.
+- **The fix** (from a review of this plan, 2026-10-20 evening): the record alone can't tell
+  "forgotten by Set" from "never set": on a fresh install's first video day with "Skip it",
+  `dueWallpapers` writes the same record (owner APOD, no picture) though nothing is set. What
+  tells them apart is the screen's `wallpaperSetAt`: Set doesn't clear it, a fresh install
+  has none. So `videoDayKept` takes whether the screen was ever set (`Store.screenState` passes
+  `wallpaperSetAt != null`), and a record with no picture counts as kept when it was set
+  before (APOD ticked, APOD's turn, nothing standing in: the rest of the rule as now).
+  **`ScreensTest.kt:328`** asserts the opposite for `Record(APOD)` ("Never set, or forgotten:
+  the next set decides"): split it into "never set: not kept" (stays `assertFalse`) and
+  "forgotten after a set: kept" (now `assertTrue`), and add a fresh-install test (the record
+  `dueWallpapers` writes on a first video day with "Skip it", never set: not kept). S4f2's
+  switch-on forgets the records the same way, so the same fix covers it.
 - Also: the KDoc above `chooseVideoDays` in `MainActivity.kt` still says "Skip it" sets nothing
   (from pass 3); make it say what it does since S4.
-- **Files:** `core/.../Screens.kt` (`videoDayKept`), `ScreensTest`, `Store.kt` (`saveSetup`
-  and what it forgets) if the fix belongs there, `MainActivity.kt` (the KDoc), `CLAUDE.md`
-  (Problems and status line) if the rule's words change.
+- **Files:** `core/.../Screens.kt` (`videoDayKept`), `ScreensTest`, `Store.kt`
+  (`screenState`), `MainActivity.kt` (the KDoc), `CLAUDE.md` (Problems and status line: the
+  "kept" rule).
 - **Tablet:** the steps above: the line says "Video day, wallpaper kept", before and after the
-  job's next run; the same with turns on one screen (no "kept" line there: the turn passes).
+  job's next run; the same with turns on one screen (no "kept" line there: the turn passes);
+  a fresh install (`pm clear`) on a faked video day with "Skip it" and Set: no "kept" line
+  (nothing was ever set; then set the tablet's prefs back).
 - **Done when:** a regression test that fails on the old code, the fix, the tablet passes.
 
 ### [ ] S4f2. The daily switch applies at once, both ways (Opus, medium)
@@ -816,7 +832,7 @@ evening): the daily switch leaves the draft.
   status lines gone; on → the job scheduled, both screens set to the stored setup (with a
   pending draft change, e.g. "Size" or a tick: not applied, still the stored one), the clock
   restarted; a rotation and `am kill` keep the switch's state (it's a pref now); APOD mode and
-  Extended API mode; no crash.
+  More NASA pictures; no crash.
 - **Done when:** the checks pass, the tablet passes, `CLAUDE.md` says the new rule.
 
 ### [ ] S4f3. Set doesn't stop a running job (Opus, medium)
@@ -846,7 +862,7 @@ changed (Set without turns after a change of the list, "Wi-Fi only", the switch 
   it. If the proxy can't be set up, say so under Not tested.
 - **Done when:** the checks pass, the tablet passes, `CLAUDE.md` says the rule.
 
-### [ ] S5. Settings: Setup and Advanced settings, the highlight, "24 h", "Extended API mode" (Opus, medium)
+### [ ] S5. Settings: Setup and Advanced settings, the highlight, "24 h", "More NASA pictures" (Opus, medium)
 
 After S4f3 (S4f2: the daily switch at once). The layout, the summary and the highlight of "Set
 applies the setup" above.
@@ -855,7 +871,7 @@ applies the setup" above.
   it, and closes after a set that worked.
 - "Set as wallpaper" moves after "Setup", always shown.
 - "Advanced settings": a header row, closed by default (`rememberSaveable`), with "Wi-Fi only"
-  and "Save every picture" (the daily switch on) and "Extended API mode"; turning that
+  and "Save every picture" (the daily switch on) and "More NASA pictures"; turning that
   opens "Setup". The divider before the mode switch goes.
 - The highlight: each setting compared with the store; while it differs its heading and its
   control in `tertiary` (segmented buttons' active colours `tertiaryContainer` /
@@ -863,7 +879,7 @@ applies the setup" above.
   dropdowns' border and text); the list per row; ⛶ while its part differs; the "Setup" header
   while anything in it differs, "Advanced settings" while the mode does.
 - "If APOD is a video" only while the daily switch is on. "Day" → "24 h". The switch's
-  label "Extended API mode" (and the comments that name it).
+  label "More NASA pictures" (and the comments that name it).
 - Screen readers: the headers as buttons with "expanded"/"collapsed" (`Role.Button`,
   `stateDescription`); a highlighted setting adds "not set yet" to its state.
 - **Files:** `MainActivity.kt`, `CLAUDE.md` (Settings), the skill's "Where things are".
@@ -898,9 +914,11 @@ anything that size every day; a setting, the user decides, limited by default.
   there, `Store.kt` (`save`, `saveInUse`, the pref), `MainActivity.kt` (the row), `CLAUDE.md`
   (Save every picture; Next features, From a review of 0.1.1), the skill's "Where things
   are".
-- **Tablet:** with the limit 20 MB and a stored NASA post whose original is bigger (today's, or
-  one faked by prefs): the job saves the stored picture, no full download (`logcat`, the
-  gallery's file size); with "No limit" the original; ★ saves the original despite the limit;
+- **Tablet:** never today's 208 MB NASA original (a full download may not finish in the
+  job's ~10 minutes): a post whose original is 10–50 MB (a real one from the feed in
+  `private/`, faked by prefs), with the limit 10 MB: the job saves the stored picture, no full
+  download (`logcat`, the gallery's file size); with the limit 50 MB (or "No limit") the
+  original; ★ saves the original despite the limit;
   the row hidden while "Save every picture" is off; font scale 2.0; the test files deleted
   from the gallery afterwards.
 - **Done when:** the tests pass, the checks pass, the tablet passes, `CLAUDE.md` says it.

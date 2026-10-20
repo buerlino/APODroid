@@ -91,9 +91,9 @@ default Fill, today's behaviour.
   `setBitmap(bitmap, null, true, which)`. 1116×2484 ARGB is about 11 MB, fine. Applies to the
   APOD and to "my picture"; to home and lock alike.
 - No ⛶ with Fit: the whole picture shows, so there's no part to choose (user, 2026-10-05).
-- Changing it while the daily switch is on sets the wallpaper again at once, like "Where" (user,
-  2026-10-20; was "the next change uses it", 2026-10-04): a changed setting, not a set by hand
-  (`plan-0.6.0.md` F1). One setting for both screens (2026-10-19).
+- Part of the setup since S4 (2026-10-20 evening): Set puts the pictures on again with the new
+  size (was "sets at once", 2026-10-20, and "the next change uses it", 2026-10-04; `CLAUDE.md`,
+  Settings, Size). One setting for both screens (2026-10-19).
 - Test on the phone: a landscape and a portrait picture, home and lock, both modes.
 
 ### [x] 3. Status line (done in 0.4.0, WP4; see CLAUDE.md for what it became) under the daily switch

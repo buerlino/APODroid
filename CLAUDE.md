@@ -589,8 +589,8 @@ after a code review: a failed check ended the current turn early, and a weekend 
 stored picture anyway); the set is logged "Despite the failure: …" and the job retries. A
 separate
 date is needed because a refresh with the switch off downloads without setting. On a video
-day with "keep" nothing is saved, so switching to "my picture" later that day takes effect on
-the next run or page open. `refresh()` and `save()` hold one lock, as the page and the job can
+day with "keep" nothing is saved, so switching to "my picture" later that day takes effect with
+Set (S4). `refresh()` and `save()` hold one lock, as the page and the job can
 run at once; `setDue()`, every set and every change to the records or columns hold another (not
 the refresh lock: ★ would wait seconds for a set), so a page and a job running at once set once;
 the page calls them off the main thread.

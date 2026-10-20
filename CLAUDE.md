@@ -258,7 +258,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     mode's, the grid the other's.
   - **The grid** (switch on; M3): "Pictures from" with the heads "Home" and "Lock", a row per
     source (`Source.label`, the names wrap) and a material3 `Checkbox` per screen in columns
-    72 dp wide; screen readers "APOD on the home screen". The prefs are the columns `home` and
+    72 dp wide, wider when a large font widens a head (the heads don't wrap: at font scale 2.0
+    on the FP6's width "Home" broke inside the word, tablet M3 check); screen readers "APOD on the home screen". The prefs are the columns `home` and
     `lock` (comma lists, `Store.columns`; APOD mode's columns are APOD on the screens "Where"
     names, `apodColumns`). A tick goes through `Store.setColumns` (`columnsChanged`: a changed
     column clears its screen's hold, the clock restarts only when no column took turns before),

@@ -95,13 +95,16 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
@@ -1095,8 +1098,13 @@ class MainActivity : ComponentActivity() {
      */
     @Composable
     private fun Grid(videoDaysChoice: @Composable (String?, Boolean) -> Unit) {
-        val cell = Modifier.width(72.dp)
         val heads = mapOf(Screen.HOME to "Home", Screen.LOCK to "Lock")
+        val headStyle = MaterialTheme.typography.titleSmall
+        // 72 dp, or wider when a large font makes a head wider (at font scale 2.0 "Home" broke
+        // inside the word): the heads never wrap, and the boxes stay centred under them.
+        val measurer = rememberTextMeasurer()
+        val widestHead = heads.values.maxOf { measurer.measure(it, headStyle, softWrap = false).size.width }
+        val cell = Modifier.width(max(72.dp, with(LocalDensity.current) { widestHead.toDp() } + 8.dp))
         val screenNames = mapOf(Screen.HOME to "home screen", Screen.LOCK to "lock screen")
         val ticks = columns.values.sumOf { it.size }
         Row(verticalAlignment = Alignment.Bottom) {
@@ -1105,9 +1113,10 @@ class MainActivity : ComponentActivity() {
                 Text(
                     heads.getValue(screen),
                     cell,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = headStyle,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
+                    softWrap = false,
                 )
             }
         }

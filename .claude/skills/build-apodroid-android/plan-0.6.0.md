@@ -173,7 +173,10 @@ The lines under the daily switch show only while it's on, as now. Where F1, F2 a
 | F3 | Share | Sonnet, medium |
 | F4 | Image credit | Opus, medium |
 | F5 | Save every picture | Opus, medium |
-| V  | Tablet pass of everything (debug and R8), the update from 0.5.0 | Opus, high |
+| F1f1 | Fit decodes at the size it's drawn (review of F1) | Opus, medium |
+| F5f1 | A stopped save: the smaller copy next time (review of F5) | Opus, medium |
+| C  | Early look on the tablet: the glyph and the texts, on the user's go-ahead | Opus, medium |
+| V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 by night, V7 by day | Opus, high |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
@@ -194,7 +197,10 @@ claude --model sonnet --effort medium "Do F2 in .claude/skills/build-apodroid-an
 claude --model sonnet --effort medium "Do F3 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do F4 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do F5 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
-claude --model opus --effort high "Do V in .claude/skills/build-apodroid-android/plan-0.6.0.md"
+claude --model opus --effort medium "Do F1f1 and F5f1 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
+claude --model opus --effort medium "Do C in .claude/skills/build-apodroid-android/plan-0.6.0.md"
+scripts/night.sh --until <HH:MM>    # V1–V6: the queue in night.md
+claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do R in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model sonnet --effort low "Do T in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -248,6 +254,24 @@ F1, F3, F4 and F5 are day work (user, 2026-10-20), one at a time; their question
 below. The tablet was busy that day (pascaline): a package is built and unit-tested first, and
 checked on the tablet once the user says it's free.
 
+**The order from here** (user, 2026-10-20 afternoon, after a review of F1, F4 and F5 by
+reading; their build check passed, 108 tests with `private/`):
+1. By day, no device: F3's commit (its review: the `Row` around ★ not re-indented; otherwise
+   fine), then **F1f1** and **F5f1** (found by the review), each committed when the user says
+   so.
+2. **C**, the early look, only when the user gives the go-ahead (the tablet is pascaline's
+   until then); its text changes are made and committed before the night.
+3. **V1–V6 by night** (user): rosie on the tablet, the queue in `night.md`. F1–F5's own
+   device bullets are run there, not separately (user: V reruns them on the final tree
+   anyway). If C hasn't run by then, V runs anyway and the user approves from V1's and V2's
+   screenshots.
+4. **V7 by day** after the night (turns over hours: the night's later rows and the
+   regression reinstall and change the tablet).
+5. P on the FP6 with the user, then R and T.
+Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
+(deprecated since API 28; it works, and `requiredNetwork` would mean comparing
+`NetworkRequest`s).
+
 ### [ ] F1. Fill / Fit (Opus, medium)
 
 `features.md` item 2 has the how. Settled: one setting for both screens (2026-10-19); changing
@@ -273,6 +297,27 @@ is free.
   `files/`) and a tall one with Fit, on home and lock (`dumpsys wallpaper`, screenshots), in both
   modes; a change with the daily switch on sets at once and `turnStartedAt` stays; no ⛶ with Fit.
 - Done when: the tests pass, the device checks pass, and `CLAUDE.md` says how it works.
+
+### [ ] F1f1. Fit decodes at the size it's drawn (Opus, medium)
+
+Found by reading (review of F1, 2026-10-20); the fix settled by the user the same day.
+`fitted()` in `Store.kt` decodes with `decodeUpright(file, screen)`, whose sample rule is
+Fill's (halve while both sides stay at least the screen's). With Fit only one side has to: a
+wide picture comes in at the stored rendition's full size (a 3:2 post at `?h=2484` is
+3726×2484, 37 MB) and `drawBitmap` with `FILTER_BITMAP_FLAG` shrinks it about 3.3× in one
+bilinear step, which can make fine detail (stars) jagged or drop it.
+- The fix: the frame from the picture's upright bounds (`fitFrame`), then decode straight to
+  the frame's size (`ImageDecoder`'s `setTargetSize(frame width, frame height)`) and draw it
+  1:1 into the frame on the black bitmap. A smaller picture (Earth's 720 px) is scaled up as
+  before. Fill's path and `decodeUpright`'s other caller stay as they are.
+- EXIF: `ImageDecoder` turns the picture upright itself. Whether `info.size` (and so the
+  frame) is the size before or after the turn: find out from Android's docs or source while
+  building, say which in the code's comment, and leave the check to V1 (a made-up JPEG with
+  orientation 6 as "my picture"; the skill, Put a file in place).
+- Files: `Store.kt`, `CLAUDE.md` (The app, Wallpaper: Fit). `:core`'s `fitFrame` has its tests
+  already; a new pure helper gets one.
+- Device: in V1 (a star field with Fit; an EXIF-rotated "my picture" with Fit, upright).
+- Done when: the build check passes and `CLAUDE.md` says how Fit decodes.
 
 ### [ ] F3. Share (Sonnet, medium)
 
@@ -303,7 +348,8 @@ and mostly "NASA Earth Observatory").
   `Credit & License`, `Color Credit`), ending in one colon, since "Copyright" says something
   "Credit" doesn't; the text to approve on the device.
 - `Store`: APOD's pref `credit`, written with the post. A post stored by 0.5.0 has none:
-  nothing shows until the next post (no refetch, so no migration).
+  nothing shows until the next post or a pull (`refresh` stores what it fetched; no
+  migration).
 - The page: one line under the date (APOD mode: title, date, credit) or, with tabs, under the
   title on APOD's tab; at most two lines with an ellipsis, all of it while the explanation is
   open. Smaller and greyer than the explanation.
@@ -358,30 +404,152 @@ use, not APOD only** (APOD only would favour it), and on a failed original the s
 - Device (the tablet): the switch on, `run -f` → each source in use's original in the gallery
   (`content query` on MediaStore); a second run saves nothing; a picture deleted in the gallery
   isn't saved again; a faked APOD video day with NASA standing in (NASA saved, not APOD); a stop
-  during a save (`cmd jobscheduler timeout`) leaves no file and the next run saves it. Delete
-  the test files afterwards.
+  during a save (`cmd jobscheduler timeout`) leaves no file and the next run saves the stored
+  picture, the smaller copy (F5f1). Delete the test files afterwards.
 - Done when: the tests pass, the device checks pass, the user has approved the ⓘ text, and
   `CLAUDE.md` says how it works.
 
+### [ ] F5f1. A stopped save: the smaller copy next time (Opus, medium)
+
+Found by reading (review of F5, 2026-10-20); the fix settled by the user the same day. A stop
+during the original's download (the job's roughly 10 minutes run out, or the network goes)
+rethrows, as F5 meant, but nothing is noted: `onStopJob` returns true, so the job is retried
+with its backoff, and each retry (and each later run) downloads the original from zero. On a
+slow connection a 97 MB NASA original may never finish and repeats all day, on mobile data
+too. `CLAUDE.md`'s "a 97 MB NASA original is tried once" held only for a failure, which falls
+back to the stored picture and is noted.
+- **Settled (user, 2026-10-20): one try of the original per post.** Before the job's download
+  of an original, note the try (`<source>.saveTried` = the post's picture URL, as `badUrl`); a
+  later job save of the same post saves the stored picture at once (the smaller copy), as after
+  a failure. A post with another picture URL tries its original again. A finished save clears
+  the note. ★ by hand always tries the original (no time limit on the page) and ignores the
+  note. (Rejected: two tries, so a short Wi-Fi drop wouldn't leave the smaller copy for good;
+  one is simpler, and deleting the copy in the gallery lets ★ save the original.)
+- The choice in `:core` (`Saving.kt`): `toSave` also says per post whether to try the original,
+  from the noted try, with tests in `SavingTest`: a first try, a tried post, a new post after a
+  tried one. A test that fails on F5's code.
+- `Store`: `save(post, original = true)` (★ as now); `saveInUse` writes the note before the
+  download and passes the flag. Nothing else in `save` changes: a stop still rethrows.
+- Files: `core/.../Saving.kt`, `SavingTest`, `Store.kt`, `CLAUDE.md` (Save every picture; Next
+  features, Save every picture: "tried once", now also after a stop), F5's device bullet above
+  (already says the smaller copy).
+- Device: in V2.
+- Done when: the tests pass, the build check passes, and `CLAUDE.md` says it.
+
+### [ ] C. Early look on the tablet (Opus, medium; on the user's go-ahead)
+
+User, 2026-10-20: the glyph and the texts are seen before V, as a change there is cheap now and
+costs a rerun later; but only when the user says the tablet is free (pascaline's until then).
+On a debug build of master after F3, F1f1 and F5f1. Screenshots only, with rosie's device rules
+(night.md, For rosie: note what you change and set it back), into `.coord/early-look/`
+(gitignored), each named for what it shows; show them to the user.
+1. ⤴ beside ★ on a picture and at the ▶ tile's corner (a faked video day). Then ↗ and ⇪ in the
+   same place, from a temporary build with the glyph swapped (not committed; put ⤴ back).
+2. The Fit row in APOD mode and with "All NASA pictures" on. Propose the heading "Size" over
+   [Fill | Fit] (the heading "Fit" repeats one of its choices); the user decides.
+3. A short credit and the longest of the 100 (251 characters, faked by prefs), the explanation
+   closed and open, in APOD mode and with tabs.
+4. The ⓘ dialog of "Save every picture".
+- The user approves or changes each; the changes go into `MainActivity.kt` and `CLAUDE.md`,
+  then the build check, committed when the user says so, before the night.
+- Done when: the user has seen all four and their answers are built and in `CLAUDE.md` (F3:
+  the glyph; F1, F4, F5: the texts).
+
 ### [ ] V. Tablet pass of everything (Opus, high)
 
-After F5, so it tests the final code (third review: F1 changes the set path, F5 the job).
-Debug and R8 builds on the tablet: every check of M2–M4 and F1–F5 again on the final tree,
-turns on two screens over a few hours (`turn.sh`), a failed set on one screen (proxy) and its
-retry, the hold ending both ways, a real or faked video day with each choice in both modes, the
-update from 0.5.0 for each `where` with APOD alone, NASA alone and two sources: a debug build of
-0.5.0 (`git worktree` at `v0.5.0`) under a debug build of 0.6.0, so `run-as` can read the prefs
-before and after (a release build can't be read); then once an R8 build of 0.5.0 under an R8
-build of 0.6.0 (both signed with the debug key, as the skill says), checking only on screen;
-rotation and two panes, font scale 2.0. Report what was and wasn't tested; the skill's "Still
-untested" follows.
-Not checked by the night of 2026-10-20 (its report and regression 1), so here: the problem box
-with the switch on when only NASA fails (the proxy stalling `www.nasa.gov` only: APOD and Earth
-are on science.nasa.gov), on APOD's tab and NASA's; the stand-in on a turning screen; the job
-fetching only the sources in use (the proxy's log); the page and the job migrating at the same
-moment; the open page following a run that changes only the lock screen; the photo picker
-("Use my picture" with none, "Change picture"); the chip in APOD mode with "Where" = Lock;
-the grid and the status lines with the short names at font scale 2.0.
+After F5, F1f1, F5f1 and C, so it tests the final code (third review: F1 changes the set path,
+F5 the job). **By night** (user, 2026-10-20), and a device package gets one rosie session of at
+most 50 minutes (`night.md`, For rosie; `pipeline.sh` gives it 3600 s), so V is six queue
+rows, V1–V6, each bundled as `plan V + plan V<k>`, and V7 by day after the night (turns over
+hours: the night's later rows and the regression reinstall and change the tablet). Every row:
+- The final tree: master with everything above committed (`night.sh` refuses an uncommitted
+  plan and brings `dev` up to master). Build what the row needs in your worktree:
+  `./gradlew :app:assembleDebug`, and for R8 `:app:assembleRelease` signed with the debug key
+  (the skill, Working on the phone).
+- Rosie's device rules (`night.md`, For rosie): note each setting and the app's prefs and files
+  first, set them back at the end. Text evidence first (`dumpsys`, `run-as cat`, `logcat`);
+  screenshots for the user into your folder, named for what they show. The how-tos: the skill,
+  Working on the phone; `private/wp7-handoff/` (`turn.sh`, `swap.sh`, `ui.sh`, `proxy/`).
+- Your verdict: PASS when everything you ran works; FIX for a bug in our app (the steps, what
+  happened, the logcat line); STOP for Android doing what the plan didn't expect. The morning
+  makes each bug a `B<n>` package.
+- Results: in your results commit, the skill's "Still untested" (its 0.6.0 bullet) says what
+  this row checked and what is still open; then the report commit ("Your report": Tests, what
+  ran on the tablet; Not tested, what didn't and why). The plan's checkboxes stay `[ ]`.
+- Done when: each of the row's bullets ran or is under Not tested with the reason, and the
+  results are committed.
+
+### [ ] V1. F1, F3 and F1f1 on the tablet
+
+- F1's device bullet (Fit with a wide and a tall picture, home and lock, both modes; a change
+  with the daily switch on sets at once and `turnStartedAt` stays; no ⛶ with Fit).
+- F1f1: a star field with Fit (APOD's stored picture if it is one, else a made-up one in
+  `files/`): a screenshot of the home screen and one of Fill for comparison, for the user; a
+  made-up JPEG with EXIF orientation 6 as "my picture" with Fit comes out upright, not
+  stretched.
+- F3's device bullet (the share sheet with "<title>\n<page link>" on a picture and on the ▶
+  tile, from APOD's and NASA's tabs), with screenshots of ⤴ beside ★ for the user (only ⤴: C
+  compared the others).
+
+### [ ] V2. F4, F5 and F5f1 on the tablet
+
+- F4's device bullet (a short credit and the longest, 251 characters by prefs; APOD mode and
+  with tabs; the explanation open and closed), screenshots for the user.
+- F5's device bullet, with F5f1: after a stop during a save (`cmd jobscheduler timeout`) no file
+  is left, `<source>.saveTried` holds the URL, and the next run saves the stored picture (the
+  smaller copy), not the original again; a post with another picture URL tries its original.
+  The ⓘ dialog's screenshot. Delete the test files from the gallery afterwards.
+
+### [ ] V3. M2–M4 again on the final tree
+
+- The hold ending both ways (its turn ends; a tick in its screen's column), and a newer post of
+  the held picture's source keeping it.
+- A faked APOD video day with each of the four choices ("Skip it", NASA, Earth, my picture) in
+  both modes, with turns on one screen: the stand-in in APOD's place, "Skip it" passing the turn.
+- A set that fails on one screen and its retry setting only that screen: if nothing on the
+  device makes one set fail, say so under Not tested (`ScreensTest` covers the rule).
+- Rotation and two panes; font scale 2.0 at `wm density 344` (the phone's width): the grid and
+  the status lines with the short names, the Fit row, the credit.
+
+### [ ] V4. What the night of 2026-10-20 didn't check
+
+- The problem box with "All NASA pictures" on when only NASA fails (the proxy stalling
+  `www.nasa.gov` only; APOD and Earth are on science.nasa.gov), on APOD's tab and on NASA's.
+- The stand-in on a turning screen; the job fetching only the sources in use (the proxy's log).
+- The page and the job migrating at the same moment (a 0.5.0 state by `run-as`, then the page
+  opened while `run -f` runs): one migration, no lost keys.
+- The open page following a job run that changes only the lock screen.
+- The photo picker: "Use my picture" with none (the picker opens; backing out keeps the choice
+  before; picking sets it at once on a video day with the daily switch on), "Change picture", a
+  rotation while the picker is open.
+- The chip in APOD mode with "Where" = Lock.
+
+### [ ] V5. The update from 0.5.0, debug builds
+
+- A debug build of 0.5.0 (`git worktree add <your folder>/v050 v0.5.0`, `:app:assembleDebug`
+  there) under a debug build of 0.6.0, so `run-as` reads the prefs before and after (a release
+  build can't be read). For each `where` (Home, Lock, Both) with APOD alone, NASA alone and two
+  sources: the prefs before and after against `CLAUDE.md`'s migration (Stack, Migrations; Next
+  features, Migration), the first run sets nothing, the page opens on the right mode and tab.
+  Nine states; a script helps. Those not reached go under Not tested. Remove the worktree after.
+
+### [ ] V6. R8 builds
+
+- Once: an R8 build of 0.5.0 under an R8 build of 0.6.0 (both signed with the debug key),
+  checked on screen only: the settings kept, the page and the job work.
+- On the R8 build of 0.6.0: the smoke list (`night.md`), then both modes, Fit set, the share
+  sheet, the credit shown, a save by the job, ★ by hand; no crash (`logcat`, `exit-info`). R8
+  isn't covered by the unit tests.
+
+### [ ] V7. Turns over hours (by day, after the night)
+
+- Two short rosie sessions by hand (`claude --agent rosie`, this section), at least 6 hours
+  apart, the tablet left alone between them. Setup: the debug build of master, "All NASA
+  pictures" on, Home APOD + NASA, Lock NASA + Earth, "Change every" 3 h, daily on; note
+  `turnStartedAt`, both records and the job's window. Read-out: `dumpsys jobscheduler`
+  (`Last successful run`), `logcat -d -s APODroid`, `dumpsys wallpaper`, the prefs: each turn
+  within its window (period and flex), both screens on the one clock, no screen set twice for
+  one turn. Real timing, so no `turn.sh`. Then set the tablet back.
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 
@@ -393,7 +561,9 @@ on the user's phone), the update keeping the settings, both modes, the grid at f
 and 2.0, a lock screen with its own picture, landscape; home and lock set separately on Android
 16 (M0 checked the tablet only); the picked tab after a swipe-away from Recents (expected:
 back to the opening tab; after the system kills the app it stays, `CLAUDE.md`, Tabs); Wi-Fi
-only on mobile data (the tablet has no SIM). Report what was tested; a bug becomes a
+only on mobile data (the tablet has no SIM); ⤴ again (the FP6's font may draw it unlike the
+tablet's) and Fit on the phone's screen (2026-10-20, review). After V1–V7 and their `B<n>`
+fixes. Report what was tested; a bug becomes a
 `B<n>` package (night.md, The morning, step 6) before R.
 
 ### [ ] R. Docs, changelog, store texts, screenshots (Opus, medium)

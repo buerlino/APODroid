@@ -92,6 +92,14 @@ built by day; every row below ran in the night of 2026-10-20 and is merged). "Mo
 plan's. Spec names the sections the bundle takes: `plan <key>` is the plan's `### [ ] <key>.`, `features <key>`
 is `features.md`'s. Without the tablet M0 can't run, so M1 to M4 wait and only F2 runs.
 
+The next night (user, 2026-10-20): **V1–V6**, the plan's tablet pass, rosie as each row's worker
+(a device package, as M0; Tablet no, since she is the check). They need master's final tree: F3,
+F1f1, F5f1 and C's text changes committed by day first (night.sh refuses an uncommitted plan and
+brings `dev` up to master). The rows before them have MERGED lines in the log, so josh passes
+them over; they stay because `scripts/pipeline.test.sh` resolves M0, M1 and F2. A V row that
+isn't PASS stays unmerged with its results on its branch, and the rows after it still run (none
+rests on another). The regression after them reruns dev's debug build; let it run.
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -100,6 +108,12 @@ is `features.md`'s. Without the tablet M0 can't run, so M1 to M4 wait and only F
 | 4 | M3 | Settings: the mode switch, the grid, the dropdown, the set menu | winston | opus, high | yes | M2 | plan M3 |
 | 5 | M4 | The page: three tabs, chip, status lines, video notice, problem box | winston | opus, medium | yes | M3 | plan M4 |
 | 6 | F2 | Wi-Fi only | winston | sonnet, medium | yes | — | plan F2 + features 4 |
+| 7 | V1 | Tablet pass: F1, F3 and F1f1 | rosie | opus, high | no | — | plan V + plan V1 |
+| 8 | V2 | Tablet pass: F4, F5 and F5f1 | rosie | opus, high | no | — | plan V + plan V2 |
+| 9 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | — | plan V + plan V3 |
+| 10 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
+| 11 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | — | plan V + plan V5 |
+| 12 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | — | plan V + plan V6 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.
@@ -257,7 +271,9 @@ night can make; josh carries out your reply as written.
    sets something at the first run, a test that passes for the wrong reason.
 4. Night defaults in the reports: keep those within the plan; the rest become QUESTION lines. A doc that disagrees
    with the code: fix the doc on dev (under `scripts/devlock.sh acquire integ pass-<n> 600`, committed with the Opus
-   trailer). A STOP from rosie or an unmerged package: a FIX if the night can fix it, else a QUESTION.
+   trailer). A STOP from rosie or an unmerged package: a FIX if the night can fix it, else a QUESTION. A device
+   package's FIX or STOP (M0, V1–V6): always a QUESTION, never a FIX line (2026-10-20): its fix package would take
+   the row's worker, rosie, who writes no code; the morning makes it a `B<n>` package.
 5. Reply in exactly this form, nothing before `OPUS PASS` and nothing after NOTES. No backtick and no dollar sign in
    a FIX line (name files and code in plain words). FIX IDs are `<ID>f1`, `<ID>f2`, …; `branch` is the kept branch
    of an unmerged package, else `new`.

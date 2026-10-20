@@ -436,7 +436,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   greyer than the explanation (`bodySmall`, `onSurfaceVariant`), at most two lines with an
   ellipsis, all of it while the explanation is open (a cut credit makes the caption
   expandable too). The pref `credit` is written with the post; a post stored by 0.5.0 has
-  none, so nothing shows until the next post (no refetch, no migration).
+  none, so nothing shows until the next post or a pull (`refresh` stores what it fetched; no
+  migration).
 - **Explanation (user, 2026-10-17, U2; was a ▾ beside the title):** its first two lines under
   the title, with "more" below while they cut it off; a tap on it or the title shows it all,
   another hides it. A short one (Earth's one sentence) has no "more" and doesn't expand. Screen
@@ -462,7 +463,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
   came out stretched, with or without a crop. Only changed when the date is new and the
   download is a complete, decodable image. **Fit** (F1): the picture decoded upright (as the
   EXIF case), drawn into `:core`'s `fitFrame` on a black bitmap of the screen's portrait size
-  (about 11 MB on the FP6) and set with `setBitmap`, the hint all of it.
+  (about 11 MB on the FP6) and set with `setBitmap`, the hint all of it. To build (F1f1; user,
+  2026-10-20, from a review by reading): decoded straight to the frame's size, since Fill's
+  sample rule left a wide picture at the rendition's full size (3726×2484, 37 MB) for one
+  bilinear shrink of about 3.3×, which can make stars jagged.
   **Home and lock set separately** (M0, 2026-10-20; tablet, Android 15; the FP6 unchecked):
   both flags make one shared wallpaper (`dumpsys wallpaper`: `id=154: mWhich=3`, "Lock
   wallpaper state" empty); `FLAG_SYSTEM` alone first moves the shared one to the lock screen
@@ -514,13 +518,18 @@ deleted in the gallery isn't saved again (★ still checks it). So APOD mode sav
 video day the stand-in; "Skip it" or "my picture" saves nothing. One skipped while ★ saves
 (`BUSY`) or failed is logged, doesn't retry the job, and the next run tries. A stop ends it:
 `save` rethrows an interrupted download (`isStop()`) instead of falling back. Built and
-unit-tested; the device checks and the ⓘ text wait for the tablet.
+unit-tested; the device checks and the ⓘ text wait for the tablet. **One try of the original
+per post** (user, 2026-10-20, from a review by reading; to build in F5f1): a stopped save noted
+nothing, so each retry of the job and each later run downloaded the original from zero (a
+97 MB NASA original on a slow connection, all day). The job notes the try first
+(`<source>.saveTried`, the picture URL); the next job save of that post saves the stored
+picture, the smaller copy, as after a failure. ★ always tries the original.
 
 ### Background update
 
 (Decided 2026-10-01.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
 AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
-periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`, so on mobile data turns wait too, also between stored pictures, and a metered Wi-Fi (a phone's hotspot) counts as mobile data (accepted by the user for 0.6.0, 2026-10-20: a job that only skips downloads on a metered network is more code); toggling it reschedules the job (`DailyJob.ensure` counts another network type as another timing); the page and the buttons still use any network. Each run, and each page
+periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`, so on mobile data turns wait too, also between stored pictures, and a metered Wi-Fi (a phone's hotspot) counts as mobile data (accepted by the user for 0.6.0, 2026-10-20: a job that only skips downloads on a metered network is more code); toggling it reschedules the job (`DailyJob.ensure` counts another network type as another timing; it reads the deprecated `JobInfo.networkType`, a compiler warning left as is, 2026-10-20: it works, and `requiredNetwork` would mean comparing `NetworkRequest`s); the page and the buttons still use any network. Each run, and each page
 open or pull (2026-10-16, one path): `Store.update(force)`, `refresh(source)` for each source
 in use unless its stored post is today's (always with `force`), then, while `daily` is on,
 `setDue()`: what each screen is due (`:core`'s `dueWallpapers`, Turns), set where it isn't
@@ -610,7 +619,7 @@ wake and fail offline).
 
 ## Next features
 
-**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, Wi-Fi only in F2, by the night shift of 2026-10-20, approved by the user that morning; the how and the layout in `plan-0.6.0.md`).
+**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, Wi-Fi only in F2, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6), turns over hours by day (V7), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).
@@ -715,9 +724,9 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
   ones, a held picture's source, the stand-in on an APOD video day) unless it's a video or
   already saved; chosen over "what goes on a screen" as easier to keep right (no hook in every
   set path, no state for a set but unsaved picture). As ★ does: the original, else the stored
-  picture (bounded data: a 97 MB NASA original is tried once). The job remembers what it saved
-  (date and URL), not whether the file is still there, so a picture deleted in the gallery
-  isn't saved again.
+  picture (bounded data: a 97 MB NASA original is tried once, after a stop too from F5f1). The
+  job remembers what it saved (date and URL), not whether the file is still there, so a picture
+  deleted in the gallery isn't saved again.
 - **Left out:** previous days (not one page any more), full-screen view, home-screen widget,
   Quick Settings tile (rarely used), translations (English UI stays), sharing the picture file
   (needs a `FileProvider`). Still out, as above: a notification, the still frame on video days,

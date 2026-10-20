@@ -630,7 +630,7 @@ with Set. The job: with turns (a column with two or more, `Store.hasTurns`), per
 switching on offline waits up to a period. With one source 0.4.0's job (6 h, flex 6 h).
 A `turnStartedAt` in the future (the clock set back) counts as a turn that is over
 (WP7g; on the tablet, U7: the next source set at once, the turn fresh). `run -f` runs push the job's next window one period further each (seen: +21 h after 7 runs);
-Set with another interval or mode schedules it afresh. A video-day choice or the mode switch
+Set schedules it afresh while a column takes turns, else only when its timing changes (S4f1). A video-day choice or the mode switch
 in the draft while an update runs makes the page run one more after it (that one read the
 offered sources before).
 

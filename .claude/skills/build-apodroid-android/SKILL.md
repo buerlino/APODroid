@@ -121,8 +121,8 @@ packages unattended): `night.md`.
   that does it: `turn.sh [ms back]` in `private/wp7-handoff/` (gitignored; `W=<s>` waits longer, e.g. 45 for a
   read timeout), with `swap.sh debug|r8 [sed args]` (install a build, fake prefs) and `ui.sh` (the
   page's nodes with their tap coordinates: rows move when a tick changes).
-  Each `run -f` pushes the periodic job's next window a period further; change the interval
-  (or the switch) to schedule it afresh.
+  Each `run -f` pushes the periodic job's next window a period further; Set (with turns,
+  any Set; without, a changed timing) schedules it afresh.
 - Put a file in place (debug builds), e.g. "my picture":
   `cat x.jpg | adb shell "run-as io.github.buerlino.apodroid sh -c 'cat > files/fallback.jpg'"`.
   The R8 build keeps the data of the debug build it's installed over, so set up a state with

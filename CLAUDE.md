@@ -285,9 +285,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
     clock and forgets the records (`:core`'s `restartAndForget`; Turns), then
     `update(page = true, show, set = true)` fetches what a newly offered source needs and sets
     each screen afresh (a changed Fit or "my picture" too, the same picture again), also with
-    the daily switch off (a one-off set of the same setup), then schedules (`DailyJob.ensure`)
+    the daily switch off (a one-off set of the same setup), then schedules
     or cancels the job as the daily switch says (after the set: a job without turns runs at
-    once and would set first). The shown picture decides nothing: to put Earth on a screen,
+    once and would set first; with turns `DailyJob.schedule` afresh, so the period starts with
+    the restarted clock, else `ensure`). The shown picture decides nothing: to put Earth on a screen,
     tick Earth (0.5.0's "set the shown picture" dropped). A source whose fetch fails: the setup
     is saved anyway and each screen gets what has a picture (Turns). Toasts: "Wallpaper set"
     when a screen was set; "Setup saved. Nothing to set yet." when none was (an APOD video with
@@ -595,7 +596,9 @@ run at once; `setDue()`, every set and every change to the records or columns ho
 the refresh lock: ★ would wait seconds for a set), so a page and a job running at once set once;
 the page calls them off the main thread.
 Failures return `needsReschedule` (30 s exponential backoff). Set with the daily switch on
-schedules the job (`DailyJob.ensure`, after its set; one without turns runs at once), off
+schedules the job after its set: with turns afresh (`DailyJob.schedule`: the period starts with
+the restarted clock; `ensure` would keep the old windows and the first turn would end up to a
+period late), otherwise `ensure` (a fresh one without turns runs at once and would set first); off
 cancels it. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
 schedules it again when `daily` is on and the job is missing or has another timing

@@ -27,6 +27,8 @@ while [[ $# -gt 0 ]]; do case "$1" in
   *) usage;; esac; done
 [[ "$max_steps" =~ ^[0-9]+$ && "$max_steps" -ge 3 ]] || { echo "night.sh: --max-steps needs at least 3 (the closing steps)" >&2; exit 2; }
 [[ -z "$until_hm" || "$until_hm" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] || { echo "night.sh: --until takes HH:MM" >&2; exit 2; }
+# No terminal on stdin for anything the night starts (pipeline.sh says why).
+exec < /dev/null
 self="$(readlink -f "$0")"; here="$(dirname "$self")"
 # shellcheck source=scripts/pipeline-lib.sh
 source "$here/pipeline-lib.sh"
@@ -85,7 +87,7 @@ else
   if ! synced="$(sync_dev "$integ")"; then log "STOPPED night.sh: $synced"; say "STOPPED: $synced"; exit 1; fi
   [[ -z "$synced" ]] || log "night.sh: $synced"
   # The preflight: every queue row resolves against dev's plan, and the scripts work (no agent is started).
-  if ! (cd "$integ" && timeout 300 scripts/pipeline.test.sh) > "$coord/preflight.log" 2>&1; then
+  if ! (cd "$integ" && timeout -k 60 300 scripts/pipeline.test.sh) > "$coord/preflight.log" 2>&1; then
     log "STOPPED night.sh: the preflight failed (scripts/pipeline.test.sh): $(grep -m1 '^FAIL' "$coord/preflight.log" | cut -c1-200)"
     say "STOPPED: preflight failed, see $coord/preflight.log"; exit 1
   fi
@@ -114,7 +116,7 @@ ask_josh() {  # prints josh's one-line reply; waits and asks again on a usage li
   while :; do
     josh_input > "$josh_dir/in.md"; cp "$josh_dir/in.md" "$coord/josh-last-input.md" 2>/dev/null || true
     set +e
-    (cd "$josh_dir" && timeout 600 claude -p --tools "" --model "${APODROID_TEST_MODEL:-sonnet}" --effort medium --system-prompt "$josh_prompt" \
+    (cd "$josh_dir" && timeout -k 60 600 claude -p --tools "" --model "${APODROID_TEST_MODEL:-sonnet}" --effort medium --system-prompt "$josh_prompt" \
       --strict-mcp-config --output-format text --no-session-persistence "$josh_question") < "$josh_dir/in.md" > "$josh_dir/out.md" 2> "$josh_dir/err.md"
     rc=$?; set -e
     if is_limit "$rc" "$josh_dir/err.md" "$josh_dir/out.md"; then limit_wait_or_stop "josh"; continue; fi
@@ -138,7 +140,7 @@ run_cmd() {  # <cmd>: one pipeline line; returns its exit code (75: a usage limi
   local cmd="$1" cmdout rc
   [[ $dry -eq 0 ]] || return 0
   cmdout="$(mktemp)"
-  set +e; (cd "$integ" && eval "timeout 28800 $cmd") > "$cmdout" 2>&1; rc=$?; set -e
+  set +e; (cd "$integ" && eval "timeout -k 60 28800 $cmd") > "$cmdout" 2>&1; rc=$?; set -e
   cat "$cmdout" >> "$out"
   say "rc=$rc: $(grep '^RESULT ' "$cmdout" | tail -n 1 || tail -n 1 "$cmdout")"
   if [[ $rc -ne 75 ]] && ! grep -q '^RESULT ' "$cmdout"; then

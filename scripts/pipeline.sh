@@ -30,6 +30,10 @@
 # Output: one RESULT line on stdout (also in .coord/log.md), on every exit. Exit 0 merged, 1 not merged,
 # 2 not started or failed early, 75 usage limit (night.sh waits and retries).
 set -euo pipefail
+# No terminal on stdin: timeout puts its child in a background process group, and a Gradle client that resets a
+# terminal there is stopped by SIGTTOU for good (night of 2026-10-19: M0's debug build hung 8 h after BUILD
+# SUCCESSFUL). timeout -k 60 kills what a TERM leaves stopped.
+exec < /dev/null
 here="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 # shellcheck source=scripts/pipeline-lib.sh
 source "$here/pipeline-lib.sh"
@@ -47,6 +51,11 @@ export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0
 claude_common=(--permission-mode auto --output-format text --no-session-persistence --strict-mcp-config
   --settings "$here/agent-settings.json")
 lock() { "$here/devlock.sh" "$@" >/dev/null; }
+# Every exit, a kill by night.sh's timeout or Ctrl-C too, frees the locks this run holds (release only takes a lock
+# whose owner is lock_owner).
+lock_owner=""
+release_held() { local r; [[ -z "$lock_owner" ]] && return 0; for r in host-cpu tablet integ; do lock release "$r" "$lock_owner" 2>/dev/null || true; done; }
+trap release_held EXIT
 
 log() { [[ ! -s "$coord/log.md" || -z "$(tail -c1 "$coord/log.md")" ]] || echo >> "$coord/log.md"; printf -- '- %s %s\n' "$(date +%H:%M)" "$*" >> "$coord/log.md"; }
 runlog() { printf '%s %s\n' "$(date +%H:%M:%S)" "$*" >> "$run/run.log"; }
@@ -79,7 +88,7 @@ link_shared() { [[ -e "$1/private" || ! -d "$main/private" ]] || ln -s "$main/pr
 if [[ "${1:-}" == "pass" ]]; then
   dry=0; [[ "${2:-}" == "--dry-run" ]] && dry=1
   ensure_integ
-  n="$(next_pass "$coord/log.md")"
+  n="$(next_pass "$coord/log.md")"; lock_owner="pass-$n"
   since="$(since_last_pass "$coord/log.md" | paste -sd';' | sed 's/;/; /g')"
   [[ -n "$since" ]] || { result "pass $n: NOTHING (no package finished since the last pass)"; exit 0; }
   prompt="Opus pass $n of the night shift: follow \"Opus pass\" in $skill/night.md for these pipeline results: $since. You run in the dev worktree $integ; the run folders are in $coord/runs/. Take scripts/devlock.sh acquire host-cpu pass-$n 1800 around the Gradle check and scripts/devlock.sh acquire integ pass-$n 600 around a doc commit, and release each right after. Reply in exactly the form the section gives."
@@ -87,7 +96,7 @@ if [[ "${1:-}" == "pass" ]]; then
   run="$coord/passes/pass-$n"; mkdir -p "$run"
   log "Opus pass $n: susanna (opus) on: $since"
   set +e
-  (cd "$integ" && timeout 7200 claude -p --disallowedTools Agent --add-dir "$coord" \
+  (cd "$integ" && timeout -k 60 7200 claude -p --disallowedTools Agent --add-dir "$coord" \
     --agent susanna --model "${APODROID_TEST_MODEL:-opus}" --effort medium "${claude_common[@]}" "$prompt") > "$run/reply.md" 2> "$run/stderr.log"
   rc=$?; set -e
   if is_limit "$rc" "$run/stderr.log" "$run/reply.md"; then result "pass $n: LIMIT"; exit 75; fi
@@ -99,7 +108,7 @@ fi
 if [[ "${1:-}" == "regression" ]]; then
   dry=0; [[ "${2:-}" == "--dry-run" ]] && dry=1
   ensure_integ
-  k="$(next_regression "$coord/log.md")"
+  k="$(next_regression "$coord/log.md")"; lock_owner="regression-$k"
   since="$(merged_since_regression "$coord/log.md" | paste -sd';' | sed 's/;/; /g')"
   [[ -n "$since" ]] || { result "regression $k: NOTHING (nothing merged since the last regression)"; exit 0; }
   if [[ $dry -eq 1 ]]; then echo "DRY RUN: regression $k, rosie on dev's debug build, after: $since"; echo "RESULT regression $k: DRY RUN"; exit 0; fi
@@ -108,7 +117,7 @@ if [[ "${1:-}" == "regression" ]]; then
   run="$coord/regressions/regression-$k"; mkdir -p "$run/tablet"
   log "Regression $k: rosie (sonnet) on dev $(git -C "$integ" rev-parse --short HEAD), after: $since"
   lock acquire host-cpu "regression-$k" 1800 || die "host-cpu lock busy"
-  if ! (cd "$integ" && timeout 1800 ./gradlew --console=plain :app:assembleDebug) > "$run/debug.log" 2>&1; then
+  if ! (cd "$integ" && timeout -k 60 1800 ./gradlew --console=plain :app:assembleDebug) > "$run/debug.log" 2>&1; then
     lock release host-cpu "regression-$k" || true
     result "regression $k: NOT RUN (the debug build of dev failed: $run/debug.log)"; exit 0
   fi
@@ -118,7 +127,7 @@ if [[ "${1:-}" == "regression" ]]; then
   prompt="REGRESSION $k of the night shift: test the whole app on dev's debug build $apk on the tablet $TABLET, as \"The regression\" in $skill/night.md says, with the device rules of \"For rosie: the tablet checks\". Merged since the last regression: $since. Put screenshots, dumps and the backup in $run/tablet/. No code changes, no commits. Reply in the form \"The regression\" gives."
   lock acquire tablet "regression-$k" 1800 || { result "regression $k: NOT RUN (tablet lock busy)"; exit 0; }
   set +e
-  (cd "$integ" && ANDROID_SERIAL="$TABLET" PATH="$ANDROID_HOME/platform-tools:$PATH" timeout 7200 claude -p \
+  (cd "$integ" && ANDROID_SERIAL="$TABLET" PATH="$ANDROID_HOME/platform-tools:$PATH" timeout -k 60 7200 claude -p \
     --disallowedTools Agent,Edit,NotebookEdit --add-dir "$run" --add-dir "$coord" \
     --agent rosie --model "${APODROID_TEST_MODEL:-sonnet}" --effort medium "${claude_common[@]}" "$prompt") < /dev/null > "$run/reply.md" 2> "$run/stderr.log"
   rc=$?; set -e
@@ -138,7 +147,7 @@ if [[ "${1:-}" == "report" ]]; then
   prompt="Write the shift report of $skill/night.md (\"The shift report\") to $out, from the night's part of .coord/log.md on stdin. You run in the dev worktree $integ; the run folders are in $coord/runs/, the pass replies in $coord/passes/ and the regressions' replies in $coord/regressions/. Never commit, never push. Reply with the file's path only."
   set +e
   awk '/^## [0-9-]+ night/ { buf = "" } { buf = buf $0 "\n" } END { printf "%s", buf }' "$coord/log.md" |
-    (cd "$integ" && timeout 1800 claude -p --disallowedTools Agent --add-dir "$coord" \
+    (cd "$integ" && timeout -k 60 1800 claude -p --disallowedTools Agent --add-dir "$coord" \
       --agent susanna --model "${APODROID_TEST_MODEL:-sonnet}" --effort medium "${claude_common[@]}" "$prompt") > "$run/reply.md" 2> "$run/stderr.log"
   rc=$?; set -e
   if is_limit "$rc" "$run/stderr.log" "$run/reply.md"; then result "report: LIMIT"; exit 75; fi
@@ -234,7 +243,7 @@ if [[ $dry -eq 1 ]]; then
 fi
 
 if [[ $nowork -eq 1 ]]; then git show-ref --verify --quiet "refs/heads/$branch" || die "--no-worker: branch $branch does not exist"; fi
-echo "$n" > "$counter"; runno="$n"
+echo "$n" > "$counter"; runno="$n"; lock_owner="pipeline-$n"
 log "pipeline #$n $id ($agent, $model, $effort; tablet $tablet) on $branch: started"
 runlog "start $id $model $effort $branch tablet=$tablet"
 
@@ -255,7 +264,7 @@ run_agent() {  # <name> <log> <agent> <model> <effort> <stdin file> <timeout s> 
   local name="$1" out="$2" ag="$3" mdl="$4" eff="$5" input="$6" secs="$7" prompt="$8"; shift 8
   local rc
   set +e
-  (cd "$wt" && env "${agent_env[@]}" timeout "$secs" claude -p "$@" --agent "$ag" --model "${APODROID_TEST_MODEL:-$mdl}" --effort "$eff" \
+  (cd "$wt" && env "${agent_env[@]}" timeout -k 60 "$secs" claude -p "$@" --agent "$ag" --model "${APODROID_TEST_MODEL:-$mdl}" --effort "$eff" \
     "${claude_common[@]}" "$prompt") < "$input" > "$out" 2> "$out.err"
   rc=$?; set -e
   if is_limit "$rc" "$out" "$out.err"; then log "pipeline #$n $id: LIMIT during $name (claude exit $rc)"; result "#$n $id: LIMIT"; exit 75; fi
@@ -289,7 +298,7 @@ run_check() {  # <round>; on a failure writes fail-<round>.txt and returns 1
     runlog "check: worktree not clean"; return 1
   fi
   lock acquire host-cpu "pipeline-$n" 1800 || die "host-cpu lock busy"
-  (cd "$wt" && timeout 2400 ./gradlew --console=plain "${gradle_check[@]}") > "$out" 2>&1 || rc=1
+  (cd "$wt" && timeout -k 60 2400 ./gradlew --console=plain "${gradle_check[@]}") > "$out" 2>&1 || rc=1
   lock release host-cpu "pipeline-$n" || true
   if [[ $rc -ne 0 ]]; then
     { echo "## The Gradle check failed: ./gradlew ${gradle_check[*]} (full log: $out)"; excerpt "$out"; } >> "$run/fail-$round.txt"
@@ -321,7 +330,7 @@ tablet_check() {  # <round>
   state="$("$adb" -s "$TABLET" get-state 2>/dev/null || true)"
   if [[ "$state" != device ]]; then log "pipeline #$n $id: tablet NOT RUN ($TABLET ${state:-not attached}); its checks go on the morning list"; return 0; fi
   lock acquire host-cpu "pipeline-$n" 1800 || die "host-cpu lock busy"
-  if ! (cd "$wt" && timeout 1800 ./gradlew --console=plain :app:assembleDebug) > "$run/debug-$round.log" 2>&1; then
+  if ! (cd "$wt" && timeout -k 60 1800 ./gradlew --console=plain :app:assembleDebug) > "$run/debug-$round.log" 2>&1; then
     lock release host-cpu "pipeline-$n" || true
     log "pipeline #$n $id: tablet NOT RUN (the debug build failed: $run/debug-$round.log)"; return 0
   fi
@@ -347,7 +356,7 @@ if [[ $nowork -eq 0 && "$agent" == rosie ]]; then
   # A device package: rosie is the worker; anything but PASS leaves it unmerged (what follows rests on it).
   apk="$run/app-debug.apk"
   lock acquire host-cpu "pipeline-$n" 1800 || die "host-cpu lock busy"
-  (cd "$wt" && timeout 1800 ./gradlew --console=plain :app:assembleDebug) > "$run/debug.log" 2>&1 && cp "$wt/app/build/outputs/apk/debug/app-debug.apk" "$apk" || true
+  (cd "$wt" && timeout -k 60 1800 ./gradlew --console=plain :app:assembleDebug) > "$run/debug.log" 2>&1 && cp "$wt/app/build/outputs/apk/debug/app-debug.apk" "$apk" || true
   lock release host-cpu "pipeline-$n" || true
   prompt="You are rosie in pipeline run $n for the device package $id, the worker this time. The bundle is on stdin (also at $bundle). Run the package's steps on the tablet $TABLET as its text and \"For rosie: the tablet checks\" say, with what is installed there, or with $apk (the debug build of dev) when the package needs our app and none is installed. Put screenshots, dumps and the backup in $run/tablet/. Then, in your worktree $wt on branch $branch, write the results where the package's Done when says, commit them with your model's trailer, and end with the report commit (\"Your report\"). Never switch branches. Reply with PASS, FIX, STOP or NOT RUN alone on the first line, then the lines that section asks for."
   run_worker "pl-$n-rosie" "$run/worker-0.log" "$bundle" 3600 "$prompt"

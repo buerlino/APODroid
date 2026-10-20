@@ -303,7 +303,11 @@ scripts/night.sh --until 07:30
 - Resume: `scripts/night.sh` again; josh continues from the log.
 - One package by hand, by day or night: `scripts/pipeline.sh M3` (`--dry-run` prints its bundle; `--no-merge`
   stops before the merge; `--tablet no` skips rosie).
-- Locks: `scripts/devlock.sh status`; `scripts/devlock.sh break <name>` for one whose owner is gone.
+- Locks: `scripts/devlock.sh status`; `scripts/devlock.sh break <name>` for one whose owner is gone. A pipeline
+  frees its own locks on any exit, also when a timeout or Ctrl-C kills it.
+- Both scripts take stdin from `/dev/null` and every `timeout` has `-k 60` (2026-10-20: on 2026-10-19, started from
+  a terminal, M0's Gradle client was stopped by the tty after BUILD SUCCESSFUL, and its timeout couldn't end it;
+  the night hung 8 h on it).
 - Each start checks that CLAUDE.md, the skill (the plan), the agents and the scripts have no uncommitted changes
   (the night reads master's commits only; `--dirty-ok` skips this), brings `dev` up to master and runs
   `scripts/pipeline.test.sh` (no agents). If a check fails, or a queue row doesn't resolve against the committed

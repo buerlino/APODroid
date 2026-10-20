@@ -342,9 +342,12 @@ class Store(private val context: Context) {
     }
 
     /** Writes [plan]'s clock (first) and its records without a set; the sets are [setDue]'s. */
-    private fun write(plan: Plan) = prefs.edit(commit = true) {
-        if (plan.restarted) putLong("turnStartedAt", plan.clock?.toEpochMilli() ?: 0)
-        plan.screens.forEach { (screen, due) -> putRecord(screen, due.record) }
+    private fun write(plan: Plan) {
+        if (!plan.restarted && plan.screens.isEmpty()) return
+        prefs.edit(commit = true) {
+            if (plan.restarted) putLong("turnStartedAt", plan.clock?.toEpochMilli() ?: 0)
+            plan.screens.forEach { (screen, due) -> putRecord(screen, due.record) }
+        }
     }
 
     /**

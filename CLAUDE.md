@@ -474,6 +474,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
   still APOD); `FLAG_LOCK` alone replaces only the lock one (`Lock id=156: mWhich=2`, home
   still 155); both flags again leave one shared wallpaper and no lock one (`id=157:
   mWhich=3`, "Lock wallpaper state" empty). No screen went blank.
+- **Share** (0.6.0, F3, 2026-10-20; built, the glyph waits to be seen on a device): ⤴ (U+2934, the
+  user's pick from ⤴, ↗, ⇪ and a drawn icon) in ★'s dark circle, left of ★; on video days at the ▶
+  tile's bottom right (the link works). Screen readers "Share". A tap opens the system share sheet
+  (`ACTION_SEND`, `text/plain`) with "<title>\n<page link>" of the shown tab's post; no picture, no
+  `FileProvider`.
 - **Choosing the part (user, 2026-10-05):** a ⛶ at the bottom left of the picture (mirroring
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the

@@ -772,6 +772,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun share(post: Post) {
+        val send = Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, "${post.title}\n${post.pageUrl}")
+        try {
+            startActivity(Intent.createChooser(send, null))
+        } catch (_: ActivityNotFoundException) {
+            toast("Nothing to share with")
+        }
+    }
+
     /** Android 13+ confirms a copy itself. */
     private fun copy(label: String, text: String) {
         getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(label, text))
@@ -914,22 +925,25 @@ class MainActivity : ComponentActivity() {
                     }
                     SetChoices(setMenu && cropping) { setMenu = false }
                 }
-                IconButton(
-                    onClick = ::savePicture,
-                    modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
-                ) {
-                    Text(
-                        if (saved) "★" else "☆",
-                        Modifier.clearAndSetSemantics {
-                            contentDescription = when {
-                                saving -> "Saving"
-                                saved -> "Saved"
-                                else -> "Save"
-                            }
-                        },
-                        color = Color.White.copy(alpha = if (saving) 0.4f else 1f),
-                        fontSize = 24.sp,
-                    )
+                Row {
+                    ShareButton(post)
+                    IconButton(
+                        onClick = ::savePicture,
+                        modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                    ) {
+                        Text(
+                            if (saved) "★" else "☆",
+                            Modifier.clearAndSetSemantics {
+                                contentDescription = when {
+                                    saving -> "Saving"
+                                    saved -> "Saved"
+                                    else -> "Save"
+                                }
+                            },
+                            color = Color.White.copy(alpha = if (saving) 0.4f else 1f),
+                            fontSize = 24.sp,
+                        )
+                    }
                 }
             }
             if (shownProblem != null) {
@@ -1027,6 +1041,23 @@ class MainActivity : ComponentActivity() {
                 Modifier.clearAndSetSemantics { contentDescription = "Play video on the web" },
                 color = Color.White,
                 fontSize = 48.sp,
+            )
+            Box(Modifier.align(Alignment.BottomEnd)) { ShareButton(apod) }
+        }
+    }
+
+    /** ⤴ shares the title and the page link through the system share sheet. */
+    @Composable
+    private fun ShareButton(post: Post) {
+        IconButton(
+            onClick = { share(post) },
+            modifier = Modifier.padding(8.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
+        ) {
+            Text(
+                "⤴",
+                Modifier.clearAndSetSemantics { contentDescription = "Share" },
+                color = Color.White,
+                fontSize = 24.sp,
             )
         }
     }

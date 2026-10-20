@@ -321,6 +321,10 @@ bilinear step, which can make fine detail (stars) jagged or drop it.
 
 ### [ ] F3. Share (Sonnet, medium)
 
+**Status (2026-10-20, day):** built (`ShareButton`, `share` in `MainActivity.kt`; the build
+check passes); the device checks and the user's look at the glyph are open until the tablet is
+free (C, then V1).
+
 `features.md` item 6 has the how. Settled: the glyph ⤴ (U+2934; user, 2026-10-20, from ⤴, ↗, ⇪
 and a drawn Material icon), to be seen on a device.
 - ⤴ in the same dark circle as ★, left of ★ at the picture's bottom right; on video days (no ★)

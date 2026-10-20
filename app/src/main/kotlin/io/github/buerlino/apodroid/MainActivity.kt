@@ -510,10 +510,10 @@ class MainActivity : ComponentActivity() {
         return listOfNotNull(home?.let { line("Home screen", it) }, lock?.let { line("Lock screen", it) })
     }
 
-    /** " · NASA" on the status line, none for APOD's with APOD ticked alone; the user's own " · My picture" with the switch on. */
+    /** " · NASA" on the status line, none for APOD's with APOD ticked alone; the user's own " · My picture" in both modes. */
     private fun pictureSuffix(picture: Picture?): String = when (picture) {
         is Picture.Of -> if (picture.source == Source.APOD && apodAlone) "" else " · ${picture.source.shortLabel}"
-        Picture.Own -> if (stored.allSources) " · My picture" else ""
+        Picture.Own -> " · My picture"
         null -> ""
     }
 
@@ -1637,7 +1637,8 @@ class MainActivity : ComponentActivity() {
                 confirmButton = { TextButton(onClick = { info = false }) { Text("OK") } },
                 text = {
                     Text(
-                        "Each new picture is saved full size to Pictures/APODroid: a few hundred MB a month or more.",
+                        "Each new picture is saved to Pictures/APODroid: full size up to the largest original, " +
+                            "else a screen-sized copy. A few hundred MB a month or more.",
                     )
                 },
             )

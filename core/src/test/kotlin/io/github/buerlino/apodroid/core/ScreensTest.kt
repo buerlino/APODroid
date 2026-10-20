@@ -486,4 +486,38 @@ class ScreensTest {
         assertEquals(Due(Record(NASA, pic(NASA), t0 + Duration.ofHours(6)), false), nasaTurn.screens.getValue(HOME))
         assertEquals(emptyList(), nasaTurn.sets)
     }
+
+    // The page's "video day, wallpaper kept"
+
+    private val videoDay = posts + (APOD to post(APOD, d2, video = true))
+
+    @Test
+    fun aVideoDayKeepsAnApodScreenWithNothingStandingIn() {
+        val kept = Record(APOD, pic(APOD))
+        assertTrue(videoDayKept(listOf(APOD), kept, stored(videoDay, StandIn.SKIP)))
+        // "Use my picture" with none picked, NASA not stored yet.
+        assertTrue(videoDayKept(listOf(APOD), kept, stored(videoDay, StandIn.OWN, own = false)))
+        assertTrue(videoDayKept(listOf(APOD), kept, stored(videoDay - NASA, StandIn.NASA)))
+        // The stand-in is stored but not set yet.
+        assertTrue(videoDayKept(listOf(APOD), kept, stored(videoDay, StandIn.NASA)))
+    }
+
+    @Test
+    fun aStandInOnTheScreenIsNoKeptPicture() {
+        assertFalse(videoDayKept(listOf(APOD), Record(APOD, pic(NASA)), stored(videoDay, StandIn.NASA)))
+        assertFalse(videoDayKept(listOf(APOD, EARTH), Record(APOD, Picture.Own), stored(videoDay, StandIn.OWN)))
+    }
+
+    @Test
+    fun onlyAnApodVideoDayOnAnApodTurnKeeps() {
+        // An image day.
+        assertFalse(videoDayKept(listOf(APOD), Record(APOD, pic(APOD)), stored()))
+        // APOD not ticked there.
+        assertFalse(videoDayKept(listOf(NASA), Record(NASA, pic(NASA)), stored(videoDay)))
+        // With turns "Skip it" passed the turn on.
+        assertFalse(videoDayKept(all, Record(NASA, pic(NASA)), stored(videoDay)))
+        // Never set, or forgotten: the next set decides.
+        assertFalse(videoDayKept(listOf(APOD), null, stored(videoDay)))
+        assertFalse(videoDayKept(listOf(APOD), Record(APOD), stored(videoDay)))
+    }
 }

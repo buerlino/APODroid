@@ -263,23 +263,28 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the switch "All NASA pictures". (S5 groups them under "Setup" and "Advanced settings".)
   - **Set applies the setup** (user, 2026-10-20 evening; S4; why: a change took effect at once,
     "but maybe I'm not done"; Next features, 0.6.0). **A draft
-    until Set:** the daily switch, "Where", the list (ticks and dropdowns), "Change every",
+    until Set:** "Where", the list (ticks and dropdowns), "Change every",
     "Size", "If APOD is a video", a newly picked "my picture", ⛶'s part and the switch "All
     NASA pictures" change only the page (`MainActivity`'s draft state; no pref is written, no
     set, no scheduling). A rotation and the system killing the app keep the draft
     (`onSaveInstanceState`); closing the app drops it (a start without a saved draft deletes
-    `files/fallback-draft.jpg`). The daily switch is part of the draft as built in S4, but
-    **leaves it in S4f2** (user, 2026-10-20 evening: a setting that changes how the whole app
-    works must act at once): off cancels the job at once; on schedules it and sets the stored
-    setup at once (the clock restarts, both records forgotten), other draft changes staying a
-    draft. **Two kinds of state on the
+    `files/fallback-draft.jpg`). **The daily switch acts at once, both ways** (S4f2; user,
+    2026-10-20 evening: a setting that changes how the whole app works must act at once; S4 had
+    it in the draft): off writes `daily` and cancels the job; on writes it, starts the stored
+    setup afresh (`Store.startAfresh`: `restartAndForget` with the stored columns, the clock
+    restarts, both records forgotten, as 0.5.0's switch did), `update(page = true, show, set =
+    true)` sets the **stored** setup, then the job is scheduled as after Set; the other draft
+    changes stay a draft. Toasts "Wallpaper set" or "Couldn't set the wallpaper", none when
+    nothing was set (the status line says it). Turned on while a Set or an update runs, its run
+    goes beside it (the store's locks keep the sets apart). What the draft's switch hid (the
+    rows below) follows the one switch. **Two kinds of state on the
     page:** the controls and the sources the page offers (the tabs) follow the draft, so
     turning "All NASA pictures" on offers and fetches all three at once (`Store.update`'s
     `show`); what reports what is set follows the stored setup (`Store.setup`): the status
     lines, the chip, the video notice, the problem box, the battery hint, the opening tab. **The
     job follows the stored setup only:** `onResume`'s `DailyJob.ensure` and the reschedule
-    after "Wi-Fi only" read `store.daily`, the stored mode and columns; only Set schedules or
-    cancels by the draft. **At once, as before:** "Wi-Fi only", "Save every picture" (they
+    after "Wi-Fi only" read `store.daily`, the stored mode and columns; only Set and the daily
+    switch schedule or cancel (Set by the stored switch, after saving the draft). **At once, as before:** "Wi-Fi only", "Save every picture" (they
     change no picture) and ★.
   - **Set as wallpaper**: one button at the end of the Wallpaper section, both modes, the daily
     switch on or off, no Home / Lock / Both menu, enabled unless a Set runs. It saves the whole
@@ -289,7 +294,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     `update(page = true, show, set = true)` fetches what a newly offered source needs and sets
     each screen afresh (a changed Fit or "my picture" too, the same picture again), also with
     the daily switch off (a one-off set of the same setup), then schedules
-    or cancels the job as the daily switch says (after the set: a job without turns runs at
+    or cancels the job as the stored daily switch says (not part of the draft; after the set: a job without turns runs at
     once and would set first; with turns `DailyJob.schedule` afresh, so the period starts with
     the restarted clock, else `ensure`). The shown picture decides nothing: to put Earth on a screen,
     tick Earth (0.5.0's "set the shown picture" dropped). A source whose fetch fails: the setup
@@ -299,7 +304,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "Couldn't set the wallpaper" when a set failed (also when another worked). With the daily
     switch on the job sets the rest later.
   - A switch for the daily change ("Change wallpaper automatically", user 2026-10-17: with
-    turns it isn't daily): part of the draft until S4f2, then at once both ways (above).
+    turns it isn't daily): at once both ways since S4f2 (above); the pref `daily`.
   - **All NASA pictures** (renamed "More NASA pictures" in S5: user, 2026-10-20 evening, after a
     review called the mockup's "Extended API mode" a developer's word; 0.6.0, M3; the pref `allSources`, default off: APOD mode). Part of
     the draft: "Where" and the list swap at once and the page offers the new mode's sources;
@@ -609,7 +614,8 @@ Failures return `needsReschedule` (30 s exponential backoff). Set with the daily
 schedules the job after its set: with turns afresh (`DailyJob.schedule`: the period starts with
 the restarted clock; `ensure` would keep the old windows and the first turn would end up to a
 period late), otherwise `ensure` (a fresh one without turns runs at once and would set first); off
-cancels it. **No reschedule may stop a running run** (user, 2026-10-20 evening; S4f3, not built
+cancels it. Turning the daily switch on (S4f2) does the same after setting the stored setup
+afresh (`Store.startAfresh`); off cancels at once. **No reschedule may stop a running run** (user, 2026-10-20 evening; S4f3, not built
 yet): scheduling the job's id again stops a run, so a Set during a run delayed its saves to the
 next run; while a run goes, the reschedule waits for its end. Off still stops a run. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
@@ -632,8 +638,9 @@ passes to the next source); the record keeps APOD as the owner. **Set** (S4, 202
 clock restarts (to now); the records of the screens with a column are forgotten (picture
 dropped, owner kept) and those on the current turn take the new stamp (one still due a retry
 keeps its old stamp, so it moves on), so each screen gets what the setup says afresh, the same
-picture again after a changed Fit or "my picture". A screen left alone (an empty column) keeps
-its record. A screen whose column was empty starts without a record (its owner is removed):
+picture again after a changed Fit or "my picture". Turning the daily switch on (S4f2,
+`Store.startAfresh`) does the same with the stored columns, saving nothing else. A screen left
+alone (an empty column) keeps its record. A screen whose column was empty starts without a record (its owner is removed):
 it was left alone meanwhile, so its record is stale. A screen with no record (the lock screen
 after migrating "Home", a fresh install, such a column) starts on the other screen's owner if
 ticked there, else the first ticked source with a picture. A changed interval takes effect
@@ -699,7 +706,7 @@ video days worked only with APOD alone (it shows at once that it was a video day
   screen's turn from 6 h to 9 h). The shown picture decides nothing (0.5.0 could set it): to
   put Earth on a screen, tick Earth. Kept after a review asked: the label "Set as wallpaper"
   (not "Apply"). The daily switch was in the draft too; after seeing S4 the user took it out
-  (2026-10-20 evening, S4f2: it acts at once). S4's texts approved the same evening: "Set as
+  (2026-10-20 evening; built in S4f2: it acts at once, on sets the stored setup afresh). S4's texts approved the same evening: "Set as
   wallpaper", ✓'s screen-reader label "Done", the toast "Setup saved. Nothing to set yet."
 - Both screens due the same picture: one set with both flags; else each screen on its own (not
   by equal columns: a screen still due a retry may differ for a while). Every screen's due picture comes from

@@ -47,10 +47,12 @@ packages unattended): `night.md`.
   `setFailed`, the first failure; throws only a stop), `refresh(source)`
   (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
   `list` (the list's columns in both modes; before the first save APOD on "Where"'s screens,
-  `hasList`), `columns` (the mode's), `hasTurns`, `setup` (the stored `Setup`: daily, mode,
+  `hasList`), `columns` (the mode's), `hasTurns`, `setup` (the stored `Setup`: mode,
   "Where", list, interval, fit, video days, `parts`, ⛶'s `Part` per source) and
   `saveSetup(setup)` (S4, Set: one commit with the settings, `putColumns`, the parts and
-  `restartAndForget`'s plan; `draftFallbackFile` renamed to `fallbackFile` first),
+  `restartAndForget`'s plan; `draftFallbackFile` renamed to `fallbackFile` first; not `daily`),
+  `switchDaily(on)` (S4f2: writes `daily` at once) and `startAfresh()` (the switch on:
+  `restartAndForget` with the stored columns),
   `lastScreens(source)` (S2: an unticked row's screens, `<source>.lastScreens`, written with the list), `record(screen)` (home unprefixed, lock `lock.`;
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
   is APOD mode's screen), `stored()` (posts, files,
@@ -60,11 +62,11 @@ packages unattended): `night.md`.
   `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page (`Tabs`, the shown tab's `post`; `apod` decides the tabs in APOD mode;
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
-  the draft (S4: `daily`, `where`, `list`, `interval`, `fit`, `videoDays`, `parts`, `draftFallback`,
+  the daily switch (`daily`, at once: `switchDaily`, then `scheduleJob()` after its set, as Set's); the draft (S4: `where`, `list`, `interval`, `fit`, `videoDays`, `parts`, `draftFallback`,
   `allSources`; `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`;
   ✓ `keepPart`, `draftPosition`); the settings (`Settings`; with the switch "All NASA pictures" `PictureList`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
-  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, then the job scheduled or cancelled);
+  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, then the job scheduled (`scheduleJob`) or cancelled by the stored `daily`);
   `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post.
   `app/.../DailyJob.kt`: the job (id 1; after `update`, `saveInUse` unless stopped); `ensure` reschedules it only when its timing or its network type (Wi-Fi only) changes.
 

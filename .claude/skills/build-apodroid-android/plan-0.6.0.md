@@ -946,6 +946,9 @@ hours: the night's later rows and the regression reinstall and change the tablet
 - Set (S4) in both modes, with the daily switch on and off: a draft sets nothing, Set puts on
   each screen what the setup says and starts a fresh turn; then the job's next run sets what
   the settings say, and nothing is held.
+- The daily switch at once (S4f2): off cancels the job with a draft change pending (the draft
+  stays), on sets the stored setup, not the draft.
+- The title dropdown and the swipe (S6) with each source's own post, in both modes.
 - A faked APOD video day with each of the four choices ("Skip it", NASA, Earth, my picture) in
   both modes, with turns on one screen: the stand-in in APOD's place, "Skip it" passing the turn.
 - A set that fails on one screen and its retry setting only that screen: if nothing on the
@@ -979,7 +982,9 @@ hours: the night's later rows and the regression reinstall and change the tablet
 
 - Once: an R8 build of 0.5.0 under an R8 build of 0.6.0 (both signed with the debug key),
   checked on screen only: the settings kept, the page and the job work.
-- On the R8 build of 0.6.0: the smoke list (`night.md`), then both modes, Fit set, the credit shown, a save by the job, ★ by hand; no crash (`logcat`, `exit-info`). R8
+- On the R8 build of 0.6.0: the smoke list (`night.md`), then both modes, Fit set, the credit
+  shown, a save by the job (one over "Largest original" saving the smaller copy, F6), ★ by
+  hand, the swipe between sources (S6); no crash (`logcat`, `exit-info`). R8
   isn't covered by the unit tests.
 
 ### [ ] V7. Turns over hours (by day, after the night)
@@ -1002,7 +1007,8 @@ on the user's phone), the update keeping the settings, both modes, the list at f
 and 2.0, a lock screen with its own picture, landscape; home and lock set separately on Android
 16 (M0 checked the tablet only); the shown source after a swipe-away from Recents (expected:
 back to the opening tab; after the system kills the app it stays, `CLAUDE.md`, Tabs); Wi-Fi
-only on mobile data (the tablet has no SIM); the title dropdown and the swipe (S6); and Fit on the phone's screen (2026-10-20, review). After V1–V7 and their `B<n>`
+only on mobile data (the tablet has no SIM); the title dropdown and the swipe (S6); the daily
+switch at once (S4f2); "Largest original" (F6) on the phone's own gallery; and Fit on the phone's screen (2026-10-20, review). After V1–V7 and their `B<n>`
 fixes. Report what was tested; a bug becomes a
 `B<n>` package (night.md, The morning, step 6) before R.
 
@@ -1011,7 +1017,8 @@ fixes. Report what was tested; a bug becomes a
 After P, on the build that passed. `changelogs/10.txt` (max 500 characters; say that a
 video-day choice saved while it was greyed out in 0.5.0, e.g. "Use my picture" with turns, now
 works with turns, second review); `README.md`, `full_description.txt` (APOD first, the
-switch); `features.md` and this file ticked; the screenshots on the FP6 by the user (APOD mode
+switch); the changelog also names Set, the daily switch, swiping and "Largest original";
+`features.md` (F6 added under Save every picture) and this file ticked; the screenshots on the FP6 by the user (APOD mode
 first, as `README.md` embeds `1.png`).
 
 ### [ ] T. Commit and tag (Sonnet, low)

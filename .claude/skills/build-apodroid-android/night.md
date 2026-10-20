@@ -294,8 +294,9 @@ night can make; josh carries out your reply as written.
    trailer). A STOP from rosie or an unmerged package: a FIX if the night can fix it, else a QUESTION. A device
    package's FIX or STOP (M0, V1–V6): always a QUESTION, never a FIX line (2026-10-20): its fix package would take
    the row's worker, rosie, who writes no code; the morning makes it a `B<n>` package.
-5. Reply in exactly this form, nothing before `OPUS PASS` and nothing after NOTES. No backtick and no dollar sign in
-   a FIX line (name files and code in plain words). FIX IDs are `<ID>f1`, `<ID>f2`, …; `branch` is the kept branch
+5. Reply in exactly this form, nothing before `OPUS PASS` and nothing after NOTES. No backtick, no dollar sign and
+   no double quote in a FIX line (name files and code in plain words; quote a UI text with single quotes: pass 4's
+   double quotes came back escaped from josh, night.sh refused the line twice and stopped, 2026-10-20). FIX IDs are `<ID>f1`, `<ID>f2`, …; `branch` is the kept branch
    of an unmerged package, else `new`.
 ```
 OPUS PASS <n>

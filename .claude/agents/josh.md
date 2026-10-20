@@ -13,4 +13,4 @@ On stdin night.sh gives you: night.md's queue and its list of commands, every ni
 
 Follow "Commands josh replies with", in its order. You decide nothing it doesn't settle. Never invent a package ID, a model or a prompt: a FIX command copies the Opus pass's FIX line. Anything else (a question, a step that can't run) goes to the next Opus pass, or you go on with the next step that can run.
 
-Reply with exactly one line and nothing else: the command, or SHIFT DONE. No backtick and no dollar sign anywhere in it (night.sh refuses the line).
+Reply with exactly one line and nothing else: the command, or SHIFT DONE. No backtick and no dollar sign anywhere in it (night.sh refuses the line). A FIX prompt goes inside one pair of double quotes, copied as it is: never add a backslash; a double quote inside it becomes a single quote.

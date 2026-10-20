@@ -48,4 +48,16 @@ class SwitchRunsTest {
         runs.ended(checkedOn = false)
         assertFalse(runs.take())
     }
+
+    /** B6 fix round 1: an off and on after the run's end owe a run (it schedules the job). */
+    @Test
+    fun anOffAndOnAfterTheEndRunAgain() {
+        val runs = SwitchRuns()
+        runs.on()
+        assertTrue(runs.take())
+        runs.ended(checkedOn = true)
+        runs.off()
+        runs.on()
+        assertTrue(runs.take())
+    }
 }

@@ -623,17 +623,19 @@ class MainActivity : ComponentActivity() {
                     store.update(force = false, page = true, show = offered)
                 }
             }
+            val updated = result.getOrNull()
+            // It set (or tried) the stored setup, the switch on: an on meanwhile owes no second set.
+            // Right here, before anything that may suspend (show), so an off and on after it owe a
+            // run that runNext starts (B6 fix round 1: else they were dropped and no job scheduled).
+            switchRuns.ended(checkedOn = updated?.wentToSet == true)
             // Switched off again meanwhile: off is off.
             if (store.daily) scheduleJob()
-            val updated = result.getOrNull()
             result.exceptionOrNull()?.let { Log.w("APODroid", "Switch on failed: $it", it) }
             updated?.done?.let { Log.i("APODroid", "Switch on: $it") }
             updated?.failure?.let { Log.w("APODroid", "Switch on: $it", it) }
             failed = updated?.failure != null || result.isFailure
             readStatus()
             if (isStale()) show()
-            // It set (or tried) the stored setup, the switch on: an on meanwhile owes no second set.
-            switchRuns.ended(checkedOn = updated?.wentToSet == true)
             switching = false
             when {
                 result.isFailure || updated?.setFailed == true -> toast("Couldn't set the wallpaper")

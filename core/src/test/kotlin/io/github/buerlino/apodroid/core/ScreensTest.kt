@@ -250,6 +250,27 @@ class ScreensTest {
     }
 
     @Test
+    fun aHeldOneSourceScreenTakesTheCurrentStamp() {
+        // Home is [APOD] and holds Earth by hand; Lock turns through all three.
+        val home = Record(APOD, pic(EARTH), t0, Hold(EARTH, pic(EARTH), pic(APOD)))
+        val records = mapOf(HOME to home, LOCK to Record(EARTH, pic(EARTH), t0))
+        val before = cols(listOf(APOD), all)
+        val t3 = t0 + h3
+        val end = due(before, records, now = t3)
+        assertTrue(end.restarted)
+        assertEquals(listOf(pic(APOD) to setOf(LOCK)), end.sets)
+        assertEquals(home.copy(stamp = t3), end.screens.getValue(HOME).record)
+        // A tick in Home's column clears the hold: Home stays on APOD, in step with Lock.
+        val after = cols(listOf(APOD, NASA), all)
+        val turned = apply(records, end)
+        val tick = columnsChanged(before, after, t3, turned, t3 + h1)
+        assertFalse(tick.restarted)
+        val plan = due(after, apply(turned, tick), clock = t3, now = t3 + h1)
+        assertEquals(listOf(pic(APOD) to setOf(HOME)), plan.sets)
+        assertEquals(Record(APOD, pic(APOD), t3), plan.screens.getValue(HOME).record)
+    }
+
+    @Test
     fun aNewerPostOfTheHeldSourceKeepsTheHoldWithTurns() {
         val records = mapOf(HOME to Record(APOD, pic(EARTH), t0, Hold(EARTH, pic(EARTH))))
         val plan = due(cols(listOf(APOD, NASA), emptyList()), records, stored(posts + (EARTH to post(EARTH, d2))))

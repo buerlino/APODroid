@@ -165,7 +165,8 @@ data class Plan(val clock: Instant?, val restarted: Boolean, val screens: Map<Sc
  * - **A screen with no record** starts on the other screen's owner if that's in its column,
  *   else the first ticked source with a picture, with the current stamp.
  * - **A held screen** ([Hold]) keeps its picture until its hold ends; a newer post of the held
- *   source is due at once and keeps the hold.
+ *   source is due at once and keeps the hold. It takes the current stamp, as any one-source
+ *   screen does.
  * - A screen needs a set when its due picture isn't the one it shows ([Picture.Of.url] null
  *   matches by date); nothing to show keeps the picture.
  */
@@ -199,6 +200,9 @@ private fun dueOn(column: List<Source>, record: Record, current: Instant?, store
         val ends = r.picture == null ||
             if (column.size >= 2) r.stamp != current else stored.post(column.single())?.picture() != hold.ownerPost
         if (!ends) {
+            // A one-source screen takes the current stamp while held too (with turns it has it
+            // already), so a later tick or a restart by hand finds it on the current turn.
+            r = r.copy(stamp = current)
             val post = stored.post(hold.source)?.picture()
             if (post == hold.post) return Due(r, false)
             val next = stored.picture(hold.source) ?: return Due(r, false)

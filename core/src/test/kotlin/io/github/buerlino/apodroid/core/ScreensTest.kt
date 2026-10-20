@@ -598,4 +598,20 @@ class ScreensTest {
         assertFalse(videoDayKept(listOf(APOD), null, stored(videoDay)))
         assertFalse(videoDayKept(listOf(APOD), Record(APOD), stored(videoDay)))
     }
+
+    @Test
+    fun theListPlacesASourceOnExactlyItsScreens() {
+        val columns = mapOf(HOME to listOf(APOD, NASA), LOCK to listOf(APOD))
+        assertEquals(setOf(HOME, LOCK), columns.screensOf(APOD))
+        assertEquals(setOf(HOME), columns.screensOf(NASA))
+        assertEquals(emptySet(), columns.screensOf(EARTH))
+        // A tick on Both: in order in each column.
+        assertEquals(mapOf(HOME to listOf(APOD, NASA, EARTH), LOCK to listOf(APOD, EARTH)), columns.placing(EARTH, setOf(HOME, LOCK)))
+        // A new dropdown choice moves it; the others stay.
+        assertEquals(mapOf(HOME to listOf(APOD), LOCK to listOf(APOD, NASA)), columns.placing(NASA, setOf(LOCK)))
+        // An untick takes it off both.
+        assertEquals(mapOf(HOME to listOf(NASA), LOCK to emptyList()), columns.placing(APOD, emptySet()))
+        // The same screens: nothing changes.
+        assertEquals(columns, columns.placing(NASA, setOf(HOME)))
+    }
 }

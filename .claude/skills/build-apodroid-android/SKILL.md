@@ -177,8 +177,8 @@ packages unattended): `night.md`.
 
 ## Still untested
 
-- 0.6.0 (the night of 2026-10-20 on the tablet, debug builds; the morning's short names, F1,
-  F3, F4, F5, F1f1 and F5f1 not on a device yet): what V1–V7 and P still have to check is
+- 0.6.0 (the night of 2026-10-20 on the tablet, debug builds; the morning's short names not on a
+  device yet; F1, F3 and F1f1 in V1, F4, F5 and F5f1 in V2): what V1–V7 and P still have to check is
   listed in `plan-0.6.0.md`, V and P. Each V row updates this bullet with what it checked.
   V1 (2026-10-20, debug build of dev, passed): Fit with a wide picture (APOD's real
   1787×1340, Earth's real map 1942×1340, a made-up star field 3726×2484) and a tall one (a
@@ -193,6 +193,20 @@ packages unattended): `night.md`.
   for the user's eyes: the star field with Fit shows faint dots where Fill shows crisp stars
   (a 4.7× shrink of 1–3 px stars; a made-up field, not a real APOD), and the lock screen only
   in grid mode (APOD mode's by `dumpsys wallpaper`). Screenshots in the run's `tablet/`.
+  V2 (2026-10-20, debug build of dev, passed): the credit, today's real one ("Credit &
+  Copyright: Aurelia Degli Esposti", stored by a pull) and the longest of the 100 (2026-09-04's,
+  faked by prefs), in APOD mode and on APOD's tab, the explanation closed (one line, an
+  ellipsis) and open (all of it); none on NASA's tab. Save every picture with `run -f`: a stop
+  (`cmd jobscheduler timeout`) during APOD's original (1.1 MB, throttled to 2000 B/s by the
+  proxy) left no `.part` in `cache/` and no gallery row, `saveTried` held the URL, the retry
+  30 s later saved the stored picture (170775 bytes, "rendition"; no new connection to the
+  host) and cleared the note; a second run saved nothing; the file deleted in the gallery
+  wasn't saved again; a faked APOD video day with NASA standing in saved NASA's original
+  (a `nasa.saveTried` of another URL didn't stop it) and not APOD's (its saved note cleared
+  first); the grid with APOD, NASA and Earth ticked saved APOD's and Earth's originals (a
+  `saveTried` of another URL again), NASA's already saved. The ⓘ dialog's text as approved.
+  Not checked: a stop during NASA's or Earth's original (the same code path), the job's
+  real ~10 min deadline (only `timeout`). Screenshots in the run's `tablet/`.
 - 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
   device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
   for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked

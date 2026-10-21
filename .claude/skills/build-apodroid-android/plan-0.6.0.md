@@ -251,6 +251,8 @@ Advanced settings ▸                                closed by default
 | B8 | The draft's picture survives a second page (B4's edge, pass 8) | Opus, medium |
 | B9 | A no-break space before ▾ and ▸ (V3, font scale 2.0) | Sonnet, medium |
 | B10 | Remove "Wi-Fi only" (user, 2026-10-21) | Sonnet, medium |
+| B11 | A Set from a second page keeps the stored "my picture" (pass 11) | Opus, medium |
+| B12 | Only the first retry is waited for (review of B7) | Opus, medium |
 | V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 and V8 by night, V7 a night of its own (by hand) | Opus, high |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
@@ -278,6 +280,7 @@ scripts/pipeline.sh S2 --no-worker --tablet no    # S2's review and merge (S1 is
 scripts/night.sh --until <HH:MM>    # B1, S4f2, S4f3, S5, F6: the queue in night.md
 scripts/night.sh --until <HH:MM>    # after the user's look at S5: B2, B4–B6, S6, then V3, V5, V6, V8
 scripts/night.sh --until <HH:MM>    # B10, B7, B8, B9, then the regression: the queue in night.md
+scripts/pipeline.sh B12; scripts/pipeline.sh B11    # by day, 2026-10-22
 claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
 claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -394,7 +397,14 @@ reading; their build check passed, 108 tests with `private/`):
    no retry due, and a note waits for one retry at most (asked; the user's answer: remove
    "Wi-Fi only" instead of letting it wait, **B10**, and one retry at most). **Tonight:**
    B10 → B7 → B8 → B9, then the regression; B10's tablet check tidies the tablet first.
-4. **V7** (user, 2026-10-21): a night of its own after B7–B9 are merged, nothing else queued:
+3e. **The night of 2026-10-21** (user, 2026-10-22 morning, after the report
+   `.coord/reports/2026-10-21-night.md`): B10, B7, B8 and B9 merged with tablet PASS (B10 after
+   one fix round), regression 5 clean; master fast-forwarded to `dev` 0b9c744. B9's wrap seen
+   ("NASA Image of the / Day ▾"). To fix, **by day** with `scripts/pipeline.sh`, one at a time:
+   **B11** (pass 11's QUESTION: a Set from a second page stores the first page's unset pick)
+   and **B12** (a review of B7's code: a retry due kept after a failed retry made every Set wait
+   for Android's growing backoff while a source kept failing). **Tonight:** V7 alone.
+4. **V7** (user, 2026-10-21; the night of 2026-10-22, after B11 and B12): a night of its own, nothing else queued:
    the user starts session 1 by hand at bedtime and session 2 in the morning, at least 6 hours
    later and before pascaline starts. It tests the final tree, so a B package after it that
    touches the job or turns reruns its part.
@@ -1116,7 +1126,7 @@ After S5 (both change `MainActivity.kt`), and after B2 and B4–B6 in the queue 
   `logcat` while swiping back and forth.
 - **Done when:** the checks pass, the tablet passes, the screenshots are there for the user.
 
-### [ ] B7. The job keeps its retry: a stop during the saves, a Set after a failed run (Opus, medium)
+### [x] B7. The job keeps its retry: a stop during the saves, a Set after a failed run (Opus, medium)
 
 The user's answers to the night of 2026-10-20/21 (pass 8's QUESTION 2, regression 4): two cases
 B5 left open, both fixed, not accepted; and a limit (user, 2026-10-21, after a review of this
@@ -1175,7 +1185,7 @@ spec): a note waits for **one retry at most**. After B10 (both change `DailyJob.
 - **Done when:** the tests (each new one failing on the old code), the fix, the tablet passes,
   `CLAUDE.md` says it.
 
-### [ ] B8. The draft's picture survives a second page (Opus, medium)
+### [x] B8. The draft's picture survives a second page (Opus, medium)
 
 B4's edge (pass 8, 2026-10-21; the user: close it). With another app's screen on top of the
 page (the photo picker opened by "Change picture", App info), a start with another intent (the
@@ -1197,7 +1207,7 @@ launcher's after `am start -n`, or the reverse) still puts a second `MainActivit
   deletes a leftover draft file. Recents: swipe away only APODroid's task.
 - **Done when:** the checks pass, the tablet passes (each start named with its result).
 
-### [ ] B9. A no-break space before ▾ and ▸ (Sonnet, medium)
+### [x] B9. A no-break space before ▾ and ▸ (Sonnet, medium)
 
 V3 (2026-10-21, font scale 2.0 at `wm density 344`): the video dropdown's "▾" wrapped alone
 onto a second line under "NASA Image of the Day" (`.coord/runs/029-v3/tablet/v3-13-…-08`).
@@ -1212,7 +1222,7 @@ onto a second line under "NASA Image of the Day" (`.coord/runs/029-v3/tablet/v3-
   (screenshots for the user); font scale back, `wm density reset`.
 - **Done when:** the checks pass, the tablet passes, the screenshots are there for the user.
 
-### [ ] B10. Remove "Wi-Fi only" (Sonnet, medium)
+### [x] B10. Remove "Wi-Fi only" (Sonnet, medium)
 
 The user, 2026-10-21 (asked how long a reschedule may wait while a source fails): "Wi-Fi only"
 (F2) goes; whoever wants the picture wants it at once, not after days of waiting for Wi-Fi.
@@ -1239,6 +1249,49 @@ Never released (0.6.0 only), so no migration and no changelog line.
   the job without an unmetered constraint; the smoke list.
 - **Done when:** the checks pass (no new warning), the tablet passes, `CLAUDE.md` has no "Wi-Fi
   only" left but the removal line.
+
+### [ ] B11. A Set from a second page keeps the stored "my picture" (Opus, medium)
+
+Pass 11's QUESTION (2026-10-21 night; the user, 2026-10-22: fix it). B8's night default: with
+two pages alive (the photo picker or App info on top of the first, then a start with another
+intent), a Set in the second page, which has no pick of its own, renames the first page's
+`fallback-draft.jpg` to `fallback.jpg` (`Store.saveSetup`, which renames whenever the file
+exists), so the stored "my picture" is replaced without the user choosing it.
+- **Should:** `saveSetup` renames the draft's picture only when the Set's own draft holds a
+  pick (`draftFallback`, passed in or part of the saved `Setup`; night default with the why);
+  otherwise `fallback.jpg` stays and the draft file stays for the page that owns it. A Set in
+  the first page, with its pick, renames it as now. A pick in the second page still replaces
+  the one file (B8, as built).
+- **Files:** `Store.kt` (`saveSetup`), `MainActivity.kt` (`setAsWallpaper`), `CLAUDE.md` (The
+  app, Settings: B11's "not built yet" becomes the rule as built).
+- **Tablet:** as B8's check: `am start -n …/.MainActivity`, a faked APOD video day, "Use my
+  picture" with a stored `fallback.jpg` (note its size), a new pick into the draft, "Change
+  picture" (the picker open), the launcher intent (`monkey … 1`): two pages. A Set in the second
+  page (it has none of its own): `fallback.jpg` unchanged (same size), `fallback-draft.jpg`
+  still there; Back to the first page, Set: renamed (`fallback.jpg` the pick's size, the draft
+  file gone). Recents: swipe away only APODroid's task.
+- **Done when:** the checks pass, the tablet passes (each step named with its result),
+  `CLAUDE.md` says it.
+
+### [ ] B12. Only the first retry is waited for (Opus, medium)
+
+From a review of B7's code (2026-10-22 morning; the user: fix it). `JobRuns.finished` keeps a
+retry due after a failed retry with nothing noted (`retryDue = failed && wanted == null`, B7's
+night default). So while a source keeps failing (a NASA picture that isn't one, all weekend),
+every Set's or `onResume`'s reschedule is only noted and waits for the next retry, which
+Android delays twice as long after each failure, up to 5 h: not the minute B7's rule assumed.
+- **Should:** only the first retry of a failing series is waited for. After a retry's end
+  (good or failed) no retry is due; a later `schedule` or `ensure` is done at once (it replaces
+  the job's own backoff with a fresh schedule; the next period retries, and Set's own update is
+  a try). A failed run after a good one starts a new series, as now.
+- **Tests** (`JobRunsTest`): **replace** `aFailedRetryWithoutANoteLeavesItsRetryDue` (it
+  asserts the old rule; say so in the report): after a failed run and a failed retry with
+  nothing noted, `note` returns `false`. Keep the others; a failed run after that again makes a
+  note wait for its retry.
+- **Files:** `core/.../JobRuns.kt` (the line and the KDoc), `JobRunsTest`, `DailyJob.kt` (the
+  KDoc if it says otherwise), `CLAUDE.md` (Background update: B12's "not built yet").
+- **No tablet check** (a `:core` rule; B7's tablet check covers the code path).
+- **Done when:** the replaced test fails on the old code, the fix, `CLAUDE.md` says it.
 
 ### [ ] V. Tablet pass of everything (Opus, high)
 

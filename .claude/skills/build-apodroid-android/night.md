@@ -123,6 +123,9 @@ the fixes the user decided after it (B10: "Wi-Fi only" removed; B7 after it, as 
 the regression. B10's tablet check tidies the tablet first (the old test pictures, one Set). V7 waits for a night
 of its own after them (the plan, V7).
 
+By day (user, 2026-10-22, from that night's report; the plan, Remaining 3e): **B12, B11** with `scripts/pipeline.sh`,
+one at a time. The night after: V7 alone, by hand (not a queue row).
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -155,6 +158,8 @@ of its own after them (the plan, V7).
 | 28 | B7 | The job keeps its retry: a stop during the saves, a Set after a failed run | winston | opus, medium | yes | B10 | plan B7 |
 | 29 | B8 | The draft's picture survives a second page | winston | opus, medium | yes | B4 | plan B8 |
 | 30 | B9 | A no-break space before ▾ and ▸ | winston | sonnet, medium | yes | S6 | plan B9 |
+| 31 | B11 | A Set from a second page keeps the stored "my picture" | winston | opus, medium | yes | B8 | plan B11 |
+| 32 | B12 | Only the first retry is waited for | winston | opus, medium | no | B7 | plan B12 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

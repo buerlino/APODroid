@@ -300,7 +300,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     the draft's picture while another page is alive (user, 2026-10-21; B8: `MainActivity`'s
     `pages`, `onCreate` to `onDestroy`; it deleted the picture the page below still used, the
     night's pass 8). One file for both: a pick in the second page replaces the first page's
-    picture, and a Set in either renames whatever is there, so a Set in the second page stores the first page's unset pick as `fallback.jpg` (B8's night default, for the user to decide; not built further). **The daily switch acts at once, both ways** (S4f2; user,
+    picture, and a Set in either renames whatever is there, so a Set in the second page stores the first page's unset pick as `fallback.jpg` (B8's night default; the user, 2026-10-21: a Set renames the draft's picture only when its own draft holds a pick, `draftFallback`; B11, not built yet). **The daily switch acts at once, both ways** (S4f2; user,
     2026-10-20 evening: a setting that changes how the whole app works must act at once; S4 had
     it in the draft): off writes `daily` and cancels the job; on writes it, starts the stored
     setup afresh (`Store.startAfresh`: `restartAndForget` with the stored columns, the clock
@@ -701,7 +701,11 @@ failed (`stoppedBySystem`), also during the saves after a good update, so a note
 doesn't replace the system's retry. After a failed run, until the next run starts, a retry is
 due: a `schedule` or `ensure` then (a Set just after the run; with turns it restarted the
 period, so the failing source waited up to a period) is noted as during a run and done at the
-retry's end; the process dying loses it, as a note. Off (`cancel`, `JobRuns.drop`) leaves no
+retry's end; the process dying loses it, as a note. Only the first retry of a failing series
+is waited for (user, 2026-10-21; B12, not built yet: B7 kept a retry due after a failed retry
+with nothing noted, so while a source kept failing every Set waited for the next retry, which
+Android delays twice as long after each failure, up to 5 h): after a failed retry no retry is
+due, and a later `schedule` or `ensure` is done at once. Off (`cancel`, `JobRuns.drop`) leaves no
 retry due and no note, and a run started before it ends without effect (a generation `drop`
 bumps, taken by each run at its start), so the next on schedules at once (`:core`'s `JobRuns`,
 `JobRunsTest`). The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was

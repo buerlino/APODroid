@@ -297,6 +297,27 @@ packages unattended): `night.md`.
   nothing set, the notice "… so your own picture is the wallpaper.", "· My picture". Not
   checked: Earth (0.5.0's handling is NASA's), a 0.5.0 state whose `wallpaperSource` is a
   stand-in in APOD mode (rule unit-tested in `MigrationTest`), a release build (`run-as`).
+  V6 (2026-10-21 night, R8 builds signed with the debug key: `v0.5.0` and dev c9c5a28, passed):
+  the update, once: 0.5.0's state seeded by `run-as` (`daily`, APOD+NASA, Both), the 0.5.0 R8
+  page set NASA on both, then 0.6.0 R8 by `install -r`: one "Migrated from 0.5.0", the page on
+  NASA with "On wallpaper", the summary "APOD on both screens, NASA on both screens · turns every
+  24 h · Fill", the status line "… · NASA"; a `run -f` succeeded and set nothing. On the 0.6.0
+  R8 build: "More NASA pictures" off in the draft and Set put APOD on both (one set, `mWhich=3`;
+  "APOD on both screens · Fill"); a pull stored the credit ("Credit & Copyright: Aurelia Degli
+  Esposti" under the date); Fit and Set: the hint the whole 800×1340, no ⛶, "· Fit"; the switch
+  on with Fill and Set: APOD on both, "· APOD"; the swipe APOD → NASA → Earth, stopping at Earth,
+  and back; the title dropdown with ✓ before the shown one. "Save every picture" with the default
+  20 MB and a `run -f`: APOD's original saved (1100460 bytes), NASA's 208 MB PNG refused by its
+  `Content-Length` and the stored picture saved ("Original over the limit, saving the stored
+  picture", "NASA 2026-10-20 rendition", 826248 bytes); the run successful. ★ on NASA's page
+  with "Largest original" 10 MB and a 27 MB original faked into `nasa.imageUrl` (2026-08's
+  `55457472091-12a8c7edb0-o.jpg`, by the debug build, then the R8 build over it): "Saving",
+  then "Saved", the gallery row 27060691 bytes (the original). The test's gallery files deleted.
+  No crash (`logcat`, `exit-info`: kills and updates only). Seen: R8 renames the exception class
+  in that log line (`m91: Larger than 20000000 bytes: 208563652`; logcat only, the page shows
+  nothing of it). Not checked on R8: "my picture", video days, the lock-only and split columns
+  (V3 on debug), Wi-Fi only (V/F2 on debug), the ⓘ dialog; ★ with an original between 10 and
+  20 MB (only 27 MB, over both limits). Evidence in the run's `tablet/`.
   Regression 2 (2026-10-20 night, dev 0d6df20, after S4f1, passed) didn't check: the open page
   following a job that changes only the lock screen (job and page share one process), a set
   that fails on one screen and its retry (nothing makes a set fail), the "Skip it" toast (rosie

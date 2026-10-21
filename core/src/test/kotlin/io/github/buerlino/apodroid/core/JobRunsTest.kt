@@ -17,62 +17,122 @@ class JobRunsTest {
     @Test
     fun aGoodRunDoesTheNoteAtItsEnd() {
         val runs = JobRuns()
-        runs.started()
+        val run = runs.started()
         assertTrue(runs.note(Reschedule.ENSURE))
         assertTrue(runs.note(Reschedule.SCHEDULE))
         assertTrue(runs.note(Reschedule.ENSURE))
-        assertEquals(Reschedule.SCHEDULE, runs.finished(failed = false))
+        assertEquals(Reschedule.SCHEDULE, runs.finished(run, failed = false))
     }
 
     @Test
     fun theLastRunToEndDoesIt() {
         val runs = JobRuns()
-        runs.started()
-        runs.started()
+        val first = runs.started()
+        val second = runs.started()
         runs.note(Reschedule.ENSURE)
-        assertNull(runs.finished(failed = false))
-        assertEquals(Reschedule.ENSURE, runs.finished(failed = false))
+        assertNull(runs.finished(first, failed = false))
+        assertEquals(Reschedule.ENSURE, runs.finished(second, failed = false))
     }
 
-    /** B5: S4f3 did the note right after a failed run, replacing its backoff retry. */
+    /** B5: a failed run keeps the note for its retry, which does it at its end when it works. */
     @Test
     fun aFailedRunKeepsTheNoteForTheRetry() {
         val runs = JobRuns()
-        runs.started()
-        runs.note(Reschedule.SCHEDULE)
-        assertNull(runs.finished(failed = true))
-        runs.started()
-        assertNull(runs.finished(failed = true))
-        runs.started()
-        assertEquals(Reschedule.SCHEDULE, runs.finished(failed = false))
-        runs.started()
-        assertNull(runs.finished(failed = false))
+        assertNull(runs.finished(runs.started().also { runs.note(Reschedule.SCHEDULE) }, failed = true))
+        assertEquals(Reschedule.SCHEDULE, runs.finished(runs.started(), failed = false))
+        assertNull(runs.finished(runs.started(), failed = false))
     }
 
-    /** A Set with no run going after a failed one: the kept note mustn't follow the next good run. */
+    /** B7, one retry at most (replaces B5's case that let the note wait through two failed runs). */
     @Test
-    fun aDirectRescheduleDropsAKeptNote() {
+    fun theRetryDoesAKeptNoteAlsoWhenItFails() {
         val runs = JobRuns()
-        runs.started()
-        runs.note(Reschedule.SCHEDULE)
-        runs.finished(failed = true)
+        assertNull(runs.finished(runs.started().also { runs.note(Reschedule.SCHEDULE) }, failed = true))
+        assertEquals(Reschedule.SCHEDULE, runs.finished(runs.started(), failed = true))
+        assertNull(runs.finished(runs.started(), failed = false))
         assertFalse(runs.note(Reschedule.ENSURE))
-        runs.started()
-        assertNull(runs.finished(failed = false))
+    }
+
+    /**
+     * B7, a Set just after a failed run (replaces B5's aDirectRescheduleDropsAKeptNote, which did it
+     * at once and so replaced the backoff retry): noted, done at the retry's end.
+     */
+    @Test
+    fun aNoteAfterAFailedRunWaitsForTheRetry() {
+        val runs = JobRuns()
+        runs.finished(runs.started(), failed = true)
+        assertTrue(runs.note(Reschedule.ENSURE))
+        assertTrue(runs.note(Reschedule.SCHEDULE))
+        assertTrue(runs.note(Reschedule.ENSURE))
+        assertEquals(Reschedule.SCHEDULE, runs.finished(runs.started(), failed = false))
+        assertFalse(runs.note(Reschedule.ENSURE))
+    }
+
+    @Test
+    fun aNoteAfterAFailedRunIsDoneWhenTheRetryFailsToo() {
+        val runs = JobRuns()
+        runs.finished(runs.started(), failed = true)
+        assertTrue(runs.note(Reschedule.SCHEDULE))
+        assertEquals(Reschedule.SCHEDULE, runs.finished(runs.started(), failed = true))
+        assertFalse(runs.note(Reschedule.ENSURE))
+    }
+
+    /** A failed retry with nothing noted keeps its own backoff retry: a note then waits for that. */
+    @Test
+    fun aFailedRetryWithoutANoteLeavesItsRetryDue() {
+        val runs = JobRuns()
+        runs.finished(runs.started(), failed = true)
+        assertNull(runs.finished(runs.started(), failed = true))
+        assertTrue(runs.note(Reschedule.SCHEDULE))
+        assertEquals(Reschedule.SCHEDULE, runs.finished(runs.started(), failed = true))
+    }
+
+    /** B7: off during a run, which then ends stopped (failed): no retry due, so the next on schedules at once. */
+    @Test
+    fun offDuringARunLeavesNoRetryDue() {
+        val runs = JobRuns()
+        val run = runs.started()
+        runs.note(Reschedule.SCHEDULE)
+        runs.drop()
+        assertNull(runs.finished(run, failed = true))
+        assertFalse(runs.note(Reschedule.SCHEDULE))
+    }
+
+    /** B7: off, on and a new run; the old run ends failed after the new one: it counts no more. */
+    @Test
+    fun aRunFromBeforeOffDoesNothingAtItsEnd() {
+        val runs = JobRuns()
+        val old = runs.started()
+        runs.drop()
+        val new = runs.started()
+        assertTrue(runs.note(Reschedule.ENSURE))
+        assertEquals(Reschedule.ENSURE, runs.finished(new, failed = false))
+        assertNull(runs.finished(old, failed = true))
+        assertFalse(runs.note(Reschedule.SCHEDULE))
+    }
+
+    @Test
+    fun aRunFromBeforeOffEndingFirstDoesNothing() {
+        val runs = JobRuns()
+        val old = runs.started()
+        runs.drop()
+        val new = runs.started()
+        assertNull(runs.finished(old, failed = true))
+        assertTrue(runs.note(Reschedule.SCHEDULE))
+        assertEquals(Reschedule.SCHEDULE, runs.finished(new, failed = false))
+        assertFalse(runs.note(Reschedule.ENSURE))
     }
 
     @Test
     fun offDropsTheNote() {
         val runs = JobRuns()
-        runs.started()
+        val run = runs.started()
         runs.note(Reschedule.SCHEDULE)
         runs.drop()
-        assertNull(runs.finished(failed = false))
-        runs.started()
-        runs.note(Reschedule.ENSURE)
-        runs.finished(failed = true)
+        assertNull(runs.finished(run, failed = false))
+        runs.finished(runs.started().also { runs.note(Reschedule.ENSURE) }, failed = true)
         runs.drop()
-        runs.started()
-        assertNull(runs.finished(failed = false))
+        assertFalse(runs.note(Reschedule.ENSURE))
+        assertNull(runs.finished(runs.started(), failed = false))
     }
 }

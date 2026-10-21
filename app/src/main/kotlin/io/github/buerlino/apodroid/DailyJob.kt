@@ -20,15 +20,22 @@ import kotlin.concurrent.thread
  *
  * No reschedule stops a running run (S4f3): scheduling the job's id again would stop it, so while
  * one goes [schedule] and [ensure] only note what's wanted, and the run does it after
- * [jobFinished], unless it failed: then the note waits for the next run that doesn't fail, so the
- * backoff retry stays (B5). [cancel] (the daily switch off) still stops it at once.
+ * [jobFinished], unless it failed: then the note waits for the backoff retry, one retry at most
+ * (B5, B7; [JobRuns]). A run [onStopJob] stopped counts as failed (B7: the system retries it, also
+ * during the saves after a good update). After a failed run, until the retry starts, a reschedule
+ * is noted too (a Set just after it would replace the retry). [cancel] (the daily switch off)
+ * still stops it at once, owing nothing.
  */
 class DailyJob : JobService() {
     @Volatile
     private var worker: Thread? = null
 
+    /** Set by [onStopJob]: the system retries the run, so it ends as failed (B7). */
+    @Volatile
+    private var stoppedBySystem = false
+
     override fun onStartJob(params: JobParameters): Boolean {
-        runs.started()
+        val generation = runs.started()
         worker = thread {
             val store = Store(this)
             val result = runCatching { store.update(force = false) }
@@ -44,13 +51,14 @@ class DailyJob : JobService() {
                     .onFailure { Log.w("APODroid", "Daily job's saves ended: $it") }
             }
             jobFinished(params, failure != null)
-            rescheduleNoted(this, failed = failure != null)
+            rescheduleNoted(this, generation, failed = failure != null || stoppedBySystem)
         }
         return true
     }
 
     /** Android's deadline or conditions ended the run: interrupt it (see [Store.update]), then retry. */
     override fun onStopJob(params: JobParameters): Boolean {
+        stoppedBySystem = true
         worker?.interrupt()
         return true
     }
@@ -63,8 +71,8 @@ class DailyJob : JobService() {
 
         /**
          * Schedules the job afresh (its period starts now). While a run goes, only noted: the
-         * run does it when it ends ([rescheduleNoted]); `true` then. Else at once, and a note a
-         * failed run kept is dropped.
+         * run does it when it ends ([rescheduleNoted]); `true` then. Also while a failed run's
+         * retry is due (B7): the retry's end does it. Else at once.
          */
         fun schedule(context: Context): Boolean {
             if (runs.note(Reschedule.SCHEDULE)) return true
@@ -74,7 +82,8 @@ class DailyJob : JobService() {
         /**
          * Schedules the job unless it's there with the right timing: hibernation or a force stop
          * deletes it, and the sources or the interval may change it. Not always: scheduling the
-         * same id again stops a running job, so while a run goes it's only noted, as [schedule].
+         * same id again stops a running job, so while a run goes (or a retry is due) it's only
+         * noted, as [schedule].
          */
         fun ensure(context: Context): Boolean {
             if (runs.note(Reschedule.ENSURE)) return true
@@ -105,7 +114,10 @@ class DailyJob : JobService() {
                 .build()
         }
 
-        /** Off is off: cancels the job, a running run too, and drops a noted reschedule. */
+        /**
+         * Off is off: cancels the job, a running run too, drops a noted reschedule and leaves no
+         * retry due (a run going now ends without effect), so the next on schedules at once.
+         */
         fun cancel(context: Context) {
             runs.drop()
             scheduler(context).cancel(ID)
@@ -113,13 +125,13 @@ class DailyJob : JobService() {
 
         /**
          * A run's end, after [jobFinished]: does what a reschedule noted meanwhile, by the stored
-         * setup as it is now, while the daily switch is still on. After a failed run the note is
-         * kept for the next run that doesn't fail (a reschedule now would replace the backoff
-         * retry). The process dying first loses it: `onResume`'s [ensure] then covers a changed
-         * timing, not a fresh period.
+         * setup as it is now, while the daily switch is still on. After a failed run (a stop
+         * too) the note is kept for the retry (a reschedule now would replace it), and the retry's
+         * end does it, good or failed: one retry at most (B7). The process dying first loses it:
+         * `onResume`'s [ensure] then covers a changed timing, not a fresh period.
          */
-        private fun rescheduleNoted(context: Context, failed: Boolean) {
-            val wanted = runs.finished(failed)
+        private fun rescheduleNoted(context: Context, generation: Int, failed: Boolean) {
+            val wanted = runs.finished(generation, failed)
             if (wanted == null || !Store(context).daily) return
             val ok = when (wanted) {
                 Reschedule.SCHEDULE -> schedule(context)

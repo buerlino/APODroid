@@ -257,6 +257,16 @@ Reply APPROVED, or FIX with at most five findings: file:line, the concrete failu
 ## For rosie: the tablet checks
 
 - Only `adb -s HA24BZ2Y`. If the tablet isn't attached, is locked with a PIN, or only the FP6 is there: NOT RUN.
+- **First, what an earlier session left** (2026-10-21 night: the pipeline ends a rosie session at its timeout
+  without setting the tablet back, so a cut-off V9 or V10 can leave it changed). Before noting your own state,
+  compare the tablet with its normal state (V9's `settings-before.txt`, 2026-10-21) and put back what differs,
+  naming each in your reply: airplane mode off (`cmd connectivity airplane-mode disable`), Wi-Fi on, battery
+  saver off (`settings put global low_power 0`), Doze not forced (`dumpsys deviceidle unforce`), `auto_time` 1,
+  the time zone Europe/Zurich (`cmd alarm set-timezone Europe/Zurich`; `auto_time_zone` stays 0), font_scale
+  1.1, `wm density reset` (180) and `wm size reset`, `accelerometer_rotation` 1, `cmd uimode night no`,
+  `screen_off_timeout` 300000, `http_proxy` unset (the skill's how), chain3 off, the app full screen (no split
+  screen), `/data/local/tmp/fill*` removed (`df /data`), no test pictures in `Pictures/APODroid/`. Only then note
+  your state as below.
 - First note what you'll change: each setting you touch (`settings get` for font_scale, screen_off_timeout, wifi,
   http_proxy; `wm density`), and the app's `shared_prefs/apodroid.xml` and `files/` (with `run-as`, when a debug
   build is installed), into your folder. At the end set all of it back, and say that you did. The firewall chain

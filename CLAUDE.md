@@ -638,7 +638,7 @@ before. NASA's enclosure `length` isn't parsed, so it isn't used. ★ ignores th
 
 (Decided 2026-10-01.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
 AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
-periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Always any network** (user, 2026-10-21: whoever wants the picture wants it at once, not after days of waiting for Wi-Fi). "Wi-Fi only" (F2) was built and removed before release (B10): no switch, pref or `ensure` network check; a `wifiOnly` key in a dev build's prefs is ignored. Each run, and each page
+periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Always any network** (B10); a `wifiOnly` key in a dev build's prefs is ignored. Each run, and each page
 open or pull (2026-10-16, one path): `Store.update(force)`, `refresh(source)` for each source
 in use unless its stored post is today's (always with `force`), then, while `daily` is on,
 `setDue()`: what each screen is due (`:core`'s `dueWallpapers`, Turns), set where it isn't

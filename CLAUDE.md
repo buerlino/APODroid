@@ -387,7 +387,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     on greyed out while APOD has no tick (so the page doesn't move). Never greyed out otherwise (0.5.0 greyed it with two or more ticked, under a grey line).
     At font scale 2.0 and a phone's width its "▾" wrapped alone under "NASA Image of the Day"
     (V3, 2026-10-21): a no-break space before every "▾" and "▸" (the dropdowns, the title, the
-    headers) keeps the glyph with the last word (user, 2026-10-21; B9, not built yet).
+    headers) keeps the glyph with the last word (user, 2026-10-21; B9).
     The choices: "Skip it" (`VideoDays.KEEP`; was "Keep the previous picture"), NASA Image of
     the Day, Earth Observatory (0.5.0, WP3; `VideoDays.NASA`, `.EARTH`), or "Use my picture"
     (user). Default: "Skip it", as the Tasker task did. The choice fills APOD's turn on every

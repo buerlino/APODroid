@@ -281,8 +281,8 @@ scripts/night.sh --until <HH:MM>    # B1, S4f2, S4f3, S5, F6: the queue in night
 scripts/night.sh --until <HH:MM>    # after the user's look at S5: B2, B4–B6, S6, then V3, V5, V6, V8
 scripts/night.sh --until <HH:MM>    # B10, B7, B8, B9, then the regression: the queue in night.md
 scripts/pipeline.sh B12; scripts/pipeline.sh B11    # by day, 2026-10-22
-claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
-claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
+ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
+ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do R in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model sonnet --effort low "Do T in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -1397,7 +1397,7 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
 ### [ ] V7. Turns over hours (a night of its own, after B7–B9)
 
 - (User, 2026-10-21: after B7–B9 are merged, a night with nothing else queued; session 1 at
-  bedtime, session 2 in the morning before pascaline starts.) Two short rosie sessions by hand (`claude --agent rosie`, this section), at least 6 hours
+  bedtime, session 2 in the morning before pascaline starts.) Two short rosie sessions by hand (`ANDROID_SERIAL=HA24BZ2Y claude --agent rosie`, this section: the FP6 may be attached too), at least 6 hours
   apart, the tablet left alone between them. Setup: the debug build of master, "All NASA
   pictures" on, Home APOD + NASA, Lock NASA + Earth, "Change every" 3 h, daily on; note
   `turnStartedAt`, both records and the job's window. Read-out: `dumpsys jobscheduler`

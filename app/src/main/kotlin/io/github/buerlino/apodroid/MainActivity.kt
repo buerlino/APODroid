@@ -262,6 +262,15 @@ class MainActivity : ComponentActivity() {
     private var cropPosition by mutableFloatStateOf(0.5f)
     private val screen by lazy { store.screen }
 
+    private companion object {
+        /**
+         * The pages alive in the process, `onCreate` to `onDestroy` (main thread only). A start
+         * while another app's screen is on top of a page stacks a second one; its start keeps
+         * the draft's picture while the first is alive.
+         */
+        var pages = 0
+    }
+
     /** While resumed: follows a set or a new post by the job ([follow]). */
     private var watcher: OnSharedPreferenceChangeListener? = null
     private var following: Job? = null
@@ -284,8 +293,10 @@ class MainActivity : ComponentActivity() {
         stored = store.setup
         hasFallback = store.fallbackFile.exists()
         val draft = savedInstanceState?.getBundle("draft")?.let(::readDraft)
-        // A start without a saved draft drops the draft's picture too.
-        if (draft == null) store.draftFallbackFile.delete()
+        // A start without a saved draft drops the draft's picture too, unless another page is
+        // alive (one under another app's screen, B8): it may still use the picture.
+        if (draft == null && pages == 0) store.draftFallbackFile.delete()
+        pages++
         useDraft(draft ?: stored)
         draftFallback = draft != null && savedInstanceState.getBoolean("draftFallback") && store.draftFallbackFile.exists()
         lastScreens = Source.entries.associateWith { source ->
@@ -299,6 +310,11 @@ class MainActivity : ComponentActivity() {
                 Surface(Modifier.fillMaxSize()) { Page() }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        pages--
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

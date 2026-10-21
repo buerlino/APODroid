@@ -11,7 +11,9 @@ enum class Reschedule { ENSURE, SCHEDULE }
  * retry, **one retry at most**: the retry's end does it, good or failed (a source can fail every
  * run for days). Only the first retry of a failing series is waited for (B12): after a retry's
  * end no retry is due (Android doubles the backoff after each failure, up to 5 h), so a later
- * reschedule replaces it with a fresh schedule; a failed run after that starts a new series.
+ * reschedule replaces it with a fresh schedule. A series ends only with a good run (B12f1): the
+ * further failed runs of a failing series leave no retry due either; the first failed run after a
+ * good one (or after a fresh process or [drop]) starts a new series, whose retry is waited for.
  * With no run going and no retry due a reschedule is done at once.
  *
  * [drop] (the daily switch off, the job cancelled) leaves nothing owed and no retry due: the runs
@@ -24,6 +26,7 @@ class JobRuns {
     private var noted: Reschedule? = null
     private var retryDue = false
     private var retrying = false
+    private var failing = false
 
     /** A run starts; it hands the returned generation to [finished]. */
     @Synchronized
@@ -46,18 +49,21 @@ class JobRuns {
     }
 
     /**
-     * A run's end: what to do now, `null` when nothing (another run goes, a failed run that wasn't
-     * a retry, no note, a run from before [drop]).
+     * A run's end: what to do now, `null` when nothing (another run goes, the first failed run of
+     * a series, no note, a run from before [drop]).
      */
     @Synchronized
     fun finished(generation: Int, failed: Boolean): Reschedule? {
         if (generation != this.generation) return null
         runs--
         if (runs > 0) return null
-        if (failed && !retrying) {
+        if (failed && !retrying && !failing) {
             retryDue = true
+            failing = true
             return null
         }
+        // B12f1: a failing series ends only with a good run.
+        failing = failed
         retrying = false
         val wanted = noted
         noted = null
@@ -66,7 +72,7 @@ class JobRuns {
         return wanted
     }
 
-    /** The daily switch off: nothing is owed, no retry is due, the runs going now count no more. */
+    /** The daily switch off: nothing is owed, no retry is due, no series goes, the runs going now count no more. */
     @Synchronized
     fun drop() {
         generation++
@@ -74,5 +80,6 @@ class JobRuns {
         noted = null
         retryDue = false
         retrying = false
+        failing = false
     }
 }

@@ -296,9 +296,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
     B4, 2026-10-21: without it a start whose intent differed from the task's first put a second
     page on top, without the draft, and deleted the draft's picture). A start while another
     app's screen is on top of the page (the photo picker from "Change picture", App info) still
-    stacks a second page, whose start deletes the draft's picture that the page below still uses
-    (the night's pass 8, 2026-10-21): the picture stays while another page is alive (user,
-    2026-10-21; B8, not built yet). **The daily switch acts at once, both ways** (S4f2; user,
+    stacks a second page, without the draft (`singleTask` would end a pick); its start keeps
+    the draft's picture while another page is alive (user, 2026-10-21; B8: `MainActivity`'s
+    `pages`, `onCreate` to `onDestroy`; it deleted the picture the page below still used, the
+    night's pass 8). One file for both: a pick in the second page replaces the first page's
+    picture, and a Set in either renames whatever is there (accepted, not built further). **The daily switch acts at once, both ways** (S4f2; user,
     2026-10-20 evening: a setting that changes how the whole app works must act at once; S4 had
     it in the draft): off writes `daily` and cancels the job; on writes it, starts the stored
     setup afresh (`Store.startAfresh`: `restartAndForget` with the stored columns, the clock

@@ -365,6 +365,24 @@ packages unattended): `night.md`.
   that fails on one screen and its retry (nothing makes a set fail), the "Skip it" toast (rosie
   can't catch toasts), "Wi-Fi only" with the daily switch off (hidden). Share on the ▶ tile
   wasn't opened (S6 removes Share). Found: B1.
+  V10 (2026-10-21 night, the brute test of what a user does, dev's debug build, tablet): Set ×3
+  fast, Set + the daily switch + a pull in one line, the switch tapped 9 times, ★ twice and ★
+  with a swipe or a rotation, swipes during a pull, the title dropdown during a swipe, ⛶ with a
+  swipe (the pager stays), a rotation (crop mode closes) and Set (the dragged part stored): one
+  set each, no crash. A rotation during a pull, the photo picker, the weekday dialog and ⓘ:
+  fine. **Found:** a rotation during Set or the daily switch's run sets the wallpaper but drops
+  the rest (no job scheduled afresh, no toast; `lifecycleScope` ends with the page). All 24 of
+  APOD mode's "Where" × Size × video choices on a faked video day with Set ("Skip it" sets
+  nothing; the rest the named screen); "Change every" each value with Set (periods 6, 6, 3, 6 h,
+  enqueued afresh); the list moved and unticked to the last tick; the mode off and on between
+  Sets; a fresh install both ways; "Try again" offline then online; 50 swipes and 40 Sets (no
+  memory climb, no OOM, no ANR). Not checked (the time box): the picker's odd pictures (huge,
+  tiny, panorama, tall, WebP, GIF, EXIF 8), the video notice's and the battery hint's buttons
+  and App info (the hint doesn't show: the tablet's settings are already right), the problem
+  box's Dismiss across a faked day, the long presses' clipboard, each source on each screen one
+  by one. Left after the restore: one shared wallpaper (APOD, the same picture the records
+  name) instead of home and lock set apart; a WebLibre task in Recents (a tap opened NASA's
+  page). Evidence in the run's `tablet/`.
 - 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
   device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
   for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked

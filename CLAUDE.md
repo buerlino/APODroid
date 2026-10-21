@@ -269,8 +269,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   store in it, when "More NASA pictures" is turned (the area swaps), and closes after a Set
   that saved (also "Setup saved. Nothing to set yet."; a failed set leaves it open). Its state
   and Advanced's survive a rotation (the saved state). **Set as wallpaper**, always, after
-  Setup. **Advanced settings ▸/▾**, closed by default: while the daily switch is on "Wi-Fi
-  only" (F2) and "Save every picture" (F5) with "Largest original" under it while on (F6); then, in both modes and states, the switch "More
+  Setup. **Advanced settings ▸/▾**, closed by default: while the daily switch is on
+  "Save every picture" (F5) with "Largest original" under it while on (F6); then, in both modes and states, the switch "More
   NASA pictures" (no divider since S5).
   - **The highlight** (S5): each draft setting that differs from the stored setup shows in the
     theme's `tertiary` until Set: its heading, a segmented row's chosen segment

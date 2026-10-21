@@ -118,9 +118,10 @@ then the complete test on the final tree: **V3, V5, V6, V8**, and the regression
 over. V5 (the update from 0.5.0) has no After: it doesn't rest on S6, so it runs even if S6 stays unmerged.
 
 The next night (user, 2026-10-21 morning, from that night's report; the plan, Remaining 3d): every row above is
-merged except V4 (merged the night before; V8 repeated it) and V7 (by hand, not a queue row). **B7, B8, B9**, the
-fixes the user decided after it, then the regression. B7's tablet check tidies the tablet first (the old test
-pictures, one Set). V7 waits for a night of its own after them (the plan, V7).
+merged except V4 (merged the night before; V8 repeated it) and V7 (by hand, not a queue row). **B10, B7, B8, B9**,
+the fixes the user decided after it (B10: "Wi-Fi only" removed; B7 after it, as both change `DailyJob.kt`), then
+the regression. B10's tablet check tidies the tablet first (the old test pictures, one Set). V7 waits for a night
+of its own after them (the plan, V7).
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -150,9 +151,10 @@ pictures, one Set). V7 waits for a night of its own after them (the plan, V7).
 | 24 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | — | plan V + plan V5 |
 | 25 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S6 | plan V + plan V6 |
 | 26 | V8 | Tablet pass: V1, V2 and V4 again where S4–S6 changed them | rosie | opus, high | no | S6 | plan V + plan V8 |
-| 27 | B7 | The job keeps its retry: a stop during the saves, a Set after a failed run | winston | opus, medium | yes | B5 | plan B7 |
-| 28 | B8 | The draft's picture survives a second page | winston | opus, medium | yes | B4 | plan B8 |
-| 29 | B9 | A no-break space before ▾ and ▸ | winston | sonnet, medium | yes | S6 | plan B9 |
+| 27 | B10 | Remove "Wi-Fi only" | winston | sonnet, medium | yes | — | plan B10 |
+| 28 | B7 | The job keeps its retry: a stop during the saves, a Set after a failed run | winston | opus, medium | yes | B10 | plan B7 |
+| 29 | B8 | The draft's picture survives a second page | winston | opus, medium | yes | B4 | plan B8 |
+| 30 | B9 | A no-break space before ▾ and ▸ | winston | sonnet, medium | yes | S6 | plan B9 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

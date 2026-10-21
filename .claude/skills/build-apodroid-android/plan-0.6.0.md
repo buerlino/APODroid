@@ -250,6 +250,7 @@ Advanced settings ▸                                closed by default
 | B7 | The job keeps its retry: a stop during the saves, a Set after a failed run (pass 8, regression 4) | Opus, medium |
 | B8 | The draft's picture survives a second page (B4's edge, pass 8) | Opus, medium |
 | B9 | A no-break space before ▾ and ▸ (V3, font scale 2.0) | Sonnet, medium |
+| B10 | Remove "Wi-Fi only" (user, 2026-10-21) | Sonnet, medium |
 | V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 and V8 by night, V7 a night of its own (by hand) | Opus, high |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
@@ -276,7 +277,7 @@ claude --model opus --effort medium "Do C in .claude/skills/build-apodroid-andro
 scripts/pipeline.sh S2 --no-worker --tablet no    # S2's review and merge (S1 is merged)
 scripts/night.sh --until <HH:MM>    # B1, S4f2, S4f3, S5, F6: the queue in night.md
 scripts/night.sh --until <HH:MM>    # after the user's look at S5: B2, B4–B6, S6, then V3, V5, V6, V8
-scripts/night.sh --until <HH:MM>    # B7, B8, B9, then the regression: the queue in night.md
+scripts/night.sh --until <HH:MM>    # B10, B7, B8, B9, then the regression: the queue in night.md
 claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
 claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -388,8 +389,11 @@ reading; their build check passed, 108 tests with `private/`):
    (the job keeps its retry: a stop during the saves counts as failed, pass 8's QUESTION 2;
    a Set just after a failed run notes its reschedule instead of replacing the retry,
    regression 4), **B8** (B4's edge: the draft's picture survives a second page, pass 8's
-   QUESTION 1), **B9** (a no-break space before ▾ and ▸, V3's font scale 2.0). **Tonight:**
-   B7 → B8 → B9, then the regression; B7's tablet check tidies the tablet first.
+   QUESTION 1), **B9** (a no-break space before ▾ and ▸, V3's font scale 2.0). After a review
+   of B7's spec (same morning): its tests that B7 changes are named, off during a run leaves
+   no retry due, and a note waits for one retry at most (asked; the user's answer: remove
+   "Wi-Fi only" instead of letting it wait, **B10**, and one retry at most). **Tonight:**
+   B10 → B7 → B8 → B9, then the regression; B10's tablet check tidies the tablet first.
 4. **V7** (user, 2026-10-21): a night of its own after B7–B9 are merged, nothing else queued:
    the user starts session 1 by hand at bedtime and session 2 in the morning, at least 6 hours
    later and before pascaline starts. It tests the final tree, so a B package after it that
@@ -1115,42 +1119,60 @@ After S5 (both change `MainActivity.kt`), and after B2 and B4–B6 in the queue 
 ### [ ] B7. The job keeps its retry: a stop during the saves, a Set after a failed run (Opus, medium)
 
 The user's answers to the night of 2026-10-20/21 (pass 8's QUESTION 2, regression 4): two cases
-B5 left open, both fixed, not accepted.
+B5 left open, both fixed, not accepted; and a limit (user, 2026-10-21, after a review of this
+spec): a note waits for **one retry at most**. After B10 (both change `DailyJob.kt`).
 - **A stop during the saves.** Now: `cmd jobscheduler timeout` (or Android's deadline) while
   `saveInUse` runs, after a good update: `onStopJob` returns `true` (the system's retry), but
   the worker then calls `rescheduleNoted(failed = false)`, so a reschedule noted during the run
   (a Set with turns) is done at once and replaces that retry; the saves wait up to a period.
   **Should:** a run that `onStopJob` stopped counts as failed for `rescheduleNoted` (a
-  `@Volatile` flag set in `onStopJob`, or the like), wherever the stop came; the note waits for
-  the retry's good end.
+  `@Volatile` flag set in `onStopJob`, or the like), wherever the stop came.
 - **A Set just after a failed run.** Now (regression 4): the run has ended, so `runs.note`
   sees no run going and `schedule` replaces the job at once, its backoff retry with it; with
   turns the period restarts, so the failing source waits up to a period (Set's own update is
   one try, but a Set that fails too has no retry). **Should:** after a failed run, until the
-  next run starts, a retry is due: `JobRuns` keeps that (`finished(failed = true)` sets it,
-  `started()` clears it, `drop()` clears it), and `note` treats it as a run going, so the
-  reschedule is noted (afresh wins) and done at the end of the retry that doesn't fail. The
-  process dying loses it, as a note now (then `schedule` acts at once, as before). Off still
-  cancels at once and drops it. `onResume`'s `ensure` with the same timing changes nothing, as
-  now.
-- **Files:** `core/.../JobRuns.kt`, `JobRunsTest` (a failed run's end, then a note: noted, not
-  done; the next run's good end does it; a cancel in between drops it; a test that fails on the
-  old code), `DailyJob.kt` (the stop flag), `CLAUDE.md` (Background update: drop B7's "not built
-  yet"), the skill's "Where things are" (`DailyJob`).
-- **Tablet:** first, once, the tidying the user asked for after the night of 2026-10-20/21
-  (before noting the tablet's state): delete the old test pictures in `Pictures/APODroid/`
-  (`APOD_…`, `NASA_…`, `EO_…`, with their "(1)"/"(2)" copies; `content query --uri
-  content://media/external/images/media` to find them, `content delete` each), then, after
-  installing, one Set so the wallpaper matches the records. The firewall chain (chain3) stays
-  off (Android's default); note that it is. Then: "More NASA pictures" on, turns on one screen,
-  daily on. Wi-Fi off, `run -f`: the run fails (`Daily job failed`), `dumpsys jobscheduler` shows
-  the backoff; a Set on the page (fails offline too) logs no reschedule and the job keeps its
-  backoff; Wi-Fi on: the retry runs, then "rescheduled after the run (schedule)". The stop: "Save
-  every picture" on, "No limit", a large original faked by prefs (V8's 27 MB one), `run -f`, a Set
+  next run starts, a retry is due (`JobRuns` keeps it: `finished(failed = true)` sets it,
+  `started()` clears it), and `note` treats it as a run going: the reschedule is noted
+  (afresh wins). The process dying loses it, as a note now (then `schedule` acts at once).
+  `onResume`'s `ensure` with the same timing changes nothing, as now.
+- **One retry at most.** A note kept by a failed run is done at the end of the next run (the
+  retry), good or failed; it never waits for a second retry. Why: a run fails when any source
+  fails, and a source can fail every run for days (a NASA picture that isn't one, all
+  weekend), which would hold back a Set's fresh period or a new "Change every" that long. The
+  cost: a second failure's backoff is replaced by the fresh schedule; the next period retries.
+- **Off leaves no retry due** (from the review): the daily switch off during a run calls
+  `cancel` → `drop()`, and the stopped run then ends as failed (`onStopJob`'s flag) after
+  `drop()`. It must not set "retry due": a cancelled job has no retry, so every later
+  `schedule`/`ensure` (the switch on again, B6's quick taps, `onResume`) would only be noted
+  and the switch would stay on with no job until the process dies. So a run going when
+  `drop()` comes ends without a retry due and without a note, also when a new run started
+  after the off (the switch on again) is still going: e.g. a generation that `drop()` bumps and
+  each run takes at `started()`, a run of an older generation doing nothing at its end. Night
+  default with the why if another fits better.
+- **Tests** (`JobRunsTest`): **replace** `aDirectRescheduleDropsAKeptNote` (it asserts that a
+  reschedule right after a failed run is done at once, which B7 changes: now noted, done at
+  the retry's end) and `aFailedRunKeepsTheNoteForTheRetry` (it lets the note wait through two
+  failed runs: now done at the first retry's end, failed or not); say so in the report, as the
+  audit will see them rewritten. New: a failed run's end, then a note: noted, done at the next
+  run's end (good, and failed); off during a run, the run ends as failed, then `note` returns
+  `false` (schedules at once); off, on and a new run started, then the old run ends failed: no
+  retry due, the new run's end behaves as normal. Each new case fails on the old code.
+- **Files:** `core/.../JobRuns.kt`, `JobRunsTest`, `DailyJob.kt` (the stop flag; the KDoc of
+  the class, `schedule`, `rescheduleNoted`), `CLAUDE.md` (Background update: B5's "drops a kept
+  note" sentence and "B7 changes this" become the rule as built), the skill's "Where things
+  are" (`DailyJob`, `JobRuns`).
+- **Tablet:** "More NASA pictures" on, turns on one screen, daily on. Wi-Fi off, `run -f`: the
+  run fails (`Daily job failed`), `dumpsys jobscheduler` shows the backoff; a Set on the page
+  (fails offline too) logs no reschedule and the job keeps its backoff; Wi-Fi on: the retry
+  runs, then "rescheduled after the run (schedule)". One retry at most: Wi-Fi off, `run -f`
+  (fails), a Set, `run -f` again still offline (the retry, fails): "rescheduled after the run"
+  at its end. Off: `run -f` with a slow save (below), the daily switch off during it, then on:
+  `dumpsys jobscheduler` lists the job at once. The stop: "Save every picture" on, "Largest
+  original" "No limit", a large original faked by prefs (V8's 27 MB one), `run -f`, a Set
   while the saves run, `cmd jobscheduler timeout` a few seconds in: no "rescheduled after the
-  run", the retry comes (`Last successful run`), then the reschedule. The tablet's VPN makes the
-  test proxy and the firewall miss the app (regression 4): use Wi-Fi off, not the proxy.
-- **Done when:** a regression test that fails on the old code, the fix, the tablet passes,
+  run", the retry comes (`Last successful run`), then the reschedule. The tablet's VPN makes
+  the test proxy and the firewall miss the app (regression 4): use Wi-Fi off, not the proxy.
+- **Done when:** the tests (each new one failing on the old code), the fix, the tablet passes,
   `CLAUDE.md` says it.
 
 ### [ ] B8. The draft's picture survives a second page (Opus, medium)
@@ -1189,6 +1211,34 @@ onto a second line under "NASA Image of the Day" (`.coord/runs/029-v3/tablet/v3-
   choice, Setup and Advanced open and closed, the list: no "▾" or "▸" alone on a line
   (screenshots for the user); font scale back, `wm density reset`.
 - **Done when:** the checks pass, the tablet passes, the screenshots are there for the user.
+
+### [ ] B10. Remove "Wi-Fi only" (Sonnet, medium)
+
+The user, 2026-10-21 (asked how long a reschedule may wait while a source fails): "Wi-Fi only"
+(F2) goes; whoever wants the picture wants it at once, not after days of waiting for Wi-Fi.
+Never released (0.6.0 only), so no migration and no changelog line.
+- **Should:** the job always requires `NETWORK_TYPE_ANY`. Gone: the switch row in "Advanced
+  settings" (`wifiOnly`, `switchWifiOnly`, its row and KDoc mentions in `MainActivity.kt`),
+  `Store.wifiOnly`, the `setRequiredNetworkType` choice in `DailyJob.job`, and `ensure`'s
+  `pending.networkType == job.networkType` (with it the deprecated-API warning; no released
+  build had another network type). A `wifiOnly` key left in a dev build's prefs is ignored,
+  not removed. "Advanced settings" while the daily switch is on: "Save every picture" (with
+  "Largest original" while on), then "More NASA pictures"; its order otherwise unchanged.
+- **Files:** `MainActivity.kt`, `Store.kt`, `DailyJob.kt`, `CLAUDE.md` (every "Wi-Fi only":
+  Settings, the highlight's "not" list, Background update's F2 paragraph and "being removed",
+  "Save every picture"'s "under "Wi-Fi only"", Next features, Open question 1's "and the Wi-Fi
+  only switch (F2)"; Next features keeps one line that it was built and removed, with the
+  why), `features.md` (item 4: removed, the why), the skill's "Where things are" (`ensure`).
+- **Tablet:** first, once, the tidying the user asked for after the night of 2026-10-20/21
+  (before noting the tablet's state): delete the old test pictures in `Pictures/APODroid/`
+  (`APOD_…`, `NASA_…`, `EO_…`, with their "(1)"/"(2)" copies; `content query --uri
+  content://media/external/images/media` to find them, `content delete` each), then, after
+  installing, one Set so the wallpaper matches the records. The firewall chain (chain3) stays
+  off (Android's default); note that it is. Then: "Advanced settings" open with the daily
+  switch on and off: no "Wi-Fi only" (a screenshot); after a Set `dumpsys jobscheduler` shows
+  the job without an unmetered constraint; the smoke list.
+- **Done when:** the checks pass (no new warning), the tablet passes, `CLAUDE.md` has no "Wi-Fi
+  only" left but the removal line.
 
 ### [ ] V. Tablet pass of everything (Opus, high)
 
@@ -1332,8 +1382,8 @@ WP8: the release-signed build over the user's Obtainium install (the skill, Test
 on the user's phone), the update keeping the settings, both modes, the list at font scale 1.5
 and 2.0, a lock screen with its own picture, landscape; home and lock set separately on Android
 16 (M0 checked the tablet only); the shown source after a swipe-away from Recents (expected:
-back to the opening tab; after the system kills the app it stays, `CLAUDE.md`, Tabs); Wi-Fi
-only on mobile data (the tablet has no SIM); the title dropdown and the swipe (S6); the daily
+back to the opening tab; after the system kills the app it stays, `CLAUDE.md`, Tabs); the
+job on mobile data (B10: no "Wi-Fi only"); the title dropdown and the swipe (S6); the daily
 switch at once (S4f2); "Largest original" (F6) on the phone's own gallery; and Fit on the phone's screen (2026-10-20, review);
 S5's highlight on the phone's colours (faint beside the blue on the tablet's) and its headers'
 screen-reader states with TalkBack ("expanded", "collapsed", "not set yet": `uiautomator`

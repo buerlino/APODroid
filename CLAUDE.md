@@ -639,7 +639,7 @@ before. NASA's enclosure `length` isn't parsed, so it isn't used. ★ ignores th
 
 (Decided 2026-10-01.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
 AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
-periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`, so on mobile data turns wait too, also between stored pictures, and a metered Wi-Fi (a phone's hotspot) counts as mobile data (accepted by the user for 0.6.0, 2026-10-20: a job that only skips downloads on a metered network is more code); toggling it writes the pref at once (not part of Set's draft) and reschedules the job while the stored daily switch is on (`DailyJob.ensure` counts another network type as another timing; it reads the deprecated `JobInfo.networkType`, a compiler warning left as is, 2026-10-20: it works, and `requiredNetwork` would mean comparing `NetworkRequest`s); the page and the buttons still use any network. Each run, and each page
+periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **"Wi-Fi only" is being removed** (user, 2026-10-21: whoever wants the picture wants it at once, not after days of waiting for Wi-Fi; B10, not built yet: the job always takes any network, the switch, the pref and `ensure`'s network check go; never released, so no migration). Until then: **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`, so on mobile data turns wait too, also between stored pictures, and a metered Wi-Fi (a phone's hotspot) counts as mobile data (accepted by the user for 0.6.0, 2026-10-20: a job that only skips downloads on a metered network is more code); toggling it writes the pref at once (not part of Set's draft) and reschedules the job while the stored daily switch is on (`DailyJob.ensure` counts another network type as another timing; it reads the deprecated `JobInfo.networkType`, a compiler warning left as is, 2026-10-20: it works, and `requiredNetwork` would mean comparing `NetworkRequest`s); the page and the buttons still use any network. Each run, and each page
 open or pull (2026-10-16, one path): `Store.update(force)`, `refresh(source)` for each source
 in use unless its stored post is today's (always with `force`), then, while `daily` is on,
 `setDue()`: what each screen is due (`:core`'s `dueWallpapers`, Turns), set where it isn't
@@ -694,12 +694,16 @@ night; B5: S4f3 let a reschedule noted during a failed run replace the retry, so
 the retry waited up to a period): the note waits for the end of a run that didn't fail (the
 retry, usually within a minute). A `schedule` or `ensure` done with no run going (a Set,
 `onResume`, "Wi-Fi only") drops a kept note, so an old note doesn't restart the period after a
-later Set (`:core`'s `JobRuns`, `JobRunsTest`). **Two more cases keep the retry** (user,
-2026-10-21, from the night's pass 8 and regression 4; B7, not built yet): a stop during the
-saves (after a good update) counts as a failed run, so a noted reschedule waits for the retry
-instead of replacing it; and a `schedule` or `ensure` while a failed run's retry is due (a Set
-just after the run) is noted as during a run, not done at once (with turns it restarted the
-period, so the failing source waited up to a period). The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
+later Set (`:core`'s `JobRuns`, `JobRunsTest`). **B7 changes this** (user, 2026-10-21, from
+the night's pass 8 and regression 4; not built yet): a stop during the saves (after a good
+update) counts as a failed run, so a noted reschedule waits for the retry instead of replacing
+it; a `schedule` or `ensure` while a failed run's retry is due (a Set just after the run; with
+turns it restarted the period, so the failing source waited up to a period) is noted as during
+a run, not done at once (this replaces "drops a kept note" above); and a note waits for **one
+retry at most**: at that retry's end it is done, good or failed (a source that keeps failing,
+e.g. a picture that isn't one all weekend, would otherwise hold back a Set's period or a new
+interval for days). Off (`cancel`) leaves no retry due, also for a run still going that ends
+after it, so the next on schedules at once. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
 schedules it again when `daily` is on and the job is missing or has another timing
 (`DailyJob.ensure`; scheduling the same id again would stop a running job).
@@ -867,7 +871,8 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
   (2026-10-19). Part of the setup since S4: Set puts the pictures on again with the new size
   (2026-10-20 evening; was "sets at once", 2026-10-20, and "the next change uses it",
   2026-10-04).
-- **Wi-Fi only:** a switch for the job, default off (built, F2).
+- **Wi-Fi only:** a switch for the job, default off (built, F2); removed before release (user,
+  2026-10-21: the picture is wanted at once; B10).
 - **Share:** title and page link via the share sheet (built in F3, the glyph ⤴ beside ★);
   removed in S6 with the mockup of Set applies the setup (user, 2026-10-20 evening).
 - **Image credit** under the date, parsed in `:core` (on all 100 posts checked). APOD only

@@ -360,6 +360,54 @@ packages unattended): `night.md`.
   tablet's wallpaper is APOD with Fit on home and NASA with Fit on lock, not APOD with Fill on
   both (the prefs and files are as before, so their records name APOD; the next Set puts it
   right). Evidence in the run's `tablet/`.
+  V9 (2026-10-21 night, debug build of dev 0d17080, brute test 1, what the system does; FIX,
+  two bugs, B13): "More NASA pictures" with home APOD, lock APOD + NASA (turns). **Reboot**
+  (no PIN: the keyguard is a swipe, `wm dismiss-keyguard`), with turns and in APOD mode: the
+  job listed, `PERSISTED`, the same period and flex (6 h/18 min, 6 h/6 h); with turns Android
+  clamped a window that `run -f` had pushed to +11 h 38 m to one period after boot. The page
+  opened on the stored setup, the draft (12 h, "Both") dropped, the wallpapers unchanged. That
+  the job then runs at its window: not waited for (hours). **Airplane mode** (`cmd
+  connectivity airplane-mode`, cut by a loop on the tablet as soon as `files/nasa.part`
+  appeared, NASA's date faked back): a pull: `SocketException: Software caused connection
+  abort`, no `.part`, the old `nasa.jpg`, `nasa.problem` network, the box; off and a pull: the
+  picture, the problem cleared. `run -f` the same, then the backoff retries: the first ran with
+  airplane mode still on (Tailscale's VPN stayed VALIDATED with no network under it, so
+  JobScheduler saw connectivity; Android, not us) and failed, the next after airplane off
+  succeeded. A Set never downloads while every source is current (the page open fetched
+  first), so a Set fully offline instead: "Wallpaper set", both screens. **Time zone**
+  (Auckland, New York, with the page open and `run -f`): "today" and the source line stayed
+  21 October, nothing set twice (wallpaper ids unchanged), but the status line kept the old
+  zone's time until a new process (BUG 1). **Clock** (`cmd alarm set-time` 3 h back, auto time
+  off): the turn's start in the future counted as over, the lock screen moved to NASA, a fresh
+  turn; auto time on again (+3 h): nothing set, the run successful. **Battery saver** (needs
+  `cmd battery unplug` on the charging tablet) and **Doze** (`force-idle`): Set worked with
+  saver on; a failed run's retry waited, overdue, in deep idle and ran (and set) at
+  `step` → IDLE_MAINTENANCE. **Resize**: real split screen needs a second app picked in Recents
+  (another app's screen), and `am start --windowingMode 6` only fronts the task, so `wm size
+  600x1340` (533 dp, one column) and back: the draft (12 h), Setup open and the shown source
+  kept; crop mode (a dragged frame) and the open title dropdown closed (the page is recreated;
+  the dragged part dropped, as Back does); Set at 533 dp worked. **Night mode and font scale
+  1.3** while open: the draft (3 h), Setup open and NASA's page kept, no crash. **Process
+  death** (`am kill` doesn't kill while a Set runs, so `run-as … kill -9`): mid-Set the setup
+  was saved, both records forgotten, home set without its record, lock not set, the job on the
+  old timing; the next open set both and wrote both records, `ensure` fixed the timing. Killed
+  at the page's `.part`: none left (the rename had won; `nasa.date` still the old one, the
+  accepted gap; the next refresh fixed it). Killed during ★'s original: ★ not stuck, but
+  `cache/original….part` stayed (BUG 2). `am force-stop` during `run -f`: `files/nasa.part`
+  left until the next download replaced it; the job back on the next open (pref `daily`).
+  **`install -r` during `run -f`**: exit PACKAGE UPDATED, the run counted failed, the job
+  listed; its retry ran at the next start and set; records match `dumpsys wallpaper`. **Low
+  storage** (about 200 KB, refilled as Android trimmed caches): an open and a pull "NASA Image
+  of the Day: Couldn't store the picture. Check the free space.", no `.part`; Set saved the
+  setup and set from the stored pictures; ★ "Couldn't save the picture", ☆ again, `cache/`
+  empty; Save every picture with `run -f`: "Couldn't save NASA 2026-10-21", the run successful,
+  `nasa.saveTried` kept (F5f1). Seen, not bugs: during a Set the lock line showed "Lock screen
+  changed 21 Oct, 23:10" without " · NASA" for about a second (the record forgotten, then
+  written); a Set in APOD mode scheduled the no-turns job with earliest +6 h, not at once
+  (a run had ended 2 min before). Not checked: real split screen, the job at its window after
+  a reboot, a cut during a Set's download. The tablet's settings, prefs and files set back;
+  its wallpaper is APOD on home and NASA on lock, the restored records name APOD on both.
+  Evidence in the run's `tablet/`.
   Regression 2 (2026-10-20 night, dev 0d6df20, after S4f1, passed) didn't check: the open page
   following a job that changes only the lock screen (job and page share one process), a set
   that fails on one screen and its retry (nothing makes a set fail), the "Skip it" toast (rosie

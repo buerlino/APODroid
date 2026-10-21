@@ -769,9 +769,11 @@ class Store(private val context: Context) {
         if (!saving.compareAndSet(false, true)) return Saved.BUSY
         var original: File? = null
         try {
+            dropLeftovers()
             val url = post.takeIf(::isStored)?.let(::originalUrl) ?: return Saved.STALE
             val loaded = tryOriginal && try {
-                original = File.createTempFile("original", ".part", context.cacheDir)
+                // One name: one save at a time in the process, and a killed one's file is replaced.
+                original = File(context.cacheDir, "original.part")
                 download(url, original, userAgent, limit)
                 isImage(original)
             } catch (e: TooLarge) {
@@ -788,6 +790,24 @@ class Store(private val context: Context) {
             original?.delete()
             saving.set(false)
         }
+    }
+
+    /**
+     * Deletes what a save killed with its process left in `cache/` (B13: up to a 97 MB original
+     * each, kept until Android trimmed the cache), unless a save runs now. The page's first start.
+     */
+    fun dropSaveLeftovers() {
+        if (!saving.compareAndSet(false, true)) return
+        try {
+            dropLeftovers()
+        } finally {
+            saving.set(false)
+        }
+    }
+
+    /** The saves' temp files: `original.part`, and before B13 `original<number>.part`. Under [saving]. */
+    private fun dropLeftovers() {
+        context.cacheDir.listFiles { file -> file.name.startsWith("original") && file.name.endsWith(".part") }?.forEach { it.delete() }
     }
 
     /** [post]'s picture is still the stored one of its source (a changed title doesn't count). */

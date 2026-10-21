@@ -354,6 +354,8 @@ class MainActivity : ComponentActivity() {
         // A start without a saved draft drops the draft's picture too, unless another page is
         // alive (one under another app's screen, B8): it may still use the picture.
         if (draft == null && pages == 0) store.draftFallbackFile.delete()
+        // A star save or the job's killed with the process left its temp file.
+        if (pages == 0) lifecycleScope.launch(Dispatchers.IO) { store.dropSaveLeftovers() }
         pages++
         useDraft(draft ?: stored)
         draftFallback = draft != null && savedInstanceState.getBoolean("draftFallback") && store.draftFallbackFile.exists()

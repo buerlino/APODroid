@@ -49,8 +49,8 @@ packages unattended): `night.md`.
   `list` (the list's columns in both modes; before the first save APOD on "Where"'s screens,
   `hasList`), `columns` (the mode's), `hasTurns`, `setup` (the stored `Setup`: mode,
   "Where", list, interval, fit, video days, `parts`, ⛶'s `Part` per source) and
-  `saveSetup(setup)` (S4, Set: one commit with the settings, `putColumns`, the parts and
-  `restartAndForget`'s plan; `draftFallbackFile` renamed to `fallbackFile` first; not `daily`),
+  `saveSetup(setup, pick)` (S4, Set: one commit with the settings, `putColumns`, the parts and
+  `restartAndForget`'s plan; `draftFallbackFile` renamed to `fallbackFile` first, only with `pick`, the page's own `draftFallback` (B11); not `daily`),
   `switchDaily(on)` (S4f2: writes `daily` at once) and `startAfresh()` (the switch on:
   `restartAndForget` with the stored columns),
   `lastScreens(source)` (S2: an unticked row's screens, `<source>.lastScreens`, written with the list), `record(screen)` (home unprefixed, lock `lock.`;

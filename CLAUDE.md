@@ -300,7 +300,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     the draft's picture while another page is alive (user, 2026-10-21; B8: `MainActivity`'s
     `pages`, `onCreate` to `onDestroy`; it deleted the picture the page below still used, the
     night's pass 8). One file for both: a pick in the second page replaces the first page's
-    picture, and a Set in either renames whatever is there, so a Set in the second page stores the first page's unset pick as `fallback.jpg` (B8's night default; the user, 2026-10-21: a Set renames the draft's picture only when its own draft holds a pick, `draftFallback`; B11, not built yet). **The daily switch acts at once, both ways** (S4f2; user,
+    picture; a Set renames it to `fallback.jpg` only when its own draft holds the pick (`draftFallback`, `Store.saveSetup`'s `pick`; user, 2026-10-22, B11: B8 renamed whatever was there, so a Set in a second page without a pick replaced the stored "my picture" with the first page's unset one). A Set without a pick leaves `fallback.jpg` and the draft file, for the page that owns it. **The daily switch acts at once, both ways** (S4f2; user,
     2026-10-20 evening: a setting that changes how the whole app works must act at once; S4 had
     it in the draft): off writes `daily` and cancels the job; on writes it, starts the stored
     setup afresh (`Store.startAfresh`: `restartAndForget` with the stored columns, the clock

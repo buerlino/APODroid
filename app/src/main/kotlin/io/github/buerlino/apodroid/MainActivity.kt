@@ -760,14 +760,16 @@ class MainActivity : ComponentActivity() {
         if (cropping) post?.let { keepPart(it) }
         val setup = draft()
         val offered = sources
+        // Only this page's own pick is renamed: another page's draft picture stays its own (B11).
+        val pick = draftFallback
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
-                    store.saveSetup(setup)
+                    store.saveSetup(setup, pick)
                     store.update(force = false, page = true, show = offered, set = true)
                 }
             }
-            draftFallback = store.draftFallbackFile.exists()
+            if (pick) draftFallback = store.draftFallbackFile.exists()
             if (store.daily) scheduleJob() else DailyJob.cancel(this@MainActivity)
             setting = false
             val updated = result.getOrNull()

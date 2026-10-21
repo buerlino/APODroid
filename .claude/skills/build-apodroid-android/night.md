@@ -130,7 +130,7 @@ The same evening (user, 2026-10-21, 22:45: "the app brute test now, then V7"; th
 brute test (rosie as each row's worker, as V3–V8), then **CR** (the code review, winston, no device), **B13** and
 **B14** (their bugs fixed: clear bugs only, decisions as questions), then the regression (user, 22:50: as much as
 fits in about 8 hours). B13 has no After, so it runs even when V9 or V10 stays unmerged (a FIX keeps a V row
-unmerged; B13 reads its `BUG:` lines from the run folders). V7 moves to the next night.
+unmerged; B13 reads its `BUG:` lines from the V rows' commit messages, its section says how). V7 moves to the next night.
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -261,7 +261,8 @@ Reply APPROVED, or FIX with at most five findings: file:line, the concrete failu
   without setting the tablet back, so a cut-off V9 or V10 can leave it changed). Before noting your own state,
   compare the tablet with its normal state (V9's `settings-before.txt`, 2026-10-21) and put back what differs,
   naming each in your reply: airplane mode off (`cmd connectivity airplane-mode disable`), Wi-Fi on, battery
-  saver off (`settings put global low_power 0`), Doze not forced (`dumpsys deviceidle unforce`), `auto_time` 1,
+  saver off (`cmd power set-mode 0`, `settings put global low_power 0`), Doze not forced (`dumpsys deviceidle
+  unforce`), the battery as reported (`dumpsys battery reset`), `auto_time` 1,
   the time zone Europe/Zurich (`cmd alarm set-timezone Europe/Zurich`; `auto_time_zone` stays 0), font_scale
   1.1, `wm density reset` (180) and `wm size reset`, `accelerometer_rotation` 1, `cmd uimode night no`,
   `screen_off_timeout` 300000, `http_proxy` unset (the skill's how), chain3 off, the app full screen (no split
@@ -315,7 +316,8 @@ checks" (the backup first, everything set back at the end, the tablet only); no 
 minutes; when time runs short, keep the order below and name what was left under `Not tested:`.
 1. Install the APK the prompt names, run [the smoke list](#for-rosie-the-tablet-checks).
 2. **What the night built:** each merged package the prompt names (its section in the plan): its device bullets
-   again, on this build. What another package changed since its own check matters most.
+   again, on this build (not the V rows, which are tablet passes themselves, and not CR, which has no device
+   bullets; 2026-10-21). What another package changed since its own check matters most.
 3. **APOD mode as 0.5.0** (`CLAUDE.md`, The app; "All NASA pictures" off, or 0.5.0's settings before M3): the page
    with title, then date (no source line and no tabs with APOD alone, except the video-day source's tab on a
    video day) and the explanation ("more", the tap, the long presses); pull to refresh; ⛶ with ✓ and
@@ -351,8 +353,9 @@ night can make; josh carries out your reply as written.
 4. Night defaults in the reports: keep those within the plan; the rest become QUESTION lines. A doc that disagrees
    with the code: fix the doc on dev (under `scripts/devlock.sh acquire integ pass-<n> 600`, committed with the Opus
    trailer). A STOP from rosie or an unmerged package: a FIX if the night can fix it, else a QUESTION. A device
-   package's FIX or STOP (M0, V1–V6): always a QUESTION, never a FIX line (2026-10-20): its fix package would take
-   the row's worker, rosie, who writes no code; the morning makes it a `B<n>` package.
+   package's FIX or STOP (Agent rosie in the queue: M0, V1–V10): always a QUESTION, never a FIX line (2026-10-20):
+   its fix package would take the row's worker, rosie, who writes no code; the morning makes it a `B<n>` package.
+   The bugs V9 and V10 report are B13's, CR's findings B14's: no FIX line for them (2026-10-21).
 5. Reply in exactly this form, nothing before `OPUS PASS` and nothing after NOTES. No backtick, no dollar sign and
    no double quote in a FIX line (name files and code in plain words; quote a UI text with single quotes: pass 4's
    double quotes came back escaped from josh, night.sh refused the line twice and stopped, 2026-10-20). FIX IDs are `<ID>f1`, `<ID>f2`, …; `branch` is the kept branch

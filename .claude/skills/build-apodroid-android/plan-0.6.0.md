@@ -1332,6 +1332,12 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
   ran on the tablet; Not tested, what didn't and why). The plan's checkboxes stay `[ ]`.
 - Done when: each of the row's bullets ran or is under Not tested with the reason, and the
   results are committed.
+- **Time box** (2026-10-21 night, from a review: a session is killed at 3600 s with nothing
+  saved, no reply and no commit): run `date` at the start and before each bullet. After each
+  bullet commit its notes on your branch, `git commit --allow-empty -m '<row> progress:
+  <bullet>' -m '<its BUG: lines>'` (B13 reads them there). At 40 minutes start no new bullet:
+  set the tablet back, then the results commit and the report commit; the rest goes under Not
+  tested.
 
 ### [x] V1. F1, F3 and F1f1 on the tablet
 
@@ -1549,12 +1555,16 @@ lines, and whether it is **a bug** (the app contradicts `CLAUDE.md`, crashes, lo
 gets stuck) or **a decision** (it changes what `CLAUDE.md` decided, a text or the UI). Only
 what you verified in the code; say how sure. Commit it (and the report commit). Don't pad:
 an empty section is fine.
+- **The audit** checks the form (every file listed; each finding with its severity, file:line,
+  steps, fix, and bug or decision) and that the cited lines exist. A finding it thinks wrong
+  is not a FIX: B14 checks each finding again before building it.
 - **Done when:** every file read (list them in the report), the findings committed.
 
 ### [ ] B13. The brute test's bugs (Opus, high)
 
 The `BUG:` lines of V9 and V10, in their report commits' messages (merged on `dev`, or on the
-kept branches `wp/v9`, `wp/v10` when a FIX left them unmerged): `git log --all --grep=V9
+kept branches `wp/v9`, `wp/v10` when a FIX left them unmerged; a session cut off at its
+time limit leaves only its `progress:` commits, which carry them too): `git log --all --grep=V9
 --grep=V10 --format='%h %s%n%b' | grep -B2 -A1 'BUG:'` from your worktree. Their results commits
 (the skill's "Still untested") say what was checked. For each:
 - **a bug** (the app contradicts `CLAUDE.md`, crashes, loses data, sets a wrong wallpaper or

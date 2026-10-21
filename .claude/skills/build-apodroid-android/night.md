@@ -126,6 +126,12 @@ of its own after them (the plan, V7).
 By day (user, 2026-10-22, from that night's report; the plan, Remaining 3e): **B12, B11** with `scripts/pipeline.sh`,
 one at a time. The night after: V7 alone, by hand (not a queue row).
 
+The same evening (user, 2026-10-21, 22:45: "the app brute test now, then V7"; the plan, Remaining 4a): **V9, V10**, the
+brute test (rosie as each row's worker, as V3–V8), then **CR** (the code review, winston, no device), **B13** and
+**B14** (their bugs fixed: clear bugs only, decisions as questions), then the regression (user, 22:50: as much as
+fits in about 8 hours). B13 has no After, so it runs even when V9 or V10 stays unmerged (a FIX keeps a V row
+unmerged; B13 reads its `BUG:` lines from the run folders). V7 moves to the next night.
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -160,6 +166,11 @@ one at a time. The night after: V7 alone, by hand (not a queue row).
 | 30 | B9 | A no-break space before ▾ and ▸ | winston | sonnet, medium | yes | S6 | plan B9 |
 | 31 | B11 | A Set from a second page keeps the stored "my picture" | winston | opus, medium | yes | B8 | plan B11 |
 | 32 | B12 | Only the first retry is waited for | winston | opus, medium | no | B7 | plan B12 |
+| 33 | V9 | Brute test 1: what the system does to the app | rosie | opus, high | no | — | plan V + plan V9 |
+| 34 | V10 | Brute test 2: what a user does to the app | rosie | opus, high | no | — | plan V + plan V10 |
+| 35 | CR | Code review of the whole app, by reading | winston | opus, high | no | — | plan CR |
+| 36 | B13 | The brute test's bugs | winston | opus, high | yes | — | plan B13 |
+| 37 | B14 | The code review's bugs | winston | opus, high | yes | CR | plan B14 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

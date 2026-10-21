@@ -254,6 +254,11 @@ Advanced settings ▸                                closed by default
 | B11 | A Set from a second page keeps the stored "my picture" (pass 11) | Opus, medium |
 | B12 | Only the first retry is waited for (review of B7) | Opus, medium |
 | V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 and V8 by night, V7 a night of its own (by hand) | Opus, high |
+| V9 | Brute test 1: what the system does to the app (rosie) | Opus, high |
+| V10 | Brute test 2: what a user does to the app (rosie) | Opus, high |
+| CR | Code review of the whole app, by reading | Opus, high |
+| B13 | The brute test's bugs | Opus, high |
+| B14 | The code review's bugs | Opus, high |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
@@ -408,7 +413,15 @@ reading; their build check passed, 108 tests with `private/`):
    the user starts session 1 by hand at bedtime and session 2 in the morning, at least 6 hours
    later and before pascaline starts. It tests the final tree, so a B package after it that
    touches the job or turns reruns its part.
-5. P on the FP6 with the user, then R and T.
+4a. **The order to a stable 0.6.0** (user, 2026-10-21 evening, after B11, B12 and B12f1 merged:
+   "brute test now, then V7, then code review, then P, then release"): **V9 and V10** (the
+   brute test, rosie), then the **code review** of the whole app by reading (CR, Opus, no
+   device), then their bugs fixed (**B13**, **B14**, winston: clear bugs only, decisions as
+   questions), then the regression: **all in that night's shift** (user, 22:50: "put as much
+   into the night shift as possible, we have the tablet all night and about 8h"). **V7** moves
+   to the next night, alone, on the fixed tree (it needs the tablet untouched for 6 hours).
+5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
+   R8 and the update on the final tree), then R and T.
 Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
 (deprecated since API 28; it works, and `requiredNetwork` would mean comparing
 `NetworkRequest`s).
@@ -1438,6 +1451,132 @@ least 6 hours apart, the tablet left alone between them. Real timing, so no `tur
   NASA fails (the proxy), on APOD's page and on NASA's (S6's title and swipe); the chip in APOD
   mode with "Where" = Lock; the open page following a job run that changes only the lock
   screen.
+
+### [ ] V9. Brute test 1: what the system does to the app
+
+(User, 2026-10-21 evening: "a complete check … bugs that might occur when doing weird stuff or
+edge cases or even just normal operation"; a stable 0.6.0. None of this was checked on any
+device before.) The final tree (master with B7–B12). **Hunt, don't confirm:** go through the
+whole list even after a bug; each bug a `BUG:` line as the regression's (steps, expected, got,
+evidence); FIX when there is one. For each item note what the page, the prefs, `dumpsys
+wallpaper` and `dumpsys jobscheduler` say after it, and look for a crash (`exit-info`, `logcat`).
+"More NASA pictures" on with turns on one screen unless an item says otherwise.
+- **Reboot** (`adb reboot`, then wait for `sys.boot_completed`): the daily switch on, with and
+  without turns: the job is still listed (`setPersisted`) with the same timing, runs at its
+  window, the page opens on the stored setup; the draft dropped. After the reboot the tablet
+  may ask for a PIN: if so, NOT RUN for the rest and say so.
+- **Airplane mode during a download** (`cmd connectivity airplane-mode enable`/`disable`): a
+  pull with NASA's stored date faked a day back (its rendition is about 0.8 MB), airplane mode
+  on within a second: no `.part` left in `files/`, the old picture kept, the problem box; off
+  again and a pull: the new picture. The same during a Set and during `run -f`: the job's
+  retry (B7) comes after airplane mode goes off.
+- **The clock and the time zone**: `cmd alarm set-timezone` to another zone (e.g.
+  `Pacific/Auckland`, then `America/New_York`) with the page open and after a `run -f`: the
+  status line's times, "today" (US Eastern) unchanged, nothing set twice. The clock set back and
+  forward a few hours if the shell may (`cmd alarm set-time`; else Not tested): a turn's clock
+  in the future counts as over (WP7g), nothing stuck. Set it all back (auto time and zone on).
+- **Battery saver and Doze**: `cmd power set-mode 1` (saver) and `dumpsys deviceidle
+  force-idle`, then `dumpsys deviceidle step` through to a maintenance window: the job waits and
+  runs then (not with `run -f`); the page and Set still work with saver on. Undo both.
+- **Split screen and resize** (the tablet's multi-window, `am start --windowingMode 6` or the
+  Recents menu): the page below 600 dp in one pane, then two panes again; a draft, crop mode
+  and an open dropdown across the resize; Set from split screen.
+- **Theme and fonts while open**: dark/light (`cmd uimode night yes|no`), font scale changed
+  with the page open: recreated, the draft, Setup's state and the shown source kept.
+- **Process death in the middle**: `am kill` (press Home first) during a Set, during a pull
+  and during a ★ save; `am force-stop` during a forced run: after reopening the prefs agree
+  with `dumpsys wallpaper` (or the next Set puts them right, say which), no `.part` or draft
+  file left that shouldn't be, the job scheduled again (pref `daily`), ★ not stuck dimmed.
+- **An app update while the job runs**: `run -f`, then `install -r` the same APK during it:
+  the next start fine, the job listed, no half-written records.
+- **Low storage** (the skill's full-disk recipe, about 200 KB left): a Set, a pull, ★, "Save
+  every picture": the right message, nothing half-written; free the space after.
+- **Done when:** each bullet ran or is under Not tested with the reason, the tablet set back,
+  and every `BUG:` line of your reply also in your report commit's message (B13 reads them there).
+
+### [ ] V10. Brute test 2: what a user does to the app
+
+As V9 (the final tree; hunt, don't confirm; every bug a `BUG:` line).
+- **Mashing:** Set tapped three times fast; Set and the daily switch and a pull together
+  (`input tap`s in one shell line); the daily switch on/off five times fast; ★ twice fast, ★
+  then a swipe, ★ then rotate; swipes back and forth during a load; the title dropdown during a
+  swipe; ⛶ then a swipe (the pager must not move), ⛶ then rotate, ⛶ then Set.
+- **Rotation during every async action:** Set, pull, the daily switch's run, a ★ save, the
+  photo picker open, a dialog open (weekday, ⓘ, "Don't show again"'s confirmation).
+- **Every combination once, quickly:** APOD mode "Where" × Size × the four video choices on a
+  faked video day, each with Set (`dumpsys wallpaper`); the list: each source on Home, Lock,
+  Both, unticked, down to the last tick; the mode off and on between Sets; "Change every" each
+  value with Set (the job's period, `dumpsys jobscheduler`).
+- **The picker's pictures:** a huge one (a 50 MP JPEG or a large PNG made with ImageMagick and
+  pushed to the gallery), a tiny one (16×16), a panorama (10:1), a tall one (1:5), a WebP, a
+  GIF, one with EXIF orientation 8; each with Fill and Fit, on both screens: set, upright, no
+  crash, no out-of-memory; cancel and Back in the picker.
+- **Every button nobody pressed lately:** the video notice's and the battery hint's "Don't
+  show again" (with its dialog) and "App info", the weekday dialog's both buttons, the problem
+  box's Dismiss across a new day (faked), "Try again" in the empty state (`pm clear`, offline,
+  then online), the long presses (the clipboard), Back in every state (crop mode, a dropdown, a
+  dialog, the picker).
+- **A fresh install** (`pm clear`, then open): APOD mode, the defaults, the first Set, the
+  first daily switch on; then the same with "More NASA pictures" turned on first.
+- **Long use:** 50 swipes and 20 Sets in a row, then `dumpsys meminfo` (no climb), `logcat` (no
+  `OutOfMemory`, no ANR: `dumpsys activity processes | grep -i anr`, `/data/anr` if readable).
+- **Done when:** each bullet ran or is under Not tested with the reason, the tablet set back,
+  the test files deleted from the gallery, and every `BUG:` line of your reply also in your
+  report commit's message (B13 reads them there).
+
+### [ ] CR. Code review of the whole app (Opus, high)
+
+(User, 2026-10-21 evening: find the bugs still in the code, for a stable 0.6.0.) By reading,
+no device, no code changes. Not a diff: every file in `core/src/main` and `app/src/main`
+(Kotlin, the manifest, the resources), against `CLAUDE.md`. Look for what the packages' audits
+miss because each saw one diff:
+- races between the page, the job and the prefs listener (two `Store`s, the locks, `commit` vs
+  `apply`, a read between two writes, main-thread work);
+- the lifecycle: a kill or a rotation between two steps (`saveSetup` then `update`, a rename then
+  the prefs, the draft's file), `onResume` while a Set or a save runs, a second page (B8);
+- the prefs and the files disagreeing (a record without its file, `fallback.jpg` missing, a
+  `.part` left, `badUrl`, `saveTried`), and what the next run does then;
+- failure paths: each `catch`, each `runCatching` that swallows a stop or an error, a toast or a
+  log that says the wrong thing, a retry that never comes or never ends;
+- time: US Eastern dates, the turn clock, a time zone or clock change, 12/24 h;
+- memory and big inputs: decoding (the picker's huge or odd pictures, a 97 MB PNG), bitmaps
+  held, the three pictures of the pager;
+- `CLAUDE.md` contradicted by the code, or a rule written there that no code enforces.
+Write `.claude/skills/build-apodroid-android/review-0.6.0.md`: one numbered finding each,
+worst first: severity (crash or data loss / wrong wallpaper or wrong state / wrong text / tidy),
+`file:line`, the failure (concrete steps or inputs → what goes wrong), the fix in one or two
+lines, and whether it is **a bug** (the app contradicts `CLAUDE.md`, crashes, loses data or
+gets stuck) or **a decision** (it changes what `CLAUDE.md` decided, a text or the UI). Only
+what you verified in the code; say how sure. Commit it (and the report commit). Don't pad:
+an empty section is fine.
+- **Done when:** every file read (list them in the report), the findings committed.
+
+### [ ] B13. The brute test's bugs (Opus, high)
+
+The `BUG:` lines of V9 and V10, in their report commits' messages (merged on `dev`, or on the
+kept branches `wp/v9`, `wp/v10` when a FIX left them unmerged): `git log --all --grep=V9
+--grep=V10 --format='%h %s%n%b' | grep -B2 -A1 'BUG:'` from your worktree. Their results commits
+(the skill's "Still untested") say what was checked. For each:
+- **a bug** (the app contradicts `CLAUDE.md`, crashes, loses data, sets a wrong wallpaper or
+  gets stuck) with a clear fix: fix it, with a test that fails on the old code (`:core`) or a
+  `Device (tablet …)` bullet in your report that shows it; `CLAUDE.md` updated where it says
+  what happens;
+- **a decision** (a text, the UI, a rule `CLAUDE.md` set) or a fix you aren't sure of: not
+  built; a `QUESTION:` line in your report with your recommendation;
+- Android doing something we can't change: say so, not built.
+At most six fixes; the rest listed for the morning. None found: say so and commit the report only.
+- **Files:** as each fix needs; `CLAUDE.md`; the skill's "Where things are" if a function moved.
+- **Tablet:** each fixed bug's steps again (from rosie's `BUG:` line), then the smoke list.
+- **Done when:** each `BUG:` line fixed, a QUESTION, or named as Android's; the checks pass; the
+  tablet passes.
+
+### [ ] B14. The code review's bugs (Opus, high)
+
+The findings of `review-0.6.0.md` (CR) marked **a bug**, worst first, as B13: fix with a test
+that fails on the old code (or a Device bullet), at most six; a finding marked **a decision**,
+or one you find isn't a bug after all (say why), not built: a `QUESTION:` line. After B13 (both
+may touch the same files).
+- **Files, Tablet, Done when:** as B13 (the tablet checks the fixed findings' failures).
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 

@@ -1035,7 +1035,7 @@ class MainActivity : ComponentActivity() {
         // The tap target at least 48 dp tall.
         Box(Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp)) {
             Text(
-                if (menu) "${source.shortLabel} ▾" else source.shortLabel,
+                if (menu) "${source.shortLabel}\u00A0▾" else source.shortLabel,
                 Modifier
                     .then(if (menu) Modifier.clickable(role = Role.DropdownList) { open = true } else Modifier)
                     .clearAndSetSemantics { contentDescription = "Picture from: ${source.label}" }
@@ -1542,7 +1542,7 @@ class MainActivity : ComponentActivity() {
                 .padding(top = 8.dp, bottom = 4.dp),
         ) {
             Text(
-                "$text ${if (open) "▾" else "▸"}",
+                "$text\u00A0${if (open) "▾" else "▸"}",
                 Modifier.clearAndSetSemantics { contentDescription = text },
                 style = MaterialTheme.typography.titleSmall,
                 color = if (changed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
@@ -1621,7 +1621,7 @@ class MainActivity : ComponentActivity() {
                 }
                 Box {
                     var open by remember { mutableStateOf(false) }
-                    DropdownButton("$name ▾", "${source.shortLabel} on: $name", enabled = checked, changed = changed) { open = true }
+                    DropdownButton("$name\u00A0▾", "${source.shortLabel} on: $name", enabled = checked, changed = changed) { open = true }
                     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                         Where.entries.forEach { w ->
                             DropdownMenuItem(
@@ -1647,7 +1647,7 @@ class MainActivity : ComponentActivity() {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
             Box {
                 val name = videoDays.label
-                DropdownButton("$name ▾", "If APOD is a video: $name", enabled, videoDaysChanged()) { open = true }
+                DropdownButton("$name\u00A0▾", "If APOD is a video: $name", enabled, videoDaysChanged()) { open = true }
                 DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                     VideoDays.entries.forEach { choice ->
                         DropdownMenuItem(
@@ -1702,7 +1702,7 @@ class MainActivity : ComponentActivity() {
                 Box {
                     var open by remember { mutableStateOf(false) }
                     val name = limitLabel(saveLimit)
-                    DropdownButton("$name ▾", "Largest original: $name", enabled = true, changed = false) { open = true }
+                    DropdownButton("$name\u00A0▾", "Largest original: $name", enabled = true, changed = false) { open = true }
                     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                         listOf(10, 20, 50, 100, 0).forEach { mb ->
                             DropdownMenuItem(

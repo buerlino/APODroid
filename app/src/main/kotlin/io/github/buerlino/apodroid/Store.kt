@@ -324,11 +324,6 @@ class Store(private val context: Context) {
     val fit: Boolean
         get() = prefs.getBoolean("fit", false)
 
-    /** The job waits for an unmetered network (F2); the page and the buttons use any. */
-    var wifiOnly: Boolean
-        get() = prefs.getBoolean("wifiOnly", false)
-        set(value) = prefs.edit { putBoolean("wifiOnly", value) }
-
     /** Save every picture (F5): after each job run, each source in use's new post goes to the gallery ([saveInUse]). */
     var saveEvery: Boolean
         get() = prefs.getBoolean("saveEvery", false)

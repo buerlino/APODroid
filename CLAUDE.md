@@ -690,19 +690,19 @@ Accepted: the process dying before the run's end loses the note; `onResume`'s `e
 changed timing, but a fresh period for the same timing is lost (turns stay on their clock, the
 job may come up to a period off). **A failed run keeps its backoff retry** (user, 2026-10-20
 night; B5: S4f3 let a reschedule noted during a failed run replace the retry, so with turns
-the retry waited up to a period): the note waits for the end of a run that didn't fail (the
-retry, usually within a minute). A `schedule` or `ensure` done with no run going (a Set,
-`onResume`) drops a kept note, so an old note doesn't restart the period after a
-later Set (`:core`'s `JobRuns`, `JobRunsTest`). **B7 changes this** (user, 2026-10-21, from
-the night's pass 8 and regression 4; not built yet): a stop during the saves (after a good
-update) counts as a failed run, so a noted reschedule waits for the retry instead of replacing
-it; a `schedule` or `ensure` while a failed run's retry is due (a Set just after the run; with
-turns it restarted the period, so the failing source waited up to a period) is noted as during
-a run, not done at once (this replaces "drops a kept note" above); and a note waits for **one
-retry at most**: at that retry's end it is done, good or failed (a source that keeps failing,
-e.g. a picture that isn't one all weekend, would otherwise hold back a Set's period or a new
-interval for days). Off (`cancel`) leaves no retry due, also for a run still going that ends
-after it, so the next on schedules at once. The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
+the retry waited up to a period; B7, user, 2026-10-21, from the night's pass 8 and regression
+4): the note waits for the retry, **one retry at most**: the retry's end does it, good or failed
+(a source that keeps failing, e.g. a picture that isn't one all weekend, would otherwise hold
+back a Set's period or a new interval for days; the cost: a failed retry's own backoff is
+replaced by the fresh schedule, the next period retries). A run `onStopJob` stopped counts as
+failed (`stoppedBySystem`), also during the saves after a good update, so a noted reschedule
+doesn't replace the system's retry. After a failed run, until the next run starts, a retry is
+due: a `schedule` or `ensure` then (a Set just after the run; with turns it restarted the
+period, so the failing source waited up to a period) is noted as during a run and done at the
+retry's end; the process dying loses it, as a note. Off (`cancel`, `JobRuns.drop`) leaves no
+retry due and no note, and a run started before it ends without effect (a generation `drop`
+bumps, taken by each run at its start), so the next on schedules at once (`:core`'s `JobRuns`,
+`JobRunsTest`). The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
 schedules it again when `daily` is on and the job is missing or has another timing
 (`DailyJob.ensure`; scheduling the same id again would stop a running job).

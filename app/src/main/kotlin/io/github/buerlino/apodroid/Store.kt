@@ -230,15 +230,17 @@ class Store(private val context: Context) {
 
     /**
      * Blocking. "Set as wallpaper": saves [setup] in one commit (the list with [putColumns], so
-     * [lastScreens] follows; ⛶'s parts), the draft "my picture" renamed into place first, then
+     * [lastScreens] follows; ⛶'s parts), the draft "my picture" renamed into place first when
+     * this Set's own draft holds the pick ([pick]: a second page without one leaves the stored
+     * picture and the first page's draft file alone, B11), then
      * [restartAndForget]: the clock restarts and the records of the screens with a column are
      * forgotten, so the next [setDue] gives each screen what the setup says afresh (a changed Fit
      * or "my picture" too, with the same picture). A screen whose column was empty starts
      * without a record. The daily switch isn't part of it ([switchDaily]). The caller then runs
      * [update] with `set` and schedules or cancels the job as the stored [daily] says.
      */
-    fun saveSetup(setup: Setup): Unit = synchronized(wallpaperLock) {
-        if (draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
+    fun saveSetup(setup: Setup, pick: Boolean): Unit = synchronized(wallpaperLock) {
+        if (pick && draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
         val before = columns
         val restart = restartAndForget(before, setup.columns, turnStartedAt, records(), Instant.now())
         prefs.edit(commit = true) {

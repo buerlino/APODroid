@@ -1,10 +1,12 @@
 package io.github.buerlino.apodroid
 
 import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -309,6 +311,22 @@ class MainActivity : ComponentActivity() {
     /** This page's id in [live], kept by a rotation. */
     private lateinit var id: String
 
+    /**
+     * The system's time zone and 12/24 h for the status line and the problem box, as state: a
+     * changed zone alone recomposed nothing, so the times stayed in the old zone until the
+     * process restarted (B13). Read on resume and, while resumed, when either changes.
+     */
+    private var zone by mutableStateOf(ZoneId.systemDefault())
+    private var hours24 by mutableStateOf(false)
+    private val clockChanged = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) = readClock()
+    }
+
+    private fun readClock() {
+        zone = ZoneId.systemDefault()
+        hours24 = DateFormat.is24HourFormat(this)
+    }
+
     /** While resumed: follows a set or a new post by the job ([follow]). */
     private var watcher: OnSharedPreferenceChangeListener? = null
     private var following: Job? = null
@@ -394,12 +412,16 @@ class MainActivity : ComponentActivity() {
         // Hibernation or a force stop deleted the job; scheduling runs it at once.
         if (store.daily && !DailyJob.ensure(this)) Log.w("APODroid", "Couldn't schedule the daily job again")
         checkPausing()
+        readClock()
+        // System broadcasts only: no export flag needed.
+        registerReceiver(clockChanged, IntentFilter(Intent.ACTION_TIMEZONE_CHANGED).apply { addAction(Intent.ACTION_TIME_CHANGED) })
         load()
         watcher = store.watch(::follow)
     }
 
     override fun onPause() {
         super.onPause()
+        unregisterReceiver(clockChanged)
         watcher?.let(store::stopWatching)
         watcher = null
     }
@@ -561,7 +583,7 @@ class MainActivity : ComponentActivity() {
      */
     private fun problemText(problem: Problem): String {
         val since = checkedAt?.takeIf { it < Instant.now().minus(1, ChronoUnit.DAYS) }
-            ?.let { " since " + it.atZone(ZoneId.systemDefault()).format(dayFormat) }
+            ?.let { " since " + it.atZone(zone).format(dayFormat) }
         val name = if (problemSource == Source.APOD && apodAlone) "" else "${problemSource.label}: "
         return name + when (problem) {
             Problem.Network -> "Couldn't reach NASA's site${since.orEmpty()}. Check the connection."
@@ -587,8 +609,8 @@ class MainActivity : ComponentActivity() {
         fun line(name: String, state: ScreenState, setAt: Instant? = state.setAt): String? = when {
             state.kept -> if (name == "Wallpaper") "Video day, wallpaper kept" else "$name: video day, wallpaper kept"
             else -> setAt?.let {
-                val time = if (DateFormat.is24HourFormat(this)) "d MMM, HH:mm" else "d MMM, h:mm\u00A0a"
-                "$name changed " + it.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern(time, Locale.ENGLISH)) +
+                val time = if (hours24) "d MMM, HH:mm" else "d MMM, h:mm\u00A0a"
+                "$name changed " + it.atZone(zone).format(DateTimeFormatter.ofPattern(time, Locale.ENGLISH)) +
                     pictureSuffix(state.picture)
             }
         }

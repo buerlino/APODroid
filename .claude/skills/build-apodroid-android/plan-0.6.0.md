@@ -247,7 +247,10 @@ Advanced settings ▸                                closed by default
 | B5 | A failed run keeps its retry (pass 6) | Opus, medium |
 | B6 | Quick taps on the daily switch set once (pass 6) | Opus, medium |
 | S6 | The picture side: the title dropdown, swipe between sources, no Share | Opus, high |
-| V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 and V8 by night, V7 by day | Opus, high |
+| B7 | The job keeps its retry: a stop during the saves, a Set after a failed run (pass 8, regression 4) | Opus, medium |
+| B8 | The draft's picture survives a second page (B4's edge, pass 8) | Opus, medium |
+| B9 | A no-break space before ▾ and ▸ (V3, font scale 2.0) | Sonnet, medium |
+| V  | Tablet pass of everything (debug and R8), the update from 0.5.0: V1–V6 and V8 by night, V7 a night of its own (by hand) | Opus, high |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
@@ -273,8 +276,9 @@ claude --model opus --effort medium "Do C in .claude/skills/build-apodroid-andro
 scripts/pipeline.sh S2 --no-worker --tablet no    # S2's review and merge (S1 is merged)
 scripts/night.sh --until <HH:MM>    # B1, S4f2, S4f3, S5, F6: the queue in night.md
 scripts/night.sh --until <HH:MM>    # after the user's look at S5: B2, B4–B6, S6, then V3, V5, V6, V8
-scripts/night.sh --until <HH:MM>    # what that night didn't reach: the queue in night.md
-claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"
+scripts/night.sh --until <HH:MM>    # B7, B8, B9, then the regression: the queue in night.md
+claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
+claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do R in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model sonnet --effort low "Do T in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -373,10 +377,23 @@ reading; their build check passed, 108 tests with `private/`):
    (their own rows test them). **The next night:** B2 → B4 → B5 → B6 → S6 → V3 → V5 → V6 →
    V8, then the regression. S6 no longer waits for the user (S5 approved); the user
    looks at it in the morning, and a change there reruns the parts of V3 and V6 it touches.
-4. **V7** after the night of V3–V6 (turns over hours: the night's later rows and the
-   regression reinstall and change the tablet). It needs the tablet alone for 6 hours, and
-   pascaline has it by day: its first session at the end of a night, the second before
-   pascaline starts, or a night with nothing else queued.
+3d. **The night of 2026-10-20 to 21** (user, 2026-10-21 morning, after the night's report
+   `.coord/reports/2026-10-20-night.md`): B2, B4, B5, B6, S6, V3, V5, V6 and V8 merged with
+   tablet PASS (B6 and S6 after one fix round each), regression 4 clean; `dev` fast-forwarded
+   into master. Approved: S6's texts ("APOD ▾", the short names in the menu, "Picture from: …")
+   and its night defaults (the name alone with one source, the failure text on the shown page
+   only, a fresh pager when the list changes). Kept as built: B6's off and on 0.35–1 s apart
+   setting the same picture twice (the end state is right); the pick of Earth surviving the
+   mode switch off and on in the draft (as a rotation); no Compose UI tests. To fix: **B7**
+   (the job keeps its retry: a stop during the saves counts as failed, pass 8's QUESTION 2;
+   a Set just after a failed run notes its reschedule instead of replacing the retry,
+   regression 4), **B8** (B4's edge: the draft's picture survives a second page, pass 8's
+   QUESTION 1), **B9** (a no-break space before ▾ and ▸, V3's font scale 2.0). **Tonight:**
+   B7 → B8 → B9, then the regression; B7's tablet check tidies the tablet first.
+4. **V7** (user, 2026-10-21): a night of its own after B7–B9 are merged, nothing else queued:
+   the user starts session 1 by hand at bedtime and session 2 in the morning, at least 6 hours
+   later and before pascaline starts. It tests the final tree, so a B package after it that
+   touches the job or turns reruns its part.
 5. P on the FP6 with the user, then R and T.
 Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
 (deprecated since API 28; it works, and `requiredNetwork` would mean comparing
@@ -940,7 +957,7 @@ anything that size every day; a setting, the user decides, limited by default.
   from the gallery afterwards.
 - **Done when:** the tests pass, the checks pass, the tablet passes, `CLAUDE.md` says it.
 
-### [ ] B2. Equal columns change together (Opus, medium)
+### [x] B2. Equal columns change together (Opus, medium)
 
 From regression 3 (2026-10-20 night; rosie read it as by design; the user, after it: a bug, as
 `CLAUDE.md` says equal columns are one wallpaper).
@@ -991,7 +1008,7 @@ From the night's report (2026-10-20 night; the user's answers after it).
   dialog (a screenshot; font scale 2.0 too).
 - **Done when:** the checks pass, the tablet passes, the screenshots are there for the user.
 
-### [ ] B4. The draft after a second start (Opus, medium)
+### [x] B4. The draft after a second start (Opus, medium)
 
 From S5's tablet check (2026-10-20 night, rosie): a draft change, a tap on the picture (the
 browser), back to the app: the draft was gone. **Reproduced by day** (2026-10-20, the tablet,
@@ -1023,7 +1040,7 @@ night's tablet check does.
   swipe from Recents still drops it.
 - **Done when:** the checks pass, the tablet passes (each start named with its result).
 
-### [ ] B5. A failed run keeps its retry (Opus, medium)
+### [x] B5. A failed run keeps its retry (Opus, medium)
 
 The user's answer to pass 6's question (2026-10-20 night): S4f3's night default, a reschedule
 noted during a failed run replacing its 30 s backoff retry, is fixed, not kept.
@@ -1047,7 +1064,7 @@ noted during a failed run replacing its 30 s backoff retry, is fixed, not kept.
   "rescheduled after the run" line. If the proxy can't be set up, say so under Not tested.
 - **Done when:** the checks pass, the tablet passes, `CLAUDE.md` says it.
 
-### [ ] B6. Quick taps on the daily switch set once (Opus, medium)
+### [x] B6. Quick taps on the daily switch set once (Opus, medium)
 
 The user's answer to pass 6's question (2026-10-20 night): rosie on S4f2 switched on, off, on
 within about 0.3 s and got two switch-on sets of the same picture, 0.6 s apart; fix it.
@@ -1070,7 +1087,7 @@ within about 0.3 s and got two switch-on sets of the same picture, 0.6 s apart; 
   set once, the job scheduled.
 - **Done when:** the checks pass, the tablet passes.
 
-### [ ] S6. The picture side: the title dropdown, swipe between sources, no Share (Opus, high)
+### [x] S6. The picture side: the title dropdown, swipe between sources, no Share (Opus, high)
 
 After S5 (both change `MainActivity.kt`), and after B2 and B4–B6 in the queue (B4 and B6 change it too).
 - `Tabs()` → `SourceTitle()`: the short name at `headlineSmall`; with two or more sources "▾"
@@ -1095,12 +1112,90 @@ After S5 (both change `MainActivity.kt`), and after B2 and B4–B6 in the queue 
   `logcat` while swiping back and forth.
 - **Done when:** the checks pass, the tablet passes, the screenshots are there for the user.
 
+### [ ] B7. The job keeps its retry: a stop during the saves, a Set after a failed run (Opus, medium)
+
+The user's answers to the night of 2026-10-20/21 (pass 8's QUESTION 2, regression 4): two cases
+B5 left open, both fixed, not accepted.
+- **A stop during the saves.** Now: `cmd jobscheduler timeout` (or Android's deadline) while
+  `saveInUse` runs, after a good update: `onStopJob` returns `true` (the system's retry), but
+  the worker then calls `rescheduleNoted(failed = false)`, so a reschedule noted during the run
+  (a Set with turns) is done at once and replaces that retry; the saves wait up to a period.
+  **Should:** a run that `onStopJob` stopped counts as failed for `rescheduleNoted` (a
+  `@Volatile` flag set in `onStopJob`, or the like), wherever the stop came; the note waits for
+  the retry's good end.
+- **A Set just after a failed run.** Now (regression 4): the run has ended, so `runs.note`
+  sees no run going and `schedule` replaces the job at once, its backoff retry with it; with
+  turns the period restarts, so the failing source waits up to a period (Set's own update is
+  one try, but a Set that fails too has no retry). **Should:** after a failed run, until the
+  next run starts, a retry is due: `JobRuns` keeps that (`finished(failed = true)` sets it,
+  `started()` clears it, `drop()` clears it), and `note` treats it as a run going, so the
+  reschedule is noted (afresh wins) and done at the end of the retry that doesn't fail. The
+  process dying loses it, as a note now (then `schedule` acts at once, as before). Off still
+  cancels at once and drops it. `onResume`'s `ensure` with the same timing changes nothing, as
+  now.
+- **Files:** `core/.../JobRuns.kt`, `JobRunsTest` (a failed run's end, then a note: noted, not
+  done; the next run's good end does it; a cancel in between drops it; a test that fails on the
+  old code), `DailyJob.kt` (the stop flag), `CLAUDE.md` (Background update: drop B7's "not built
+  yet"), the skill's "Where things are" (`DailyJob`).
+- **Tablet:** first, once, the tidying the user asked for after the night of 2026-10-20/21
+  (before noting the tablet's state): delete the old test pictures in `Pictures/APODroid/`
+  (`APOD_…`, `NASA_…`, `EO_…`, with their "(1)"/"(2)" copies; `content query --uri
+  content://media/external/images/media` to find them, `content delete` each), then, after
+  installing, one Set so the wallpaper matches the records. The firewall chain (chain3) stays
+  off (Android's default); note that it is. Then: "More NASA pictures" on, turns on one screen,
+  daily on. Wi-Fi off, `run -f`: the run fails (`Daily job failed`), `dumpsys jobscheduler` shows
+  the backoff; a Set on the page (fails offline too) logs no reschedule and the job keeps its
+  backoff; Wi-Fi on: the retry runs, then "rescheduled after the run (schedule)". The stop: "Save
+  every picture" on, "No limit", a large original faked by prefs (V8's 27 MB one), `run -f`, a Set
+  while the saves run, `cmd jobscheduler timeout` a few seconds in: no "rescheduled after the
+  run", the retry comes (`Last successful run`), then the reschedule. The tablet's VPN makes the
+  test proxy and the firewall miss the app (regression 4): use Wi-Fi off, not the proxy.
+- **Done when:** a regression test that fails on the old code, the fix, the tablet passes,
+  `CLAUDE.md` says it.
+
+### [ ] B8. The draft's picture survives a second page (Opus, medium)
+
+B4's edge (pass 8, 2026-10-21; the user: close it). With another app's screen on top of the
+page (the photo picker opened by "Change picture", App info), a start with another intent (the
+launcher's after `am start -n`, or the reverse) still puts a second `MainActivity` on top
+(`singleTop` only reuses a page that is itself on top). The new page has no saved draft, so its
+`onCreate` deletes `files/fallback-draft.jpg`, which the page below still uses.
+- **Should:** a page's start deletes the draft's picture only when no other page is alive (a
+  process-wide count of live pages, `onCreate` to `onDestroy`, or the like). The second page
+  still opens without the draft (it has none); `singleTask` stays out (it would end a pick).
+  A pick made in the second page while the first lives overwrites the one file: say what
+  happens then (night default), don't build more for it.
+- **Files:** `MainActivity.kt`, `CLAUDE.md` (The app, Settings, "A draft until Set": drop B8's
+  "not built yet").
+- **Tablet:** from a force-stop, `am start -n …/.MainActivity`, a "my picture" into the draft
+  (a faked APOD video day), "Change picture" (the picker open), then the launcher intent
+  (`monkey … 1`): two pages (as before), `fallback-draft.jpg` still there (`run-as ls -l
+  files`, same size); Back to the first page: the draft and its picture, Set renames it to
+  `fallback.jpg`. A start with no other page (a swipe from Recents, then the launcher) still
+  deletes a leftover draft file. Recents: swipe away only APODroid's task.
+- **Done when:** the checks pass, the tablet passes (each start named with its result).
+
+### [ ] B9. A no-break space before ▾ and ▸ (Sonnet, medium)
+
+V3 (2026-10-21, font scale 2.0 at `wm density 344`): the video dropdown's "▾" wrapped alone
+onto a second line under "NASA Image of the Day" (`.coord/runs/029-v3/tablet/v3-13-…-08`).
+- **Should:** `"\u00A0▾"` (and `▸`) instead of `" ▾"` in the five places that add the glyph in
+  `MainActivity.kt` (the title, the headers, the list's dropdowns, the video dropdown, "Largest
+  original"), so the glyph stays with the last word. No text changes; screen-reader labels as
+  they are (they don't read the glyph).
+- **Files:** `MainActivity.kt`, `CLAUDE.md` (Settings, If APOD is a video: drop B9's "not built
+  yet").
+- **Tablet:** font scale 2.0 at `wm density 344`, "If APOD is a video" on NASA's and on Earth's
+  choice, Setup and Advanced open and closed, the list: no "▾" or "▸" alone on a line
+  (screenshots for the user); font scale back, `wm density reset`.
+- **Done when:** the checks pass, the tablet passes, the screenshots are there for the user.
+
 ### [ ] V. Tablet pass of everything (Opus, high)
 
 After F5, F1f1, F5f1 and C (V3, V5 and V6 also after S1, S2 and S4–S6), so it tests the final code (third review: F1 changes the set path,
 F5 the job). **By night** (user, 2026-10-20), and a device package gets one rosie session of at
 most 50 minutes (`night.md`, For rosie; `pipeline.sh` gives it 3600 s), so V is queue
-rows, V1–V6 and V8, each bundled as `plan V + plan V<k>`, and V7 by day after the night (turns over
+rows, V1–V6 and V8, each bundled as `plan V + plan V<k>`, and V7 by hand on a night of its own (turns over
 hours: the night's later rows and the regression reinstall and change the tablet). **The
 complete test before the stable release** (user, 2026-10-20 night): V3, V5, V6 and V8 on the
 final tree (after S6 and B2–B6), the night's regression after them, then V7 and P. V1, V2 and
@@ -1143,7 +1238,7 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
   smaller copy), not the original again; a post with another picture URL tries its original.
   The ⓘ dialog's screenshot. Delete the test files from the gallery afterwards.
 
-### [ ] V3. M2–M4 again on the final tree
+### [x] V3. M2–M4 again on the final tree
 
 - Set (S4) in both modes, with the daily switch on and off: a draft sets nothing, Set puts on
   each screen what the setup says and starts a fresh turn; then the job's next run sets what
@@ -1177,7 +1272,7 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
   rotation while the picker is open.
 - The chip in APOD mode with "Where" = Lock.
 
-### [ ] V5. The update from 0.5.0, debug builds
+### [x] V5. The update from 0.5.0, debug builds
 
 - A debug build of 0.5.0 (`git worktree add <your folder>/v050 v0.5.0`, `:app:assembleDebug`
   there) under a debug build of 0.6.0, so `run-as` reads the prefs before and after (a release
@@ -1186,7 +1281,7 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
   features, Migration), the first run sets nothing, the page opens on the right mode and tab.
   Nine states; a script helps. Those not reached go under Not tested. Remove the worktree after.
 
-### [ ] V6. R8 builds
+### [x] V6. R8 builds
 
 - Once: an R8 build of 0.5.0 under an R8 build of 0.6.0 (both signed with the debug key),
   checked on screen only: the settings kept, the page and the job work.
@@ -1196,9 +1291,10 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
   today's 208 MB one: ★ saves the original anyway; the file deleted after), the swipe between
   sources (S6); no crash (`logcat`, `exit-info`). R8 isn't covered by the unit tests.
 
-### [ ] V7. Turns over hours (by day, after the night)
+### [ ] V7. Turns over hours (a night of its own, after B7–B9)
 
-- Two short rosie sessions by hand (`claude --agent rosie`, this section), at least 6 hours
+- (User, 2026-10-21: after B7–B9 are merged, a night with nothing else queued; session 1 at
+  bedtime, session 2 in the morning before pascaline starts.) Two short rosie sessions by hand (`claude --agent rosie`, this section), at least 6 hours
   apart, the tablet left alone between them. Setup: the debug build of master, "All NASA
   pictures" on, Home APOD + NASA, Lock NASA + Earth, "Change every" 3 h, daily on; note
   `turnStartedAt`, both records and the job's window. Read-out: `dumpsys jobscheduler`
@@ -1206,7 +1302,7 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
   within its window (period and flex), both screens on the one clock, no screen set twice for
   one turn. Real timing, so no `turn.sh`. Then set the tablet back.
 
-### [ ] V8. V1, V2 and V4 again where S4–S6 changed them
+### [x] V8. V1, V2 and V4 again where S4–S6 changed them
 
 - Fit (V1, F1): set by Set now (S4), not at once: Fit with a wide and a tall picture, home and
   lock, both modes; no ⛶ with Fit; a made-up JPEG with EXIF orientation 6 as "my picture" with

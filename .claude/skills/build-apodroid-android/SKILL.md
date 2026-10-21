@@ -194,6 +194,10 @@ packages unattended): `night.md`.
 - Offline with the test proxy still set: the app connects to the proxy and waits for its
   timeouts (about 30 s per source) instead of failing on DNS; remove the proxy first for quick
   offline checks.
+- The tablet sometimes has a VPN on (regression 4, 2026-10-21; V8 the same night still used
+  the proxy): while it's active the test proxy and the firewall chain miss the app. Check the
+  status bar's VPN icon or `dumpsys connectivity | grep -i vpn` first. Failed runs then come
+  from Wi-Fi off with `run -f` (they fail within a second); leave the VPN as it is (not ours).
 
 ## Still untested
 

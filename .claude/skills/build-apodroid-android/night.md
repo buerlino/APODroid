@@ -117,6 +117,11 @@ fixes the user decided after it (B3 was done by day), then **S6** (S5 approved, 
 then the complete test on the final tree: **V3, V5, V6, V8**, and the regression. V1, V2 and V4 are merged and pass
 over. V5 (the update from 0.5.0) has no After: it doesn't rest on S6, so it runs even if S6 stays unmerged.
 
+The next night (user, 2026-10-21 morning, from that night's report; the plan, Remaining 3d): every row above is
+merged except V4 (merged the night before; V8 repeated it) and V7 (by hand, not a queue row). **B7, B8, B9**, the
+fixes the user decided after it, then the regression. B7's tablet check tidies the tablet first (the old test
+pictures, one Set). V7 waits for a night of its own after them (the plan, V7).
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -145,6 +150,9 @@ over. V5 (the update from 0.5.0) has no After: it doesn't rest on S6, so it runs
 | 24 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | — | plan V + plan V5 |
 | 25 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S6 | plan V + plan V6 |
 | 26 | V8 | Tablet pass: V1, V2 and V4 again where S4–S6 changed them | rosie | opus, high | no | S6 | plan V + plan V8 |
+| 27 | B7 | The job keeps its retry: a stop during the saves, a Set after a failed run | winston | opus, medium | yes | B5 | plan B7 |
+| 28 | B8 | The draft's picture survives a second page | winston | opus, medium | yes | B4 | plan B8 |
+| 29 | B9 | A no-break space before ▾ and ▸ | winston | sonnet, medium | yes | S6 | plan B9 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.
@@ -233,7 +241,13 @@ Reply APPROVED, or FIX with at most five findings: file:line, the concrete failu
 - Only `adb -s HA24BZ2Y`. If the tablet isn't attached, is locked with a PIN, or only the FP6 is there: NOT RUN.
 - First note what you'll change: each setting you touch (`settings get` for font_scale, screen_off_timeout, wifi,
   http_proxy; `wm density`), and the app's `shared_prefs/apodroid.xml` and `files/` (with `run-as`, when a debug
-  build is installed), into your folder. At the end set all of it back, and say that you did.
+  build is installed), into your folder. At the end set all of it back, and say that you did. The firewall chain
+  too: off is Android's default; if you turn chain3 on, turn it off at the end (the night of 2026-10-20/21 left
+  it unknown).
+- Touch only APODroid and the system screens a check needs (App info, the photo picker). In
+  Recents swipe away only APODroid's task; never tap or swipe on another app's screen (pascaline's, a
+  browser's). If one is on top, press Home first (the night of 2026-10-20/21 dismissed a browser's task and may
+  have scrolled pascaline's screen).
 - Install the APK the prompt names (`install -r`). If that fails because a release-signed build is installed,
   uninstall it (the tablet only; its data is test data) and install.
 - Run the package's device bullets ("Android check first", "Device (tablet …)") and what winston's report asks.

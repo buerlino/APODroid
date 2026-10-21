@@ -50,7 +50,8 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - No proprietary dependencies (Firebase, Play Services, analytics, ads). As few permissions as
   possible; ask the user before adding any.
 - Two modules: `:core` (plain Kotlin/JVM, no Android: the logic, parsing and network code,
-  unit-tested with JUnit4) and `:app` (Compose UI, depends on `:core`).
+  unit-tested with JUnit4) and `:app` (Compose UI, depends on `:core`). No Compose UI tests
+  (user, 2026-10-21: rosie's tablet checks cover the page; no new test dependencies).
 - Few libraries: kotlinx.serialization, `HttpURLConnection` (no Retrofit/OkHttp), activity-compose,
   core-ktx (declared at 1.18.0, the version other libraries already pulled in, for `prefs.edit { }`
   and `toUri()`). Before any other dependency, check whether the JDK or Android already covers it.
@@ -293,7 +294,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
     `files/fallback-draft.jpg`). Another start while the page is on top (the launcher, a
     shortcut, `am start -n`) reuses it, so the draft stays: one page (`launchMode="singleTop"`;
     B4, 2026-10-21: without it a start whose intent differed from the task's first put a second
-    page on top, without the draft, and deleted the draft's picture). **The daily switch acts at once, both ways** (S4f2; user,
+    page on top, without the draft, and deleted the draft's picture). A start while another
+    app's screen is on top of the page (the photo picker from "Change picture", App info) still
+    stacks a second page, whose start deletes the draft's picture that the page below still uses
+    (the night's pass 8, 2026-10-21): the picture stays while another page is alive (user,
+    2026-10-21; B8, not built yet). **The daily switch acts at once, both ways** (S4f2; user,
     2026-10-20 evening: a setting that changes how the whole app works must act at once; S4 had
     it in the draft): off writes `daily` and cancels the job; on writes it, starts the stored
     setup afresh (`Store.startAfresh`: `restartAndForget` with the stored columns, the clock
@@ -379,6 +384,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
     one; were four radios), under its heading after "Size" in both modes (S2; M3 had it under
     APOD's grid row), hidden while the daily switch is off; with the switch "More NASA pictures"
     on greyed out while APOD has no tick (so the page doesn't move). Never greyed out otherwise (0.5.0 greyed it with two or more ticked, under a grey line).
+    At font scale 2.0 and a phone's width its "▾" wrapped alone under "NASA Image of the Day"
+    (V3, 2026-10-21): a no-break space before every "▾" and "▸" (the dropdowns, the title, the
+    headers) keeps the glyph with the last word (user, 2026-10-21; B9, not built yet).
     The choices: "Skip it" (`VideoDays.KEEP`; was "Keep the previous picture"), NASA Image of
     the Day, Earth Observatory (0.5.0, WP3; `VideoDays.NASA`, `.EARTH`), or "Use my picture"
     (user). Default: "Skip it", as the Tasker task did. The choice fills APOD's turn on every
@@ -478,7 +486,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
   B3: it had none there, while a stand-in had " · NASA"). The page re-reads both
   around each update and after a set.
 - **The title and the swipe** (S6, 2026-10-21, from the user's mockup of 2026-10-20 evening;
-  tabs until then: 0.5.0's WP4, 0.6.0's M4). The sources the page offers: with the switch "More
+  tabs until then: 0.5.0's WP4, 0.6.0's M4; the texts "APOD ▾", the menu's short names and
+  "Picture from: …", and the night's defaults (the name alone with one source, the failure
+  text on the shown page only, a fresh pager when the list changes) approved by the user,
+  2026-10-21 morning, from the tablet's screenshots). The sources the page offers: with the switch "More
   NASA pictures" on always three, else (APOD mode) APOD and, on an APOD video day, the video-day
   source. Above the picture the shown source's short name ("APOD", "NASA", "Earth";
   `headlineSmall`); with two or more a "▾" and a `DropdownMenu` of the short names, ✓ before the
@@ -493,8 +504,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   pager show the shown source only, so the page below doesn't change while dragging. It opens
   on the **picture's** source (a stand-in's own page, not APOD's; the user's own picture has
   none) on the home screen, else the lock screen's, else APOD (APOD mode: the screen "Where"
-  names, `pageScreen`) until the user picks one (dropdown or swipe); the pick survives rotation
-  and the system killing the app (Android's saved state: seen after `am kill`, tablet,
+  names, `pageScreen`) until the user picks one (dropdown or swipe); the pick survives rotation,
+  the switch "More NASA pictures" turned off and on in the draft (user, 2026-10-21, as a
+  rotation) and the system killing the app (Android's saved state: seen after `am kill`, tablet,
   2026-10-20), not a swipe-away from Recents (to check in P on the FP6; user, 2026-10-20).
   The shown source drives ⛶'s part, the boxes, title, date and explanation; another one closes
   crop mode. With two or more sources (U2, 2026-10-17) a source line above the title, "NASA
@@ -669,7 +681,7 @@ only a run that gave up (the switch off at its check) leaves the last on to run 
 the taps never end on with nothing set (`:core`'s `SwitchRuns`, `SwitchRunsTest`). An off and on
 that come after the run's set (during its redraw: taps about 0.35–1 s apart on the tablet) owe a
 run that sets the same picture once more and schedules the job (B6's fix round: the off had
-cancelled it). **No reschedule stops a running run** (user, 2026-10-20 evening; S4f3):
+cancelled it; accepted, user, 2026-10-21: the end state is right). **No reschedule stops a running run** (user, 2026-10-20 evening; S4f3):
 scheduling the job's id again stops a run, so a Set with turns during a run delayed its saves
 to the next run (an `ensure` with another timing too). While a run goes (`DailyJob`'s count of
 runs, process-wide: the page and the job share one process), `schedule` and `ensure` only note
@@ -682,7 +694,12 @@ night; B5: S4f3 let a reschedule noted during a failed run replace the retry, so
 the retry waited up to a period): the note waits for the end of a run that didn't fail (the
 retry, usually within a minute). A `schedule` or `ensure` done with no run going (a Set,
 `onResume`, "Wi-Fi only") drops a kept note, so an old note doesn't restart the period after a
-later Set (`:core`'s `JobRuns`, `JobRunsTest`). The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
+later Set (`:core`'s `JobRuns`, `JobRunsTest`). **Two more cases keep the retry** (user,
+2026-10-21, from the night's pass 8 and regression 4; B7, not built yet): a stop during the
+saves (after a good update) counts as a failed run, so a noted reschedule waits for the retry
+instead of replacing it; and a `schedule` or `ensure` while a failed run's retry is due (a Set
+just after the run) is noted as during a run, not done at once (with turns it restarted the
+period, so the failing source waited up to a period). The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
 `getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
 schedules it again when `daily` is on and the job is missing or has another timing
 (`DailyJob.ensure`; scheduling the same id again would stop a running job).
@@ -748,7 +765,7 @@ wake and fail offline).
 
 ## Next features
 
-**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, Wi-Fi only in F2, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6, and V8: V1, V2 and V4 again where S4–S6 changed them; user, 2026-10-20 night: a complete test on the final tree before the stable release), turns over hours by day (V7), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
+**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, Wi-Fi only in F2, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6, and V8: V1, V2 and V4 again where S4–S6 changed them; user, 2026-10-20 night: a complete test on the final tree before the stable release; B2, B4–B6, S6, V3, V5, V6 and V8 passed the night of 2026-10-20/21, B7–B9 from its report), turns over hours (V7, a night of its own), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).

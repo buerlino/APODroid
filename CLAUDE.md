@@ -702,10 +702,12 @@ doesn't replace the system's retry. After a failed run, until the next run start
 due: a `schedule` or `ensure` then (a Set just after the run; with turns it restarted the
 period, so the failing source waited up to a period) is noted as during a run and done at the
 retry's end; the process dying loses it, as a note. Only the first retry of a failing series
-is waited for (user, 2026-10-21; B12, not built yet: B7 kept a retry due after a failed retry
+is waited for (user, 2026-10-21; B12: B7 kept a retry due after a failed retry
 with nothing noted, so while a source kept failing every Set waited for the next retry, which
 Android delays twice as long after each failure, up to 5 h): after a failed retry no retry is
-due, and a later `schedule` or `ensure` is done at once. Off (`cancel`, `JobRuns.drop`) leaves no
+due, and a later `schedule` or `ensure` is done at once (it replaces the job's own backoff with a
+fresh schedule: the next period retries, and Set's own update is a try); a failed run after a
+good one starts a new series. Off (`cancel`, `JobRuns.drop`) leaves no
 retry due and no note, and a run started before it ends without effect (a generation `drop`
 bumps, taken by each run at its start), so the next on schedules at once (`:core`'s `JobRuns`,
 `JobRunsTest`). The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was

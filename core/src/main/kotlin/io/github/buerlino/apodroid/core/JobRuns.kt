@@ -4,12 +4,15 @@ package io.github.buerlino.apodroid.core
 enum class Reschedule { ENSURE, SCHEDULE }
 
 /**
- * The daily job's runs going and the reschedule they owe (S4f3, B5, B7). Scheduling the job's id
- * again stops a running run and replaces a failed run's backoff retry, so while a run goes, and
+ * The daily job's runs going and the reschedule they owe (S4f3, B5, B7, B12). Scheduling the job's
+ * id again stops a running run and replaces a failed run's backoff retry, so while a run goes, and
  * after a failed run until the next run starts (its retry is due), a reschedule is only noted
  * (afresh wins). The last run to end does it, unless it failed: then the note waits for the
  * retry, **one retry at most**: the retry's end does it, good or failed (a source can fail every
- * run for days). With no run going and no retry due a reschedule is done at once.
+ * run for days). Only the first retry of a failing series is waited for (B12): after a retry's
+ * end no retry is due (Android doubles the backoff after each failure, up to 5 h), so a later
+ * reschedule replaces it with a fresh schedule; a failed run after that starts a new series.
+ * With no run going and no retry due a reschedule is done at once.
  *
  * [drop] (the daily switch off, the job cancelled) leaves nothing owed and no retry due: the runs
  * started before it end without effect ([started]'s generation), so the next on schedules at once.
@@ -58,8 +61,8 @@ class JobRuns {
         retrying = false
         val wanted = noted
         noted = null
-        // A failed retry with nothing noted keeps its own backoff retry; a note done replaces it.
-        retryDue = failed && wanted == null
+        // B12: only the first retry is waited for; a reschedule from now on is done at once.
+        retryDue = false
         return wanted
     }
 

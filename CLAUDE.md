@@ -336,7 +336,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
     when a screen was set; "Setup saved. Nothing to set yet." when none was (an APOD video with
     "Skip it" alone, or nothing stored and the fetch failed: the problem box says why);
     "Couldn't set the wallpaper" when a set failed (also when another worked). With the daily
-    switch on the job sets the rest later.
+    switch on the job sets the rest later. A rotation or Back during Set's run or the daily
+    switch's keeps its end (B13, 2026-10-22: the brute test's V10 found the job not scheduled
+    afresh, no toast, no log line after a rotation): the runs live in the process, not the page;
+    the job, the log and the toast need no page, the redraw and Setup closing go to the page
+    that started the run or the one a rotation made of it, and Set stays disabled there.
   - A switch for the daily change ("Change wallpaper automatically", user 2026-10-17: with
     turns it isn't daily): at once both ways since S4f2 (above); the pref `daily`.
   - **More NASA pictures** (was "All NASA pictures" until S5: user, 2026-10-20 evening, after a
@@ -474,8 +478,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   update), each with its own buttons. The empty state shows the text above "Try again", no
   problem box, but the battery hint below it. So on a day whose APOD is stored, opening the page clears a pull's failure:
   nothing is wrong until the next picture is due. Under the switch, while it's on:
-  "Wallpaper changed 16 Oct, 06:12" (`wallpaperSetAt`, any successful set; 12/24 h as the
-  system), or "Video day, wallpaper kept" (`:core`'s `videoDayKept`: APOD ticked there, its turn,
+  "Wallpaper changed 16 Oct, 06:12" (`wallpaperSetAt`, any successful set; 12/24 h and the time zone
+  as the system, followed while the page is open, B13: V9 saw the old zone until the process
+  restarted), or "Video day, wallpaper kept" (`:core`'s `videoDayKept`: APOD ticked there, its turn,
   nothing standing in; with turns "Skip it" passes the turn, so nothing is kept; a record without a
   picture, as Set leaves it, counts when the screen was set before, `wallpaperSetAt`, else not: a
   fresh install's first video day shows no line, B1); before the
@@ -587,7 +592,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
 (User, 2026-10-01.) The star at the bottom right of the picture saves it to the gallery,
 `Pictures/APODroid/`, named `APOD_<date>_<Title_Words>.<jpg|png>` (`Post.fileName` in `:core`; the
 date makes it unique, only letters, digits, `-`, `_`, at most 100 chars; the extension follows
-the image type). It downloads the original (`originalUrl`, to a temp file of its own in `cacheDir`) and
+the image type). It downloads the original (`originalUrl`, to `cache/original.part`, one name since one save runs at a time; a save killed with the
+process left one for good until B13, so each save and the page's first start delete
+leftovers) and
 copies it; if that fails, the stored picture (the rendition), and a toast says it's a smaller
 copy (0.5.0). While it downloads, ☆ is dimmed ("Saving" for screen readers) and taps do
 nothing; one save at a time in the app, so a tap after a rotation says "Still saving" (WP7b,

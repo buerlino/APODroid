@@ -1,9 +1,12 @@
 package io.github.buerlino.apodroid
 
 import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -125,8 +128,10 @@ import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -136,6 +141,7 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private lateinit var store: Store
@@ -236,18 +242,6 @@ class MainActivity : ComponentActivity() {
     /** "Advanced settings" is open; closed by default. */
     private var advancedOpen by mutableStateOf(false)
 
-    /** "Set as wallpaper" is running. */
-    private var setting by mutableStateOf(false)
-
-    /** The daily switch's run is going ([switchOn]); Set waits for it. */
-    private var switching by mutableStateOf(false)
-
-    /**
-     * The daily switch went on while a load, a Set or a switch-on ran: [switchOn] runs after it
-     * ([runNext]), unless the switch-on run went on to set (B6: quick taps set once).
-     */
-    private val switchRuns = SwitchRuns()
-
     private var weekdayNoticeHidden by mutableStateOf(false)
 
     /** The weekday dialog shows. */
@@ -269,6 +263,68 @@ class MainActivity : ComponentActivity() {
          * the draft's picture while the first is alive.
          */
         var pages = 0
+
+        /**
+         * The pages alive by their [id] (main thread only). A rotation keeps a page's id (the
+         * saved state), so a run's end reaches the page that started it or the one a rotation
+         * made of it; another page (one stacked over another app's screen) has its own.
+         */
+        val live = mutableMapOf<String, MainActivity>()
+
+        /**
+         * Set's and the daily switch's runs ([setAsWallpaper], [switchOn]): process-wide, so a
+         * rotation or Back during one doesn't cancel its end (B13: the wallpaper was set, but the
+         * job wasn't scheduled afresh, no toast, no log line).
+         */
+        val runs = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+        /** "Set as wallpaper" is running, in any page (one run at a time in the app). */
+        var setting by mutableStateOf(false)
+
+        /** The daily switch's run is going ([switchOn]); Set waits for it. */
+        var switching by mutableStateOf(false)
+
+        /**
+         * The daily switch went on while a load, a Set or a switch-on ran: [switchOn] runs after it
+         * ([runNext]), unless the switch-on run went on to set (B6: quick taps set once).
+         */
+        val switchRuns = SwitchRuns()
+
+        /** A toast also when no page is left (Back during a run). */
+        fun toast(context: Context, text: String) = Toast.makeText(context.applicationContext, text, Toast.LENGTH_SHORT).show()
+
+        /**
+         * After a set that started the stored setup afresh (Set, the daily switch on): with turns the
+         * clock just restarted, so the job is scheduled afresh and its period starts now (ensure would
+         * keep the old windows and stretch the first turn); without turns [DailyJob.ensure] (a fresh
+         * job runs at once, so only after the set, or it would set first). While the job runs, both
+         * wait for its end (S4f3: [DailyJob] notes them, so the run and its saves aren't stopped).
+         */
+        fun scheduleJob(context: Context, store: Store) {
+            if (!(if (store.hasTurns) DailyJob.schedule(context) else DailyJob.ensure(context))) toast(context, "Couldn't schedule the daily change")
+        }
+
+        /** After a run: each page alive runs what waited for it ([runNext]). */
+        fun runAllNext() = live.values.toList().forEach { it.runNext() }
+    }
+
+    /** This page's id in [live], kept by a rotation. */
+    private lateinit var id: String
+
+    /**
+     * The system's time zone and 12/24 h for the status line and the problem box, as state: a
+     * changed zone alone recomposed nothing, so the times stayed in the old zone until the
+     * process restarted (B13). Read on resume and, while resumed, when either changes.
+     */
+    private var zone by mutableStateOf(ZoneId.systemDefault())
+    private var hours24 by mutableStateOf(false)
+    private val clockChanged = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) = readClock()
+    }
+
+    private fun readClock() {
+        zone = ZoneId.systemDefault()
+        hours24 = DateFormat.is24HourFormat(this)
     }
 
     /** While resumed: follows a set or a new post by the job ([follow]). */
@@ -278,6 +334,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = Store(this)
+        id = savedInstanceState?.getString("pageId") ?: UUID.randomUUID().toString()
+        live[id] = this
         weekdayDialog = savedInstanceState?.getBoolean("weekdayDialog") == true
         setupOpen = savedInstanceState?.getBoolean("setupOpen") == true
         advancedOpen = savedInstanceState?.getBoolean("advancedOpen") == true
@@ -296,6 +354,8 @@ class MainActivity : ComponentActivity() {
         // A start without a saved draft drops the draft's picture too, unless another page is
         // alive (one under another app's screen, B8): it may still use the picture.
         if (draft == null && pages == 0) store.draftFallbackFile.delete()
+        // A star save or the job's killed with the process left its temp file.
+        if (pages == 0) lifecycleScope.launch(Dispatchers.IO) { store.dropSaveLeftovers() }
         pages++
         useDraft(draft ?: stored)
         draftFallback = draft != null && savedInstanceState.getBoolean("draftFallback") && store.draftFallbackFile.exists()
@@ -315,10 +375,12 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         pages--
+        if (live[id] === this) live.remove(id)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        outState.putString("pageId", id)
         outState.putString("tab", tab?.name)
         outState.putBoolean("weekdayDialog", weekdayDialog)
         outState.putBoolean("setupOpen", setupOpen)
@@ -352,12 +414,16 @@ class MainActivity : ComponentActivity() {
         // Hibernation or a force stop deleted the job; scheduling runs it at once.
         if (store.daily && !DailyJob.ensure(this)) Log.w("APODroid", "Couldn't schedule the daily job again")
         checkPausing()
+        readClock()
+        // System broadcasts only: no export flag needed.
+        registerReceiver(clockChanged, IntentFilter(Intent.ACTION_TIMEZONE_CHANGED).apply { addAction(Intent.ACTION_TIME_CHANGED) })
         load()
         watcher = store.watch(::follow)
     }
 
     override fun onPause() {
         super.onPause()
+        unregisterReceiver(clockChanged)
         watcher?.let(store::stopWatching)
         watcher = null
     }
@@ -425,6 +491,11 @@ class MainActivity : ComponentActivity() {
     private fun load(force: Boolean = false) {
         if (loading || switching) {
             loadAgain = force || loadAgain == true
+            // A page a rotation made during the daily switch's run: what's stored meanwhile.
+            if (posts.isEmpty()) lifecycleScope.launch {
+                readStatus()
+                show()
+            }
             return
         }
         loading = true
@@ -514,7 +585,7 @@ class MainActivity : ComponentActivity() {
      */
     private fun problemText(problem: Problem): String {
         val since = checkedAt?.takeIf { it < Instant.now().minus(1, ChronoUnit.DAYS) }
-            ?.let { " since " + it.atZone(ZoneId.systemDefault()).format(dayFormat) }
+            ?.let { " since " + it.atZone(zone).format(dayFormat) }
         val name = if (problemSource == Source.APOD && apodAlone) "" else "${problemSource.label}: "
         return name + when (problem) {
             Problem.Network -> "Couldn't reach NASA's site${since.orEmpty()}. Check the connection."
@@ -540,8 +611,8 @@ class MainActivity : ComponentActivity() {
         fun line(name: String, state: ScreenState, setAt: Instant? = state.setAt): String? = when {
             state.kept -> if (name == "Wallpaper") "Video day, wallpaper kept" else "$name: video day, wallpaper kept"
             else -> setAt?.let {
-                val time = if (DateFormat.is24HourFormat(this)) "d MMM, HH:mm" else "d MMM, h:mm\u00A0a"
-                "$name changed " + it.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern(time, Locale.ENGLISH)) +
+                val time = if (hours24) "d MMM, HH:mm" else "d MMM, h:mm\u00A0a"
+                "$name changed " + it.atZone(zone).format(DateTimeFormatter.ofPattern(time, Locale.ENGLISH)) +
                     pictureSuffix(state.picture)
             }
         }
@@ -667,7 +738,10 @@ class MainActivity : ComponentActivity() {
     private fun switchOn() {
         switching = true
         val offered = sources
-        lifecycleScope.launch {
+        val store = store
+        val app = applicationContext
+        val page = id
+        runs.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     if (!store.daily) return@runCatching null
@@ -681,31 +755,25 @@ class MainActivity : ComponentActivity() {
             // run that runNext starts (B6 fix round 1: else they were dropped and no job scheduled).
             switchRuns.ended(checkedOn = updated?.wentToSet == true)
             // Switched off again meanwhile: off is off.
-            if (store.daily) scheduleJob()
+            if (store.daily) scheduleJob(app, store)
             result.exceptionOrNull()?.let { Log.w("APODroid", "Switch on failed: $it", it) }
             updated?.done?.let { Log.i("APODroid", "Switch on: $it") }
             updated?.failure?.let { Log.w("APODroid", "Switch on: $it", it) }
-            failed = updated?.failure != null || result.isFailure
-            readStatus()
-            if (isStale()) show()
+            live[page]?.redrawAfterRun(failed = updated?.failure != null || result.isFailure)
             switching = false
             when {
-                result.isFailure || updated?.setFailed == true -> toast("Couldn't set the wallpaper")
-                updated?.done != null -> toast("Wallpaper set")
+                result.isFailure || updated?.setFailed == true -> toast(app, "Couldn't set the wallpaper")
+                updated?.done != null -> toast(app, "Wallpaper set")
             }
-            runNext()
+            runAllNext()
         }
     }
 
-    /**
-     * After a set that started the stored setup afresh (Set, the daily switch on): with turns the
-     * clock just restarted, so the job is scheduled afresh and its period starts now (ensure would
-     * keep the old windows and stretch the first turn); without turns [DailyJob.ensure] (a fresh
-     * job runs at once, so only after the set, or it would set first). While the job runs, both
-     * wait for its end (S4f3: [DailyJob] notes them, so the run and its saves aren't stopped).
-     */
-    private fun scheduleJob() {
-        if (!(if (store.hasTurns) DailyJob.schedule(this) else DailyJob.ensure(this))) toast("Couldn't schedule the daily change")
+    /** A run's end on its page ([live]): what it stored and set. */
+    private suspend fun redrawAfterRun(failed: Boolean) {
+        this.failed = failed
+        readStatus()
+        if (isStale()) show()
     }
 
     private fun openAppInfo() {
@@ -762,33 +830,37 @@ class MainActivity : ComponentActivity() {
         val offered = sources
         // Only this page's own pick is renamed: another page's draft picture stays its own (B11).
         val pick = draftFallback
-        lifecycleScope.launch {
+        val store = store
+        val app = applicationContext
+        val page = id
+        runs.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     store.saveSetup(setup, pick)
                     store.update(force = false, page = true, show = offered, set = true)
                 }
             }
-            if (pick) draftFallback = store.draftFallbackFile.exists()
-            if (store.daily) scheduleJob() else DailyJob.cancel(this@MainActivity)
+            if (store.daily) scheduleJob(app, store) else DailyJob.cancel(app)
             setting = false
             val updated = result.getOrNull()
             result.exceptionOrNull()?.let { Log.w("APODroid", "Set failed: $it", it) }
             updated?.done?.let { Log.i("APODroid", "Set: $it") }
             updated?.failure?.let { Log.w("APODroid", "Set: $it", it) }
-            failed = updated?.failure != null || result.isFailure
-            readStatus()
-            if (isStale()) show()
-            // Saved: "Setup" closes on its summary. A failure leaves it open.
-            if (updated != null && !updated.setFailed) setupOpen = false
+            live[page]?.run {
+                if (pick) draftFallback = store.draftFallbackFile.exists()
+                // Saved: "Setup" closes on its summary. A failure leaves it open.
+                if (updated != null && !updated.setFailed) setupOpen = false
+                redrawAfterRun(failed = updated?.failure != null || result.isFailure)
+            }
             toast(
+                app,
                 when {
                     updated == null || updated.setFailed -> "Couldn't set the wallpaper"
                     updated.done != null -> "Wallpaper set"
                     else -> "Setup saved. Nothing to set yet."
                 },
             )
-            runNext()
+            runAllNext()
         }
     }
 
@@ -946,7 +1018,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT < 33) toast("Copied")
     }
 
-    private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
+    private fun toast(text: String) = toast(this, text)
 
     /**
      * One column; from 600 dp wide (tablets, landscape) two panes that scroll on their own: the

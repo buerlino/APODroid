@@ -81,8 +81,10 @@ class JobRunsTest {
      * B12, only the first retry of a failing series is waited for (replaces B7's
      * aFailedRetryWithoutANoteLeavesItsRetryDue, which kept a retry due after a failed retry, so
      * while a source kept failing every Set waited for Android's ever longer backoff): after a
-     * failed retry with nothing noted a reschedule is done at once. A failed run after that
-     * starts a new series: a note waits for its retry again.
+     * failed retry with nothing noted a reschedule is done at once. B12f1: the series ends only
+     * with a good run, so further failed runs (Android's later backoff retries) leave no retry
+     * due either; after a good run the next failed run starts a new series, whose retry a note
+     * waits for again (one retry at most).
      */
     @Test
     fun aFailedRetryWithoutANoteLeavesNoRetryDue() {
@@ -91,10 +93,38 @@ class JobRunsTest {
         assertNull(runs.finished(runs.started(), failed = true))
         assertFalse(runs.note(Reschedule.SCHEDULE))
         assertFalse(runs.note(Reschedule.ENSURE))
+        repeat(3) {
+            assertNull(runs.finished(runs.started(), failed = true))
+            assertFalse(runs.note(Reschedule.SCHEDULE))
+        }
+        assertNull(runs.finished(runs.started(), failed = false))
         assertNull(runs.finished(runs.started(), failed = true))
         assertTrue(runs.note(Reschedule.SCHEDULE))
         assertEquals(Reschedule.SCHEDULE, runs.finished(runs.started(), failed = true))
         assertFalse(runs.note(Reschedule.ENSURE))
+    }
+
+    /** B12f1: a note made during a failed run of a failing series is done at its end, not held for a retry. */
+    @Test
+    fun aNoteDuringAFailingSeriesIsDoneAtTheRunsEnd() {
+        val runs = JobRuns()
+        runs.finished(runs.started(), failed = true)
+        runs.finished(runs.started(), failed = true)
+        val run = runs.started()
+        assertTrue(runs.note(Reschedule.SCHEDULE))
+        assertEquals(Reschedule.SCHEDULE, runs.finished(run, failed = true))
+        assertFalse(runs.note(Reschedule.ENSURE))
+    }
+
+    /** B12f1: off ends a failing series: the next failed run's retry is waited for again. */
+    @Test
+    fun offEndsAFailingSeries() {
+        val runs = JobRuns()
+        runs.finished(runs.started(), failed = true)
+        runs.finished(runs.started(), failed = true)
+        runs.drop()
+        runs.finished(runs.started(), failed = true)
+        assertTrue(runs.note(Reschedule.ENSURE))
     }
 
     /** B7: off during a run, which then ends stopped (failed): no retry due, so the next on schedules at once. */

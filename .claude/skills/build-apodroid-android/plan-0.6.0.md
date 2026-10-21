@@ -1250,7 +1250,7 @@ Never released (0.6.0 only), so no migration and no changelog line.
 - **Done when:** the checks pass (no new warning), the tablet passes, `CLAUDE.md` has no "Wi-Fi
   only" left but the removal line.
 
-### [ ] B11. A Set from a second page keeps the stored "my picture" (Opus, medium)
+### [x] B11. A Set from a second page keeps the stored "my picture" (Opus, medium)
 
 Pass 11's QUESTION (2026-10-21 night; the user, 2026-10-22: fix it). B8's night default: with
 two pages alive (the photo picker or App info on top of the first, then a start with another
@@ -1273,7 +1273,7 @@ exists), so the stored "my picture" is replaced without the user choosing it.
 - **Done when:** the checks pass, the tablet passes (each step named with its result),
   `CLAUDE.md` says it.
 
-### [ ] B12. Only the first retry is waited for (Opus, medium)
+### [x] B12. Only the first retry is waited for (Opus, medium)
 
 From a review of B7's code (2026-10-22 morning; the user: fix it). `JobRuns.finished` keeps a
 retry due after a failed retry with nothing noted (`retryDue = failed && wanted == null`, B7's

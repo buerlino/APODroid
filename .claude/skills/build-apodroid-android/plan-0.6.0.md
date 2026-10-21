@@ -1396,14 +1396,27 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
 
 ### [ ] V7. Turns over hours (a night of its own, after B7–B9)
 
-- (User, 2026-10-21: after B7–B9 are merged, a night with nothing else queued; session 1 at
-  bedtime, session 2 in the morning before pascaline starts.) Two short rosie sessions by hand (`ANDROID_SERIAL=HA24BZ2Y claude --agent rosie`, this section: the FP6 may be attached too), at least 6 hours
-  apart, the tablet left alone between them. Setup: the debug build of master, "All NASA
-  pictures" on, Home APOD + NASA, Lock NASA + Earth, "Change every" 3 h, daily on; note
-  `turnStartedAt`, both records and the job's window. Read-out: `dumpsys jobscheduler`
-  (`Last successful run`), `logcat -d -s APODroid`, `dumpsys wallpaper`, the prefs: each turn
-  within its window (period and flex), both screens on the one clock, no screen set twice for
-  one turn. Real timing, so no `turn.sh`. Then set the tablet back.
+(User, 2026-10-21: after B7–B12 are merged, a night with nothing else queued; session 1 at
+bedtime, session 2 in the morning before pascaline starts.) Two short rosie sessions by hand
+(`ANDROID_SERIAL=HA24BZ2Y claude --agent rosie`, this section: the FP6 may be attached too), at
+least 6 hours apart, the tablet left alone between them. Real timing, so no `turn.sh` and no
+`run -f` (each pushes the job's window a period on). The folder for both: `.coord/runs/v7/`.
+- **Session 1 (setup, about 20 min; "Do V7"):** note the tablet's state as "For rosie" says
+  (settings, the app's prefs and files) into `.coord/runs/v7/backup/`. Install the debug build of
+  master. "More NASA pictures" on, Home APOD + NASA, Lock NASA + Earth, "Change every" 3 h, daily
+  on, Set. Write `.coord/runs/v7/start.md`: the time, `turnStartedAt`, both records (`run-as cat`
+  the prefs), `dumpsys wallpaper`'s ids, the job's period, flex and next window (`dumpsys
+  jobscheduler`), whether it's charging. **Don't set the tablet back**: the setup must run.
+  Leave it charging, the app in the background (Home), the screen free to turn off. End with
+  what session 2 should expect (about two turns in 6 h, the next window).
+- **Session 2 (read-out, about 20 min; "Do V7's second session"):** read `start.md`, then
+  `dumpsys jobscheduler` (`Last successful run`, the next window), `logcat -d -s APODroid` (it
+  may have rolled over: the prefs are the evidence), `dumpsys wallpaper`, the prefs. Check:
+  each turn came within its window (period and flex; Doze may push it to a maintenance window,
+  say by how much), both screens on the one clock (`turnStartedAt`, each `wallpaperStamp`), no
+  screen set twice for one turn, each screen on its next source in order. Results and verdict
+  (PASS, FIX, STOP) in `.coord/runs/v7/report.md` (Tests, Not tested); the morning copies them
+  into the skill's "Still untested". **Then** set the tablet back from `backup/`.
 
 ### [x] V8. V1, V2 and V4 again where S4–S6 changed them
 

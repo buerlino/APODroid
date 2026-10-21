@@ -43,6 +43,8 @@ None found.
 
 ### 2. Rotating (or leaving) the page during Set loses the job's fresh schedule and the toast
 
+**Fixed by B13** (61b0d20, tablet PASS): Set's and the switch-on's runs go in a process-wide scope, and an owed switch-on survives a rotation. Still open for B14: a pick whose copy (`saveFallback`) runs during a rotation.
+
 - **Where:** `app/src/main/kotlin/io/github/buerlino/apodroid/MainActivity.kt:773` (the steps
   after `withContext` in `setAsWallpaper`, from `:765`). The same pattern is at `:459`
   (`switchRuns`) and `:902` (`saveFallback`).
@@ -125,6 +127,8 @@ None found.
 ## Tidy
 
 ### 6. ★'s and the job's original downloads can be left in the cache for good
+
+**Fixed by B13** (61b0d20, tablet PASS): one name, `cache/original.part`, and `dropSaveLeftovers`. Nothing left for B14.
 
 - **Where:** `app/src/main/kotlin/io/github/buerlino/apodroid/Store.kt:774` (`save`)
 - **Failure:** each save makes a new `File.createTempFile("original…", ".part", cacheDir)` and

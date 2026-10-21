@@ -339,8 +339,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
     switch on the job sets the rest later. A rotation or Back during Set's run or the daily
     switch's keeps its end (B13, 2026-10-22: the brute test's V10 found the job not scheduled
     afresh, no toast, no log line after a rotation): the runs live in the process, not the page;
-    the job, the log and the toast need no page, the redraw and Setup closing go to the page
-    that started the run or the one a rotation made of it, and Set stays disabled there.
+    the job and the log need no page, the redraw and Setup closing go to the page that started
+    the run or the one a rotation made of it, and Set stays disabled in every page while either
+    runs. The toast needs no page either, but after Back Android suppresses it (the app is in the
+    background and has no notification permission; tablet, B13).
   - A switch for the daily change ("Change wallpaper automatically", user 2026-10-17: with
     turns it isn't daily): at once both ways since S4f2 (above); the pref `daily`.
   - **More NASA pictures** (was "All NASA pictures" until S5: user, 2026-10-20 evening, after a
@@ -479,8 +481,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   problem box, but the battery hint below it. So on a day whose APOD is stored, opening the page clears a pull's failure:
   nothing is wrong until the next picture is due. Under the switch, while it's on:
   "Wallpaper changed 16 Oct, 06:12" (`wallpaperSetAt`, any successful set; 12/24 h and the time zone
-  as the system, followed while the page is open, B13: V9 saw the old zone until the process
-  restarted), or "Video day, wallpaper kept" (`:core`'s `videoDayKept`: APOD ticked there, its turn,
+  as the system; the zone followed while the page is open, 12/24 h at the next resume, B13: V9
+  saw the old zone until the process restarted), or "Video day, wallpaper kept" (`:core`'s `videoDayKept`: APOD ticked there, its turn,
   nothing standing in; with turns "Skip it" passes the turn, so nothing is kept; a record without a
   picture, as Set leaves it, counts when the screen was set before, `wallpaperSetAt`, else not: a
   fresh install's first video day shows no line, B1); before the

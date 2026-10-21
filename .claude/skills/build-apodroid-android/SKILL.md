@@ -277,6 +277,26 @@ packages unattended): `night.md`.
   under "NASA Image of the Day" (for the user's eyes). No crash (`exit-info`: force stops and
   kills only). Not checked: a set failing on one screen and its retry (nothing on the tablet
   makes a set fail; `ScreensTest` covers the rule). Screenshots in the run's `tablet/`.
+  V5 (2026-10-21 night, the update from a real 0.5.0: a debug build of `v0.5.0` under the dev
+  debug build 752ae8e, passed): nine states, `where` Home, Lock, Both × `sources` APOD, NASA,
+  APOD+NASA, each from `pm clear` with only `daily`, `sources` and `where` seeded, 0.5.0's page
+  setting the wallpaper itself (its own record), then 0.6.0 by `install -r` (`tablet/v5.sh`).
+  Each logged one "Migrated from 0.5.0" and wrote what `CLAUDE.md` says: `allSources` false for
+  APOD alone, else true with `home`/`lock` = `sources` in the columns `where` names (the other
+  `""`); Both copied the record to `lock.*`, Home left `lock.*` unwritten, Lock moved it there and
+  removed home's keys; `wallpaperPicture` the noted source, `wallpaperStamp` = `turnStartedAt`
+  (APOD alone has none in 0.5.0, so none); APOD mode's owner APOD, the others 0.5.0's (NASA, its
+  first turn's). Nothing else changed. The first page open and a `run -f` after it set nothing
+  (`dumpsys wallpaper` ids the same, no set logged, the job's run successful, no pref changed by
+  the job). The page: APOD mode with the name alone and the summary "APOD on <home screen | lock
+  screen | both screens>"; switch on with the title dropdown, opening on NASA (the picture's
+  source) with the chip "On home screen", "On lock screen" or "On wallpaper" as `where` said,
+  the summary "APOD on …, NASA on … · turns every 24 h" for two, the status line per screen.
+  A tenth: APOD alone, Both, `MINE` with `fallback.jpg`, the record faked to 0.5.0's own
+  picture (APOD video date, no URL): `wallpaperPicture` and `lock.wallpaperPicture` "own",
+  nothing set, the notice "… so your own picture is the wallpaper.", "· My picture". Not
+  checked: Earth (0.5.0's handling is NASA's), a 0.5.0 state whose `wallpaperSource` is a
+  stand-in in APOD mode (rule unit-tested in `MigrationTest`), a release build (`run-as`).
   Regression 2 (2026-10-20 night, dev 0d6df20, after S4f1, passed) didn't check: the open page
   following a job that changes only the lock screen (job and page share one process), a set
   that fails on one screen and its retry (nothing makes a set fail), the "Skip it" toast (rosie

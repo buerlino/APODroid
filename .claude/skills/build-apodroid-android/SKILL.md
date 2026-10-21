@@ -318,6 +318,44 @@ packages unattended): `night.md`.
   nothing of it). Not checked on R8: "my picture", video days, the lock-only and split columns
   (V3 on debug), Wi-Fi only (V/F2 on debug), the ⓘ dialog; ★ with an original between 10 and
   20 MB (only 27 MB, over both limits). Evidence in the run's `tablet/`.
+  V8 (2026-10-21 night, debug build of dev a06ea0b, V1, V2 and V4 again after S4–S6, passed):
+  Fit by Set only: APOD mode "Where" Both with APOD's wide 1787×1340 (one set, `mWhich=3`, the
+  hint the whole 800×1340, black above and below on home and lock); a made-up JPEG stored
+  1600×900 with EXIF orientation 6 as "my picture" on a faked APOD video day: upright and tall
+  (900×1600) on both screens, thin black bars at the sides; "More NASA pictures" with home APOD
+  (the video day, my picture) and lock Earth (wide): two sets (`mWhich=1` and `2`), each Fit.
+  No ⛶ with Fit, no ⤴ anywhere. The credit with S6's title and swipe: today's real one and a
+  made-up 254 characters (the longest's length) by prefs, in APOD mode (under the date) and with
+  "More NASA pictures" (under the title on APOD's page), one line with an ellipsis while the
+  explanation is closed, all of it while open; none on NASA's page. Save every picture with
+  `run -f`: home APOD, lock NASA + Earth saved APOD's original (1100460 bytes), NASA's stored
+  copy (its 208 MB PNG over the default 20 MB: "Original over the limit…") and Earth's original
+  (799397); "No limit" and a 27 MB original faked into `nasa.imageUrl`, the proxy at 100 KB/s, a
+  `timeout` 8 s in: no `.part`, no gallery row, `nasa.saveTried` the URL; the next run saved the
+  stored copy (826248, "rendition") and cleared the note; 10 MB: "Larger than 10000000 bytes:
+  27060691", the stored copy; "No limit": the original (27060691). The ⓘ dialog: B3's text word
+  for word. The test files deleted from the gallery. The picker in the draft (APOD mode, a faked
+  video day, no `fallback.jpg`): "Use my picture" opened it at once; Back kept "Skip it"; opened
+  again, rotated to landscape and back while open, a pick: `fallback-draft.jpg` (the picked
+  file's bytes), `videoDays` still `KEEP`, the notice still Skip's, "Change picture" beside the
+  dropdown; "Change picture" opened the picker, Back kept the draft; Set: `fallback.jpg`, the
+  draft file gone, `MINE`, "own" on both; another pick then Back (the app closed) and a start:
+  the draft file deleted, `fallback.jpg` kept. Only NASA failing (the proxy stalling
+  `www.nasa.gov`, a pull, "More NASA pictures" on): "NASA Image of the Day: Couldn't reach NASA's
+  site. Check the connection." on APOD's, NASA's and Earth's pages after a swipe. The chip in
+  APOD mode with "Where" = Lock: a plain day has one source, so no chip (as built); a faked video
+  day with NASA standing in: the page opened on NASA's page with "On wallpaper", only the lock
+  screen set, "Wallpaper changed … · NASA". The open page followed a job run that changed only
+  the lock screen (the turn clock faked to end 100 s after the page opened, nothing set at the
+  open; `run -f`: NASA on lock, home's id unchanged): "Lock screen changed 21 Oct, 02:53 · NASA"
+  and the chip "On lock screen" on NASA's page, Earth's gone. The smoke list: both modes load,
+  draft changes and Set set (`dumpsys wallpaper`), the forced runs ended with `jobFinished`, no
+  crash (`exit-info`: force stops and kills only). Not checked: Fit in APOD mode with "Where"
+  Home or Lock alone, a rotation during "Change picture"'s picker, the screen readers' "not set
+  yet", a real tall post with Fit (only "my picture" is tall). Left after the restore: the
+  tablet's wallpaper is APOD with Fit on home and NASA with Fit on lock, not APOD with Fill on
+  both (the prefs and files are as before, so their records name APOD; the next Set puts it
+  right). Evidence in the run's `tablet/`.
   Regression 2 (2026-10-20 night, dev 0d6df20, after S4f1, passed) didn't check: the open page
   following a job that changes only the lock screen (job and page share one process), a set
   that fails on one screen and its retry (nothing makes a set fail), the "Skip it" toast (rosie

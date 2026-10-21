@@ -80,8 +80,7 @@ class DailyJob : JobService() {
             if (runs.note(Reschedule.ENSURE)) return true
             val pending = scheduler(context).getPendingJob(ID)
             val job = job(context)
-            return pending != null && pending.intervalMillis == job.intervalMillis && pending.flexMillis == job.flexMillis &&
-                pending.networkType == job.networkType ||
+            return pending != null && pending.intervalMillis == job.intervalMillis && pending.flexMillis == job.flexMillis ||
                 scheduler(context).schedule(job) == JobScheduler.RESULT_SUCCESS
         }
 
@@ -101,7 +100,7 @@ class DailyJob : JobService() {
                         setPeriodic(minOf(TimeUnit.HOURS.toMillis(store.interval.hours), sixHours), TimeUnit.MINUTES.toMillis(15))
                     }
                 }
-                .setRequiredNetworkType(if (store.wifiOnly) JobInfo.NETWORK_TYPE_UNMETERED else JobInfo.NETWORK_TYPE_ANY)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .setPersisted(true)
                 .build()
         }

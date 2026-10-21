@@ -190,7 +190,6 @@ class MainActivity : ComponentActivity() {
 
     /** ★ is downloading the original; taps wait for it. */
     private var saving by mutableStateOf(false)
-    private var wifiOnly by mutableStateOf(false)
     private var saveEvery by mutableStateOf(false)
 
     /** "Largest original" ([Store.saveLimit], MB, 0: no limit): at once, as "Save every picture". */
@@ -275,7 +274,6 @@ class MainActivity : ComponentActivity() {
         advancedOpen = savedInstanceState?.getBoolean("advancedOpen") == true
         tab = savedInstanceState?.getString("tab")?.let { name -> Source.entries.firstOrNull { it.name == name } }
         daily = store.daily
-        wifiOnly = store.wifiOnly
         saveEvery = store.saveEvery
         saveLimit = store.saveLimit
         pauseHintHidden = store.pauseHintHidden
@@ -819,12 +817,6 @@ class MainActivity : ComponentActivity() {
         load()
     }
 
-    private fun switchWifiOnly(on: Boolean) {
-        wifiOnly = on
-        store.wifiOnly = on
-        rescheduleJob()
-    }
-
     /** Save every picture: the job's, so nothing is saved now; its next run saves. */
     private fun switchSaveEvery(on: Boolean) {
         saveEvery = on
@@ -849,14 +841,6 @@ class MainActivity : ComponentActivity() {
             weekdayNoticeHidden = true
             store.weekdayNoticeHidden = true
         }
-    }
-
-    /**
-     * "Wi-Fi only" changes the job's network at once, by the stored setup (only Set schedules by
-     * the draft); during a run, at its end ([DailyJob.ensure]).
-     */
-    private fun rescheduleJob() {
-        if (store.daily && !DailyJob.ensure(this)) toast("Couldn't schedule the daily change")
     }
 
     private fun savePicture(post: Post) {
@@ -1380,8 +1364,8 @@ class MainActivity : ComponentActivity() {
      * what is stored): in APOD mode "Where", with the switch "More NASA pictures" on the list
      * ("Pictures from") and, while the daily switch is on and a column takes turns, "Change
      * every"; "Size"; while the daily switch is on "If APOD is a video". The set button, always.
-     * Then "Advanced settings", closed by default: while the daily switch is on "Wi-Fi only" and
-     * "Save every picture" (these two act at once), and the mode switch. A setting the draft
+     * Then "Advanced settings", closed by default: while the daily switch is on
+     * "Save every picture" (it acts at once), and the mode switch. A setting the draft
      * changed and Set hasn't saved shows in `tertiary` ([highlight]).
      */
     @Composable
@@ -1444,13 +1428,6 @@ class MainActivity : ComponentActivity() {
             Header("Advanced settings", advancedOpen, modeChanged) { advancedOpen = !advancedOpen }
             if (advancedOpen) {
                 if (daily) {
-                    Row(
-                        Modifier.fillMaxWidth().toggleable(wifiOnly, role = Role.Switch, onValueChange = ::switchWifiOnly),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Wi-Fi only", Modifier.weight(1f))
-                        Switch(checked = wifiOnly, onCheckedChange = null)
-                    }
                     SaveEverySwitch()
                 }
                 Row(

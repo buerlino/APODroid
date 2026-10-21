@@ -77,14 +77,24 @@ class JobRunsTest {
         assertFalse(runs.note(Reschedule.ENSURE))
     }
 
-    /** A failed retry with nothing noted keeps its own backoff retry: a note then waits for that. */
+    /**
+     * B12, only the first retry of a failing series is waited for (replaces B7's
+     * aFailedRetryWithoutANoteLeavesItsRetryDue, which kept a retry due after a failed retry, so
+     * while a source kept failing every Set waited for Android's ever longer backoff): after a
+     * failed retry with nothing noted a reschedule is done at once. A failed run after that
+     * starts a new series: a note waits for its retry again.
+     */
     @Test
-    fun aFailedRetryWithoutANoteLeavesItsRetryDue() {
+    fun aFailedRetryWithoutANoteLeavesNoRetryDue() {
         val runs = JobRuns()
         runs.finished(runs.started(), failed = true)
         assertNull(runs.finished(runs.started(), failed = true))
+        assertFalse(runs.note(Reschedule.SCHEDULE))
+        assertFalse(runs.note(Reschedule.ENSURE))
+        assertNull(runs.finished(runs.started(), failed = true))
         assertTrue(runs.note(Reschedule.SCHEDULE))
         assertEquals(Reschedule.SCHEDULE, runs.finished(runs.started(), failed = true))
+        assertFalse(runs.note(Reschedule.ENSURE))
     }
 
     /** B7: off during a run, which then ends stopped (failed): no retry due, so the next on schedules at once. */

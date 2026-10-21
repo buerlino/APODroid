@@ -23,8 +23,9 @@ import kotlin.concurrent.thread
  * [jobFinished], unless it failed: then the note waits for the backoff retry, one retry at most
  * (B5, B7; [JobRuns]). A run [onStopJob] stopped counts as failed (B7: the system retries it, also
  * during the saves after a good update). After a failed run, until the retry starts, a reschedule
- * is noted too (a Set just after it would replace the retry). [cancel] (the daily switch off)
- * still stops it at once, owing nothing.
+ * is noted too (a Set just after it would replace the retry). Only the first retry of a failing
+ * series is waited for (B12): after a retry's end a reschedule is done at once. [cancel] (the
+ * daily switch off) still stops it at once, owing nothing.
  */
 class DailyJob : JobService() {
     @Volatile
@@ -72,7 +73,7 @@ class DailyJob : JobService() {
         /**
          * Schedules the job afresh (its period starts now). While a run goes, only noted: the
          * run does it when it ends ([rescheduleNoted]); `true` then. Also while a failed run's
-         * retry is due (B7): the retry's end does it. Else at once.
+         * retry is due (B7): the retry's end does it; not after a failed retry (B12). Else at once.
          */
         fun schedule(context: Context): Boolean {
             if (runs.note(Reschedule.SCHEDULE)) return true

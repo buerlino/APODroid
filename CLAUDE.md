@@ -280,7 +280,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     chosen), the mode switch and its label, ⛶ (or ✓) while the shown post's draft part differs
     from the stored one, the "Setup" header while anything in it differs (the shown mode's
     "Where" or list, "Change every", "Size", "If APOD is a video"; not ⛶), "Advanced settings"
-    while the mode does. Not the daily switch, "Wi-Fi only", "Save every picture" (they act
+    while the mode does. Not the daily switch or "Save every picture" (they act
     at once). Screen readers: a highlighted control's state adds "not set yet" ("Selected, not
     set yet", "Checked, not set yet", "On, not set yet"; the headers "collapsed, not set
     yet").
@@ -315,10 +315,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
     turning "More NASA pictures" on offers and fetches all three at once (`Store.update`'s
     `show`); what reports what is set follows the stored setup (`Store.setup`): the status
     lines, the chip, the video notice, the problem box, the battery hint, the opening page. **The
-    job follows the stored setup only:** `onResume`'s `DailyJob.ensure` and the reschedule
-    after "Wi-Fi only" read `store.daily`, the stored mode and columns; only Set and the daily
-    switch schedule or cancel (Set by the stored switch, after saving the draft). **At once, as before:** "Wi-Fi only", "Save every picture" (they
-    change no picture) and ★.
+    job follows the stored setup only:** `onResume`'s `DailyJob.ensure` reads `store.daily`, the stored mode and columns; only Set and the daily
+    switch schedule or cancel (Set by the stored switch, after saving the draft). **At once, as before:** "Save every picture" (it
+    changes no picture) and ★.
   - **Set as wallpaper**: one button at the end of the Wallpaper section, both modes, the daily
     switch on or off, no Home / Lock / Both menu, enabled unless a Set or the daily switch's run goes. It saves the whole
     draft in one commit (`Store.saveSetup`: the settings, the list with its `lastScreens`, the
@@ -602,7 +601,7 @@ to the gallery holds it, and if a newer APOD was stored meanwhile it saves nothi
 redraws the page.
 
 **Save every picture** (0.6.0, F5, 2026-10-20; the pref `saveEvery`, default off): a switch
-under "Wi-Fi only" while the daily switch is on, with a small ⓘ ("About saving") that opens a
+in "Advanced settings" while the daily switch is on, with a small ⓘ ("About saving") that opens a
 dialog: "Each new picture is saved to Pictures/APODroid: full size up to the largest original,
 else a screen-sized copy. A few hundred MB a month or more." (OK; user, 2026-10-20 night, after
 F6: C's "Each new picture is saved full size…" isn't true under the limit; B3). After each job run (not the page's), also
@@ -639,7 +638,7 @@ before. NASA's enclosure `length` isn't parsed, so it isn't used. ★ ignores th
 
 (Decided 2026-10-01.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
 AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
-periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **"Wi-Fi only" is being removed** (user, 2026-10-21: whoever wants the picture wants it at once, not after days of waiting for Wi-Fi; B10, not built yet: the job always takes any network, the switch, the pref and `ensure`'s network check go; never released, so no migration). Until then: **Wi-Fi only** (F2, 0.6.0; the pref `wifiOnly`, default off, a switch under the daily switch while it's on): the job then requires `NETWORK_TYPE_UNMETERED` instead of `NETWORK_TYPE_ANY`, so on mobile data turns wait too, also between stored pictures, and a metered Wi-Fi (a phone's hotspot) counts as mobile data (accepted by the user for 0.6.0, 2026-10-20: a job that only skips downloads on a metered network is more code); toggling it writes the pref at once (not part of Set's draft) and reschedules the job while the stored daily switch is on (`DailyJob.ensure` counts another network type as another timing; it reads the deprecated `JobInfo.networkType`, a compiler warning left as is, 2026-10-20: it works, and `requiredNetwork` would mean comparing `NetworkRequest`s); the page and the buttons still use any network. Each run, and each page
+periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Always any network** (user, 2026-10-21: whoever wants the picture wants it at once, not after days of waiting for Wi-Fi). "Wi-Fi only" (F2) was built and removed before release (B10): no switch, pref or `ensure` network check; a `wifiOnly` key in a dev build's prefs is ignored. Each run, and each page
 open or pull (2026-10-16, one path): `Store.update(force)`, `refresh(source)` for each source
 in use unless its stored post is today's (always with `force`), then, while `daily` is on,
 `setDue()`: what each screen is due (`:core`'s `dueWallpapers`, Turns), set where it isn't
@@ -693,7 +692,7 @@ job may come up to a period off). **A failed run keeps its backoff retry** (user
 night; B5: S4f3 let a reschedule noted during a failed run replace the retry, so with turns
 the retry waited up to a period): the note waits for the end of a run that didn't fail (the
 retry, usually within a minute). A `schedule` or `ensure` done with no run going (a Set,
-`onResume`, "Wi-Fi only") drops a kept note, so an old note doesn't restart the period after a
+`onResume`) drops a kept note, so an old note doesn't restart the period after a
 later Set (`:core`'s `JobRuns`, `JobRunsTest`). **B7 changes this** (user, 2026-10-21, from
 the night's pass 8 and regression 4; not built yet): a stop during the saves (after a good
 update) counts as a failed run, so a noted reschedule waits for the retry instead of replacing
@@ -769,7 +768,7 @@ wake and fail offline).
 
 ## Next features
 
-**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, Wi-Fi only in F2, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6, and V8: V1, V2 and V4 again where S4–S6 changed them; user, 2026-10-20 night: a complete test on the final tree before the stable release; B2, B4–B6, S6, V3, V5, V6 and V8 passed the night of 2026-10-20/21, B7–B9 from its report), turns over hours (V7, a night of its own), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
+**0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6, and V8: V1, V2 and V4 again where S4–S6 changed them; user, 2026-10-20 night: a complete test on the final tree before the stable release; B2, B4–B6, S6, V3, V5, V6 and V8 passed the night of 2026-10-20/21, B7–B9 from its report), turns over hours (V7, a night of its own), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
 video days worked only with APOD alone (it shows at once that it was a video day).
@@ -871,8 +870,8 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
   (2026-10-19). Part of the setup since S4: Set puts the pictures on again with the new size
   (2026-10-20 evening; was "sets at once", 2026-10-20, and "the next change uses it",
   2026-10-04).
-- **Wi-Fi only:** a switch for the job, default off (built, F2); removed before release (user,
-  2026-10-21: the picture is wanted at once; B10).
+- **Wi-Fi only:** built (F2) and removed before release (B10; user, 2026-10-21: whoever wants
+  the picture wants it at once, not after days of waiting for Wi-Fi).
 - **Share:** title and page link via the share sheet (built in F3, the glyph ⤴ beside ★);
   removed in S6 with the mockup of Set applies the setup (user, 2026-10-20 evening).
 - **Image credit** under the date, parsed in `:core` (on all 100 posts checked). APOD only
@@ -900,8 +899,7 @@ The app). Sharper wallpaper is in 0.5.0; the rest moved to 0.6.0 (user, 2026-10-
 
 1. Huge pictures (2 Oct 2026, 37.7 MB PNG) cost mobile data, and on a slow connection the
    download may not finish within the roughly 10 minutes Android gives a job (each retry starts
-   over). Left open (user, 2026-10-04): it happened once. The rendition (0.5.0) and the Wi-Fi only
-   switch (F2) cover most of it. Seen on 2026-10-07 (`cmd jobscheduler timeout`): a stopped job's
+   over). Left open (user, 2026-10-04): it happened once. The rendition (0.5.0) covers part of it. Seen on 2026-10-07 (`cmd jobscheduler timeout`): a stopped job's
    partial download is thrown away and the retry starts from zero. Since WP7g a stop interrupts
    the run (`onStopJob`): `download()` ends within one chunk, `Store.update` sets nothing more
    (tablet, U7: the run ended within a second, no `.part` left; the retry came 6½ min later, as

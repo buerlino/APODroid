@@ -111,9 +111,11 @@ Decided (user, 2026-10-04): **always shown** while the switch is on.
 - Covers a broken endpoint, an app that Android has stopped (5), and no network for days.
 - Test: fake `checkedAt` two days back with `run-as sed` (skill, Fake an old day).
 
-### [x] 4. Wi-Fi only (0.6.0)
+### [x] 4. Wi-Fi only (0.6.0): removed
 
-Built 2026-10-20 (`plan-0.6.0.md` F2; `CLAUDE.md`, Background update).
+Built 2026-10-20 (F2), removed the same release (B10, user, 2026-10-21: whoever wants the picture
+wants it at once, not after days of waiting for Wi-Fi). The job always uses `NETWORK_TYPE_ANY`.
+What was decided:
 
 With 0.5.0's sources there are up to three pictures a day to download (about 1 MB each as
 renditions).

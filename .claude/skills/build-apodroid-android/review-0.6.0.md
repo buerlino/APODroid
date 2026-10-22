@@ -21,6 +21,8 @@ None found.
 
 ### 1. A column with turns can set a source that isn't ticked in it
 
+**Fixed by B14** (1008276, tablet PASS; `ScreensTest.aColumnWithNothingToShowSetsNoUntickedSource`).
+
 - **Where:** `core/src/main/kotlin/io/github/buerlino/apodroid/core/Screens.kt:208` (and `:209`;
   `dueOn`)
 - **Failure:** `nextSource(…) ?: r.owner` keeps the old owner when no ticked source has a
@@ -43,7 +45,7 @@ None found.
 
 ### 2. Rotating (or leaving) the page during Set loses the job's fresh schedule and the toast
 
-**Fixed by B13** (61b0d20, tablet PASS): Set's and the switch-on's runs go in a process-wide scope, and an owed switch-on survives a rotation. Still open for B14: a pick whose copy (`saveFallback`) runs during a rotation.
+**Fixed by B13** (61b0d20, tablet PASS): Set's and the switch-on's runs go in a process-wide scope, and an owed switch-on survives a rotation. Still open for B14: a pick whose copy (`saveFallback`) runs during a rotation. **Fixed by B14** (1008276, tablet PASS): the copy runs in `runs` too.
 
 - **Where:** `app/src/main/kotlin/io/github/buerlino/apodroid/MainActivity.kt:773` (the steps
   after `withContext` in `setAsWallpaper`, from `:765`). The same pattern is at `:459`
@@ -71,6 +73,8 @@ None found.
 
 ### 3. After a Set in APOD mode, the list no longer starts from "Where"
 
+**Fixed by B14** (1008276, tablet PASS).
+
 - **Where:** `app/src/main/kotlin/io/github/buerlino/apodroid/MainActivity.kt:834`
   (`switchAllSources`)
 - **Failure:** the draft's `list` is set only in `onCreate` (`useDraft`, `:339`), `place` and
@@ -88,7 +92,7 @@ None found.
 
 ### 4. (low) The page can miss a later change while it follows an earlier one
 
-For B14 with the lock line during a Set (user, 2026-10-22: `follow()` skips while `setting`).
+For B14 with the lock line during a Set (user, 2026-10-22: `follow()` skips while `setting`). **Fixed by B14** (1008276, tablet PASS; `followAgain`. The mixed state during a Set wasn't caught either way on the tablet).
 
 - **Where:** `app/src/main/kotlin/io/github/buerlino/apodroid/MainActivity.kt:371` (`follow`)
 - **Failure:** `follow` returns while a follow is active. The active one read the prefs
@@ -106,6 +110,8 @@ For B14 with the lock line during a Set (user, 2026-10-22: `follow()` skips whil
 ## Wrong text
 
 ### 5. Set during a load or a job run says "Setup saved. Nothing to set yet." though it was set
+
+**Fixed by B14** (1008276, tablet PASS; `Store.setsSinceSetup`, the job case too).
 
 - **Where:** `app/src/main/kotlin/io/github/buerlino/apodroid/MainActivity.kt:757` (Set waits
   only for `setting`/`switching`; the button at `:1441` likewise). `:426`: `load` doesn't wait
@@ -145,7 +151,7 @@ For B14 with the lock line during a Set (user, 2026-10-22: `follow()` skips whil
 
 ### 7. "Setup" is highlighted (and opens by itself) for settings it doesn't show
 
-**Decided** (user, 2026-10-22): a hidden draft value goes back to the stored one; B14 builds it.
+**Decided** (user, 2026-10-22): a hidden draft value goes back to the stored one. **Fixed by B14** (1008276, tablet PASS).
 
 - **Where:** `app/src/main/kotlin/io/github/buerlino/apodroid/MainActivity.kt:1476`
   (`setupChanged`, through `:1478`)

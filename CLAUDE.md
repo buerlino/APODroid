@@ -695,7 +695,9 @@ the page calls them off the main thread.
 Failures return `needsReschedule` (30 s exponential backoff). Set with the daily switch on
 schedules the job after its set: with turns afresh (`DailyJob.schedule`: the period starts with
 the restarted clock; `ensure` would keep the old windows and the first turn would end up to a
-period late), otherwise `ensure` (a fresh one without turns runs at once and would set first); off
+period late), otherwise `ensure` (a fresh one without turns runs at once and would set first; with the
+timing unchanged it schedules nothing and the job keeps its window: B14 on the tablet, +6 h
+after a run; whether Android keeps the window when the timing changes, V9's case, is P's); off
 cancels it. Turning the daily switch on (S4f2) does the same after setting the stored setup
 afresh (`Store.startAfresh`); off cancels at once. Quick taps (on, off, on while the first
 switch-on still runs) set once, not twice (user, 2026-10-20 night; B6, 2026-10-21: S4f2 set

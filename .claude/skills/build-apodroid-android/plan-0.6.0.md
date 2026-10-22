@@ -1589,7 +1589,20 @@ At most six fixes; the rest listed for the morning. None found: say so and commi
 - **Done when:** each `BUG:` line fixed, a QUESTION, or named as Android's; the checks pass; the
   tablet passes.
 
-### [ ] B14. The code review's bugs (Opus, high)
+### [x] B14. The code review's bugs (Opus, high)
+
+**Status (2026-10-22, by day, pipeline run 44):** merged on `dev` 1008276, master fast-forwarded;
+129 `:core` tests (1 new), audit APPROVED, tablet PASS (CR 1, 2's rest, 3, 5, 7a, 7b; files in
+`.coord/runs/044-b14/tablet-0/`). Not seen on the tablet: CR 1's toast text (the wallpaper and
+the log show no set), the mixed status lines during a Set (rosie's polling began after it),
+whether the load set before Set in CR 5 (the toast was right). The job's timing: a Set into
+APOD mode 3 min after a run, the job already 6 h / flex 6 h, kept its earliest run (+5 h 57 min)
+and didn't run at once; the timing was unchanged, so `ensure` most likely scheduled nothing:
+it doesn't show what Android does with a changed timing (turns to none, V9's case): P.
+Night defaults (accepted with the merge): Set's toast counts any run's sets since its commit
+(`setsSinceSetup`), not a queue; the draft list follows the store only when it was the
+store's derived one and unedited; a hidden newly picked "my picture" drops from the draft, its
+file kept (B8); an owed follow is dropped when a load, Set or switch-on starts.
 
 The findings of `review-0.6.0.md` (CR) marked **a bug**, worst first, as B13: fix with a test
 that fails on the old code (or a Device bullet), at most six; a finding marked **a decision**,
@@ -1622,9 +1635,13 @@ Before R (user, 2026-10-19, the last pass: a bug P finds would otherwise mean re
 changelog and screenshots). First the version: `versionCode` 10, `versionName` 0.6.0 in
 `app/build.gradle.kts`, so the phone gets the real build (and its User-Agent). Then as 0.5.0's
 WP8: the release-signed build over the user's Obtainium install (the skill, Testing an update
-on the user's phone), the update keeping the settings, both modes, a Set into APOD mode with
-the daily switch on and its job's earliest run in `dumpsys jobscheduler` (at once, or a period
-later as V9 saw on the tablet; B14 checks it there first), the list at font scale 1.5
+on the user's phone), the update keeping the settings, both modes, a Set from turns into APOD mode
+with the daily switch on and its job's earliest run in `dumpsys jobscheduler` (at once, or a
+period later as V9 saw on the tablet; B14's check had the timing unchanged, so it didn't
+decide it), what the tablet nights didn't test (V10, regression 6: "my picture" from the
+picker as a huge, tiny, panorama, tall, WebP, GIF and EXIF-8 picture with Fill and Fit; the
+video notice's and the battery hint's "Don't show again" with its dialog and "App info"; the
+long presses' clipboard; Recents swipe-away), the list at font scale 1.5
 and 2.0, a lock screen with its own picture, landscape; home and lock set separately on Android
 16 (M0 checked the tablet only); the shown source after a swipe-away from Recents (expected:
 back to the opening tab; after the system kills the app it stays, `CLAUDE.md`, Tabs); the

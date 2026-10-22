@@ -289,7 +289,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
     until Set:** "Where", the list (ticks and dropdowns), "Change every",
     "Size", "If APOD is a video", a newly picked "my picture", ⛶'s part and the switch "More
     NASA pictures" change only the page (`MainActivity`'s draft state; no pref is written, no
-    set, no scheduling). A rotation and the system killing the app keep the draft
+    set, no scheduling). **A hidden setting goes back to the stored one** (user, 2026-10-22,
+    B14, from the code review's finding 7: Set saved a hidden "Change every", and "Setup" stayed
+    highlighted with nothing in it highlighted): "Change every" while it's hidden (no column with
+    two or more, or the daily switch off), "If APOD is a video" and a newly picked "my picture"
+    while the daily switch is off; so Set saves, and "Setup" highlights, only what the page
+    shows. A rotation and the system killing the app keep the draft
     (`onSaveInstanceState`); closing the app drops it (a start without a saved draft deletes
     `files/fallback-draft.jpg`). Another start while the page is on top (the launcher, a
     shortcut, `am start -n`) reuses it, so the draft stays: one page (`launchMode="singleTop"`;
@@ -333,7 +338,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
     the restarted clock, else `ensure`). The shown picture decides nothing: to put Earth on a screen,
     tick Earth (0.5.0's "set the shown picture" dropped). A source whose fetch fails: the setup
     is saved anyway and each screen gets what has a picture (Turns). Toasts: "Wallpaper set"
-    when a screen was set; "Setup saved. Nothing to set yet." when none was (an APOD video with
+    when a screen was set, also by a page load or the job that set the saved setup before Set's
+    own update got there (B14, CR 5: Set said "Nothing to set yet"; `Store.setsSinceSetup`, each
+    screen's last set since `saveSetup`); "Setup saved. Nothing to set yet." when none was (an APOD video with
     "Skip it" alone, or nothing stored and the fetch failed: the problem box says why);
     "Couldn't set the wallpaper" when a set failed (also when another worked). With the daily
     switch on the job sets the rest later. A rotation or Back during Set's run or the daily
@@ -351,7 +358,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     Set saves it and reschedules the job (its period follows the mode). Each mode keeps its
     settings: "Where" is APOD mode's, the list the other's (`Store.list`, kept in APOD mode
     too). The first time on, the list starts from the draft's "Where" (the list is saved only
-    once it was on: `Store.hasList`). Switching it off and Set leaves a screen "Where" doesn't
+    once it was on: `Store.hasList`), also after a Set in APOD mode changed "Where" (B14, CR 3:
+    the draft's list kept the old "Where"'s). Switching it off and Set leaves a screen "Where" doesn't
     name alone, with its record, so the chip still knows it.
   - **The list** (switch on; S2, 2026-10-20, from the user's sketch; replaced M3's grid of a
     tick box per screen): "Pictures from", a row per source: a tick box with its short name,
@@ -403,7 +411,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     set once per its date; choosing it in the draft on a video day fetches it for its page, and
     Set puts it on; none stored yet → kept. No still-frame option (often a generic NASA image).
     "My picture" is picked with the system photo picker (`PickVisualMedia`, no permission) and
-    copied to `files/fallback-draft.jpg`; Set renames it to `files/fallback.jpg`. Choosing "Use
+    copied to `files/fallback-draft.jpg` (a rotation during the copy keeps the pick and the
+    choice, B14: the copy runs in the process, not the page); Set renames it to `files/fallback.jpg`. Choosing "Use
     my picture" with no picture in either file opens the picker at once and the choice is made
     only once a picture is there (backing out keeps the one before); while it's chosen, "Change
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
@@ -443,7 +452,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
   APOD reaches an open page up to an hour late; not the job: a page open just before a new
   post would hold the wallpaper back until the job's next run) and, while the stored daily switch is on, sets a new one at once; it
   also redraws when the job stored a new one in the background, and while open it follows the
-  job's sets, stored posts and problems (a prefs listener while resumed, WP5d; either screen's record since M4). **Pull to refresh** (user,
+  job's sets, stored posts and problems (a prefs listener while resumed, WP5d; either screen's record since M4;
+  not during a load, a Set or the daily switch's run, which redraw at their end, B14: during a
+  Set the home screen's new line showed beside the lock screen's old one; a change while it
+  redraws is read once more, CR 4). **Pull to refresh** (user,
   2026-10-16; material3's `PullToRefreshBox`) always fetches, also when it comes during a
   running update (the run after it keeps the force); a new picture is set at once while
   the stored daily switch is on, nothing is set while it's off. A changed title or explanation for the same

@@ -736,7 +736,10 @@ schedules it again when `daily` is on and the job is missing or has another timi
 round to itself) with a stored picture, and takes the value. The clock restarts (written
 first) when the turn is `interval` old (less 30 min: the job may run up to its flex early),
 never for an early change (the owner unticked, or with nothing to show: no picture yet, an
-APOD video with "Keep"), which moves the owner but not the stamp, so it ends with the turn. A
+APOD video with "Keep"), which moves the owner but not the stamp, so it ends with the turn.
+When no ticked source has a picture the screen keeps its picture, and an owner no longer ticked
+there gives way to the column's first (B14, CR 1: it stayed and its picture was set, after a Set
+to NASA and Earth while both failed, on a screen where APOD wasn't ticked any more). A
 newer post of the owner is set at once and keeps its turn. **The stand-in** fills APOD's turn
 on an APOD video day on every screen where APOD is ticked, with turns too (NASA's, Earth's or
 the user's own picture; with "Keep" a screen with APOD alone keeps its picture, one with turns

@@ -127,6 +127,27 @@ class ScreensTest {
     }
 
     @Test
+    fun aColumnWithNothingToShowSetsNoUntickedSource() {
+        // CR finding 1: APOD on Both, Set to NASA and Earth while neither has a picture.
+        // The forgotten records keep the owner APOD; APOD's picture must not go on.
+        val before = cols(listOf(APOD))
+        val after = cols(listOf(NASA, EARTH))
+        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
+        val onlyApod = stored(files = setOf(APOD))
+        val set = t0 + h1
+        val forgotten = apply(records, restartAndForget(before, after, t0, records, set).plan)
+        val plan = due(after, forgotten, onlyApod, clock = set, now = set)
+        assertEquals(emptyList(), plan.sets)
+        assertTrue(plan.screens.values.all { it.record.owner in listOf(NASA, EARTH) })
+        // A new APOD post later the same turn doesn't go on either.
+        val newApod = stored(posts + (APOD to post(APOD, d2)), files = setOf(APOD))
+        assertEquals(emptyList(), due(after, apply(forgotten, plan), newApod, clock = set, now = set + h1).sets)
+        // Columns that differ, the turn over: the same.
+        val apart = mapOf(HOME to Record(APOD, pic(APOD), t0))
+        assertEquals(emptyList(), due(cols(listOf(NASA, EARTH), emptyList()), apart, onlyApod, now = t0 + h3).sets)
+    }
+
+    @Test
     fun anEmptyColumnIsLeftAlone() {
         val records = mapOf(LOCK to Record(NASA, pic(NASA), t0))
         val plan = due(cols(listOf(APOD), emptyList()), records)

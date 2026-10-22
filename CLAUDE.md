@@ -890,7 +890,7 @@ Android's live wallpaper picker (the app opens it; one confirmation). Rejected: 
 the job (it jumps, every set redraws and recolours the system's theme colours, smooth would mean
 dozens of sets a day). Open for 0.7.0: the route (straight, or slowing over what matters), the
 night (still at the end, or back to the start), Android 10–13's lock screen, Auto and Fill as
-live too (one drawing code for the wallpaper, A5's preview and the tuning page).
+live too (one drawing code for the wallpaper and the preview).
 
 **0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6, and V8: V1, V2 and V4 again where S4–S6 changed them; user, 2026-10-20 night: a complete test on the final tree before the stable release; B2, B4–B6, S6, V3, V5, V6 and V8 passed the night of 2026-10-20/21, B7–B9 from its report), turns over hours (V7, a night of its own), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different

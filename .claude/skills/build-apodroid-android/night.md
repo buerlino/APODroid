@@ -125,6 +125,8 @@ of its own after them (the plan, V7).
 
 By day (user, 2026-10-22, from that night's report; the plan, Remaining 3e): **B12, B11** with `scripts/pipeline.sh`,
 one at a time. The night after: V7 alone, by hand (not a queue row).
+Changed (user, 2026-10-22 evening; the plan, Remaining 4c): that night is **J0** by hand instead (the Android check for
+the picture time, rosie, two sessions as V7's, the tablet on battery); V7 waits for J1–J3.
 
 The same evening (user, 2026-10-21, 22:45: "the app brute test now, then V7"; the plan, Remaining 4a): **V9, V10**, the
 brute test (rosie as each row's worker, as V3–V8), then **CR** (the code review, winston, no device), **B13** and

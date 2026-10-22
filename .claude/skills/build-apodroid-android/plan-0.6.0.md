@@ -429,6 +429,13 @@ reading; their build check passed, 108 tests with `private/`):
    during a Set; the job's +6 h after a Set into APOD mode checked in B14's tablet check and in
    P before any doc changes. **By day:** B14 with `scripts/pipeline.sh B14`. **Tonight:** V7
    alone (it tests the final tree, B14 included: finding 1 touches turns).
+4c. **The picture time** (user, 2026-10-22 evening, after the FP6's job waited until 10:22
+   for a 06:05 APOD; `CLAUDE.md`, Next features, 0.6.0: the picture time): three settings
+   (New picture at, default 06:00; Turns start at, default 06:00; Opening the app, default the
+   wallpaper waits), built in 0.6.0 before P. **Tonight: J0** by hand, two rosie sessions as
+   V7's, the tablet on battery (instead of V7). Then J1 → J2 → J3 by day or night, the user
+   approving J3's texts on the tablet, then **V7** on the new job (its setup takes the picture
+   time too), then P, R, T. The probe for J0 is built by day first (J0, The probe).
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then R and T.
 Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
@@ -1424,6 +1431,11 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
 
 ### [ ] V7. Turns over hours (a night of its own, after B7–B9)
 
+**Moved after J1–J3** (user, 2026-10-22 evening): it tests the new job. Its setup then also
+takes the picture time: Home APOD alone (New picture at 06:00, the Europe case), Lock NASA +
+Earth with turns every 3 h from 06:00; session 2 checks the 06:00 (or 06:05) set and each
+turn on its fixed time. On battery (below).
+
 (User, 2026-10-21: after B7–B12 are merged, a night with nothing else queued; session 1 at
 bedtime, session 2 in the morning before pascaline starts.) Two short rosie sessions by hand
 (`ANDROID_SERIAL=HA24BZ2Y claude --agent rosie`, this section: the FP6 may be attached too), at
@@ -1434,14 +1446,18 @@ least 6 hours apart, the tablet left alone between them. Real timing, so no `tur
   master. "More NASA pictures" on, Home APOD + NASA, Lock NASA + Earth, "Change every" 3 h, daily
   on, Set. Write `.coord/runs/v7/start.md`: the time, `turnStartedAt`, both records (`run-as cat`
   the prefs), `dumpsys wallpaper`'s ids, the job's period, flex and next window (`dumpsys
-  jobscheduler`), whether it's charging. **Don't set the tablet back**: the setup must run.
-  Leave it charging, the app in the background (Home), the screen free to turn off. End with
+  jobscheduler`), the battery level. **Don't set the tablet back**: the setup must run.
+  **On battery** (user, 2026-10-22: a phone is mostly not on power; the plan had it charging):
+  the user unplugs it after the session (Wi-Fi on, the screen locked, the app in the background,
+  Home). End with
   what session 2 should expect (about two turns in 6 h, the next window).
 - **Session 2 (read-out, about 20 min; "Do V7's second session"):** read `start.md`, then
   `dumpsys jobscheduler` (`Last successful run`, the next window), `logcat -d -s APODroid` (it
-  may have rolled over: the prefs are the evidence), `dumpsys wallpaper`, the prefs. Check:
-  each turn came within its window (period and flex; Doze may push it to a maintenance window,
-  say by how much), both screens on the one clock (`turnStartedAt`, each `wallpaperStamp`), no
+  may have rolled over: the prefs are the evidence), `dumpsys wallpaper`, the prefs, the
+  battery level, `dumpsys deviceidle` (the Doze state now) and the job's `Constraint history`.
+  Check: each turn came within its window (period and flex; on battery Doze may push it to a
+  maintenance window: say by how much, and whether the app was `EXEMPTED` or in another
+  standby bucket), both screens on the one clock (`turnStartedAt`, each `wallpaperStamp`), no
   screen set twice for one turn, each screen on its next source in order. Results and verdict
   (PASS, FIX, STOP) in `.coord/runs/v7/report.md` (Tests, Not tested); the morning copies them
   into the skill's "Still untested". **Then** set the tablet back from `backup/`.
@@ -1628,6 +1644,113 @@ decisions:
   (earliest run, period, flex, `Last successful run`) right after the Set, and whether it ran
   at once. Only a report: whether Android keeps a periodic job's timing when the same id is
   scheduled again. No doc change from it before P repeats it on the FP6.
+
+### [ ] J0. Android check: which timed run lands with the screen off, on battery (Opus, medium)
+
+(User, 2026-10-22 evening; `CLAUDE.md`, Next features, 0.6.0: the picture time.) The new job
+must run at a local time (06:00, or right after APOD's 00:05 US Eastern) on a sleeping phone.
+Known: a one-off job's delay alarm didn't wake the sleeping tablet (0.5.0, WP5c); the FP6's
+periodic job runs at its window's end, which wakes it. Measure it, don't guess.
+- **The probe** (built by day before the night, not part of the app): a throwaway app in
+  `.coord/probe-j0/` (gitignored; its own `settings.gradle.kts`, built with the repo's wrapper
+  `./gradlew -p .coord/probe-j0`; plain Android, no Compose, no library), installed twice with
+  `-Pprobe=unr` and `-Pprobe=opt` as `io.github.buerlino.apodroid.probe.unr` and `.probe.opt`.
+  `adb shell am broadcast -n <pkg>/.Arm --es at "HH:MM,HH:MM,…"` arms, for each local time T:
+  (a) a one-off job, `setMinimumLatency` to T, any network; (b) the same with
+  `setOverrideDeadline` T + 10 min; (c) `AlarmManager.setAndAllowWhileIdle(RTC_WAKEUP, T)`;
+  (d) `AlarmManager.setWindow(RTC_WAKEUP, T, 10 min)`; (c) and (d) start a one-off job with no
+  delay and any network from their receiver. Plus (e) a periodic job, 6 h, flex 6 h, as today's
+  (the control). Each job run (and each alarm) appends a line to `files/log.txt`: what, T, the
+  time it ran, `isDeviceIdleMode`, the battery level and plugged state, and whether an HTTPS
+  `HEAD https://science.nasa.gov/` worked (Doze cuts the network for apps not allow-listed).
+  No permission beyond `INTERNET`, `ACCESS_NETWORK_STATE`, `RECEIVE_BOOT_COMPLETED`.
+- **Session 1 (bedtime, about 20 min; "Do J0"):** the tablet's state noted as "For rosie" says
+  (into `.coord/runs/j0/backup/`). Install both probes; `.unr` allow-listed
+  (`cmd deviceidle whitelist +…probe.unr`: what the pause hint asks for, Unrestricted), `.opt`
+  left Optimized and put in the `rare` standby bucket (`am set-standby-bucket … rare`: a user
+  who seldom opens the app, before the restricted bucket). Arm both for three times: about 2 h
+  after the session, 04:00, and 06:00. `.coord/runs/j0/start.md`: the time, the battery level,
+  `dumpsys deviceidle` (state), `dumpsys jobscheduler` and `dumpsys alarm` for both. Then the
+  user unplugs the tablet (Wi-Fi on, screen locked, left alone). APODroid itself: daily off for
+  the night, so it doesn't add its own job (set back in session 2).
+- **Session 2 (morning, about 20 min; "Do J0's second session"):** both `log.txt`
+  (`run-as`), `dumpsys deviceidle`, `dumpsys jobscheduler` (the probes' `Constraint history`),
+  `dumpsys alarm` (`Past-due`, the batch history), `dumpsys battery`. A table per probe:
+  mechanism × T → the time it ran (late by how much), idle or not, the network. Uninstall both
+  probes, set the tablet back. `.coord/runs/j0/report.md`; the verdict is a recommendation:
+  which mechanism J2 uses (the simplest that lands within about 15 min for `.unr`, and what
+  `.opt` then gets), or STOP if none does without a new permission (then the user decides,
+  e.g. `SCHEDULE_EXACT_ALARM`).
+- **Done when:** both sessions ran, the table and the recommendation written, the tablet set
+  back, the probes uninstalled.
+
+### [ ] J1. `:core`: the picture time and turns on fixed times (Opus, high)
+
+Pure Kotlin, tested with JUnit (`PictureTimeTest`), no Android. After J0 only if J0 changes
+what `:core` must compute (it shouldn't: J0 picks the mechanism, J1 the times).
+- The settings as values: `pictureAt` (an hour 0–23, or null: as soon as it's out; default 6),
+  `turnsFrom` (an hour, or null: when Set was tapped; default 6), `openWaits` (default true).
+- Expected posting times per source: APOD 00:05 US Eastern daily, Earth 00:00 US Eastern on
+  weekdays, NASA unknown (weekdays, 14:00–22:00 UTC, `CLAUDE.md`, Other sources).
+- **May a newer post go on now?** With `pictureAt`: from the latest local `pictureAt` that
+  passed, the newest post goes on; if the screen already shows it, the next post goes on as
+  soon as it's out. Null: as soon as it's out. A Set, a pull, and an open with `openWaits` off
+  bypass it (they set at once).
+- **The next run** (`nextRun(now, zone, setup, stored, records)`): the earliest of the next
+  `pictureAt` (plus a per-device offset of 0–10 min, from a random value stored once), the
+  next expected post of a source in use while one is awaited (APOD's 00:05 US Eastern plus 1–20
+  min), the next turn's start, and, while an awaited post is late, a retry an hour on (NASA,
+  with no expected time: every 3 h in its window). Never more than 6 h ahead (the safety net).
+- **Turns from `turnsFrom`:** the turn boundaries are `turnsFrom` + k × interval in local time,
+  through daylight saving changes (a 23 h or 25 h day: the boundaries stay on the clock's hours);
+  "When I tap Set" keeps 0.6.0's `turnStartedAt`. With fixed times Set doesn't restart the
+  clock: it forgets the records and puts the current turn's source on (the night default to
+  check with the user, with the alternative).
+- Tests: Berlin, Los Angeles, Sydney, UTC; the DST days of 2026 (US 1 Nov, EU 25 Oct, Sydney
+  4 Oct); a late APOD; NASA and Earth on weekends; every interval with `turnsFrom` 06:00 and
+  23:00; `pictureAt` null; the per-device offset in range.
+- **Files:** `core/…/core/PictureTime.kt` (new) and its test; `Screens.kt`/`Turn.kt` where the
+  turn clock lives; `CLAUDE.md` (Background update, Turns).
+- **Done when:** the tests pass, the rules in `CLAUDE.md`.
+
+### [ ] J2. `Store` and `DailyJob`: the job runs at the picture time (Opus, high)
+
+After J0 and J1. The mechanism J0 recommends; the job (or its alarm) is armed for J1's
+`nextRun` after each run, Set, the daily switch on, a settings change, `onResume`'s `ensure`,
+and at boot if J0's mechanism needs it (`RECEIVE_BOOT_COMPLETED` is granted already).
+- `setDue()` applies J1's "may a newer post go on now"; `update(page = true)` with `openWaits`
+  fetches and shows but sets only what is due by the time; Set and a pull set at once.
+- The retry rules stay (`JobRuns`, B5–B12: a failed run's backoff retry, notes during a run,
+  `drop()` on off) for whatever job runs; their tests still pass, new ones where the timed run
+  changes them. A failed or stopped run still retries with backoff, not at the next time.
+- The prefs `pictureAt`, `turnsFrom`, `openWaits` (defaults as J1), and the per-device offset.
+  An update from 0.5.0 gets the defaults (06:00, waits): no migration beyond that.
+- Traffic: `CLAUDE.md`'s Traffic section rewritten (bursts per zone spread by the offset).
+- **Files:** `Store.kt`, `DailyJob.kt` (and a receiver if J0 says so), `AndroidManifest.xml`,
+  `JobRuns.kt` if needed, `CLAUDE.md`, the skill's "Where things are".
+- **Tablet:** with the clock faked near the times (`cmd alarm set-time` or the zone), the run at
+  `pictureAt`, the Europe case (the newest already on at 06:00, today's a few minutes later),
+  a late post's retry, `openWaits` on and off on a page open, a Set and a pull at once; reboot:
+  armed again.
+- **Done when:** the checks pass, the tablet passes.
+
+### [ ] J3. Settings: New picture at, Turns start at, Opening the app (Opus, medium)
+
+After J2. Placeholders until the user approves them on the tablet:
+- Advanced settings, while the daily switch is on: **"New picture at"** [As soon as it's out,
+  00:00 … 23:00; ✓ before the chosen one, 06:00 by default] (a dropdown as "Largest
+  original"; screen readers "New picture at: 06:00"), and **"Opening the app"** [The wallpaper
+  waits | Sets the new picture at once]. At once, not part of the draft (they change when, not
+  what), each re-arms the job.
+- Setup, under "Change every" while it shows: **"Turns start at"** [00:00 … 23:00, When I tap
+  Set], 06:00 by default; part of the draft (the highlight, Set), as "Change every".
+- The status line: unchanged; the summary under "Setup" adds " · from 06:00" while turns run on
+  fixed times (placeholder).
+- 12/24 h as the system for the hours (B13's `hours24`).
+- **Files:** `MainActivity.kt`, `CLAUDE.md` (Settings), the skill.
+- **Tablet:** each setting, the highlight, font scale 2.0, landscape, TalkBack labels via
+  `uiautomator`. Screenshots for the user.
+- **Done when:** built, the tablet passes, the texts listed for the user.
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 

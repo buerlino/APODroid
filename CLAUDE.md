@@ -33,8 +33,12 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 
 ## How the user works (2026-10-01)
 
-- Simplest approach that works. No extra screens, options, layers or abstractions until they are
+- Simplest approach that works. No extra screens, layers or abstractions until they are
   needed. Don't clutter the UI or the code.
+- **Settings: let users customise as much as possible** (user, 2026-10-22, from now on; it
+  replaces "no extra options until they are needed"): a choice users might reasonably want
+  becomes a setting, with a sensible default, in "Advanced settings" unless it belongs in
+  Setup. Ask the user before adding each one; still no extra screens.
 - When unsure, or when a simpler or better idea comes up, ask the user before deciding. Don't ask
   about what's settled below.
 - Step by step: do one step, show it working, then wait for the next instruction.
@@ -661,7 +665,7 @@ before. NASA's enclosure `length` isn't parsed, so it isn't used. ★ ignores th
 
 ### Background update
 
-(Decided 2026-10-01.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
+(Decided 2026-10-01; the timing changes with the picture time, 2026-10-22, Next features.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
 AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
 periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Always any network** (B10); a `wifiOnly` key in a dev build's prefs is ignored. Each run, and each page
 open or pull (2026-10-16, one path): `Store.update(force)`, `refresh(source)` for each source
@@ -807,6 +811,33 @@ wake and fail offline).
 
 ## Next features
 
+**0.6.0: the picture time** (user, 2026-10-22, after the FP6 showed the job's 6 h rhythm;
+packages J0–J3 in `plan-0.6.0.md`, before V7 and P). **Seen on the FP6** (0.5.0, battery
+Unrestricted, standby bucket `EXEMPTED`, not held by Doze): the job ran every 6 h on the dot
+from the install time (04:22, 10:22, 16:22), at each window's end. APOD came out at 06:05 local,
+so the 04:22 run found yesterday's and the wallpaper changed only at 10:22, or at once when the
+app was opened. **APOD's posting time** (`private/last100.json`, 24 Jun to 1 Oct 2026): 90 of
+100 at 00:00 or 00:05 US Eastern (00:05 since 21 Jul), 10 hours late (07:14 to 16:46 Eastern;
+eight of them 22–29 Jul, probably the site move). One moment worldwide, so "as soon as it's
+out" is 21:05 in Los Angeles, 06:05 in Berlin, 15:05 in Sydney. Decided:
+- **New picture at** [As soon as it's out | 00:00 … 23:00], default **06:00** (Advanced
+  settings, a dropdown as "Largest original"). At that local time the newest post goes on; if
+  it's already on (today's isn't out yet: Europe, 05:05–06:05 local), the next one goes on as
+  soon as it's out; a late post is retried until it is. So a new picture every morning in
+  every zone. A few random minutes after the time, so a zone's phones don't all ask at once
+  (it replaces the job's spread from each device's own enable time, Traffic).
+- **Turns start at** [00:00 … 23:00 | When I tap Set], default **06:00**, under "Change every":
+  turns on fixed times (every 6 h: 06, 12, 18, 00; every 24 h a new source each morning).
+  "When I tap Set" is 0.6.0's clock (Turns).
+- **Opening the app** [The wallpaper waits | Sets the new picture at once], default **waits**
+  (the user: as the turns, on fixed times): the page fetches and shows the new post, the
+  wallpaper changes at its time. "Set as wallpaper" and a pull set at once, as now.
+- **Android first** (J0): 0.5.0's tablet work saw a one-off job's delay alarm not wake a
+  sleeping device; the FP6's periodic job runs on time only at its window's end, which wakes it.
+  A night on the tablet on battery measures which timed run lands (JobScheduler with and without
+  a deadline, `AlarmManager`'s inexact wake-up alarms; no exact-alarm permission without asking).
+- Built in 0.6.0 (user: before P, the release waits for it); V7 runs on the new job.
+
 **0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6, and V8: V1, V2 and V4 again where S4–S6 changed them; user, 2026-10-20 night: a complete test on the final tree before the stable release; B2, B4–B6, S6, V3, V5, V6 and V8 passed the night of 2026-10-20/21, B7–B9 from its report), turns over hours (V7, a night of its own), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
 pictures on home and lock, an unticked source couldn't be looked at, and "my picture" for
@@ -885,7 +916,8 @@ the Day and Earth Observatory Image of the Day besides APOD ([Other sources](#ot
   change"; six fixes after the first check). The app stays simple: turns only. The code is in the
   gitignored `private/wip-0.5.0-with-custom-hours-2026-10-17.patch` (all of 0.5.0's work as of
   that day, uncommitted). If turns at night bother users later, the smaller idea is turns that
-  start at fixed clock times (00:00, 06:00, …), no grid; not planned. Learned on the tablet
+  start at fixed clock times (00:00, 06:00, …), no grid; planned since 2026-10-22 (the picture
+  time, 0.6.0: "Turns start at"). Learned on the tablet
   (Lenovo, Android 15): a one-off job without a network constraint ran 45 min late with the
   screen on (JobScheduler batched it until another job ran), and its delay alarm doesn't wake a
   sleeping device.

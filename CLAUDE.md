@@ -871,6 +871,7 @@ leaves a 3:2 picture a strip of 30% of the screen's height. Decided:
   phone does.
 - Not wanted (2026-10-22): a "Colour" background, a dim setting, screen-aware placement (clock
   and dock), per-screen Size (the 2026-10-19 decision stands: one setting for both screens).
+- Updaters from 0.5.0 (Fill, no setting) get Auto too (user, 2026-10-22).
 - In 0.6.0 (user: all in one release; P waits for it).
 
 **0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6, and V8: V1, V2 and V4 again where S4–S6 changed them; user, 2026-10-20 night: a complete test on the final tree before the stable release; B2, B4–B6, S6, V3, V5, V6 and V8 passed the night of 2026-10-20/21, B7–B9 from its report), turns over hours (V7, a night of its own), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).

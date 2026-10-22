@@ -1662,7 +1662,11 @@ periodic job runs at its window's end, which wakes it. Measure it, don't guess.
   `.coord/probe-j0/` (gitignored; its own `settings.gradle.kts`, built with the repo's wrapper
   `./gradlew -p .coord/probe-j0`; plain Android, no Compose, no library), installed twice with
   `-Pprobe=unr` and `-Pprobe=opt` as `io.github.buerlino.apodroid.probe.unr` and `.probe.opt`.
-  `adb shell am broadcast -n <pkg>/.Arm --es at "HH:MM,HH:MM,…"` arms, for each local time T:
+  **Built** (2026-10-22 evening, `Probe.kt`; the APKs `.coord/probe-j0/probe-unr.apk` and
+  `probe-opt.apk`, untested on a device: the tablet was pascaline's). `adb shell am start -n
+  <pkg>/io.github.buerlino.apodroid.probe.Arm --es at "HH:MM,HH:MM,…"` (an activity with no
+  window, so the app leaves its stopped state; arming again cancels the probe's jobs first)
+  arms, for each local time T:
   (a) a one-off job, `setMinimumLatency` to T, any network; (b) the same with
   `setOverrideDeadline` T + 10 min; (c) `AlarmManager.setAndAllowWhileIdle(RTC_WAKEUP, T)`;
   (d) `AlarmManager.setWindow(RTC_WAKEUP, T, 10 min)`; (c) and (d) start a one-off job with no
@@ -1672,7 +1676,11 @@ periodic job runs at its window's end, which wakes it. Measure it, don't guess.
   `HEAD https://science.nasa.gov/` worked (Doze cuts the network for apps not allow-listed).
   No permission beyond `INTERNET`, `ACCESS_NETWORK_STATE`, `RECEIVE_BOOT_COMPLETED`.
 - **Session 1 (bedtime, about 20 min; "Do J0"):** the tablet's state noted as "For rosie" says
-  (into `.coord/runs/j0/backup/`). Install both probes; `.unr` allow-listed
+  (into `.coord/runs/j0/backup/`). Install both probes. **First a trial** (screen on, plugged
+  in, 5 min): arm `.unr` for 3 min ahead; `run-as io.github.buerlino.apodroid.probe.unr cat
+  files/log.txt` must show `ARMED`, then by about T + 1 min `ALARM c`, `ALARM d` and a `JOB`
+  line for each of a–d with `http=200` (e's runs at once). A probe bug: STOP, the user fixes it
+  by day (no night run on a broken probe). Then the night: `.unr` allow-listed
   (`cmd deviceidle whitelist +…probe.unr`: what the pause hint asks for, Unrestricted), `.opt`
   left Optimized and put in the `rare` standby bucket (`am set-standby-bucket … rare`: a user
   who seldom opens the app, before the restricted bucket). Arm both for three times: about 2 h

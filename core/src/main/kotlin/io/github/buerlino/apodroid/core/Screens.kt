@@ -204,9 +204,12 @@ private fun dueOn(column: List<Source>, record: Record, current: Instant?, store
     var r = record
     if (column.size < 2) return show(r.copy(owner = column.single(), stamp = current), stored.picture(column.single()))
     val hasPicture = { source: Source -> stored.picture(source) != null }
+    // No ticked source with a picture: the owner stays, unless it isn't ticked here (CR 1: it
+    // would set an unticked source's picture); then the column's first, which has none to set.
+    val next = { nextSource(column, r.owner, hasPicture) ?: r.owner.takeIf { it in column } ?: column.first() }
     r = when {
-        r.stamp != current -> r.copy(owner = nextSource(column, r.owner, hasPicture) ?: r.owner, stamp = current)
-        r.owner !in column || !hasPicture(r.owner) -> r.copy(owner = nextSource(column, r.owner, hasPicture) ?: r.owner)
+        r.stamp != current -> r.copy(owner = next(), stamp = current)
+        r.owner !in column || !hasPicture(r.owner) -> r.copy(owner = next())
         else -> r
     }
     return show(r, stored.picture(r.owner))

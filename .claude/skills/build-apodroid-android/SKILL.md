@@ -50,7 +50,7 @@ packages unattended): `night.md`.
   `hasList`), `columns` (the mode's), `hasTurns`, `setup` (the stored `Setup`: mode,
   "Where", list, interval, fit, video days, `parts`, ⛶'s `Part` per source) and
   `saveSetup(setup, pick)` (S4, Set: one commit with the settings, `putColumns`, the parts and
-  `restartAndForget`'s plan; `draftFallbackFile` renamed to `fallbackFile` first, only with `pick`, the page's own `draftFallback` (B11); not `daily`),
+  `restartAndForget`'s plan; `draftFallbackFile` renamed to `fallbackFile` first, only with `pick`, the page's own `draftFallback` (B11); not `daily`), `setsSinceSetup()` (after Set's update: whether any run set a screen since `saveSetup`, and whether one's last set failed; Set's toast, B14),
   `switchDaily(on)` (S4f2: writes `daily` at once) and `startAfresh()` (the switch on:
   `restartAndForget` with the stored columns),
   `lastScreens(source)` (S2: an unticked row's screens, `<source>.lastScreens`, written with the list), `record(screen)` (home unprefixed, lock `lock.`;
@@ -68,8 +68,8 @@ packages unattended): `night.md`.
   in the saved state, `setupSummary` of the stored setup; the highlight: `setupChanged`, `rowChanged`, `videoDaysChanged`, `highlight`, `Segments`
   (the segmented rows), `DropdownButton`; with the switch "More NASA pictures" `PictureList`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
-  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, then the job scheduled (`scheduleJob`) or cancelled by the stored `daily`);
-  `zone` and `hours24` (the status line's and the problem box's times) from `readClock`, on resume and by `clockChanged` while resumed, B13; `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post.
+  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, `setsSinceSetup()`, then the job scheduled (`scheduleJob`) or cancelled by the stored `daily`);
+  `zone` and `hours24` (the status line's and the problem box's times) from `readClock`, on resume and by `clockChanged` while resumed, B13; `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post, not while a load, a Set or the switch-on runs, once more when called during one (`followAgain`, B14); `saveFallback` copies a pick in `runs` (B14); `dropVideoDays()` and two `LaunchedEffect`s in `Settings()` put a hidden draft value back (B14).
   `app/.../DailyJob.kt`: the job (id 1; after `update`, `saveInUse` unless stopped); `ensure` reschedules it only when its timing changes; while a run goes or a failed run's retry is due `schedule` and `ensure` are only noted and `rescheduleNoted` does them at the end of a run that didn't fail or of the retry (one retry at most, B5, B7; only the first retry of a failing series is waited for, B12; a series ends only with a good run, B12f1); a run `onStopJob` stopped counts as failed (`stoppedBySystem`); `cancel` stops it at once, drops the note and the retry due (S4f3, B7); the bookkeeping is `core/.../JobRuns.kt` (`JobRuns`, `Reschedule`; `JobRunsTest`): `started()` returns the generation `finished(generation, failed)` takes, `drop()` bumps it.
 
 ## Working on the phone

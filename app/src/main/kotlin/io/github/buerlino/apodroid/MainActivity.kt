@@ -430,16 +430,28 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Redraws after the job set the wallpaper or stored a post, or a save ended, while the page
-     * is open. A [load] running redraws after it anyway; one store fires once per key, so once
-     * is enough.
+     * is open. A [load], a Set or the daily switch's run going redraws after it anyway, so this
+     * waits for them (B14: during a Set the page drew the home screen's new line beside the lock
+     * screen's old one). Called while one runs, it runs once more after it ([followAgain]): the
+     * running one read the prefs before it suspended (CR 4).
      */
     private fun follow() {
-        if (loading || switching || following?.isActive == true) return
+        if (loading || switching || setting) return
+        if (following?.isActive == true) {
+            followAgain = true
+            return
+        }
         following = lifecycleScope.launch {
-            readStatus()
-            if (isStale()) show() else readSaved()
+            do {
+                followAgain = false
+                readStatus()
+                if (isStale()) show() else readSaved()
+            } while (followAgain && !loading && !switching && !setting)
         }
     }
+
+    /** [follow] was called while one ran: it reads the prefs once more. */
+    private var followAgain = false
 
     /**
      * Whether Android may pause the job of an app that isn't opened (keep-running.md in the
@@ -830,6 +842,8 @@ class MainActivity : ComponentActivity() {
         val offered = sources
         // Only this page's own pick is renamed: another page's draft picture stays its own (B11).
         val pick = draftFallback
+        // The list as the store derives it from "Where" (never saved): it follows the new "Where" (CR 3).
+        val derivedList = !store.hasList && list == store.list
         val store = store
         val app = applicationContext
         val page = id
@@ -837,26 +851,29 @@ class MainActivity : ComponentActivity() {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     store.saveSetup(setup, pick)
-                    store.update(force = false, page = true, show = offered, set = true)
+                    store.update(force = false, page = true, show = offered, set = true) to store.setsSinceSetup()
                 }
             }
             if (store.daily) scheduleJob(app, store) else DailyJob.cancel(app)
             setting = false
-            val updated = result.getOrNull()
+            val updated = result.getOrNull()?.first
+            // Also what a load or the job set of this setup before Set's own update got there (CR 5).
+            val (wasSet, setFailed) = result.getOrNull()?.second ?: (false to true)
             result.exceptionOrNull()?.let { Log.w("APODroid", "Set failed: $it", it) }
             updated?.done?.let { Log.i("APODroid", "Set: $it") }
             updated?.failure?.let { Log.w("APODroid", "Set: $it", it) }
             live[page]?.run {
                 if (pick) draftFallback = store.draftFallbackFile.exists()
+                if (derivedList && !store.hasList && list == setup.list) list = store.list
                 // Saved: "Setup" closes on its summary. A failure leaves it open.
-                if (updated != null && !updated.setFailed) setupOpen = false
+                if (updated != null && !setFailed) setupOpen = false
                 redrawAfterRun(failed = updated?.failure != null || result.isFailure)
             }
             toast(
                 app,
                 when {
-                    updated == null || updated.setFailed -> "Couldn't set the wallpaper"
-                    updated.done != null -> "Wallpaper set"
+                    updated == null || setFailed -> "Couldn't set the wallpaper"
+                    wasSet -> "Wallpaper set"
                     else -> "Setup saved. Nothing to set yet."
                 },
             )
@@ -878,6 +895,18 @@ class MainActivity : ComponentActivity() {
             return
         }
         videoDays = choice
+        if (apod?.isVideo == true) load()
+    }
+
+    /**
+     * "If APOD is a video" hidden (the daily switch off): the draft's choice goes back to the
+     * stored one and a newly picked "my picture" is dropped from the draft (its file stays, for a
+     * page that may own it). On a video day the stand-in's page follows ([load]).
+     */
+    private fun dropVideoDays() {
+        draftFallback = false
+        if (videoDays == stored.videoDays) return
+        videoDays = stored.videoDays
         if (apod?.isVideo == true) load()
     }
 
@@ -968,24 +997,30 @@ class MainActivity : ComponentActivity() {
     /**
      * Copies the picked picture to [Store.draftFallbackFile] (Set renames it into place); a failed
      * pick keeps the previous one. With [choose] (picked on choosing "Use my picture") the choice
-     * follows once it's there.
+     * follows once it's there. In [runs], so a rotation during the copy keeps its end: the page a
+     * rotation made of this one gets the pick and the choice (CR 2: both were lost, the file there).
      */
     private fun saveFallback(uri: Uri, choose: Boolean = false) {
-        lifecycleScope.launch {
+        val app = applicationContext
+        val target = store.draftFallbackFile
+        val page = id
+        runs.launch {
             val ok = withContext(Dispatchers.IO) {
-                val part = File(filesDir, "fallback.part")
+                val part = File(app.filesDir, "fallback.part")
                 val ok = runCatching {
-                    contentResolver.openInputStream(uri)!!.use { input -> part.outputStream().use { input.copyTo(it) } }
-                }.isSuccess && isImage(part) && part.renameTo(store.draftFallbackFile)
+                    app.contentResolver.openInputStream(uri)!!.use { input -> part.outputStream().use { input.copyTo(it) } }
+                }.isSuccess && isImage(part) && part.renameTo(target)
                 part.delete()
                 ok
             }
             if (!ok) {
-                toast("Couldn't use that picture")
+                toast(app, "Couldn't use that picture")
                 return@launch
             }
-            draftFallback = true
-            if (choose) chooseVideoDays(VideoDays.MINE)
+            live[page]?.run {
+                draftFallback = true
+                if (choose) chooseVideoDays(VideoDays.MINE)
+            }
         }
     }
 
@@ -1464,6 +1499,12 @@ class MainActivity : ComponentActivity() {
         val change = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let(::saveFallback) }
         val pickAndChoose = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let { saveFallback(it, choose = true) } }
         val request = PickVisualMediaRequest(PickVisualMedia.ImageOnly)
+        // A hidden setting goes back to the stored one (B14, CR 7), so Set saves only what the page
+        // shows and "Setup" highlights only that: "Change every" without turns or with the daily
+        // switch off, "If APOD is a video" (and a newly picked "my picture") with it off.
+        val showsInterval = daily && columns.values.any { it.size >= 2 }
+        LaunchedEffect(showsInterval, interval, stored.interval) { if (!showsInterval) interval = stored.interval }
+        LaunchedEffect(daily, videoDays, draftFallback, stored.videoDays) { if (!daily) dropVideoDays() }
         val setupChanged = setupChanged()
         // Opens by itself while the draft differs (a rotation, the system killing the app).
         LaunchedEffect(setupChanged) { if (setupChanged) setupOpen = true }
@@ -1489,7 +1530,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     PictureList()
                     // Hiding it moves the page only after a tick.
-                    if (daily && columns.values.any { it.size >= 2 }) {
+                    if (showsInterval) {
                         val changed = interval != stored.interval
                         Heading("Change every", changed)
                         Segments(Interval.entries.map { it to it.label }, interval, changed) { interval = it }

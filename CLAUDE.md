@@ -391,7 +391,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     not fixed), APOD mode's only (the list has its columns). Default: both. Its segments, like "Change every"'s, share one
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
-  - **Size** [Fill | Fit] (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; the heading
+  - **Size** [Fill | Fit] (to become [Auto | Fill | Fit], default Auto: the smart picture,
+    Next features, 0.6.0; 2026-10-22) (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; the heading
     "Size" (was "Fit") and the choices approved by the user in C, 2026-10-20): under "Where" or "Change every". One
     setting for both screens, so one picture is still one set. Fill: the screen's shape cut from
     the picture (⛶ chooses where). Fit: all of it, as large as fits, centred on black
@@ -837,6 +838,40 @@ out" is 21:05 in Los Angeles, 06:05 in Berlin, 15:05 in Sydney. Decided:
   A night on the tablet on battery measures which timed run lands (JobScheduler with and without
   a deadline, `AlarmManager`'s inexact wake-up alarms; no exact-alarm permission without asking).
 - Built in 0.6.0 (user: before P, the release waits for it); V7 runs on the new job.
+
+**0.6.0: the smart picture** (user, 2026-10-22 evening, after a mock-up of the 89 picture posts
+of 24 Jun to 1 Oct 2026 on a 1080×2400 screen: https://claude.ai/artifact/BmiE8FnTn2UPk3tyrHjmyp,
+private; packages A1–A5 in `plan-0.6.0.md`; "this is the whole point of this app"). Measured:
+none of the 89 is taller than a phone screen (the tallest 0.56:1), so Fill always cuts the
+sides; Fill keeps 36% of the width for the median picture (21% at the widest); Fit on black
+leaves a 3:2 picture a strip of 30% of the screen's height. Decided:
+- **Size [Auto | Fill | Fit], default Auto**, one Auto and it is the smart one: a map of what
+  matters in the picture (brightness smoothed so one star or the Moon doesn't win, detail,
+  colour, a slight pull to the centre; on a copy about 256 px wide, in `:core`, no library)
+  decides. Fill when the best frame keeps enough of what matters; otherwise a zoom between Fill
+  and Fit that keeps what matters, the rest of the screen the background (smart zoom: kept if
+  the tuning page shows it beats plain Fit). The frame's edges go through empty parts, not
+  through the subject.
+- **The cut-off is the user's** (Advanced settings, a slider: "fit when Fill would cut off more
+  than N%"), default **30% kept** (70% lost; the user's pick from the mock-up: by area 71 of 89
+  filled, 18 fitted), retuned on the tuning page.
+- **Background** [Blurred | Black] (Advanced), default Blurred: the picture enlarged to cover
+  the screen, blurred properly (passes of a box blur on a small copy, no blocky upscale) and
+  darkened; Black is F1's Fit. For Fit and the zoom's bands.
+- **Fill's part** [Middle | Brightest area] (Advanced), where Fill (and Auto when it fills)
+  starts; ⛶ still moves it for that post, and the user's part wins.
+- **Sharpness guard**: when filling would enlarge the picture more than about 2× (a small
+  original, Earth's 720 px ones), Auto zooms or fits instead.
+- **Preview on the page**: the picture as the home and lock screens will show it (the size,
+  part and background chosen, the clock and dock drawn in), and one line saying why ("Auto:
+  filled from the brightest area").
+- **The tuning page**: `:core`'s placement renders the real pictures in a unit test (JDK
+  `ImageIO`, the test only), a page shows them and the user picks the best version of each;
+  the defaults (cut-off, weights, zoom) are tuned to the picks. What the page shows is what the
+  phone does.
+- Not wanted (2026-10-22): a "Colour" background, a dim setting, screen-aware placement (clock
+  and dock), per-screen Size (the 2026-10-19 decision stands: one setting for both screens).
+- In 0.6.0 (user: all in one release; P waits for it).
 
 **0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6, and V8: V1, V2 and V4 again where S4–S6 changed them; user, 2026-10-20 night: a complete test on the final tree before the stable release; B2, B4–B6, S6, V3, V5, V6 and V8 passed the night of 2026-10-20/21, B7–B9 from its report), turns over hours (V7, a night of its own), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different

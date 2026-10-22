@@ -436,14 +436,13 @@ reading; their build check passed, 108 tests with `private/`):
    V7's, the tablet on battery (instead of V7). Then J1 → J2 → J3 by day or night, the user
    approving J3's texts on the tablet, then **V7** on the new job (its setup takes the picture
    time too), then P, R, T. The probe for J0 is built by day first (J0, The probe).
-4d. **The smart picture** (user, 2026-10-22 evening, after the mock-up of 89 real pictures;
-   `CLAUDE.md`, Next features, 0.6.0: the smart picture): Size [Auto | Fill] (Fit dropped as a
-   choice, the slider's far end shows the whole picture; Live, the day's pan, is 0.7.0) with a smart
-   Auto as the default, the cut-off slider (default 30% kept), Background [Blurred | Black],
-   Fill's part [Middle | Brightest area], the sharpness guard, the preview on the page, tuned
-   on a tuning page with the user's picks. All in 0.6.0. Order: A1 → the tuning page (A2, by
-   day with the user) → A3 → A4 → A5, beside J1–J3 (A3 and J2 both touch `Store`: one at a
-   time), then V7 and P on the whole.
+4d. **The picture** (user, 2026-10-22 evening, after the mock-up and the user's 148 picks;
+   `CLAUDE.md`, Next features, 0.6.0: the picture): always Fill (middle by default), a
+   per-picture "Whole picture" toggle in ⛶ mode, Background [Blurred | Black], Fill's part
+   [Middle | Brightest area]. The smart Auto and its learning were tried and dropped (always
+   Fill matched 90% of the picks, no rule did better). Order: A1 → A3 → A4, beside J1–J3 (A3
+   and J2 both touch `Store`: one at a time), then V7 and P. Live (the day's pan) with the
+   preview: 0.7.0, right after.
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then R and T.
 Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
@@ -1768,79 +1767,47 @@ After J2. Placeholders until the user approves them on the tablet:
   `uiautomator`. Screenshots for the user.
 - **Done when:** built, the tablet passes, the texts listed for the user.
 
-### [ ] A1. `:core`: the placement, what matters, and a renderer for tuning (Opus, high)
+### [ ] A1. `:core`: the brightest part, the whole picture, the blur (Opus, medium)
 
-(`CLAUDE.md`, Next features, 0.6.0: the smart picture.) Plain Kotlin on a small grey and colour
-copy of the picture (`IntArray` ARGB, about 256 px wide; the app decodes it with `inSampleSize`).
-- `importance(pixels, w, h, weights)`: a map of what matters: brightness smoothed (a few px box
-  blur, so a star or the Moon doesn't win), detail (gradient magnitude), saturation, a slight
-  centre pull. The weights are values in one place (tuned in A2).
-- `placement(map, picture size, screen size, size mode, part mode, cut-off, user part?)` →
-  the scale, the offset, and whether bands show (and the reason, for A5's line): Fill
-  (middle, or the frame with the most of what matters, its edges through the least), Fit, or
-  Auto: Fill when the best frame keeps at least the cut-off's share of what matters, else the
-  smallest zoom-out that keeps it (smart zoom), Fit at the most; the sharpness guard (no
-  enlargement over about 2×: zoom or fit instead). A user's ⛶ part wins.
-- `blurBackground(…)` in `:core` if it stays pure math (three box-blur passes on a small copy;
-  else it is A3's, in `Store`).
-- **The renderer** (a test, skipped without `private/`): reads the real pictures (JDK
-  `ImageIO`, test only; the pictures fetched once into `private/pictures/` at screen size), runs
-  the same `placement` and writes each variant as a 1/6-size JPEG plus a JSON of the numbers to
-  `core/build/tuning/`, for A2's page.
-- Tests: made-up pictures (a bright spot left, a wide even band, a star field with one bright
-  star, a tiny picture for the guard), every mode, the cut-off's edges, a user part.
-- **Done when:** the tests pass; the renderer runs on the real pictures.
+(`CLAUDE.md`, Next features, 0.6.0: the picture.) Plain Kotlin, tested with JUnit.
+- `brightestPart(gray, w, h, screen)`: the crop position (0–1, as ⛶'s) of the frame with the
+  most light, weighting bright pixels more (brightness squared, as the mock-up), on a small grey
+  copy (about 200 px wide; the app decodes it with `inSampleSize`).
+- The whole picture: `fitFrame` (F1) as it is; the blurred background as pure math if it
+  stays small (`blurBackground(argb, w, h)`: three box-blur passes on a copy about 1/16 of the
+  screen, darkened by 35%), else A3's in `Store`.
+- Tests: a bright spot left, right, at the centre; an even picture (the middle); the blur's
+  size and darkening.
+- **Done when:** the tests pass.
 
-### [ ] A2. The tuning page (by day, with the user)
+### [x] A2. The picking page (by day, with the user, 2026-10-22)
 
-**The picking page** (2026-10-22 evening, before A1, rendered in Python and ImageMagick from
-`private/pictures/`): 253 pictures × six versions (Fill middle, Fill brightest, zoom 80% and
-60% of the screen's height on blur, Fit on blur, Fit on black), the user taps the one they'd
-want; "No preference", "Skip", a note. The picks in the page's database (`picks/<date>`:
-`pick`, `note`, `at`), read with `ArtifactData`. Then: the features per picture (in Python
-first, then the same in A1's Kotlin), a logistic model fitted on part of the picks and tested
-on the rest (the agreement on unseen pictures reported), its weights and the zoom floor into
-A1; A1's renderer then shows the Kotlin result beside the picks.
+Done: 253 real APODs × six versions, 148 clear picks; the result and the rules tested in
+`CLAUDE.md` (Next features, 0.6.0: the picture). It decided always Fill; nothing to build.
 
-A page (an artifact with its own small database) from A1's renderer: per picture the
-variants (Auto at the current values, Fill middle, Fill brightest, Fit blur, smart zoom where
-it differs), the user picks the best one per picture. Then the weights, the default cut-off
-and whether smart zoom stays are tuned until Auto matches the picks as well as it can; the
-result (how many of the picks Auto matches, before and after) into `CLAUDE.md`. Reruns after a
-change in A1's rules.
+### [ ] A3. `Store`: the whole picture per post, the background, Fill's part (Opus, medium)
 
-### [ ] A3. `Store`: the wallpaper drawn by the placement (Opus, high)
-
-After A1, A2 and J2 (both change `Store`). Each set computes the placement from the stored
-picture (the importance map once per picture, kept with it), then: Fill as today (the crop
-rectangle, `setStream`), anything with bands drawn as F1's Fit (`setBitmap` on a screen-sized
-bitmap) on the blurred or black background. The prefs `size` (`auto`, `fill`; F1's `fit`, on
-test devices only, becomes `auto` with the cut-off at its far end), `cutoff` (its far end: the
-whole picture, no floor), `background`, `part`. A part chosen with ⛶
-still wins. Memory: the blurred background from a small copy, one screen-sized bitmap.
-- **Tablet:** a wide, a square, an upright and a tiny picture in each mode, both backgrounds,
-  both parts; `dumpsys wallpaper` and screenshots of both screens.
+After A1 and J2 (both change `Store`). The per-post whole picture beside the part
+(`<source>.whole`, keyed as the part: date and picture URL; a new post drops it), the prefs
+`background` (`blur`, `black`; default `blur`) and `part` (`middle`, `brightest`; default
+`middle`). F1's pref `fit` goes (never released; on test devices it is ignored). Each set: a
+whole picture drawn as F1's Fit on the blurred or black background (`setBitmap`); else Fill at
+the user's part, else Fill's part (`setStream` with the crop, as today). The user's own picture
+(video days) as before (centred; whole when toggled).
+- **Tablet:** a wide picture whole on blur and on black, both screens; Fill middle and brightest;
+  a new post drops the toggle; `dumpsys wallpaper` and screenshots.
 - **Done when:** the tablet passes; `CLAUDE.md`, Wallpaper.
 
-### [ ] A4. Settings: Size, the cut-off, Background, Fill's part (Opus, medium)
+### [ ] A4. Settings and ⛶: Whole picture, Background, Fill's part; Size goes (Opus, medium)
 
-After A3. Size [Auto | Fill] in Setup (the draft, as F1's), default Auto. Advanced
-settings: the cut-off slider (while Size is Auto; placeholder "Fit when Fill would cut off
-more than 70%", its far end "Always the whole picture"), Background [Blurred | Black] (while
-Size is Auto), Fill's part [Middle |
-Brightest area]. Part of the draft, as Size (they change what a screen shows). ⛶ as today with
-Fill and with Auto when it fills. Texts are placeholders for the user's look on the tablet.
+After A3. ⛶ mode gets a "Whole picture" toggle (placeholder) for the shown post: the frame
+hides while it's on and the picture shows as it will (on its background); part of the draft
+(the highlight, ⛶ in `tertiary` while it differs; screen readers "Whole picture, on/off, not
+set yet"), Set stores it. Advanced settings: Background [Blurred | Black], Fill's part
+[Middle | Brightest area], both part of the draft (they change what a screen shows). The Size
+row in Setup goes (and " · Fill"/" · Fit" in the summary). Texts are placeholders for the
+user's look on the tablet.
 - **Done when:** built, the tablet passes, the texts listed for the user.
-
-### [ ] A5. The preview on the page (Opus, medium)
-
-After A4. A "Preview" on the picture (a toggle by ⛶; the label a placeholder) shows the shown
-source's picture as the home and the lock screen will show it with the draft's settings: two
-phone-shaped frames, the clock and the dock drawn in as plain shapes, the placement's result
-drawn the same way as A3 (so what it shows is what Set does). Under it one line, the reason
-("Auto: filled from the brightest area", "Auto: zoomed out to keep the whole subject",
-placeholders). Two panes and landscape as the page is.
-- **Done when:** built, the tablet passes (screenshots beside the real wallpaper after a Set).
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 

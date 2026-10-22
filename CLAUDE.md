@@ -391,9 +391,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     not fixed), APOD mode's only (the list has its columns). Default: both. Its segments, like "Change every"'s, share one
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
-  - **Size** [Fill | Fit] (to become [Auto | Fill], default Auto, Fit dropped as a choice; Live
-    in 0.7.0: the smart picture and the day's pan,
-    Next features, 0.6.0; 2026-10-22) (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; the heading
+  - **Size** [Fill | Fit] (goes in A4: always Fill, a whole picture per post from ⛶ mode; Size
+    returns in 0.7.0 as [Fill | Live]; Next features, 0.6.0: the picture, 2026-10-22) (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; the heading
     "Size" (was "Fit") and the choices approved by the user in C, 2026-10-20): under "Where" or "Change every". One
     setting for both screens, so one picture is still one set. Fill: the screen's shape cut from
     the picture (⛶ chooses where). Fit: all of it, as large as fits, centred on black
@@ -840,60 +839,45 @@ out" is 21:05 in Los Angeles, 06:05 in Berlin, 15:05 in Sydney. Decided:
   a deadline, `AlarmManager`'s inexact wake-up alarms; no exact-alarm permission without asking).
 - Built in 0.6.0 (user: before P, the release waits for it); V7 runs on the new job.
 
-**0.6.0: the smart picture** (user, 2026-10-22 evening, after a mock-up of the 89 picture posts
-of 24 Jun to 1 Oct 2026 on a 1080×2400 screen: https://claude.ai/artifact/BmiE8FnTn2UPk3tyrHjmyp,
-private; packages A1–A5 in `plan-0.6.0.md`; "this is the whole point of this app"). Measured:
-none of the 89 is taller than a phone screen (the tallest 0.56:1), so Fill always cuts the
-sides; Fill keeps 36% of the width for the median picture (21% at the widest); Fit on black
-leaves a 3:2 picture a strip of 30% of the screen's height. Decided:
-- **Size [Auto | Fill], default Auto; Fit dropped as a choice** (user, 2026-10-22: "you would
-  rather have Auto"; a fitted wide picture is a thin strip; F1's Fit was never released). One
-  Auto and it is the smart one: a map of what
-  matters in the picture (brightness smoothed so one star or the Moon doesn't win, detail,
-  colour, a slight pull to the centre; on a copy about 256 px wide, in `:core`, no library)
-  decides. Fill when the best frame keeps enough of what matters; otherwise a zoom between Fill
-  and Fit that keeps what matters, the rest of the screen the background (smart zoom: kept if
-  the tuning page shows it beats plain Fit). The frame's edges go through empty parts, not
-  through the subject.
-- **The cut-off is the user's** (Advanced settings, a slider: "fit when Fill would cut off more
-  than N%"), default **30% kept** (70% lost; the user's pick from the mock-up: by area 71 of 89
-  filled, 18 fitted), retuned on the tuning page. **Its far end shows every picture whole** on
-  the background (user, 2026-10-22): Fit for whoever wants it, without a choice of its own;
-  everywhere else Auto's floor keeps a picture from becoming a thin strip.
+**0.6.0: the picture** (user, 2026-10-22 evening; packages A1, A3, A4 in `plan-0.6.0.md`).
+Measured on a mock-up of the 89 picture posts of 24 Jun to 1 Oct 2026 on a 1080×2400 screen
+(https://claude.ai/artifact/BmiE8FnTn2UPk3tyrHjmyp, private): none is taller than a phone
+screen (the tallest 0.56:1), so Fill always cuts the sides; Fill keeps 36% of the width for the
+median picture (21% at the widest); Fit on black leaves a 3:2 picture a strip of 30% of the
+screen's height. **The user's picks** on a picking page (https://claude.ai/artifact/EHeAzSEZHyvBd9qyo7RzA8,
+private; 253 APODs of 27 Dec 2025 to 1 Oct 2026 at `?h=640` in `private/pictures/`, posts in
+`private/last100.json` and `private/older200-2026-10-22.json`; six versions each; the picks in
+the page's database): of 148 clear picks, Fill 133 (middle 81, brightest area 52), Fit 15 (on
+blur 11, mostly text and graphics; on black 4, isolated planets and moons). Always Fill matches
+90%. Rules tested against the picks, none better (2026-10-22): hard letter-like edges (the best
+text stand-in) 91% on the picks it was tuned on; the share of black pixels (night skies are dark
+and were filled); the top and bottom strips each at least 95% black (the user's idea: a sky
+over lit ground doesn't count) 89%: it catches the isolated Saturns and moons but shows 4
+pictures the user filled (a galaxy, Charon, a crescent, a nebula) whole and smaller; with the
+object's width against the frame, worse (stars spread over the whole width). Middle against
+brightest area: no pattern near the centre (28 to 21), and a brightest area at the picture's
+edge is mostly the wrong subject (middle 22 to 6). Text can't be recognised without an ML
+library (ML Kit needs Play Services; Tesseract is large). Decided:
+- **Always Fill**, from the middle by default; no automatic choice (user: "the user can change
+  it according to their choice anyhow"). Smart Auto, the learned model, the tuning loop, the
+  cut-off slider, the zoom and the sharpness guard: dropped. F1's Size [Fill | Fit] row goes
+  (Fit as a global choice dropped, user, 2026-10-22: a fitted wide picture is a thin strip);
+  Size returns in 0.7.0 as [Fill | Live].
+- **Whole picture, per picture**: a toggle in ⛶ mode for the shown post (text, an asteroid, a
+  grid of planets), kept like ⛶'s part (per source, for that post only, part of the draft
+  until Set; the job uses the stored one), drawn on the Background.
 - **Background** [Blurred | Black] (Advanced), default Blurred: the picture enlarged to cover
   the screen, blurred properly (passes of a box blur on a small copy, no blocky upscale) and
-  darkened; Black is F1's Fit. For Auto's bands (a zoom, or the slider's far end).
-- **Fill's part** [Middle | Brightest area] (Advanced), where Fill (and Auto when it fills)
-  starts; ⛶ still moves it for that post, and the user's part wins.
-- **Sharpness guard**: when filling would enlarge the picture more than about 2× (a small
-  original, Earth's 720 px ones), Auto zooms or fits instead.
-- **Preview on the page**: the picture as the home and lock screens will show it (the size,
-  part and background chosen, the clock and dock drawn in), and one line saying why ("Auto:
-  filled from the brightest area").
-- **Learned from the user's picks** (user, 2026-10-22: "the shape alone doesn't decide it": a
-  wide picture sometimes wants Fill, sometimes not; and a fitted panorama is a thin strip, which
-  the user is against): Auto's decision is a small model (a handful of weights over numbers per
-  picture: the share of what matters each frame keeps, how spread the subject is, where the
-  bright subject sits, the enlargement, the empty sky), fitted to the user's picks on a picking
-  page (https://claude.ai/artifact/EHeAzSEZHyvBd9qyo7RzA8, private, the picks in its database). Checked on pictures it
-  wasn't fitted on (train on part, test on the rest, the agreement reported honestly). No
-  neural network, no ML library (a library and a 5–100 MB model in the APK, a non-free blob for
-  F-Droid, and a few hundred picks can't train it). Auto never shrinks a picture to a thin
-  strip: the zoom stops at a floor (the picks decide it). Learning on the phone per user (a
-  "Tune Auto to my taste" set, or from ⛶ moves): after 0.6.0 (user). The pictures: 253 APOD
-  picture posts, 27 Dec 2025 to 1 Oct 2026, at `?h=640` in `private/pictures/` (posts in
-  `private/last100.json` and `private/older200-2026-10-22.json`).
-- **The tuning page**: `:core`'s placement renders the real pictures in a unit test (JDK
-  `ImageIO`, the test only), a page shows them and the user picks the best version of each;
-  the defaults (cut-off, weights, zoom) are tuned to the picks. What the page shows is what the
-  phone does.
+  darkened; Black is F1's Fit. For whole-picture days.
+- **Fill's part** [Middle | Brightest area] (Advanced), default Middle; ⛶ still moves it for
+  that post, and the user's part wins.
 - Not wanted (2026-10-22): a "Colour" background, a dim setting, screen-aware placement (clock
-  and dock), per-screen Size (the 2026-10-19 decision stands: one setting for both screens).
-- Updaters from 0.5.0 (Fill, no setting) get Auto too (user, 2026-10-22).
+  and dock), per-screen Size (the 2026-10-19 decision stands); learning per user (was "after
+  0.6.0", gone with the smart Auto). The preview on the page comes with Live (0.7.0).
 - In 0.6.0 (user: all in one release; P waits for it).
 
-**0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline): a third Size
-choice, [Auto | Fill | Live]. A wide picture is shown at the screen's full height and moves
+**0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline, right after 0.6.0):
+Size [Fill | Live], with the preview on the page (one drawing code). A wide picture is shown at the screen's full height and moves
 across its whole width over the day (about 18 h, from the picture time: left edge at 06:00,
 right edge at 24:00), so the whole picture is seen by evening. Built as a **live wallpaper**
 (Android's `WallpaperService`, no library, no permission): the app draws the wallpaper itself

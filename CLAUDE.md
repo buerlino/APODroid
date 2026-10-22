@@ -581,7 +581,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   screen, none of 85 posts checked was). While it shows, a tap doesn't open the page; ✓ closes it
   and keeps the part in the draft ("Done" for screen readers; S4, 2026-10-20: ✓ no longer sets
   the wallpaper, as it did since 0.3.1); Back closes it without keeping; reopening ⛶ shows the
-  draft's part. Set stores it (a Set while crop mode is open keeps the dragged part, as ✓
+  draft's part. A rotation or a resize closes it too (the page is recreated), dropping a dragged
+  part not yet kept with ✓, as Back does, and closes an open dropdown; the draft, Setup's and
+  Advanced's state and the shown source survive (user, 2026-10-22: left as is; V9, V10). Set stores it (a Set while crop mode is open keeps the dragged part, as ✓
   would). The position (0–1) is per source for that post only (date and picture URL), so each new
   picture starts centred (a new post drops a draft part); the job uses only the stored one. The user's own picture (video days) is always centred.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the

@@ -132,6 +132,8 @@ brute test (rosie as each row's worker, as V3–V8), then **CR** (the code revie
 fits in about 8 hours). B13 has no After, so it runs even when V9 or V10 stays unmerged (a FIX keeps a V row
 unmerged; B13 reads its `BUG:` lines from the V rows' commit messages, its section says how). B14 waits for the user (22:55: the
 tablet must be free by 08:00; B14 by day with `scripts/pipeline.sh B14`, after the user has read CR's findings). V7 moves to the next night.
+The user read CR's findings and set B14's scope (2026-10-22 morning; the plan, B14 and Remaining 4b): B14 by day, then V7
+alone the night after, by hand.
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -171,7 +173,7 @@ tablet must be free by 08:00; B14 by day with `scripts/pipeline.sh B14`, after t
 | 34 | V10 | Brute test 2: what a user does to the app | rosie | opus, high | no | — | plan V + plan V10 |
 | 35 | CR | Code review of the whole app, by reading | winston | opus, high | no | — | plan CR |
 | 36 | B13 | The brute test's bugs | winston | opus, high | yes | — | plan B13 |
-| 37 | B14 | The code review's bugs | winston | opus, high | yes | CR, the user | plan B14 |
+| 37 | B14 | The code review's bugs | winston | opus, high | yes | CR | plan B14 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

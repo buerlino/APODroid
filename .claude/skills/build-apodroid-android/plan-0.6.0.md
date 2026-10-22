@@ -420,6 +420,15 @@ reading; their build check passed, 108 tests with `private/`):
    questions), then the regression: **all in that night's shift** (user, 22:50: "put as much
    into the night shift as possible, we have the tablet all night and about 8h"). **V7** moves
    to the next night, alone, on the fixed tree (it needs the tablet untouched for 6 hours).
+4b. **The night of 2026-10-21** (user, 2026-10-22 morning, after the report
+   `.coord/reports/2026-10-21-night.md`): CR and B13 merged (B13 tablet PASS), regression 6
+   clean; V9's and V10's results merged by hand (their FIX was the bugs B13 fixed); master
+   fast-forwarded to `dev` 910bfeb. Decided: crop mode and an open dropdown close on a rotation
+   or a resize, left as is (`CLAUDE.md`, Choosing the part); B14's scope (its section): CR's
+   findings 1–5, finding 7 as "a hidden draft value goes back to the stored one", the lock line
+   during a Set; the job's +6 h after a Set into APOD mode checked in B14's tablet check and in
+   P before any doc changes. **By day:** B14 with `scripts/pipeline.sh B14`. **Tonight:** V7
+   alone (it tests the final tree, B14 included: finding 1 touches turns).
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then R and T.
 Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
@@ -1458,7 +1467,7 @@ least 6 hours apart, the tablet left alone between them. Real timing, so no `tur
   mode with "Where" = Lock; the open page following a job run that changes only the lock
   screen.
 
-### [ ] V9. Brute test 1: what the system does to the app
+### [x] V9. Brute test 1: what the system does to the app
 
 (User, 2026-10-21 evening: "a complete check … bugs that might occur when doing weird stuff or
 edge cases or even just normal operation"; a stable 0.6.0. None of this was checked on any
@@ -1500,7 +1509,7 @@ wallpaper` and `dumpsys jobscheduler` say after it, and look for a crash (`exit-
 - **Done when:** each bullet ran or is under Not tested with the reason, the tablet set back,
   and every `BUG:` line of your reply also in your report commit's message (B13 reads them there).
 
-### [ ] V10. Brute test 2: what a user does to the app
+### [x] V10. Brute test 2: what a user does to the app
 
 As V9 (the final tree; hunt, don't confirm; every bug a `BUG:` line).
 - **Mashing:** Set tapped three times fast; Set and the daily switch and a pull together
@@ -1530,7 +1539,7 @@ As V9 (the final tree; hunt, don't confirm; every bug a `BUG:` line).
   the test files deleted from the gallery, and every `BUG:` line of your reply also in your
   report commit's message (B13 reads them there).
 
-### [ ] CR. Code review of the whole app (Opus, high)
+### [x] CR. Code review of the whole app (Opus, high)
 
 (User, 2026-10-21 evening: find the bugs still in the code, for a stable 0.6.0.) By reading,
 no device, no code changes. Not a diff: every file in `core/src/main` and `app/src/main`
@@ -1560,7 +1569,7 @@ an empty section is fine.
   is not a FIX: B14 checks each finding again before building it.
 - **Done when:** every file read (list them in the report), the findings committed.
 
-### [ ] B13. The brute test's bugs (Opus, high)
+### [x] B13. The brute test's bugs (Opus, high)
 
 The `BUG:` lines of V9 and V10, in their report commits' messages (merged on `dev`, or on the
 kept branches `wp/v9`, `wp/v10` when a FIX left them unmerged; a session cut off at its
@@ -1586,7 +1595,26 @@ The findings of `review-0.6.0.md` (CR) marked **a bug**, worst first, as B13: fi
 that fails on the old code (or a Device bullet), at most six; a finding marked **a decision**,
 or one you find isn't a bug after all (say why), not built: a `QUESTION:` line. After B13 (both
 may touch the same files).
-- **Files, Tablet, Done when:** as B13 (the tablet checks the fixed findings' failures).
+**The scope** (user, 2026-10-22 morning, after reading CR's findings; seven items, so B13's
+"at most six" doesn't apply): findings **1, 3, 4, 5** and **2's rest** (a pick whose copy,
+`saveFallback`, runs during a rotation: the choice and `draftFallback` kept), plus two
+decisions:
+- **Finding 7: a hidden draft value goes back to the stored one** (user: so Set never saves
+  what the page doesn't show, and "Setup" highlights only what it shows). When "Change every"
+  hides (no column with two or more, or the daily switch off), the draft's `interval` becomes
+  `store.interval`; when "If APOD is a video" hides (the daily switch off), `videoDays` (and a
+  newly picked "my picture" with it) becomes the stored choice. `CLAUDE.md`, Settings and the
+  highlight.
+- **The lock line during a Set** (V9, B13's QUESTION; user: fix it): `follow()` skips while
+  `setting`, as it does while the switch-on runs, so the page redraws at Set's end only. With
+  finding 4 (an owed follow run at the active one's end) it is one change to `follow()`.
+- **Files, Tablet, Done when:** as B13 (the tablet checks the fixed findings' failures), and one
+  more tablet bullet (user, 2026-10-22; V9 and B13's QUESTION): a Set into APOD mode (one
+  source, no turns) with the daily switch on, once a few minutes after a job run and once with
+  no run that day if the tablet allows (else say so): `dumpsys jobscheduler` for the app's job
+  (earliest run, period, flex, `Last successful run`) right after the Set, and whether it ran
+  at once. Only a report: whether Android keeps a periodic job's timing when the same id is
+  scheduled again. No doc change from it before P repeats it on the FP6.
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 
@@ -1594,7 +1622,9 @@ Before R (user, 2026-10-19, the last pass: a bug P finds would otherwise mean re
 changelog and screenshots). First the version: `versionCode` 10, `versionName` 0.6.0 in
 `app/build.gradle.kts`, so the phone gets the real build (and its User-Agent). Then as 0.5.0's
 WP8: the release-signed build over the user's Obtainium install (the skill, Testing an update
-on the user's phone), the update keeping the settings, both modes, the list at font scale 1.5
+on the user's phone), the update keeping the settings, both modes, a Set into APOD mode with
+the daily switch on and its job's earliest run in `dumpsys jobscheduler` (at once, or a period
+later as V9 saw on the tablet; B14 checks it there first), the list at font scale 1.5
 and 2.0, a lock screen with its own picture, landscape; home and lock set separately on Android
 16 (M0 checked the tablet only); the shown source after a swipe-away from Recents (expected:
 back to the opening tab; after the system kills the app it stays, `CLAUDE.md`, Tabs); the

@@ -88,6 +88,8 @@ None found.
 
 ### 4. (low) The page can miss a later change while it follows an earlier one
 
+For B14 with the lock line during a Set (user, 2026-10-22: `follow()` skips while `setting`).
+
 - **Where:** `app/src/main/kotlin/io/github/buerlino/apodroid/MainActivity.kt:371` (`follow`)
 - **Failure:** `follow` returns while a follow is active. The active one read the prefs
   (`readStatus`) before it suspended in `show()` or `readSaved()`, so a record or a problem the
@@ -142,6 +144,8 @@ None found.
 - **Bug** (storage leak, no `CLAUDE.md` rule). Sure.
 
 ### 7. "Setup" is highlighted (and opens by itself) for settings it doesn't show
+
+**Decided** (user, 2026-10-22): a hidden draft value goes back to the stored one; B14 builds it.
 
 - **Where:** `app/src/main/kotlin/io/github/buerlino/apodroid/MainActivity.kt:1476`
   (`setupChanged`, through `:1478`)

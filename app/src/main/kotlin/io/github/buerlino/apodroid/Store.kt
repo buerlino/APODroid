@@ -258,6 +258,16 @@ class Store(private val context: Context) {
             }
             putRestart(restart)
         }
+        setsSinceSetup = mutableMapOf()
+    }
+
+    /**
+     * After Set's [update]: whether a screen was set since its [saveSetup] and whether one's last
+     * set failed, by any run (a page's load or the job may reach [setDue] first and set the new
+     * setup, so Set's own finds nothing due; CR 5: its toast said "Setup saved. Nothing to set yet.").
+     */
+    fun setsSinceSetup(): Pair<Boolean, Boolean> = synchronized(wallpaperLock) {
+        setsSinceSetup.values.let { (true in it) to (false in it) }
     }
 
     /**
@@ -640,9 +650,11 @@ class Store(private val context: Context) {
                 set(picture, screens, stored)
             } catch (e: Exception) {
                 failure = failure ?: e
+                screens.forEach { setsSinceSetup[it] = false }
                 continue
             }
             prefs.edit(commit = true) { screens.forEach { putRecord(it, plan.screens.getValue(it).record); putSetAt(it) } }
+            screens.forEach { setsSinceSetup[it] = true }
             done += "$picture on ${screens.joinToString("+")}"
         }
         done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: ") to failure
@@ -862,6 +874,13 @@ private val saving = AtomicBoolean()
 
 /** Not [refreshLock]: holding that during a set would make ★ wait for seconds. */
 private val wallpaperLock = Any()
+
+/**
+ * Since the last [Store.saveSetup] (under [wallpaperLock]): whether each screen's last set
+ * worked, by any run, so Set's toast also counts a set the page's load or the job made of its
+ * setup first ([Store.setsSinceSetup]; CR 5). Process-wide, as each page and job has its own [Store].
+ */
+private var setsSinceSetup = mutableMapOf<Screen, Boolean>()
 
 fun isImage(file: File): Boolean = imageBounds(file) != null
 

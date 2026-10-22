@@ -437,7 +437,8 @@ reading; their build check passed, 108 tests with `private/`):
    approving J3's texts on the tablet, then **V7** on the new job (its setup takes the picture
    time too), then P, R, T. The probe for J0 is built by day first (J0, The probe).
 4d. **The smart picture** (user, 2026-10-22 evening, after the mock-up of 89 real pictures;
-   `CLAUDE.md`, Next features, 0.6.0: the smart picture): Size [Auto | Fill | Fit] with a smart
+   `CLAUDE.md`, Next features, 0.6.0: the smart picture): Size [Auto | Fill] (Fit dropped as a
+   choice, the slider's far end shows the whole picture; Live, the day's pan, is 0.7.0) with a smart
    Auto as the default, the cut-off slider (default 30% kept), Background [Blurred | Black],
    Fill's part [Middle | Brightest area], the sharpness guard, the preview on the page, tuned
    on a tuning page with the user's picks. All in 0.6.0. Order: A1 → the tuning page (A2, by
@@ -1813,8 +1814,9 @@ change in A1's rules.
 After A1, A2 and J2 (both change `Store`). Each set computes the placement from the stored
 picture (the importance map once per picture, kept with it), then: Fill as today (the crop
 rectangle, `setStream`), anything with bands drawn as F1's Fit (`setBitmap` on a screen-sized
-bitmap) on the blurred or black background. The prefs `size` (`auto`, `fill`, `fit`; from
-F1's `fit`: on → `fit`, else `auto`), `cutoff`, `background`, `part`. A part chosen with ⛶
+bitmap) on the blurred or black background. The prefs `size` (`auto`, `fill`; F1's `fit`, on
+test devices only, becomes `auto` with the cut-off at its far end), `cutoff` (its far end: the
+whole picture, no floor), `background`, `part`. A part chosen with ⛶
 still wins. Memory: the blurred background from a small copy, one screen-sized bitmap.
 - **Tablet:** a wide, a square, an upright and a tiny picture in each mode, both backgrounds,
   both parts; `dumpsys wallpaper` and screenshots of both screens.
@@ -1822,9 +1824,10 @@ still wins. Memory: the blurred background from a small copy, one screen-sized b
 
 ### [ ] A4. Settings: Size, the cut-off, Background, Fill's part (Opus, medium)
 
-After A3. Size [Auto | Fill | Fit] in Setup (the draft, as F1's), default Auto. Advanced
+After A3. Size [Auto | Fill] in Setup (the draft, as F1's), default Auto. Advanced
 settings: the cut-off slider (while Size is Auto; placeholder "Fit when Fill would cut off
-more than 70%"), Background [Blurred | Black] (while Size isn't Fill), Fill's part [Middle |
+more than 70%", its far end "Always the whole picture"), Background [Blurred | Black] (while
+Size is Auto), Fill's part [Middle |
 Brightest area]. Part of the draft, as Size (they change what a screen shows). ⛶ as today with
 Fill and with Auto when it fills. Texts are placeholders for the user's look on the tablet.
 - **Done when:** built, the tablet passes, the texts listed for the user.

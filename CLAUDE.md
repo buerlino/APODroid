@@ -865,6 +865,19 @@ leaves a 3:2 picture a strip of 30% of the screen's height. Decided:
 - **Preview on the page**: the picture as the home and lock screens will show it (the size,
   part and background chosen, the clock and dock drawn in), and one line saying why ("Auto:
   filled from the brightest area").
+- **Learned from the user's picks** (user, 2026-10-22: "the shape alone doesn't decide it": a
+  wide picture sometimes wants Fill, sometimes not; and a fitted panorama is a thin strip, which
+  the user is against): Auto's decision is a small model (a handful of weights over numbers per
+  picture: the share of what matters each frame keeps, how spread the subject is, where the
+  bright subject sits, the enlargement, the empty sky), fitted to the user's picks on a picking
+  page (https://claude.ai/artifact/EHeAzSEZHyvBd9qyo7RzA8, private, the picks in its database). Checked on pictures it
+  wasn't fitted on (train on part, test on the rest, the agreement reported honestly). No
+  neural network, no ML library (a library and a 5–100 MB model in the APK, a non-free blob for
+  F-Droid, and a few hundred picks can't train it). Auto never shrinks a picture to a thin
+  strip: the zoom stops at a floor (the picks decide it). Learning on the phone per user (a
+  "Tune Auto to my taste" set, or from ⛶ moves): after 0.6.0 (user). The pictures: 253 APOD
+  picture posts, 27 Dec 2025 to 1 Oct 2026, at `?h=640` in `private/pictures/` (posts in
+  `private/last100.json` and `private/older200-2026-10-22.json`).
 - **The tuning page**: `:core`'s placement renders the real pictures in a unit test (JDK
   `ImageIO`, the test only), a page shows them and the user picks the best version of each;
   the defaults (cut-off, weights, zoom) are tuned to the picks. What the page shows is what the

@@ -1792,6 +1792,15 @@ copy of the picture (`IntArray` ARGB, about 256 px wide; the app decodes it with
 
 ### [ ] A2. The tuning page (by day, with the user)
 
+**The picking page** (2026-10-22 evening, before A1, rendered in Python and ImageMagick from
+`private/pictures/`): 253 pictures × six versions (Fill middle, Fill brightest, zoom 80% and
+60% of the screen's height on blur, Fit on blur, Fit on black), the user taps the one they'd
+want; "No preference", "Skip", a note. The picks in the page's database (`picks/<date>`:
+`pick`, `note`, `at`), read with `ArtifactData`. Then: the features per picture (in Python
+first, then the same in A1's Kotlin), a logistic model fitted on part of the picks and tested
+on the rest (the agreement on unseen pictures reported), its weights and the zoom floor into
+A1; A1's renderer then shows the Kotlin result beside the picks.
+
 A page (an artifact with its own small database) from A1's renderer: per picture the
 variants (Auto at the current values, Fill middle, Fill brightest, Fit blur, smart zoom where
 it differs), the user picks the best one per picture. Then the weights, the default cut-off

@@ -314,8 +314,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture; a Set renames it to `fallback.jpg` only when its own draft holds the pick (`draftFallback`, `Store.saveSetup`'s `pick`; user, 2026-10-22, B11: B8 renamed whatever was there, so a Set in a second page without a pick replaced the stored "my picture" with the first page's unset one). A Set without a pick leaves `fallback.jpg` and the draft file, for the page that owns it. **The daily switch acts at once, both ways** (S4f2; user,
     2026-10-20 evening: a setting that changes how the whole app works must act at once; S4 had
     it in the draft): off writes `daily` and cancels the job; on writes it, starts the stored
-    setup afresh (`Store.startAfresh`: `restartAndForget` with the stored columns, the clock
-    restarts, both records forgotten, as 0.5.0's switch did), `update(page = true, show)` sets
+    setup afresh (`Store.startAfresh`: `restartAndForget` with the stored columns, both
+    records' pictures forgotten, the change times kept since J1), `update(page = true, show)` sets
     the **stored** setup while `daily` is still on, then the job is scheduled as after Set; the
     other draft changes stay a draft. Toasts "Wallpaper set" or "Couldn't set the wallpaper",
     none when nothing was set (the status line says it). Turned on while a Set, an update or its
@@ -334,8 +334,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   - **Set as wallpaper**: one button at the end of the Wallpaper section, both modes, the daily
     switch on or off, no Home / Lock / Both menu, enabled unless a Set or the daily switch's run goes. It saves the whole
     draft in one commit (`Store.saveSetup`: the settings, the list with its `lastScreens`, the
-    parts, "my picture" renamed from `fallback-draft.jpg` to `fallback.jpg`), restarts the
-    clock and forgets the records (`:core`'s `restartAndForget`; Turns), then
+    parts, "my picture" renamed from `fallback-draft.jpg` to `fallback.jpg`), forgets the
+    records' pictures, the change times kept (`:core`'s `restartAndForget`; Turns and the picture time), then
     `update(page = true, show, set = true)` fetches what a newly offered source needs and sets
     each screen afresh (a changed Fit or "my picture" too, the same picture again), also with
     the daily switch off (a one-off set of the same setup), then schedules
@@ -683,7 +683,7 @@ belongs to) and `wallpaperSetAt`. Both screens
 due the same picture: one set with both flags (one wallpaper); else `FLAG_SYSTEM` and
 `FLAG_LOCK` each (M0). Each screen's record is written right after its own set; a failed set
 leaves it, so the retry sets that screen only. Set ("Set as wallpaper", S4) writes the
-settings, the clock and the records in one commit (`Store.saveSetup`), then `update(set =
+settings and the records in one commit (`Store.saveSetup`), then `update(set =
 true)` sets, also with `daily` off; `update` returns `Updated` (what it set, whether a set
 failed, the first failure) and throws only a stop. The page reads home's record, the lock screen's
 when only it has a column (APOD mode with "Where" = Lock). The sources in use (the job): the
@@ -750,44 +750,72 @@ bumps, taken by each run at its start), so the next on schedules at once (`:core
 schedules it again when `daily` is on and the job is missing or has another timing
 (`DailyJob.ensure`; scheduling the same id again would stop a running job).
 
-**Turns** (0.5.0, WP5; proposed 2026-10-16, approved by the user 2026-10-17; per screen since
-0.6.0, M1/M2, 2026-10-20, the rules in `Screens.kt`). A column with two or more takes turns on
-**one shared clock**, `turnStartedAt`, read once per run for both screens: a screen whose
-`wallpaperStamp` isn't the clock's value is due its next source in order (APOD → NASA → Earth,
-round to itself) with a stored picture, and takes the value. The clock restarts (written
-first) when the turn is `interval` old (less 30 min: the job may run up to its flex early),
-never for an early change (the owner unticked, or with nothing to show: no picture yet, an
-APOD video with "Keep"), which moves the owner but not the stamp, so it ends with the turn.
-When no ticked source has a picture the screen keeps its picture, and an owner no longer ticked
-there gives way to the column's first (B14, CR 1: it stayed and its picture was set, after a Set
-to NASA and Earth while both failed, on a screen where APOD wasn't ticked any more). A
-newer post of the owner is set at once and keeps its turn. **The stand-in** fills APOD's turn
+**Turns and the picture time** (0.5.0's turns, WP5; per screen since 0.6.0, M1/M2; by the
+clock since J1, 2026-10-23: the rules of Next features, 0.6.0: the picture time; in `:core`'s
+`PictureTime.kt` and `Screens.kt`, `PictureTimeTest`, `ScreensTest`). **The change times:**
+"New picture at" (`pictureAt`, an hour, 06:00 by default) and, for a column with two or more
+(turns), every "Change every" from it (`pictureAt` + k × `interval`); a column with one source
+changes at `pictureAt` only. Local time, on the clock's hours: a DST day has 23 or 25 hours
+between two 06:00s; an hour that doesn't exist comes at the gap's end (02:00 on 28 Mar 2027 in
+Zurich at 03:00), one that happens twice counts once, the first (`PictureTime.last`, `next`,
+`isChangeTime`). 0.6.0's Set clock (`turnStartedAt`, `isTurnOver`, `turnSlack`) is gone; the
+pref is no longer read. Each screen's record notes the change time it belongs to
+(`wallpaperStamp`) and, per source, the last post it showed (date and picture URL; J1's notes,
+`shownDate`/`shownUrl`, `lock.` for the lock screen). **The rules** (`dueWallpapers`, every run,
+page or job):
+1. **A change time since the record's stamp:** with one source the screen is due its newest
+   picture (no set when it's on already) and takes the change time; with several the next
+   source after its owner (APOD → NASA → Earth, round to itself) among its ticked sources whose
+   newest post this screen hasn't shown (`Stored.isNew`), and takes the change time. Missed
+   change times (the phone off) make one change, not one each.
+2. **The window:** for 3 hours after the change time (`pictureWindow`) a newer picture of the
+   owner, seen by a check, still replaces it (the change time kept); after it, the next change
+   time. A pull counts as in the window (`pull`; J2 wires it).
+3. **Nothing new** (several sources only): the picture and the stamp stay, so every check tries
+   again (the screen **waits**, `waiting`): the first new picture of a ticked source goes on as
+   soon as a check sees it (the next in order when two are), with the change time of then. A
+   screen with one source never waits.
+A stamp that isn't a change time (M2's migrated 0.5.0 clock, 0.6.0's own Set clock, a time zone
+changed since) or lies ahead (the clock set back) counts as the current change time: it takes
+it, and nothing is set until the next one (but by a pull). **The stand-in** fills APOD's turn
 on an APOD video day on every screen where APOD is ticked, with turns too (NASA's, Earth's or
-the user's own picture; with "Keep" a screen with APOD alone keeps its picture, one with turns
-passes to the next source); the record keeps APOD as the owner. **Set** (S4, 2026-10-20;
-`:core`'s `restartAndForget`, then `setDue`): the
-clock restarts (to now); the records of the screens with a column are forgotten (picture
-dropped, owner kept) and those on the current turn take the new stamp (one still due a retry
-keeps its old stamp, so it moves on), so each screen gets what the setup says afresh, the same
-picture again after a changed Fit or "my picture". Turning the daily switch on (S4f2,
-`Store.startAfresh`) does the same with the stored columns, saving nothing else. A screen left
-alone (an empty column) keeps its record. A screen whose column was empty starts without a record (its owner is removed):
-it was left alone meanwhile, so its record is stale. A screen with no record (the lock screen
-after migrating "Home", a fresh install, such a column) starts on the other screen's owner if
-ticked there, else the first ticked source with a picture. **Equal columns** (the same
-sources on both screens; B2, 2026-10-20 night): the lock screen takes home's owner and stamp,
-in every run (`dueWallpapers`), so both are due one picture and get one set; home with no
-record starts on the lock screen's owner. So they match again after a Set from columns that
-differed and after a failed set on one screen (its retry takes home's source, not its own
-next one). Columns that differ: each screen its own owner, one clock. A changed interval takes effect
-with Set. The job: with turns (a column with two or more, `Store.hasTurns`), period `min(interval, 6 h)` with a 15 min flex (Android raises it to 5 % of the period:
-18 min at 6 h), so turns come at even times; such a job doesn't run at once when scheduled, so
-switching on offline waits up to a period. With one source 0.4.0's job (6 h, flex 6 h).
-A `turnStartedAt` in the future (the clock set back) counts as a turn that is over
-(WP7g; on the tablet, U7: the next source set at once, the turn fresh). `run -f` runs push the job's next window one period further each (seen: +21 h after 7 runs);
-Set schedules it afresh while a column takes turns, else only when its timing changes (S4f1). A video-day choice or the mode switch
-in the draft while an update runs makes the page run one more after it (that one read the
-offered sources before).
+the user's own picture; with "Skip it" APOD has nothing new, so a screen with APOD alone keeps
+its picture and one with turns goes to the next new source or waits); "new" is APOD's post
+being new, and the record keeps APOD as the owner. A stand-in shown counts as shown for its own
+source too (and APOD's video post for APOD), so NASA isn't put on twice. When an owner is no
+longer ticked, or a forgotten picture's owner has nothing to show, it gives way to the next new
+source, else the next with any picture; with none the screen keeps its picture (CR 1: an
+unticked source's picture never goes on). **Set** (S4; J1: `restartAndForget` without the
+clock, then `setDue`): the records of the screens with a column are forgotten (the picture
+dropped, so it goes on again with the new setup, a changed Fit or "my picture" too); a screen
+whose owner is still ticked keeps it, otherwise the next new source, else the next with any
+picture; each takes the current change time as its stamp, so the next run doesn't move it on
+and the next change comes at the next change time (a waiting screen stops waiting). The notes
+stay; the change times don't move. Turning the daily switch on (S4f2, `Store.startAfresh`) does
+the same with the stored columns, saving nothing else. A screen left alone (an empty column)
+keeps its record. A screen whose column was empty starts without a record (its owner is
+removed): it was left alone meanwhile, so its record is stale. A screen with no record (the
+lock screen after migrating "Home", a fresh install, such a column) starts on the other
+screen's owner if ticked there, else the first ticked source with a picture, with the current
+change time, and is set at once. **Equal columns** (the same sources on both screens; B2,
+2026-10-20 night): the lock screen takes home's record (owner, stamp, notes) and picture in
+every run, so both are due one picture and get one set; home with no record starts on the lock
+screen's owner. So they match again after a Set from columns that differed and after a failed
+set on one screen (its retry takes home's picture). Columns that differ: each screen its own
+owner, the same change times. A changed interval or picture time takes effect with Set.
+**The next run** (`nextRun(now, zone, failures, time, turns, offset, waiting)`, for J2's
+alarms): the earliest of the next change time; within the window 15 min after the change time,
+then hourly (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone); hourly
+while a screen waits, until the next change time; after a failed or stopped run 15 min later,
+then hourly (`failures`, the failed runs in a row). The clock's checks come a per-device offset
+later (`randomOffset`, 0–10 min in whole seconds, drawn once by J2; kept in range); the retries
+count from the run. No model of each source's posting time. **Until J2** (`Store`, the bridge):
+`pictureAt` is 06:00, the zone the system's, the offset unused; the job is still 0.6.0's (with
+turns, period `min(interval, 6 h)` with a 15 min flex; with one source 6 h, flex 6 h), so a
+change comes at the first job run after its change time, and a page open sets only what the
+rules say (a new post outside the window waits). A video-day choice or the mode switch in the
+draft while an update runs makes the page run one more after it (that one read the offered
+sources before).
 
 Seen on the tablet (Android 15, 2026-10-17): `Num Required Flexible constraints: 0` for the
 job, so Android doesn't hold it back for charging or idle; the same on the FP6 (Android 16, WP8).

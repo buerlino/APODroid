@@ -841,6 +841,11 @@ out" is 21:05 in Los Angeles, 06:05 in Berlin, 15:05 in Sydney. Decided:
   wake nothing (they wait for a maintenance window), as 0.5.0 saw. `setAndAllowWhileIdle`
   alone has a 1 h window (measured only in the pair). So: the pair of alarms starts the run,
   the periodic job stays as the fallback, no new permission (J2).
+- **Optimized phones get the picture late, accepted** (user, 2026-10-23): with the battery
+  setting Optimized, Android holds the run's network in Doze until its next maintenance window,
+  so the new picture can come hours after the picture time (the same morning on the tablet:
+  06:29 for 06:00, but up to 2½ h in J0). The pause hint's "Unrestricted" line says so (J3's
+  text). Not tried: fetching inside the alarm's 10 s allowance (`temporaryAppAllowlistDuration`).
 - Built in 0.6.0 (user: before P, the release waits for it); V7 runs on the new job.
 
 **0.6.0: the picture** (user, 2026-10-22 evening; packages A1, A3, A4 in `plan-0.6.0.md`).

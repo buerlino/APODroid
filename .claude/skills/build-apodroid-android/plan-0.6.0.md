@@ -1758,8 +1758,9 @@ them: `AlarmManager.setWindow(RTC_WAKEUP, T, 10 min)` and `setAndAllowWhileIdle(
 T)` (no permission; the same receiver); the first that fires starts the run (a one-off job
 without delay and with any network), the second finds nothing due. The periodic job stays as
 the fallback (it lands at Doze's maintenance windows). Expect: Unrestricted about T + 10 min;
-Optimized the alarm on time but the run at the next maintenance window (up to hours, in Doze):
-the pause hint's "Unrestricted" line gains this reason (a text for the user). Re-arm when an
+Optimized the alarm on time but the run at the next maintenance window (up to hours, in Doze;
+accepted by the user, 2026-10-23, no second probe night): the pause hint's "Unrestricted" line
+gains this reason (a text for the user, in J3). Re-arm when an
 alarm fires, after each run, at boot (`RECEIVE_BOOT_COMPLETED`, granted) and in
 `DailyJob.ensure`; the job (or its alarm) is armed for J1's
 `nextRun` after each run, Set, the daily switch on, a settings change, `onResume`'s `ensure`,

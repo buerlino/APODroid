@@ -339,9 +339,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
     `update(page = true, show, set = true)` fetches what a newly offered source needs and sets
     each screen afresh (a changed Fit or "my picture" too, the same picture again), also with
     the daily switch off (a one-off set of the same setup), then schedules
-    or cancels the job as the stored daily switch says (not part of the draft; after the set: a job without turns runs at
+    or cancels the job as the stored daily switch says (not part of the draft; after the set: a freshly scheduled job runs at
     once and would set first; with turns `DailyJob.schedule` afresh, so the period starts with
-    the restarted clock, else `ensure`). The shown picture decides nothing: to put Earth on a screen,
+    the Set, else `ensure`, which keeps the job's window when the timing is unchanged; until J2's
+    alarms, Background update). The shown picture decides nothing: to put Earth on a screen,
     tick Earth (0.5.0's "set the shown picture" dropped). A source whose fetch fails: the setup
     is saved anyway and each screen gets what has a picture (Turns). Toasts: "Wallpaper set"
     when a screen was set, also by a page load or the job that set the saved setup before Set's
@@ -701,7 +702,7 @@ the refresh lock: ★ would wait seconds for a set), so a page and a job running
 the page calls them off the main thread.
 Failures return `needsReschedule` (30 s exponential backoff). Set with the daily switch on
 schedules the job after its set: with turns afresh (`DailyJob.schedule`: the period starts with
-the restarted clock; `ensure` would keep the old windows and the first turn would end up to a
+the Set; since J1 the change times don't move with it, so until J2 a change comes at the first run after it; `ensure` would keep the old windows and the first turn would end up to a
 period late), otherwise `ensure` (a fresh one without turns runs at once and would set first; with the
 timing unchanged it schedules nothing and the job keeps its window: B14 on the tablet, +6 h
 after a run; whether Android keeps the window when the timing changes, V9's case, is P's); off

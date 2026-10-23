@@ -207,7 +207,6 @@ class MainActivity : ComponentActivity() {
     // The draft: what the settings show and change, until Set saves it all ([Store.saveSetup]).
     // Kept across a rotation and the system killing the app (onSaveInstanceState), not a restart.
     private var where by mutableStateOf(Where.BOTH)
-    private var fit by mutableStateOf(false)
     private var videoDays by mutableStateOf(VideoDays.KEEP)
 
     /** The switch "More NASA pictures": the list instead of "Where", all three sources offered. */
@@ -231,7 +230,7 @@ class MainActivity : ComponentActivity() {
      * it (the status lines, the chip, the video notice, the problem box, the battery hint, the
      * opening page), the controls the draft.
      */
-    private var stored by mutableStateOf(Setup(false, Where.BOTH, emptyMap(), Interval.DAY, false, VideoDays.KEEP, emptyMap()))
+    private var stored by mutableStateOf(Setup(false, Where.BOTH, emptyMap(), Interval.DAY, VideoDays.KEEP, emptyMap()))
 
     /** "My picture" as set ([Store.fallbackFile]). */
     private var hasFallback by mutableStateOf(false)
@@ -391,14 +390,13 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, fit, videoDays, parts, stored.pictureAt)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, stored.pictureAt)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
         where = setup.where
         list = setup.list
         interval = setup.interval
-        fit = setup.fit
         videoDays = setup.videoDays
         parts = setup.parts
     }
@@ -948,12 +946,6 @@ class MainActivity : ComponentActivity() {
         store.saveLimit = mb
     }
 
-    /** The draft's Fill or Fit: with Fit there's no part to choose, so crop mode closes. */
-    private fun chooseFit(on: Boolean) {
-        fit = on
-        if (on) cropping = false
-    }
-
     private fun closeWeekdayDialog(forever: Boolean) {
         weekdayDialog = false
         if (forever) {
@@ -1024,9 +1016,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** ✓: crop mode closes and the frame's place is [post]'s part in the draft. */
+    /** ✓: crop mode closes and the frame's place is [post]'s part in the draft (its whole picture kept). */
     private fun keepPart(post: Post) {
-        parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition))
+        val whole = parts[post.source]?.takeIf { post.isNoted(it.date, it.url) }?.whole ?: false
+        parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition, whole))
         cropping = false
     }
 
@@ -1216,34 +1209,32 @@ class MainActivity : ComponentActivity() {
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
-            // ✓ keeps the chosen part in the draft (Set stores it). With Fit there's no part to choose.
-            if (!fit) {
-                IconButton(
-                    onClick = {
-                        if (!crop) {
-                            cropPosition = draftPosition(post)
-                            cropping = true
-                        } else {
-                            keepPart(post)
-                        }
+            // ✓ keeps the chosen part in the draft (Set stores it).
+            IconButton(
+                onClick = {
+                    if (!crop) {
+                        cropPosition = draftPosition(post)
+                        cropping = true
+                    } else {
+                        keepPart(post)
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(8.dp)
+                    .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+            ) {
+                // The draft's part differs from the stored one: in tertiary until Set.
+                val partChanged = draftPosition(post) != storedPosition(post)
+                Text(
+                    if (crop) "✓" else "⛶",
+                    Modifier.clearAndSetSemantics {
+                        contentDescription = if (crop) "Done" else "Choose the wallpaper's part"
+                        if (partChanged) stateDescription = "not set yet"
                     },
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(8.dp)
-                        .background(Color.Black.copy(alpha = 0.4f), CircleShape),
-                ) {
-                    // The draft's part differs from the stored one: in tertiary until Set.
-                    val partChanged = draftPosition(post) != storedPosition(post)
-                    Text(
-                        if (crop) "✓" else "⛶",
-                        Modifier.clearAndSetSemantics {
-                            contentDescription = if (crop) "Done" else "Choose the wallpaper's part"
-                            if (partChanged) stateDescription = "not set yet"
-                        },
-                        color = if (partChanged) MaterialTheme.colorScheme.tertiary else Color.White,
-                        fontSize = 24.sp,
-                    )
-                }
+                    color = if (partChanged) MaterialTheme.colorScheme.tertiary else Color.White,
+                    fontSize = 24.sp,
+                )
             }
             IconButton(
                 onClick = { savePicture(post) },
@@ -1536,8 +1527,6 @@ class MainActivity : ComponentActivity() {
                         Segments(Interval.entries.map { it to it.label }, interval, changed) { interval = it }
                     }
                 }
-                Heading("Size", fit != stored.fit)
-                Segments(listOf(false to "Fill", true to "Fit"), fit, fit != stored.fit, ::chooseFit)
                 if (daily) {
                     Heading("If APOD is a video", videoDaysChanged())
                     // With the list: greyed out, not hidden, while APOD has no tick, so the page doesn't move.
@@ -1588,7 +1577,7 @@ class MainActivity : ComponentActivity() {
     /** Anything in "Setup" the draft changed: what the shown mode's settings differ in from the stored setup. */
     private fun setupChanged(): Boolean =
         (if (allSources) Source.entries.any(::rowChanged) else where != stored.where) ||
-            interval != stored.interval || fit != stored.fit || videoDaysChanged()
+            interval != stored.interval || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
     private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
@@ -1599,7 +1588,7 @@ class MainActivity : ComponentActivity() {
     /**
      * "Setup"'s summary while it's closed, of the stored setup: "APOD on both screens" (APOD
      * mode), else each ticked source "NASA on home screen", joined by ", "; " · turns every 6 h"
-     * while a screen takes turns and the daily switch is on; " · Fill" or " · Fit".
+     * while a screen takes turns and the daily switch is on.
      */
     private fun setupSummary(): String {
         fun on(screens: Set<Screen>) = when (Where.entries.first { it.screens == screens }) {
@@ -1613,7 +1602,7 @@ class MainActivity : ComponentActivity() {
             stored.list.ticked().joinToString(", ") { "${it.shortLabel} on ${on(stored.list.screensOf(it))}" }
         }
         val turns = if (daily && stored.columns.values.any { it.size >= 2 }) " · turns every ${stored.interval.label}" else ""
-        return "$sources$turns · ${if (stored.fit) "Fit" else "Fill"}"
+        return "$sources$turns"
     }
 
     /**
@@ -1979,9 +1968,8 @@ private fun Setup.toBundle() = Bundle().apply {
     putString("where", where.name)
     Screen.entries.forEach { screen -> putString("list.${screen.name}", list[screen].orEmpty().joinToString(",") { it.name }) }
     putString("interval", interval.name)
-    putBoolean("fit", fit)
     putString("videoDays", videoDays.name)
-    parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.url.orEmpty()}") }
+    parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.whole}|${part.url.orEmpty()}") }
 }
 
 /** [toBundle]'s draft, or null when it can't be read. */
@@ -1994,11 +1982,10 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
             Source.entries.filter { it.name in names }
         },
         interval = Interval.valueOf(bundle.getString("interval")!!),
-        fit = bundle.getBoolean("fit"),
         videoDays = VideoDays.valueOf(bundle.getString("videoDays")!!),
         parts = Source.entries.mapNotNull { source ->
-            bundle.getString("part.${source.name}")?.split('|', limit = 3)?.let { (date, position, url) ->
-                source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat())
+            bundle.getString("part.${source.name}")?.split('|', limit = 4)?.let { (date, position, whole, url) ->
+                source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict())
             }
         }.toMap(),
     )

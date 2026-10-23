@@ -153,4 +153,13 @@ class BackgroundTest {
             assertTrue(red[y * bw + 20] in 1..165)
         }
     }
+
+    @Test
+    fun edgeCopyIs200WideInThePicturesShape() {
+        assertEquals(200 to 133, edgeCopySize(1600, 1067))
+        assertEquals(200 to 251, edgeCopySize(4455, 5592))
+        assertEquals(200 to 1, edgeCopySize(6000, 10))
+        assertEquals(150 to 90, edgeCopySize(150, 90))
+        assertEquals(200 to 300, edgeCopySize(200, 300))
+    }
 }

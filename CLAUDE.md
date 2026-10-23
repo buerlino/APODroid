@@ -274,9 +274,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   opens and closes the draft's settings (a button for screen readers, "expanded"/"collapsed";
   closed: a summary of the **stored** setup under it, "APOD on both screens" in APOD mode (or "home screen", "lock screen", as the stored "Where" says), else
   "NASA on home screen, Earth on both screens", then " · turns every 6 h" while a screen takes
-  turns and the daily switch is on, then " · Fill" or " · Fit"): in APOD mode **Where**, with
+  turns and the daily switch is on; " · Fill" or " · Fit" went with Size in A3): in APOD mode **Where**, with
   the switch "More NASA pictures" on **Pictures from** (the list) and, while the daily switch
-  is on and a column takes turns, "Change every"; "Size"; while the daily switch is on "If APOD
+  is on and a column takes turns, "Change every"; while the daily switch is on "If APOD
   is a video". Closed at a fresh start; it opens by itself while the draft differs from the
   store in it, when "More NASA pictures" is turned (the area swaps), and closes after a Set
   that saved (also "Setup saved. Nothing to set yet."; a failed set leaves it open). Its state
@@ -400,7 +400,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
     not fixed), APOD mode's only (the list has its columns). Default: both. Its segments, like "Change every"'s, share one
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
-  - **Size** [Fill | Fit] (goes in A4: always Fill, a whole picture per post from ⛶ mode; Size
+  - **Size** [Fill | Fit]: **gone** (A3, 2026-10-24 night, with the pref `fit`, never released and
+    ignored on test devices; the plan had the row go in A4, but without the pref it set nothing).
+    Was: (always Fill, a whole picture per post from ⛶ mode; Size
     returns in 0.7.0 as [Fill | Live]; Next features, 0.6.0: the picture, 2026-10-22) (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; the heading
     "Size" (was "Fit") and the choices approved by the user in C, 2026-10-20): under "Where" or "Change every". One
     setting for both screens, so one picture is still one set. Fill: the screen's shape cut from
@@ -591,6 +593,16 @@ set it as wallpaper, and on video days kept the old wallpaper.
   bitmap of the screen's portrait size (about 11 MB on the FP6) and set with `setBitmap`, the
   hint all of it. `info.size` and `setTargetSize` are the upright size on Android 10 and later
   (AOSP's `ImageDecoder.cpp`; an EXIF-turned "my picture" with Fit is checked in V1).
+  **The whole picture** (A3, 2026-10-24 night; F1's Fit setting gone): per post, beside ⛶'s
+  part (`<source>.whole`, keyed by the part's `cropDate`/`cropUrl`, so a new post drops it;
+  `Part.whole`, part of the draft until Set; A4 adds its toggle in ⛶ mode). Each set of a
+  source's post with it: drawn as Fit above (`setBitmap`, the hint all of it) on black when
+  `:core`'s `edgesBlack` says so (an upright grey copy decoded straight to `edgeCopySize`, 200
+  px wide), else on the blurred background (the picture's middle in the screen's shape,
+  decoded halved while it still covers `blurSize`, scaled to it, `blurBackground`, drawn
+  enlarged to the screen with filtering). Otherwise Fill at the stored part, else the middle
+  (`setStream` with the crop, as before). The user's own picture (video days): always Fill,
+  centred (no whole picture).
   **Home and lock set separately** (M0, 2026-10-20; tablet, Android 15; the FP6 unchecked):
   both flags make one shared wallpaper (`dumpsys wallpaper`: `id=154: mWhich=3`, "Lock
   wallpaper state" empty); `FLAG_SYSTEM` alone first moves the shared one to the lock screen

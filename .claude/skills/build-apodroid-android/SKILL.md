@@ -25,6 +25,9 @@ packages unattended): `night.md`.
   also the crop hint, and `fitFrame`, where the whole picture goes on the screen with Fit (F1)
   (tests in `FrameTest`; a hint widened for landscape was tried and dropped, `CLAUDE.md`,
   Wallpaper).
+  `core/.../Background.kt` (0.6.0, A1): the background behind a whole picture: `edgesBlack`
+  (black or blurred, from a small grey copy; `gray` for an ARGB pixel), `blurSize`,
+  `blurRadius`, `blurBackground` (tests in `BackgroundTest`).
   `core/.../Turn.kt`: `nextSource` (the next ticked source in order for which a test holds;
   tests in `TurnTest`; the Set clock, `isTurnOver` and `turnSlack`, went in J1).
   `core/.../PictureTime.kt` (0.6.0, J1): `PictureTime(pictureAt, everyHours)` with `hours`,

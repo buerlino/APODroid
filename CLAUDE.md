@@ -953,7 +953,15 @@ library (ML Kit needs Play Services; Tesseract is large). Decided:
   black when the picture's edges are nearly black (a planet or a moon on space: the picture
   blends in), else blurred: the picture enlarged to cover the screen, blurred properly (passes
   of a box blur on a small copy, no blocky upscale) and darkened. Why not always blurred: the
-  enlarged copy of a bright planet becomes a large glow behind it, not black.
+  enlarged copy of a bright planet becomes a large glow behind it, not black. Built in
+  `:core` (A1, the night of 2026-10-23/24; `Background.kt`, `BackgroundTest`; the thresholds
+  are the night's defaults, for the user to approve): `edgesBlack` on a grey copy about 200 px
+  wide, true when at least 97% of the outer strip (3% of each side, rounded up, at least 1 px)
+  has a grey value up to 40 of 255; `blurBackground` on the picture's middle in the screen's
+  shape, decoded at `blurSize` (a quarter of the screen's width and height, 1/16 of its
+  pixels): three box-blur passes each way of `blurRadius` (1/25 of the copy's shorter side,
+  11 px on a 1080×2400 screen), the edge pixels extended outwards, then 35% darker, opaque.
+  The app (A3) uses them.
 - **Dropped** (user, 2026-10-23 night, the simplification): the Background setting [Blurred |
   Black] (the edges decide), Fill's part [Middle | Brightest area] (always the middle, ⛶ moves
   it: the picks showed no gain), a "Whole picture" switch for "my picture" (Fill, centred, as

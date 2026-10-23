@@ -98,6 +98,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -253,6 +254,9 @@ class MainActivity : ComponentActivity() {
     private var problemNoticeKey by mutableStateOf<String?>(null)
     private var cropping by mutableStateOf(false)
     private var cropPosition by mutableFloatStateOf(0.5f)
+
+    /** Crop mode's "Whole picture" toggle (A4): ✓ keeps it in the draft with the part, Back drops it. */
+    private var cropWhole by mutableStateOf(false)
     private val screen by lazy { store.screen }
 
     private companion object {
@@ -1016,11 +1020,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** ✓: crop mode closes and the frame's place is [post]'s part in the draft (its whole picture kept). */
+    /** ✓: crop mode closes; the frame's place and the "Whole picture" toggle are [post]'s part in the draft. */
     private fun keepPart(post: Post) {
-        val whole = parts[post.source]?.takeIf { post.isNoted(it.date, it.url) }?.whole ?: false
-        parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition, whole))
+        parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition, cropWhole))
         cropping = false
+    }
+
+    /** ⛶: crop mode opens on [post]'s draft part and whole picture. */
+    private fun startCrop(post: Post) {
+        cropPosition = draftPosition(post)
+        cropWhole = draftWhole(post)
+        cropping = true
     }
 
     /** ⛶'s part of [post] in the draft: the middle unless ✓ noted one for this post. */
@@ -1031,6 +1041,15 @@ class MainActivity : ComponentActivity() {
 
     private fun position(parts: Map<Source, Part>, post: Post): Float =
         parts[post.source]?.takeIf { post.isNoted(it.date, it.url) }?.position ?: 0.5f
+
+    /** Whether the draft shows [post] whole (A4): only if ✓ noted it for this post. */
+    private fun draftWhole(post: Post): Boolean = whole(parts, post)
+
+    /** Whether [post] is stored whole ([Store.parts]), for the highlight. */
+    private fun storedWhole(post: Post): Boolean = whole(stored.parts, post)
+
+    private fun whole(parts: Map<Source, Part>, post: Post): Boolean =
+        parts[post.source]?.takeIf { post.isNoted(it.date, it.url) }?.whole ?: false
 
     private fun openPage(url: String) {
         try {
@@ -1193,7 +1212,14 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(picture.width.toFloat() / picture.height)
-                    .then(if (crop) Modifier.cropFrame(picture, post) else Modifier.clickable { openPage(post.pageUrl) }),
+                    // With "Whole picture" on there's no frame: the page shows it whole.
+                    .then(
+                        when {
+                            crop && cropWhole -> Modifier
+                            crop -> Modifier.cropFrame(picture, post)
+                            else -> Modifier.clickable { openPage(post.pageUrl) }
+                        },
+                    ),
                 contentScale = ContentScale.FillWidth,
             )
             // Not over the crop frame.
@@ -1209,23 +1235,36 @@ class MainActivity : ComponentActivity() {
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
-            // ✓ keeps the chosen part in the draft (Set stores it).
+            // Crop mode's toggle (A4), where the chip is otherwise: the whole picture instead of a part.
+            if (crop) {
+                val wholeChanged = cropWhole != storedWhole(post)
+                Text(
+                    (if (cropWhole) "✓ " else "") + "Whole picture",
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.4f))
+                        .toggleable(cropWhole, role = Role.Switch) { cropWhole = it }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clearAndSetSemantics {
+                            contentDescription = "Whole picture"
+                            stateDescription = (if (cropWhole) "On" else "Off") + if (wholeChanged) ", not set yet" else ""
+                        },
+                    color = if (wholeChanged) MaterialTheme.colorScheme.tertiary else Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            // ✓ keeps the chosen part and the whole picture in the draft (Set stores them).
             IconButton(
-                onClick = {
-                    if (!crop) {
-                        cropPosition = draftPosition(post)
-                        cropping = true
-                    } else {
-                        keepPart(post)
-                    }
-                },
+                onClick = { if (!crop) startCrop(post) else keepPart(post) },
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(8.dp)
                     .background(Color.Black.copy(alpha = 0.4f), CircleShape),
             ) {
-                // The draft's part differs from the stored one: in tertiary until Set.
-                val partChanged = draftPosition(post) != storedPosition(post)
+                // The draft's part or whole picture differs from the stored one: in tertiary until Set.
+                val partChanged = draftPosition(post) != storedPosition(post) || draftWhole(post) != storedWhole(post)
                 Text(
                     if (crop) "✓" else "⛶",
                     Modifier.clearAndSetSemantics {

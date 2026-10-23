@@ -138,6 +138,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
@@ -219,6 +220,9 @@ class MainActivity : ComponentActivity() {
     /** The screens each source had last in the list ([Store.lastScreens]): an unticked row's dropdown. */
     private var lastScreens by mutableStateOf(emptyMap<Source, Set<Screen>>())
     private var interval by mutableStateOf(Interval.DAY)
+
+    /** "New picture at" ([Store.pictureAt], an hour 0–23): the change times start there. */
+    private var pictureAt by mutableIntStateOf(DEFAULT_PICTURE_AT)
 
     /** ⛶'s part per source ([Store.parts]); ✓ notes the shown post's. */
     private var parts by mutableStateOf(emptyMap<Source, Part>())
@@ -394,7 +398,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, stored.pictureAt)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -403,6 +407,7 @@ class MainActivity : ComponentActivity() {
         interval = setup.interval
         videoDays = setup.videoDays
         parts = setup.parts
+        pictureAt = setup.pictureAt
     }
 
     /** The draft's columns: APOD mode's from "Where", else the list. A column with two or more takes turns every [interval]. */
@@ -1516,12 +1521,12 @@ class MainActivity : ComponentActivity() {
     /**
      * Wallpaper: the daily switch (at once, S4f2), under it the status lines while it's on. Then
      * "Setup" (S5), a header that opens and closes the draft's settings (closed: the summary of
-     * what is stored): in APOD mode "Where", with the switch "More NASA pictures" on the list
-     * ("Pictures from") and, while the daily switch is on and a column takes turns, "Change
-     * every"; "Size"; while the daily switch is on "If APOD is a video". The set button, always.
-     * Then "Advanced settings", closed by default: while the daily switch is on
-     * "Save every picture" (it acts at once), and the mode switch. A setting the draft
-     * changed and Set hasn't saved shows in `tertiary` ([highlight]).
+     * what is stored): the switch "More NASA pictures" at its top (J3), then in APOD mode
+     * "Where", with the switch on the list ("Pictures from"); while the daily switch is on "New
+     * picture at", then, while a column takes turns, "Change every", and "If APOD is a video".
+     * The set button, always. Then, while the daily switch is on, "Advanced settings", closed by
+     * default: "Save every picture" (it acts at once). A setting the draft changed and Set
+     * hasn't saved shows in `tertiary` ([highlight]).
      */
     @Composable
     private fun Settings() {
@@ -1535,6 +1540,7 @@ class MainActivity : ComponentActivity() {
         val showsInterval = daily && columns.values.any { it.size >= 2 }
         LaunchedEffect(showsInterval, interval, stored.interval) { if (!showsInterval) interval = stored.interval }
         LaunchedEffect(daily, videoDays, draftFallback, stored.videoDays) { if (!daily) dropVideoDays() }
+        LaunchedEffect(daily, pictureAt, stored.pictureAt) { if (!daily) pictureAt = stored.pictureAt }
         val setupChanged = setupChanged()
         // Opens by itself while the draft differs (a rotation, the system killing the app).
         LaunchedEffect(setupChanged) { if (setupChanged) setupOpen = true }
@@ -1554,17 +1560,19 @@ class MainActivity : ComponentActivity() {
             }
             Header("Setup", setupOpen, setupChanged, summary = setupSummary()) { setupOpen = !setupOpen }
             if (setupOpen) {
+                ModeSwitch()
                 if (!allSources) {
                     Heading("Where", where != stored.where)
                     Segments(Where.entries.map { it to it.label }, where, where != stored.where) { where = it }
                 } else {
                     PictureList()
-                    // Hiding it moves the page only after a tick.
-                    if (showsInterval) {
-                        val changed = interval != stored.interval
-                        Heading("Change every", changed)
-                        Segments(Interval.entries.map { it to it.label }, interval, changed) { interval = it }
-                    }
+                }
+                if (daily) PictureAtChoice()
+                // Hiding it moves the page only after a tick.
+                if (allSources && showsInterval) {
+                    val changed = interval != stored.interval
+                    Heading("Change every", changed)
+                    Segments(Interval.entries.map { it to it.label }, interval, changed) { interval = it }
                 }
                 if (daily) {
                     Heading("If APOD is a video", videoDaysChanged())
@@ -1583,40 +1591,70 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             ) { Text("Set as wallpaper") }
 
-            val modeChanged = allSources != stored.allSources
-            Header("Advanced settings", advancedOpen, modeChanged) { advancedOpen = !advancedOpen }
-            if (advancedOpen) {
-                if (daily) {
-                    SaveEverySwitch()
-                }
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .toggleable(allSources, role = Role.Switch, onValueChange = ::switchAllSources)
-                        .semantics { if (modeChanged) stateDescription = "${if (allSources) "On" else "Off"}, not set yet" },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("More NASA pictures", Modifier.weight(1f), color = highlight(modeChanged))
-                    val colors = MaterialTheme.colorScheme
-                    Switch(
-                        checked = allSources,
-                        onCheckedChange = null,
-                        colors = if (!modeChanged) SwitchDefaults.colors() else SwitchDefaults.colors(
-                            checkedTrackColor = colors.tertiary,
-                            checkedThumbColor = colors.onTertiary,
-                            uncheckedBorderColor = colors.tertiary,
-                            uncheckedThumbColor = colors.tertiary,
-                        ),
+            // Empty while the daily switch is off: hidden then.
+            if (daily) {
+                Header("Advanced settings", advancedOpen, changed = false) { advancedOpen = !advancedOpen }
+                if (advancedOpen) SaveEverySwitch()
+            }
+        }
+    }
+
+    /** The switch "More NASA pictures", at the top of "Setup": part of the draft ([switchAllSources]). */
+    @Composable
+    private fun ModeSwitch() {
+        val modeChanged = allSources != stored.allSources
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .toggleable(allSources, role = Role.Switch, onValueChange = ::switchAllSources)
+                .semantics { if (modeChanged) stateDescription = "${if (allSources) "On" else "Off"}, not set yet" },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("More NASA pictures", Modifier.weight(1f), color = highlight(modeChanged))
+            val colors = MaterialTheme.colorScheme
+            Switch(
+                checked = allSources,
+                onCheckedChange = null,
+                colors = if (!modeChanged) SwitchDefaults.colors() else SwitchDefaults.colors(
+                    checkedTrackColor = colors.tertiary,
+                    checkedThumbColor = colors.onTertiary,
+                    uncheckedBorderColor = colors.tertiary,
+                    uncheckedThumbColor = colors.tertiary,
+                ),
+            )
+        }
+    }
+
+    /** "New picture at" (J3): a dropdown of the hours, as "Largest original"; 12/24 h as the system says. */
+    @Composable
+    private fun PictureAtChoice() {
+        val changed = pictureAt != stored.pictureAt
+        Heading("New picture at", changed)
+        Box {
+            var open by remember { mutableStateOf(false) }
+            val name = hourLabel(pictureAt)
+            DropdownButton("$name\u00A0▾", "New picture at: $name", enabled = true, changed = changed) { open = true }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                (0..23).forEach { hour ->
+                    DropdownMenuItem(
+                        text = { Text(hourLabel(hour)) },
+                        onClick = { open = false; pictureAt = hour },
+                        leadingIcon = { Text(if (hour == pictureAt) "✓" else "") },
                     )
                 }
             }
         }
     }
 
+    /** An hour as the system's clock shows it: "06:00" or "6:00 AM". */
+    private fun hourLabel(hour: Int): String =
+        LocalTime.of(hour, 0).format(DateTimeFormatter.ofPattern(if (hours24) "HH:mm" else "h:mm\u00A0a", Locale.ENGLISH))
+
     /** Anything in "Setup" the draft changed: what the shown mode's settings differ in from the stored setup. */
     private fun setupChanged(): Boolean =
-        (if (allSources) Source.entries.any(::rowChanged) else where != stored.where) ||
-            interval != stored.interval || videoDaysChanged()
+        allSources != stored.allSources ||
+            (if (allSources) Source.entries.any(::rowChanged) else where != stored.where) ||
+            interval != stored.interval || pictureAt != stored.pictureAt || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
     private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
@@ -1626,8 +1664,8 @@ class MainActivity : ComponentActivity() {
 
     /**
      * "Setup"'s summary while it's closed, of the stored setup: "APOD on both screens" (APOD
-     * mode), else each ticked source "NASA on home screen", joined by ", "; " · turns every 6 h"
-     * while a screen takes turns and the daily switch is on.
+     * mode), else each ticked source "NASA on home screen", joined by ", "; while the daily
+     * switch is on " · every 6 h from 06:00" when a screen takes turns, else " · at 06:00".
      */
     private fun setupSummary(): String {
         fun on(screens: Set<Screen>) = when (Where.entries.first { it.screens == screens }) {
@@ -1640,7 +1678,12 @@ class MainActivity : ComponentActivity() {
         } else {
             stored.list.ticked().joinToString(", ") { "${it.shortLabel} on ${on(stored.list.screensOf(it))}" }
         }
-        val turns = if (daily && stored.columns.values.any { it.size >= 2 }) " · turns every ${stored.interval.label}" else ""
+        val time = hourLabel(stored.pictureAt)
+        val turns = when {
+            !daily -> ""
+            stored.columns.values.any { it.size >= 2 } -> " · every ${stored.interval.label} from $time"
+            else -> " · at $time"
+        }
         return "$sources$turns"
     }
 
@@ -1905,7 +1948,7 @@ class MainActivity : ComponentActivity() {
             "App battery usage → tap \"Allow background usage\" → turn it on → Unrestricted"
         } else {
             "App battery usage → Unrestricted"
-        }
+        } + " (on Optimized, a new picture can come hours late)"
         // Stock Android 12–14: "Pause app activity if unused"; the test phone (Android 16): "Manage app if unused".
         val unused = "Unused app settings → \"Pause or manage app if unused\": off"
         val (missing, effect) = when {
@@ -2008,6 +2051,7 @@ private fun Setup.toBundle() = Bundle().apply {
     Screen.entries.forEach { screen -> putString("list.${screen.name}", list[screen].orEmpty().joinToString(",") { it.name }) }
     putString("interval", interval.name)
     putString("videoDays", videoDays.name)
+    putInt("pictureAt", pictureAt)
     parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.whole}|${part.url.orEmpty()}") }
 }
 
@@ -2022,6 +2066,7 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         },
         interval = Interval.valueOf(bundle.getString("interval")!!),
         videoDays = VideoDays.valueOf(bundle.getString("videoDays")!!),
+        pictureAt = bundle.getInt("pictureAt", DEFAULT_PICTURE_AT).takeIf { it in 0..23 } ?: DEFAULT_PICTURE_AT,
         parts = Source.entries.mapNotNull { source ->
             bundle.getString("part.${source.name}")?.split('|', limit = 4)?.let { (date, position, whole, url) ->
                 source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict())

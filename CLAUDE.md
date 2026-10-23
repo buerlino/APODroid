@@ -289,9 +289,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
     (`tertiaryContainer` / `onTertiaryContainer`) and the row's borders (`tertiary`), the
     list's row (tick box, name, dropdown) where that source's screens differ, the video
     dropdown's border and text (another choice, or a newly picked "my picture" while it's
-    chosen), the mode switch and its label, ⛶ (or ✓) while the shown post's draft part differs
-    from the stored one, the "Setup" header while anything in it differs (the shown mode's
-    "Where" or list, "Change every", "Size", "If APOD is a video"; not ⛶), "Advanced settings"
+    chosen), the mode switch and its label, ⛶ (or ✓) while the shown post's draft part or whole
+    picture differs from the stored one (A4), the "Setup" header while anything in it differs (the shown mode's
+    "Where" or list, "Change every", "If APOD is a video"; not ⛶), "Advanced settings"
     while the mode does. Not the daily switch or "Save every picture" (they act
     at once). Screen readers: a highlighted control's state adds "not set yet" ("Selected, not
     set yet", "Checked, not set yet", "On, not set yet"; the headers "collapsed, not set
@@ -299,7 +299,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   - **Set applies the setup** (user, 2026-10-20 evening; S4; why: a change took effect at once,
     "but maybe I'm not done"; Next features, 0.6.0). **A draft
     until Set:** "Where", the list (ticks and dropdowns), "Change every",
-    "Size", "If APOD is a video", a newly picked "my picture", ⛶'s part and the switch "More
+    "If APOD is a video", a newly picked "my picture", ⛶'s part and whole picture and the switch "More
     NASA pictures" change only the page (`MainActivity`'s draft state; no pref is written, no
     set, no scheduling). **A hidden setting goes back to the stored one** (user, 2026-10-22,
     B14, from the code review's finding 7: Set saved a hidden "Change every", and "Setup" stayed
@@ -343,7 +343,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     parts, "my picture" renamed from `fallback-draft.jpg` to `fallback.jpg`), forgets the
     records' pictures, the change times kept (`:core`'s `restartAndForget`; Turns and the picture time), then
     `update(page = true, show, set = true)` fetches what a newly offered source needs and sets
-    each screen afresh (a changed Fit or "my picture" too, the same picture again), also with
+    each screen afresh (a changed whole picture or "my picture" too, the same picture again), also with
     the daily switch off (a one-off set of the same setup), then arms
     the alarms and the fallback job or cancels them as the stored daily switch says (not part of
     the draft; after the set: a freshly scheduled fallback runs at once and would set first;
@@ -413,7 +413,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture as it was set).
   - **If APOD is a video** (was "On video days"; one setting for both modes): a dropdown (M3,
     2026-10-20: a `DropdownMenu` under an outlined button "Skip it ▾", ✓ before the chosen
-    one; were four radios), under its heading after "Size" in both modes (S2; M3 had it under
+    one; were four radios), under its heading after "Where" or "Change every" in both modes (Size gone in A3; S2; M3 had it under
     APOD's grid row), hidden while the daily switch is off; with the switch "More NASA pictures"
     on greyed out while APOD has no tick (so the page doesn't move). Never greyed out otherwise (0.5.0 greyed it with two or more ticked, under a grey line).
     At font scale 2.0 and a phone's width its "▾" wrapped alone under "NASA Image of the Day"
@@ -822,7 +822,7 @@ longer ticked, or a forgotten picture's owner has nothing to show, it gives way 
 source, else the next with any picture; with none the screen keeps its picture (CR 1: an
 unticked source's picture never goes on). **Set** (S4; J1: `restartAndForget` without the
 clock, then `setDue`): the records of the screens with a column are forgotten (the picture
-dropped, so it goes on again with the new setup, a changed Fit or "my picture" too); a screen
+dropped, so it goes on again with the new setup, a changed whole picture or "my picture" too); a screen
 whose owner is still ticked keeps it, otherwise the next new source, else the next with any
 picture; each takes the current change time as its stamp, so the next run doesn't move it on
 and the next change comes at the next change time (a waiting screen stops waiting). The notes

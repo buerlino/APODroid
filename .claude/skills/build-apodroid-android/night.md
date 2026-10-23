@@ -137,6 +137,15 @@ tablet must be free by 08:00; B14 by day with `scripts/pipeline.sh B14`, after t
 The user read CR's findings and set B14's scope (2026-10-22 morning; the plan, B14 and Remaining 4b): B14 by day, then V7
 alone the night after, by hand.
 
+Tonight (user, 2026-10-23 night; the plan, Remaining 4e): **J1, A1, J2, A3, A4, J3**, the picture time (three rules
+by the clock, one clock, the alarms retrying) and the whole picture, then the regression. J1 and A1 are `:core` only
+(no tablet). J2 waits for J1; A3 for A1 only and A4 for A3 only, so the picture work lands even if J2 needs another
+night (whichever of J2 and A3 comes second rebases on the other's `Store`); J3 waits for J2 and runs last (it and A4
+both change the settings in `MainActivity.kt`). J2 also removes the job's note and retry rules (S4f3, B5, B7, B12);
+its tablet check turns `auto_time` off for its faked clock and back on at the end (the plan, J2). J3's and A4's
+texts are placeholders the user approves from the screenshots in the morning. The night is tight: J3 and the
+regression may slip to Saturday. V7 follows on the night of 25 Oct, by hand.
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -176,6 +185,12 @@ alone the night after, by hand.
 | 35 | CR | Code review of the whole app, by reading | winston | opus, high | no | — | plan CR |
 | 36 | B13 | The brute test's bugs | winston | opus, high | yes | — | plan B13 |
 | 37 | B14 | The code review's bugs | winston | opus, high | yes | CR | plan B14 |
+| 38 | J1 | `:core`: the picture time and the three rules | winston | opus, high | no | — | plan J1 |
+| 39 | A1 | `:core`: the background, black or blurred | winston | opus, medium | no | — | plan A1 |
+| 40 | J2 | `Store` and `DailyJob`: alarms at the change times, the job simplified | winston | opus, high | yes | J1 | plan J2 |
+| 41 | A3 | `Store`: the whole picture per post, on black or blurred | winston | opus, medium | yes | A1 | plan A3 |
+| 42 | A4 | ⛶'s Whole picture toggle; Size goes | winston | opus, medium | yes | A3 | plan A4 |
+| 43 | J3 | Settings: New picture at, "More NASA pictures" into Setup, the pause hint | winston | opus, medium | yes | J2 | plan J3 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

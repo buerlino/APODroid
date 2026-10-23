@@ -259,6 +259,13 @@ Advanced settings ▸                                closed by default
 | CR | Code review of the whole app, by reading | Opus, high |
 | B13 | The brute test's bugs | Opus, high |
 | B14 | The code review's bugs | Opus, high |
+| J0 | Android check: which timed run lands with the screen off, on battery (done) | Opus, medium |
+| J1 | `:core`: the picture time and the three rules | Opus, high |
+| J2 | `Store` and `DailyJob`: alarms at the change times, the job simplified | Opus, high |
+| J3 | Settings: New picture at, "More NASA pictures" into Setup, the pause hint | Opus, medium |
+| A1 | `:core`: the background, black or blurred | Opus, medium |
+| A3 | `Store`: the whole picture per post, on black or blurred | Opus, medium |
+| A4 | ⛶'s Whole picture toggle; Size goes | Opus, medium |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
@@ -286,6 +293,7 @@ scripts/night.sh --until <HH:MM>    # B1, S4f2, S4f3, S5, F6: the queue in night
 scripts/night.sh --until <HH:MM>    # after the user's look at S5: B2, B4–B6, S6, then V3, V5, V6, V8
 scripts/night.sh --until <HH:MM>    # B10, B7, B8, B9, then the regression: the queue in night.md
 scripts/pipeline.sh B12; scripts/pipeline.sh B11    # by day, 2026-10-22
+scripts/night.sh --until <HH:MM>    # J1, A1, J2, A3, A4, J3, then the regression (2026-10-23)
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -444,6 +452,24 @@ reading; their build check passed, 108 tests with `private/`):
    Fill matched 90% of the picks, no rule did better). Order: A1 → A3 → A4, beside J1–J3 (A3
    and J2 both touch `Store`: one at a time), then V7 and P. Live (the day's pan) with the
    preview: 0.7.0, right after.
+4e. **The final plan** (user, 2026-10-23 night, after the FP6 again waited for a page open: the
+   6 h job's windows at 04:22 and 10:22 missed the 06:05 APOD; two reviews of the day's plan in
+   another session): **simplified** to the three rules, one time, one clock (`CLAUDE.md`, Next
+   features, 0.6.0: the picture time; the new settings rule under How the user works). Two new
+   controls ("New picture at" in Setup, ⛶'s "Whole picture"), the background automatic by the
+   picture's edges, "More NASA pictures" at the top of Setup, the job's note and retry rules
+   removed with the fixed times (J2). Dropped: "Turns start at", the ↑ ↓ order, "When nothing
+   is new", the "Opening the app" setting, "As soon as it's out", the per-source posting times,
+   the Background and Fill's part settings, "my picture"'s whole switch.
+   Then the third review (clock rules with a 3-hour window, the alarms retrying, the order).
+   **Tonight (Fri 23 Oct):** J1 → A1 → J2 → A3 → A4 → J3 by night shift (night.md, the queue;
+   A3 after A1 only, A4 after A3 only), then the regression (J3 and the regression may slip to
+   Saturday: the night is tight); J3's and A4's texts are placeholders the user approves in the morning
+   from the screenshots. **Sat 24:** the user's look, fixes by day. **Sun 25 to Mon 26:** V7
+   (by hand, two rosie sessions). **Mon 26 evening:** P starts with the update on the FP6 and
+   its real night to Tue 27 (P, the picture time on the FP6), the rest of P with the user.
+   Then R and T. The real 06:05 case (APOD after the picture time) happens only from 2 Nov
+   (the US switches on 1 Nov): J2's faked clock is enough (user, 2026-10-23 night).
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then R and T.
 Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
@@ -1440,9 +1466,20 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
 ### [ ] V7. Turns over hours (a night of its own, after B7–B9)
 
 **Moved after J1–J3** (user, 2026-10-22 evening): it tests the new job. Its setup then also
-takes the picture time: Home APOD alone (New picture at 06:00, the Europe case), Lock NASA +
-Earth with turns every 3 h from 06:00; session 2 checks the 06:00 (or 06:05) set and each
-turn on its fixed time. On battery (below).
+takes the picture time and the three rules (`CLAUDE.md`, Next features): Home APOD alone,
+Lock NASA + Earth every 3 h, "New picture at" 06:00 (change times 06, 09, …, 00, 03). On
+battery (below). **The night of Sunday 25 to Monday 26 Oct** (user, 2026-10-23: a weekday
+morning brings new NASA and Earth posts; the DST night is faked in J2's check instead).
+Expect, Zurich time (EU on winter time, the US not until 1 Nov: APOD at 05:05, Earth at 05:00):
+- Home: Monday's APOD on at 06:00 plus the offset and the alarm's window (about 06:00–06:20).
+  The Zurich case (yesterday's still on at 06:00) can't happen before 1 Nov; J2's faked clock
+  covers it.
+- Lock: at Set its source stays (or the other Friday picture); at 00:00 the Friday picture not
+  yet shown goes on (rule 1), if any; then nothing new, so it waits and nothing is set at 03:00
+  (the weekend); Monday's Earth goes on at the first check after 05:00 (rule 3, a waiting
+  screen's hourly checks); the 06:00 and 09:00 change times find nothing new (NASA posts in the
+  afternoon), so nothing is set.
+- Session 1 writes the expected sets with their times into `start.md` from the stored posts.
 
 (User, 2026-10-21: after B7–B12 are merged, a night with nothing else queued; session 1 at
 bedtime, session 2 in the morning before pascaline starts.) Two short rosie sessions by hand
@@ -1451,22 +1488,24 @@ least 6 hours apart, the tablet left alone between them. Real timing, so no `tur
 `run -f` (each pushes the job's window a period on). The folder for both: `.coord/runs/v7/`.
 - **Session 1 (setup, about 20 min; "Do V7"):** note the tablet's state as "For rosie" says
   (settings, the app's prefs and files) into `.coord/runs/v7/backup/`. Install the debug build of
-  master. "More NASA pictures" on, Home APOD + NASA, Lock NASA + Earth, "Change every" 3 h, daily
-  on, Set. Write `.coord/runs/v7/start.md`: the time, `turnStartedAt`, both records (`run-as cat`
-  the prefs), `dumpsys wallpaper`'s ids, the job's period, flex and next window (`dumpsys
-  jobscheduler`), the battery level. **Don't set the tablet back**: the setup must run.
+  master. "More NASA pictures" on, Home APOD alone, Lock NASA + Earth, "Change every" 3 h,
+  "New picture at" 06:00, daily on, Set.
+  Write `.coord/runs/v7/start.md`: the time, both records (`run-as cat` the prefs), the app's
+  alarms (`dumpsys alarm`), `dumpsys wallpaper`'s ids, the job's period, flex and next window
+  (`dumpsys jobscheduler`), the battery level. **Don't set the tablet back**: the setup must run.
   **On battery** (user, 2026-10-22: a phone is mostly not on power; the plan had it charging):
   the user unplugs it after the session (Wi-Fi on, the screen locked, the app in the background,
   Home). End with
-  what session 2 should expect (about two turns in 6 h, the next window).
+  what session 2 should expect (each boundary's set or keep, with its time, as above).
 - **Session 2 (read-out, about 20 min; "Do V7's second session"):** read `start.md`, then
   `dumpsys jobscheduler` (`Last successful run`, the next window), `logcat -d -s APODroid` (it
   may have rolled over: the prefs are the evidence), `dumpsys wallpaper`, the prefs, the
   battery level, `dumpsys deviceidle` (the Doze state now) and the job's `Constraint history`.
   Check: each turn came within its window (period and flex; on battery Doze may push it to a
   maintenance window: say by how much, and whether the app was `EXEMPTED` or in another
-  standby bucket), both screens on the one clock (`turnStartedAt`, each `wallpaperStamp`), no
-  screen set twice for one turn, each screen on its next source in order. Results and verdict
+  standby bucket), the alarms' times (`dumpsys alarm`) against the runs, each change on its
+  change time or at the check that saw a new post, no screen set twice for one change time, no
+  set of a picture the screen had shown, each change to the next source with a new picture. Results and verdict
   (PASS, FIX, STOP) in `.coord/runs/v7/report.md` (Tests, Not tested); the morning copies them
   into the skill's "Still untested". **Then** set the tablet back from `backup/`.
 
@@ -1722,94 +1761,197 @@ periodic job runs at its window's end, which wakes it. Measure it, don't guess.
 - **Done when:** both sessions ran, the table and the recommendation written, the tablet set
   back, the probes uninstalled.
 
-### [ ] J1. `:core`: the picture time and turns on fixed times (Opus, high)
+### [ ] J1. `:core`: the picture time and the three rules (Opus, high)
 
-Pure Kotlin, tested with JUnit (`PictureTimeTest`), no Android. After J0 only if J0 changes
-what `:core` must compute (it shouldn't: J0 picks the mechanism, J1 the times).
-- The settings as values: `pictureAt` (an hour 0–23, or null: as soon as it's out; default 6),
-  `turnsFrom` (an hour, or null: when Set was tapped; default 6), `openWaits` (default true).
-- Expected posting times per source: APOD 00:05 US Eastern daily, Earth 00:00 US Eastern on
-  weekdays, NASA unknown (weekdays, 14:00–22:00 UTC, `CLAUDE.md`, Other sources).
-- **May a newer post go on now?** With `pictureAt`: from the latest local `pictureAt` that
-  passed, the newest post goes on; if the screen already shows it, the next post goes on as
-  soon as it's out. Null: as soon as it's out. A Set, a pull, and an open with `openWaits` off
-  bypass it (they set at once).
-- **The next run** (`nextRun(now, zone, setup, stored, records)`): the earliest of the next
-  `pictureAt` (plus a per-device offset of 0–10 min, from a random value stored once), the
-  next expected post of a source in use while one is awaited (APOD's 00:05 US Eastern plus 1–20
-  min), the next turn's start, and, while an awaited post is late, a retry an hour on (NASA,
-  with no expected time: every 3 h in its window). Never more than 6 h ahead (the safety net).
-- **Turns from `turnsFrom`:** the turn boundaries are `turnsFrom` + k × interval in local time,
-  through daylight saving changes (a 23 h or 25 h day: the boundaries stay on the clock's hours);
-  "When I tap Set" keeps 0.6.0's `turnStartedAt`. With fixed times Set doesn't restart the
-  clock: it forgets the records and puts the current turn's source on (the night default to
-  check with the user, with the alternative).
-- Tests: Berlin, Los Angeles, Sydney, UTC; the DST days of 2026 (US 1 Nov, EU 25 Oct, Sydney
-  4 Oct); a late APOD; NASA and Earth on weekends; every interval with `turnsFrom` 06:00 and
-  23:00; `pictureAt` null; the per-device offset in range.
-- **Files:** `core/…/core/PictureTime.kt` (new) and its test; `Screens.kt`/`Turn.kt` where the
-  turn clock lives; `CLAUDE.md` (Background update, Turns).
+Pure Kotlin, tested with JUnit (`PictureTimeTest` new, `ScreensTest`, `TurnTest`), no Android.
+The rules are `CLAUDE.md`'s (Next features, 0.6.0: the picture time; user, 2026-10-23 night,
+the simplification): one time, one clock, three rules.
+- **The values:** `pictureAt` (an hour 0–23, default 6) and the existing `interval` (24, 12,
+  6, 3 h); a per-device offset of 0–10 min (stored once by J2, passed in).
+- **Change times:** `pictureAt` + k × interval in local time; a column with one source changes
+  every 24 h. On the clock's hours through a DST change (a 23 h or a 25 h day). 0.6.0's Set clock
+  goes: `turnStartedAt`, `isTurnOver`, `turnSlack` and the clock restart in `restartAndForget`.
+  A record's stamp becomes the change time it belongs to. A stamp that isn't a change time
+  (M2's migrated 0.5.0 clock, or 0.6.0's own on a test device) counts as the current one, so
+  the update sets nothing until the next change time.
+- **The rules, by the clock** (user, 2026-10-23 night, after the third review: never by what's
+  on the screen, so the past can't shift them):
+  - **At a change time** a screen changes: with one source to its newest picture (no set when
+    it's on already); with several to the next source after its current one (APOD → NASA →
+    Earth, round to itself) among its ticked sources whose newest picture this screen hasn't
+    shown. A per-screen note of the last picture shown per source (date and URL) is kept in the
+    record.
+  - **The window:** a newer picture of the source that went on, out in the 3 hours after the
+    change time, still replaces it when a check sees it (the change time kept). After the
+    window it waits for the next change time.
+  - **Nothing new** (several sources only): the picture stays and the screen **waits**: the
+    first new picture of a ticked source goes on as soon as a check sees it (the next in order
+    first when two are), and it takes that change time. A screen with one source never waits.
+- **Video days** as 0.6.0 (Turns): the stand-in fills APOD's turn where APOD is ticked, and
+  "new" is APOD's post being new. A stand-in shown counts as shown for its own source too, so
+  NASA isn't put on twice.
+- **Equal columns** change together (B2): the lock screen follows home's decision.
+- **Set** (`restartAndForget` without the clock): each record's picture is forgotten, so each
+  screen is put on again with the new setup. A screen whose owner is still ticked keeps it;
+  otherwise the next source by the change rule, else the next with any picture. Each screen
+  takes the last change time as its stamp, so the next run doesn't move it on. The shown notes
+  stay; the change times don't move.
+- **The next run** (`nextRun(now, zone, failed, …)`): the earliest of the next change time plus
+  the offset; within the 3-hour window 15 min after the change time, then hourly (06:00, 06:15,
+  07:15, 08:15: the :05 posts of every whole-hour zone); hourly while a screen waits; after a
+  failed or stopped run 15 min later, then hourly (the alarms retry, not Android's backoff;
+  J2). No model of each source's posting time (user).
+- **Tests:**
+  - Zones: Zurich in summer, in winter and in the week of 25 Oct–1 Nov (APOD at 05:05); Los
+    Angeles; Sydney; UTC.
+  - The DST days of 2026 (EU 25 Oct, US 1 Nov, Sydney 4 Oct), with every interval.
+  - One source: Zurich with today's APOD at 06:05 (on at the 06:15 check); Zurich **after a
+    missed morning** (yesterday's at 06:00, today's at 06:15 all the same, not a day late);
+    Zurich **after a video day** with "Skip it"; Los Angeles (the 21:05 post on at 06:00,
+    nothing at 21:05); Los Angeles **after an evening Set** (06:00 next day as usual, the 21:05
+    post never replaces outside the window); Helsinki (07:05, on at 07:15).
+  - Several sources: a Monday in Zurich every 6 h; a weekend (APOD stays, nothing set at NASA's
+    and Earth's change times); every 12 h with APOD + NASA in winter Zurich (today's APOD at
+    about 06:15, not a day late); every 24 h in Los Angeles on APOD's day (no change at 21:05).
+  - A failed run's next check (15 min, then hourly); the DST hours: a picture time of 02:00 on
+    25 Oct 2026 (the hour happens twice: one change) and on 28 Mar 2027 (it doesn't exist: the
+    change at 03:00).
+  - A Set mid-turn, with the owner still ticked and unticked; equal columns with a failed set on
+    one screen; the stand-in counted as shown; the migrated stamp; `nextRun` with and without a
+    waiting screen; the offset in range.
+- **Files:** `core/…/core/PictureTime.kt` (new) and its test; `Screens.kt`, `Turn.kt` (what's
+  left of it) and their tests; `CLAUDE.md` (Background update, Turns, rewritten to the rules);
+  the skill's "End a turn" how-to (`turnStartedAt` and `turn.sh` stop working: fake the clock
+  or a record's stamp instead).
 - **Done when:** the tests pass, the rules in `CLAUDE.md`.
 
-### [ ] J2. `Store` and `DailyJob`: the job runs at the picture time (Opus, high)
+### [ ] J2. `Store` and `DailyJob`: alarms at the change times, the job simplified (Opus, high)
 
-After J0 and J1. **The mechanism (J0):** at each next run time two alarms, as J0 measured
-them: `AlarmManager.setWindow(RTC_WAKEUP, T, 10 min)` and `setAndAllowWhileIdle(RTC_WAKEUP,
-T)` (no permission; the same receiver); the first that fires starts the run (a one-off job
-without delay and with any network), the second finds nothing due. The periodic job stays as
-the fallback (it lands at Doze's maintenance windows). Expect: Unrestricted about T + 10 min;
-Optimized the alarm on time but the run at the next maintenance window (up to hours, in Doze;
-accepted by the user, 2026-10-23, no second probe night): the pause hint's "Unrestricted" line
-gains this reason (a text for the user, in J3). Re-arm when an
-alarm fires, after each run, at boot (`RECEIVE_BOOT_COMPLETED`, granted) and in
-`DailyJob.ensure`; the job (or its alarm) is armed for J1's
-`nextRun` after each run, Set, the daily switch on, a settings change, `onResume`'s `ensure`,
-and at boot if J0's mechanism needs it (`RECEIVE_BOOT_COMPLETED` is granted already).
-- `setDue()` applies J1's "may a newer post go on now"; `update(page = true)` with `openWaits`
-  fetches and shows but sets only what is due by the time; Set and a pull set at once.
-- The retry rules stay (`JobRuns`, B5–B12: a failed run's backoff retry, notes during a run,
-  `drop()` on off) for whatever job runs; their tests still pass, new ones where the timed run
-  changes them. A failed or stopped run still retries with backoff, not at the next time.
-- The prefs `pictureAt`, `turnsFrom`, `openWaits` (defaults as J1), and the per-device offset.
-  An update from 0.5.0 gets the defaults (06:00, waits): no migration beyond that.
-- Traffic: `CLAUDE.md`'s Traffic section rewritten (bursts per zone spread by the offset).
-- **Files:** `Store.kt`, `DailyJob.kt` (and a receiver if J0 says so), `AndroidManifest.xml`,
-  `JobRuns.kt` if needed, `CLAUDE.md`, the skill's "Where things are".
-- **Tablet:** with the clock faked near the times (`cmd alarm set-time` or the zone), the run at
-  `pictureAt`, the Europe case (the newest already on at 06:00, today's a few minutes later),
-  a late post's retry, `openWaits` on and off on a page open, a Set and a pull at once; reboot:
-  armed again.
+After J1.
+- **The mechanism (J0):** at each next run T (J1's `nextRun`), two alarms:
+  `AlarmManager.setWindow(RTC_WAKEUP, T, 10 min)` and `setAndAllowWhileIdle(RTC_WAKEUP, T)`,
+  with one receiver (new) and two `PendingIntent`s with different request codes (one code
+  would make the second replace the first; the J0 probe used two). The first that fires
+  schedules the run: a one-off job (id 2, the same `DailyJob` service, no delay, any network).
+  The second finds it pending or running and does nothing.
+  - **Never schedule id 2 while it's pending or running** (`getPendingJob`, plus a
+    process-wide flag while a run goes): scheduling an id again stops its run.
+  - Expect: Unrestricted, about T + 10 min. Optimized: the alarm on time, but the network only
+    at Doze's next maintenance window (accepted by the user, 2026-10-23).
+- **Re-armed:**
+  - after each run (either id), Set, the daily switch on, and `onResume`'s `ensure`;
+  - at boot (`RECEIVE_BOOT_COMPLETED`, granted; on a phone with a PIN only after the first
+    unlock: seen in P);
+  - after a time zone or clock change (`ACTION_TIMEZONE_CHANGED`, `ACTION_TIME_CHANGED`; both
+    still reach a manifest receiver. The alarms are absolute times, so "06:00" armed before a
+    change is wrong after it);
+  - after the app's update (`ACTION_MY_PACKAGE_REPLACED`: the first 0.6.0 morning mustn't wait
+    for a page open).
+
+  No new permission. Off cancels both alarms and both jobs.
+- **Retries by the alarms** (user, 2026-10-23 night): a failed or stopped run ends with
+  `jobFinished(params, false)` and `onStopJob` returns false, for both ids, so Android keeps no
+  backoff retry (in Doze it would wait for a maintenance window and, pending, block the
+  alarms). The run's end arms the alarms by J1's `nextRun` with `failed`: 15 min later, then
+  hourly. `stoppedBySystem` feeds `failed`.
+- **The periodic job** (id 1) is the fallback: always every 6 h, with a 6 h flex (0.4.0's).
+  `ensure` keeps comparing the timing, so a 0.5.0 or 0.6.0-test install's turns job (3 h, a
+  15 min flex) is replaced once at the first start; it schedules only while no run goes (the
+  process-wide flag), and a run's end calls `ensure` too. Since the timing never changes after
+  that, nothing stops a running run. Set and the daily switch on no longer schedule it afresh.
+- **The cleanup** (user, 2026-10-23 night; `CLAUDE.md`, the job simplified with it):
+  - `JobRuns` keeps only the generation: `started` and `drop` (a run from before an off ends
+    without effect).
+  - Removed, with their tests: the notes (`note`, `Reschedule`, `rescheduleNoted`), the retry
+    due and the failing series (S4f3, B5, B7, B12, B12f1).
+  - `stoppedBySystem` stays: a stopped run counts as failed, and the alarms retry it (above).
+  - `JobRunsTest` keeps the generation's tests.
+  - The KDoc of `DailyJob` and `JobRuns`, and `CLAUDE.md`'s Background update, say only the
+    rules that remain.
+  - `MainActivity`'s Set and switch paths call the new arming in place of `scheduleJob`'s
+    afresh/ensure choice. `SwitchRuns` (B6, the page's quick taps) stays.
+- **Setting:** `setDue()` applies J1's rules. `update(page = true)` fetches and shows, and sets
+  only what's due by the times (the wallpaper waits when the page opens; no setting). Set and a
+  pull set at once.
+- **Prefs:**
+  - `pictureAt` (default 6), the offset (random once), each screen's shown notes in its record
+    (home unprefixed, lock `lock.`).
+  - `turnStartedAt` is no longer read (left in the prefs, no migration).
+  - `Store.setup` and `saveSetup` carry `pictureAt` (part of the draft, J3).
+  - An update from 0.5.0 gets the defaults.
+- **Traffic:** `CLAUDE.md`'s Traffic section rewritten: a check at each change time, 15 min
+  after it, and hourly while a screen waits; a zone's bursts spread by the offset.
+- **Files:** `Store.kt`, `DailyJob.kt`, the alarms' receiver (new), `AndroidManifest.xml`,
+  `MainActivity.kt` (the scheduling calls only), `JobRuns.kt` and `JobRunsTest.kt`,
+  `CLAUDE.md`, the skill's "Where things are" and its job how-tos (`run -f` still runs id 1;
+  id 2 by `cmd jobscheduler run -f io.github.buerlino.apodroid 2` while it's pending, the
+  alarms by `dumpsys alarm`).
+- **Tablet** (rosie):
+  - `auto_time` off for the check (`settings put global auto_time 0`, else the network time
+    undoes `cmd alarm set-time`). At the end, back to 1 with the time zone Europe/Zurich
+    (rosie's rules reset both), and the tablet's clock checked against the desktop's `date`.
+  - With the clock faked near the times:
+    - the run at `pictureAt` (`dumpsys alarm` shows both alarms for T);
+    - the Zurich case: yesterday's APOD on at 06:00 and today's faked out at 06:05, set at the
+      06:15 check; the same after a missed morning (the 06:00 alarm left out by faking the
+      clock past it);
+    - a waiting screen's hourly check (several sources, nothing new);
+    - a failed run (Wi-Fi off at 06:00): no backoff job pending (`dumpsys jobscheduler`), the
+      alarms armed for 15 min later, the set at that check once Wi-Fi is back;
+    - the alarms' two request codes (`dumpsys alarm` lists two);
+    - a 0.5.0-style turns job (3 h, 15 min flex) replaced by the 6 h one at the first start;
+    - a page open before the time sets nothing, after it sets what's due;
+    - Set and a pull at once;
+    - a Set while a run goes: the run isn't stopped (`logcat`: it ends with `jobFinished`);
+    - off during a run: nothing set after.
+  - The **DST night**, faked: the clock to 2026-10-25 01:50 Europe/Zurich, every 3 h from
+    00:00. The next change comes at the clock's 03:00, four real hours after 00:00.
+  - Re-armed (`dumpsys alarm`) after a zone change (`cmd alarm set-timezone America/New_York`
+    and back) for the new zone's 06:00, after a reboot, and after `install -r` of the same
+    build without opening the page.
+  - Then the smoke list.
 - **Done when:** the checks pass, the tablet passes.
 
-### [ ] J3. Settings: New picture at, Turns start at, Opening the app (Opus, medium)
+### [ ] J3. Settings: New picture at, "More NASA pictures" into Setup, the pause hint (Opus, medium)
 
-After J2. Placeholders until the user approves them on the tablet:
-- Advanced settings, while the daily switch is on: **"New picture at"** [As soon as it's out,
-  00:00 … 23:00; ✓ before the chosen one, 06:00 by default] (a dropdown as "Largest
-  original"; screen readers "New picture at: 06:00"), and **"Opening the app"** [The wallpaper
-  waits | Sets the new picture at once]. At once, not part of the draft (they change when, not
-  what), each re-arms the job.
-- Setup, under "Change every" while it shows: **"Turns start at"** [00:00 … 23:00, When I tap
-  Set], 06:00 by default; part of the draft (the highlight, Set), as "Change every".
-- The status line: unchanged; the summary under "Setup" adds " · from 06:00" while turns run on
-  fixed times (placeholder).
-- 12/24 h as the system for the hours (B13's `hours24`).
+After J2, and last of the night (after A4: both change the settings in `MainActivity.kt`).
+Placeholders until the user approves them on the tablet.
+- **Setup:** "New picture at" [00:00 … 23:00], 06:00 by default.
+  - A dropdown as "Largest original": ✓ before the chosen one, screen readers "New picture
+    at: 06:00", 12/24 h as the system says (B13's `hours24`).
+  - Part of the draft (the highlight, Set). Shown while the daily switch is on, after "Where"
+    or the list and before "Change every".
+- **"More NASA pictures"** moves to the top of Setup (user, 2026-10-23: Setup is the draft,
+  Advanced acts at once). Advanced keeps "Save every picture" and "Largest original" and is
+  hidden while the daily switch is off (it's empty then).
+- **The summary** under "Setup": " · turns every 6 h" becomes " · every 6 h from 06:00", and a
+  screen with one source adds " · at 06:00" (placeholders).
+- **The pause hint:** its "Unrestricted" line gains J2's reason (on Optimized the new picture
+  can come hours late); placeholder text.
 - **Files:** `MainActivity.kt`, `CLAUDE.md` (Settings), the skill.
-- **Tablet:** each setting, the highlight, font scale 2.0, landscape, TalkBack labels via
-  `uiautomator`. Screenshots for the user.
+- **Tablet:** the setting with the highlight and Set (`pictureAt` in the prefs, `dumpsys alarm`
+  re-armed), the mode switch at Setup's top (its draft and highlight as before), Advanced with
+  the daily switch on and off, font scale 2.0, landscape, TalkBack labels via `uiautomator`.
+  Screenshots for the user.
 - **Done when:** built, the tablet passes, the texts listed for the user.
 
-### [ ] A1. `:core`: the brightest part, the whole picture, the blur (Opus, medium)
+### [ ] A1. `:core`: the background, black or blurred (Opus, medium)
 
 (`CLAUDE.md`, Next features, 0.6.0: the picture.) Plain Kotlin, tested with JUnit.
-- `brightestPart(gray, w, h, screen)`: the crop position (0–1, as ⛶'s) of the frame with the
-  most light, weighting bright pixels more (brightness squared, as the mock-up), on a small grey
-  copy (about 200 px wide; the app decodes it with `inSampleSize`).
-- The whole picture: `fitFrame` (F1) as it is; the blurred background as pure math if it
-  stays small (`blurBackground(argb, w, h)`: three box-blur passes on a copy about 1/16 of the
-  screen, darkened by 35%), else A3's in `Store`.
-- Tests: a bright spot left, right, at the centre; an even picture (the middle); the blur's
-  size and darkening.
+- The whole picture: `fitFrame` (F1) as it is.
+- `edgesBlack(gray, w, h)`, on a small grey copy (about 200 px wide; the app decodes it with
+  `inSampleSize`): true when nearly all of the outer strip (about 3% of each side) is nearly
+  black. Black background then; else blurred (user, 2026-10-23 night). The thresholds are a
+  night default, listed in the report.
+- The blurred background as pure math if it stays small: `blurBackground(argb, w, h)`, three
+  box-blur passes on a copy about 1/16 of the screen, darkened by 35%. Else it goes into A3's
+  `Store`.
+- Not built: `brightestPart` (Fill's part is always the middle; user, 2026-10-23 night).
+- Tests:
+  - `edgesBlack`: a planet on black (true), a star field with a few bright stars at the edge
+    (true), a lit landscape, a nebula filling the frame, a black sky over lit ground (false), a
+    thin grey frame.
+  - The blur's size and darkening, an even picture stays even, the edges.
 - **Done when:** the tests pass.
 
 ### [x] A2. The picking page (by day, with the user, 2026-10-22)
@@ -1817,28 +1959,38 @@ After J2. Placeholders until the user approves them on the tablet:
 Done: 253 real APODs × six versions, 148 clear picks; the result and the rules tested in
 `CLAUDE.md` (Next features, 0.6.0: the picture). It decided always Fill; nothing to build.
 
-### [ ] A3. `Store`: the whole picture per post, the background, Fill's part (Opus, medium)
+### [ ] A3. `Store`: the whole picture per post, on black or blurred (Opus, medium)
 
-After A1 and J2 (both change `Store`). The per-post whole picture beside the part
-(`<source>.whole`, keyed as the part: date and picture URL; a new post drops it), the prefs
-`background` (`blur`, `black`; default `blur`) and `part` (`middle`, `brightest`; default
-`middle`). F1's pref `fit` goes (never released; on test devices it is ignored). Each set: a
-whole picture drawn as F1's Fit on the blurred or black background (`setBitmap`); else Fill at
-the user's part, else Fill's part (`setStream` with the crop, as today). The user's own picture
-(video days) as before (centred; whole when toggled).
-- **Tablet:** a wide picture whole on blur and on black, both screens; Fill middle and brightest;
-  a new post drops the toggle; `dumpsys wallpaper` and screenshots.
+After A1 (user, 2026-10-23 night: independent of J2, so the picture work lands even if J2 needs
+another night; it builds on `dev` as it is, and whichever of J2 and A3 comes second rebases on
+the other's `Store`).
+- The per-post whole picture sits beside the part: `<source>.whole`, keyed as the part (date and
+  picture URL). A new post drops it.
+- F1's pref `fit` goes (never released; on test devices it is ignored).
+- Each set:
+  - a whole picture is drawn as F1's Fit (`setBitmap`) on black when A1's `edgesBlack` says
+    so, else on the blurred background;
+  - otherwise Fill at the user's part, else the middle (`setStream` with the crop, as today).
+- The user's own picture (video days): Fill, centred, as now (no whole switch; user,
+  2026-10-23 night).
+- **Tablet:** a wide picture whole on both screens, one with black edges (a planet on black,
+  made up or a real post's picture faked into `files/`) on black and one without on blur; Fill
+  in the middle and at a moved part; a new post drops the toggle; `dumpsys wallpaper` and
+  screenshots.
 - **Done when:** the tablet passes; `CLAUDE.md`, Wallpaper.
 
-### [ ] A4. Settings and ⛶: Whole picture, Background, Fill's part; Size goes (Opus, medium)
+### [ ] A4. ⛶'s Whole picture toggle; Size goes (Opus, medium)
 
-After A3. ⛶ mode gets a "Whole picture" toggle (placeholder) for the shown post: the frame
-hides while it's on and the picture shows as it will (on its background); part of the draft
-(the highlight, ⛶ in `tertiary` while it differs; screen readers "Whole picture, on/off, not
-set yet"), Set stores it. Advanced settings: Background [Blurred | Black], Fill's part
-[Middle | Brightest area], both part of the draft (they change what a screen shows). The Size
-row in Setup goes (and " · Fill"/" · Fit" in the summary). Texts are placeholders for the
-user's look on the tablet.
+After A3 (user, 2026-10-23 night; J3 comes after it).
+- ⛶ mode gets a "Whole picture" toggle (placeholder) for the shown post. While it's on, the
+  frame hides and the page shows the whole picture (no preview of the background: the page's
+  preview comes with Live in 0.7.0).
+- It's part of the draft: ⛶ shows in `tertiary` while it differs, screen readers say "Whole
+  picture, on/off, not set yet", and Set stores it.
+- The Size row in Setup goes, and so do " · Fill" and " · Fit" in the summary.
+- Texts are placeholders for the user's look on the tablet.
+- **Files:** `MainActivity.kt`, `CLAUDE.md` (Settings: the Size row gone; Choosing the part:
+  the toggle).
 - **Done when:** built, the tablet passes, the texts listed for the user.
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
@@ -1848,20 +2000,33 @@ changelog and screenshots). First the version: `versionCode` 10, `versionName` 0
 `app/build.gradle.kts`, so the phone gets the real build (and its User-Agent). Then as 0.5.0's
 WP8: the release-signed build over the user's Obtainium install (the skill, Testing an update
 on the user's phone), the update keeping the settings, both modes, a Set from turns into APOD mode
-with the daily switch on and its job's earliest run in `dumpsys jobscheduler` (at once, or a
-period later as V9 saw on the tablet; B14's check had the timing unchanged, so it didn't
-decide it), what the tablet nights didn't test (V10, regression 6: "my picture" from the
-picker as a huge, tiny, panorama, tall, WebP, GIF and EXIF-8 picture with Fill and Fit; the
+with the daily switch on (the alarms re-armed in `dumpsys alarm`; the periodic job a fixed
+6 h fallback since J2), what the tablet nights didn't test (V10, regression 6: "my picture" from the
+picker as a huge, tiny, panorama, tall, WebP, GIF and EXIF-8 picture (Fill, centred); the
 video notice's and the battery hint's "Don't show again" with its dialog and "App info"; the
 long presses' clipboard; Recents swipe-away), the list at font scale 1.5
 and 2.0, a lock screen with its own picture, landscape; home and lock set separately on Android
 16 (M0 checked the tablet only); the shown source after a swipe-away from Recents (expected:
-back to the opening tab; after the system kills the app it stays, `CLAUDE.md`, Tabs); the
+back to the opening page, the picture's source; after the system kills the app it stays,
+`CLAUDE.md`, The title and the swipe); the
 job on mobile data (B10: no "Wi-Fi only"); the title dropdown and the swipe (S6); the daily
-switch at once (S4f2); "Largest original" (F6) on the phone's own gallery; and Fit on the phone's screen (2026-10-20, review);
+switch at once (S4f2); "Largest original" (F6) on the phone's own gallery; the picture (A3,
+A4) on the phone's screen: ⛶'s "Whole picture" toggle on a wide post (blurred) and on one with
+black edges (black), Fill from the middle and a moved part;
 S5's highlight on the phone's colours (faint beside the blue on the tablet's) and its headers'
 screen-reader states with TalkBack ("expanded", "collapsed", "not set yet": `uiautomator`
-doesn't show them). After V1–V7 and their `B<n>`
+doesn't show them).
+**The picture time on the FP6** (2026-10-23; the case that started J0–J3: 0.5.0 waited until
+10:22 for a 06:05 APOD): the update installed by `adb install -r` in the evening **without
+opening the page**: the alarms armed (`dumpsys alarm`, `MY_PACKAGE_REPLACED`); then **one real
+night**, Monday 26 to Tuesday 27 Oct or later (a weekday morning: new NASA and Earth posts), the
+phone as the user leaves it (Unrestricted, `EXEMPTED`), "New picture at" 06:00: the wallpaper
+changes at about 06:00–06:20 (APOD comes out at 05:05 Zurich until 1 Nov, 06:05 after), not
+10:22; the morning reads `dumpsys alarm`'s history, `dumpsys jobscheduler` and the usage events
+(the set came before the screen was first turned on). "New picture at" and "More NASA
+pictures" in Setup, and the pause hint's new "Unrestricted" text on the phone. A **reboot with the PIN**: no
+alarm armed until the first unlock (`BOOT_COMPLETED` waits for it), armed right after; a time
+zone change in Settings: armed again for the new zone's 06:00. After V1–V7 and their `B<n>`
 fixes. Report what was tested; a bug becomes a
 `B<n>` package (night.md, The morning, step 6) before R.
 
@@ -1870,7 +2035,9 @@ fixes. Report what was tested; a bug becomes a
 After P, on the build that passed. `changelogs/10.txt` (max 500 characters; say that a
 video-day choice saved while it was greyed out in 0.5.0, e.g. "Use my picture" with turns, now
 works with turns, second review); `README.md`, `full_description.txt` (APOD first, the
-switch); the changelog also names Set, the daily switch, swiping and "Largest original";
+switch); the changelog also names Set, the daily switch, swiping and "Largest original",
+the picture time and new pictures first, the whole picture (500
+characters is tight: one short line each, the rest in `full_description.txt`);
 `features.md` (F6 added under Save every picture) and this file ticked; the screenshots on the FP6 by the user (APOD mode
 first, as `README.md` embeds `1.png`).
 

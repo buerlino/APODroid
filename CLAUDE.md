@@ -35,10 +35,12 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 
 - Simplest approach that works. No extra screens, layers or abstractions until they are
   needed. Don't clutter the UI or the code.
-- **Settings: let users customise as much as possible** (user, 2026-10-22, from now on; it
-  replaces "no extra options until they are needed"): a choice users might reasonably want
-  becomes a setting, with a sensible default, in "Advanced settings" unless it belongs in
-  Setup. Ask the user before adding each one; still no extra screens.
+- **Settings: few, each explained in one sentence** (user, 2026-10-23, from now on; it
+  replaces 2026-10-22's "let users customise as much as possible", which turned every decision
+  into a setting with its draft state, highlight, label and tablet checks): a setting only when
+  users would really disagree and no default can serve both; anything that can't be explained
+  in one sentence on the page doesn't get built. Ask the user before adding one; no extra
+  screens. Setup is a draft until Set; Advanced settings act at once.
 - When unsure, or when a simpler or better idea comes up, ask the user before deciding. Don't ask
   about what's settled below.
 - Step by step: do one step, show it working, then wait for the next instruction.
@@ -821,18 +823,53 @@ app was opened. **APOD's posting time** (`private/last100.json`, 24 Jun to 1 Oct
 100 at 00:00 or 00:05 US Eastern (00:05 since 21 Jul), 10 hours late (07:14 to 16:46 Eastern;
 eight of them 22–29 Jul, probably the site move). One moment worldwide, so "as soon as it's
 out" is 21:05 in Los Angeles, 06:05 in Berlin, 15:05 in Sydney. Decided:
-- **New picture at** [As soon as it's out | 00:00 … 23:00], default **06:00** (Advanced
-  settings, a dropdown as "Largest original"). At that local time the newest post goes on; if
-  it's already on (today's isn't out yet: Europe, 05:05–06:05 local), the next one goes on as
-  soon as it's out; a late post is retried until it is. So a new picture every morning in
-  every zone. A few random minutes after the time, so a zone's phones don't all ask at once
-  (it replaces the job's spread from each device's own enable time, Traffic).
-- **Turns start at** [00:00 … 23:00 | When I tap Set], default **06:00**, under "Change every":
-  turns on fixed times (every 6 h: 06, 12, 18, 00; every 24 h a new source each morning).
-  "When I tap Set" is 0.6.0's clock (Turns).
-- **Opening the app** [The wallpaper waits | Sets the new picture at once], default **waits**
-  (the user: as the turns, on fixed times): the page fetches and shows the new post, the
-  wallpaper changes at its time. "Set as wallpaper" and a pull set at once, as now.
+**The rules** (user, 2026-10-23 night, after three reviews: the day's version had nine new
+controls and two turn clocks; simplified to three rules a user can read, one time, one clock,
+decided by the clock, not by what's on the screen):
+1. **At [06:00], and with several sources every [24/12/6/3 h] from then, a screen changes: to
+   its source's newest picture, or to the next source (APOD → NASA → Earth) with a picture it
+   hasn't shown.**
+2. **A newer picture of that source that comes out in the 3 hours after the change still
+   replaces it.**
+3. **With several sources and nothing new, the picture stays until one comes out.**
+- What it gives: Zurich gets APOD (out at 06:05) at about 06:15, Helsinki and Athens (07:05)
+  at about 07:15; Los Angeles the one from 21:05 the evening before at 06:00, Sydney the one
+  from 15:05 the day before. A missed morning (the phone off, no network) or an evening Set
+  changes nothing about the next morning.
+- Why by the clock (the third review): the second version's rule 1, "if the newest is already
+  on, the next one goes on as soon as it's out", depended on the past. A missed morning in
+  Zurich put yesterday's APOD on at 06:00 and today's waited a day, every day after; an
+  evening Set (or the update from 0.5.0) in Los Angeles put the 21:05 post on, so 06:00 found
+  it on and the change moved to 21:05 for good.
+- Why "hasn't shown": NASA and Earth post about one picture a weekday and none at weekends, so
+  a plain rotation mostly showed pictures seen before (all weekend, Friday's). Every new picture
+  gets on, no change shows an old one again.
+- Why 3 hours (user, 2026-10-23 night): with 1 hour, zones where APOD comes out 1–3 hours after
+  the picture time (Eastern Europe with 06:00) would be a day late by default.
+- **New picture at** [00:00 … 23:00], default **06:00**, hours only (user, 2026-10-23): in
+  Setup, part of the draft; the turns' clock too (00:00 … 23:00 + k × "Change every", on the
+  clock's hours through a DST change). 0.6.0's Set clock (`turnStartedAt`) goes. A few random
+  minutes after the time (0–10, fixed per phone), so a zone's phones don't all ask at once (it
+  replaces the job's spread from each device's own enable time, Traffic).
+- **Checks:** at the change time, 15 min after it, then hourly until the 3 hours are over
+  (06:00, 06:15, 07:15, 08:15: they catch the :05 posts of every whole-hour time zone), and
+  hourly while a screen with several sources waits (rule 3). No model of each source's posting
+  time (user, 2026-10-23). A failed or stopped run is retried the same way, 15 min later, then
+  hourly, by the alarms, not by Android's backoff (user, 2026-10-23 night: in Doze a backoff
+  retry waits for a maintenance window, and while it's pending the alarms can't start a run,
+  so one NASA 503 at 06:00 lost the morning).
+- **Set:** the times stay; a screen whose source is still ticked keeps it, put on again with
+  the new setup; otherwise the next source (rule 1), else any with a picture. Each screen takes
+  the last change time as its stamp, so the next run doesn't move it on; the next change comes
+  at the next time.
+- **Opening the app:** the page fetches and shows a new post; the wallpaper waits for its time
+  (no setting; user, 2026-10-23: one timing story). Set and a pull set at once.
+- **Dropped** (user, 2026-10-23 night): "Turns start at" with "When I tap Set", the ↑ ↓ order,
+  "When nothing is new" (always keep), the "Opening the app" setting, "As soon as it's out",
+  each source's expected posting time.
+- **"More NASA pictures" moves to the top of Setup** (user, 2026-10-23: Setup is the draft,
+  Advanced acts at once; it was a draft at the end of Advanced). Advanced keeps "Save every
+  picture" and "Largest original".
 - **Android first** (J0, the night of 2026-10-22/23 on the tablet, on battery, deep Doze;
   `plan-0.6.0.md`, J0): only a wake-up alarm lands in Doze. A pair, `setWindow(T, 10 min)` and
   `setAndAllowWhileIdle(T)`, fired at T + 10 min three times of three; for an Unrestricted app
@@ -846,7 +883,16 @@ out" is 21:05 in Los Angeles, 06:05 in Berlin, 15:05 in Sydney. Decided:
   so the new picture can come hours after the picture time (the same morning on the tablet:
   06:29 for 06:00, but up to 2½ h in J0). The pause hint's "Unrestricted" line says so (J3's
   text). Not tried: fetching inside the alarm's 10 s allowance (`temporaryAppAllowlistDuration`).
-- Built in 0.6.0 (user: before P, the release waits for it); V7 runs on the new job.
+- Built in 0.6.0 (user: before P, the release waits for it); V7 runs on the new job. The
+  alarms are re-armed after a time zone or clock change and after an app update too (no
+  permission; 2026-10-23, from a review of the plan).
+- **The job simplified with it** (user, 2026-10-23 night): with fixed times the periodic job
+  is a plain fallback, every 6 h, whose timing never changes, so nothing reschedules it while
+  it runs. The notes during a run, the retry due and the failing series (S4f3, B5, B7, B12,
+  `JobRuns`) go; "off is off" (the generation) stays. Why:
+  fitting the alarm's run into those rules would be more new logic than removing them, and
+  they were where B5–B12's bugs came from. With the alarms retrying (Checks), "a stopped run
+  counts as failed" now means: retried by the alarms 15 min later, not by Android.
 
 **0.6.0: the picture** (user, 2026-10-22 evening; packages A1, A3, A4 in `plan-0.6.0.md`).
 Measured on a mock-up of the 89 picture posts of 24 Jun to 1 Oct 2026 on a 1080×2400 screen
@@ -874,12 +920,16 @@ library (ML Kit needs Play Services; Tesseract is large). Decided:
   Size returns in 0.7.0 as [Fill | Live].
 - **Whole picture, per picture**: a toggle in ⛶ mode for the shown post (text, an asteroid, a
   grid of planets), kept like ⛶'s part (per source, for that post only, part of the draft
-  until Set; the job uses the stored one), drawn on the Background.
-- **Background** [Blurred | Black] (Advanced), default Blurred: the picture enlarged to cover
-  the screen, blurred properly (passes of a box blur on a small copy, no blocky upscale) and
-  darkened; Black is F1's Fit. For whole-picture days.
-- **Fill's part** [Middle | Brightest area] (Advanced), default Middle; ⛶ still moves it for
-  that post, and the user's part wins.
+  until Set; the job uses the stored one).
+- **The background, automatic by the picture's edges** (user, 2026-10-23 night; no setting):
+  black when the picture's edges are nearly black (a planet or a moon on space: the picture
+  blends in), else blurred: the picture enlarged to cover the screen, blurred properly (passes
+  of a box blur on a small copy, no blocky upscale) and darkened. Why not always blurred: the
+  enlarged copy of a bright planet becomes a large glow behind it, not black.
+- **Dropped** (user, 2026-10-23 night, the simplification): the Background setting [Blurred |
+  Black] (the edges decide), Fill's part [Middle | Brightest area] (always the middle, ⛶ moves
+  it: the picks showed no gain), a "Whole picture" switch for "my picture" (Fill, centred, as
+  now).
 - Not wanted (2026-10-22): a "Colour" background, a dim setting, screen-aware placement (clock
   and dock), per-screen Size (the 2026-10-19 decision stands); learning per user (was "after
   0.6.0", gone with the smart Auto). The preview on the page comes with Live (0.7.0).
@@ -980,7 +1030,7 @@ the Day and Earth Observatory Image of the Day besides APOD ([Other sources](#ot
   gitignored `private/wip-0.5.0-with-custom-hours-2026-10-17.patch` (all of 0.5.0's work as of
   that day, uncommitted). If turns at night bother users later, the smaller idea is turns that
   start at fixed clock times (00:00, 06:00, …), no grid; planned since 2026-10-22 (the picture
-  time, 0.6.0: "Turns start at"). Learned on the tablet
+  time, 0.6.0: the turns run from "New picture at"). Learned on the tablet
   (Lenovo, Android 15): a one-off job without a network constraint ran 45 min late with the
   screen on (JobScheduler batched it until another job ran), and its delay alarm doesn't wake a
   sleeping device.

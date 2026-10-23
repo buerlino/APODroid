@@ -273,17 +273,25 @@ set it as wallpaper, and on video days kept the old wallpaper.
   switch; the status lines (while the stored daily switch is on); **Setup ▸/▾**, a header that
   opens and closes the draft's settings (a button for screen readers, "expanded"/"collapsed";
   closed: a summary of the **stored** setup under it, "APOD on both screens" in APOD mode (or "home screen", "lock screen", as the stored "Where" says), else
-  "NASA on home screen, Earth on both screens", then " · turns every 6 h" while a screen takes
-  turns and the daily switch is on; " · Fill" or " · Fit" went with Size in A3): in APOD mode **Where**, with
-  the switch "More NASA pictures" on **Pictures from** (the list) and, while the daily switch
-  is on and a column takes turns, "Change every"; while the daily switch is on "If APOD
-  is a video". Closed at a fresh start; it opens by itself while the draft differs from the
+  "NASA on home screen, Earth on both screens", then, while the daily switch is on, " · every
+  6 h from 06:00" while a screen takes turns, else " · at 06:00" (J3, 2026-10-24 night,
+  placeholders; was " · turns every 6 h"; " · Fill" or " · Fit" went with Size in A3): at its
+  top the switch **More NASA pictures** (J3: Setup is the draft, Advanced acts at once), then
+  in APOD mode **Where**, with the switch on **Pictures from** (the list); while the daily
+  switch is on **New picture at** (J3), then, while a column takes turns, "Change every", and
+  "If APOD is a video". Closed at a fresh start; it opens by itself while the draft differs from the
   store in it, when "More NASA pictures" is turned (the area swaps), and closes after a Set
   that saved (also "Setup saved. Nothing to set yet."; a failed set leaves it open). Its state
   and Advanced's survive a rotation (the saved state). **Set as wallpaper**, always, after
-  Setup. **Advanced settings ▸/▾**, closed by default: while the daily switch is on
-  "Save every picture" (F5) with "Largest original" under it while on (F6); then, in both modes and states, the switch "More
-  NASA pictures" (no divider since S5).
+  Setup. **Advanced settings ▸/▾**, closed by default, only while the daily switch is on (J3:
+  empty otherwise): "Save every picture" (F5) with "Largest original" under it while on (F6).
+  - **New picture at** (J3, 2026-10-24 night; the label and the times placeholders): a
+    dropdown as "Largest original", the button "06:00 ▾" (12/24 h as the system says, B13's
+    `hours24`: "6:00 AM ▾"), a menu of 00:00 … 23:00 with ✓ before the chosen one, screen
+    readers "New picture at: 06:00". The pref `pictureAt` (Background update, Turns and the
+    picture time), default 06:00. Part of the draft (the highlight, Set; the alarms are armed
+    afresh by Set); shown only while the daily switch is on, and while hidden it goes back to
+    the stored one (as "If APOD is a video").
   - **The highlight** (S5): each draft setting that differs from the stored setup shows in the
     theme's `tertiary` until Set: its heading, a segmented row's chosen segment
     (`tertiaryContainer` / `onTertiaryContainer`) and the row's borders (`tertiary`), the
@@ -291,8 +299,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     dropdown's border and text (another choice, or a newly picked "my picture" while it's
     chosen), the mode switch and its label, ⛶ (or ✓) while the shown post's draft part or whole
     picture differs from the stored one (A4), the "Setup" header while anything in it differs (the shown mode's
-    "Where" or list, "Change every", "If APOD is a video"; not ⛶), "Advanced settings"
-    while the mode does. Not the daily switch or "Save every picture" (they act
+    "Where" or list, the mode switch, "New picture at", "Change every", "If APOD is a video";
+    not ⛶; "Advanced settings" no longer, J3: nothing in it is a draft). Not the daily switch or "Save every picture" (they act
     at once). Screen readers: a highlighted control's state adds "not set yet" ("Selected, not
     set yet", "Checked, not set yet", "On, not set yet"; the headers "collapsed, not set
     yet").
@@ -846,7 +854,7 @@ then hourly (`failures`, the failed runs in a row). The clock's checks come a pe
 later (`randomOffset`, 0–10 min in whole seconds, drawn once; kept in range); the retries
 count from the run. No model of each source's posting time. **In `Store`** (J2): `pictureAt` (pref
 `pictureAt`, default 6, also after an update from 0.5.0; part of `Setup` and `saveSetup`, the
-page passes the stored one until J3 shows it), the zone the system's, the offset (pref
+page's draft since J3, "New picture at" in Setup), the zone the system's, the offset (pref
 `offset`, seconds, drawn at the first `nextAlarm`); `nextAlarm` also keeps a failed run's retry
 (Background update). 0.6.0's `turnStartedAt` is no longer read (left in the prefs, no
 migration). A video-day choice or the mode switch in the
@@ -865,7 +873,8 @@ battery Unrestricted (checked on API 33+ only, 2026-10-04 evening: on 10–12 th
 true) and "pause/manage app if unused" off (API 31+). Each line is the path in App info (user,
 2026-10-04: "Unrestricted" alone didn't say where): on API 35+ the battery line says to tap
 "Allow background usage" and turn it on first (Unrestricted is greyed out until then), on 33–34
-it doesn't (no such row there, not checked on a phone). With "App info"
+it doesn't (no such row there, not checked on a phone); either ends with " (on Optimized, a new
+picture can come hours late)" (J3, placeholder; Next features, 0.6.0: the picture time). With "App info"
 (`ACTION_APPLICATION_DETAILS_SETTINGS`) and "Don't show again". The latter asks first in a dialog
 saying what will happen ("the user has all power"); the pref `pauseHintHidden` keeps it hidden
 for good, also when the switch is turned on again (user: it's the user's choice; only clearing
@@ -933,7 +942,7 @@ decided by the clock, not by what's on the screen):
   each source's expected posting time.
 - **"More NASA pictures" moves to the top of Setup** (user, 2026-10-23: Setup is the draft,
   Advanced acts at once; it was a draft at the end of Advanced). Advanced keeps "Save every
-  picture" and "Largest original".
+  picture" and "Largest original", and shows only while the daily switch is on (J3).
 - **Android first** (J0, the night of 2026-10-22/23 on the tablet, on battery, deep Doze;
   `plan-0.6.0.md`, J0): only a wake-up alarm lands in Doze. A pair, `setWindow(T, 10 min)` and
   `setAndAllowWhileIdle(T)`, fired at T + 10 min three times of three; for an Unrestricted app

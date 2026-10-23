@@ -43,11 +43,14 @@ import io.github.buerlino.apodroid.core.dueWallpapers
 import io.github.buerlino.apodroid.core.fetchLatest
 import io.github.buerlino.apodroid.core.fitFrame
 import io.github.buerlino.apodroid.core.migrate
+import io.github.buerlino.apodroid.core.nextAlarm as coreNextAlarm
+import io.github.buerlino.apodroid.core.randomOffset
 import io.github.buerlino.apodroid.core.originalUrl
 import io.github.buerlino.apodroid.core.restartAndForget
 import io.github.buerlino.apodroid.core.sourcesInUse
 import io.github.buerlino.apodroid.core.toSave
 import io.github.buerlino.apodroid.core.videoDayKept
+import io.github.buerlino.apodroid.core.waiting
 import io.github.buerlino.apodroid.core.renditionUrl
 import io.github.buerlino.apodroid.core.wallpaperFrame as coreWallpaperFrame
 import java.io.File
@@ -72,8 +75,9 @@ data class Part(val date: LocalDate, val url: String?, val position: Float)
 
 /**
  * Everything "Set as wallpaper" saves at once ([Store.saveSetup]); the page's draft until then.
- * [list] is the list's columns, kept in APOD mode too; [parts] ⛶'s part per source. Not the daily
- * switch: it acts at once ([Store.switchDaily]).
+ * [list] is the list's columns, kept in APOD mode too; [parts] ⛶'s part per source; [pictureAt]
+ * "New picture at", an hour (J2 stores it; the page shows it with J3, until then it passes the
+ * stored one). Not the daily switch: it acts at once ([Store.switchDaily]).
  */
 data class Setup(
     val allSources: Boolean,
@@ -83,6 +87,7 @@ data class Setup(
     val fit: Boolean,
     val videoDays: VideoDays,
     val parts: Map<Source, Part>,
+    val pictureAt: Int = DEFAULT_PICTURE_AT,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
     val columns: Map<Screen, List<Source>>
@@ -106,6 +111,9 @@ enum class VideoDays(val standIn: StandIn, val source: Source? = standIn.source)
     EARTH(StandIn.EARTH),
     MINE(StandIn.OWN),
 }
+
+/** "New picture at"'s default, 06:00 (an update from 0.5.0 gets it too). */
+const val DEFAULT_PICTURE_AT = 6
 
 /** How long each source's turn lasts with two or more sources ticked. */
 enum class Interval(val hours: Long) { DAY(24), H12(12), H6(6), H3(3) }
@@ -221,13 +229,13 @@ class Store(private val context: Context) {
     val columns: Map<Screen, List<Source>>
         get() = if (!allSources) apodColumns(where.screens) else list
 
-    /** A column takes turns: the job runs as often as a turn needs. */
+    /** A column takes turns: its change times are every [interval] from [pictureAt] ([PictureTime]). */
     val hasTurns: Boolean
         get() = columns.values.any { it.size >= 2 }
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, fit, videoDays, parts)
+        get() = Setup(allSources, where, list, interval, fit, videoDays, parts, pictureAt)
 
     /**
      * Blocking. "Set as wallpaper": saves [setup] in one commit (the list with [putColumns], so
@@ -238,18 +246,20 @@ class Store(private val context: Context) {
      * times kept), so the next [setDue] gives each screen what the setup says afresh (a changed
      * Fit or "my picture" too, with the same picture). A screen whose column was empty starts
      * without a record. The daily switch isn't part of it ([switchDaily]). The caller then runs
-     * [update] with `set` and schedules or cancels the job as the stored [daily] says.
+     * [update] with `set` and arms the alarms ([DailyJob.ensure]) or cancels them as the stored
+     * [daily] says.
      */
     fun saveSetup(setup: Setup, pick: Boolean): Unit = synchronized(wallpaperLock) {
         if (pick && draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
         val before = columns
-        val restart = restartAndForget(before, setup.columns, records(), stored(), pictureTime(setup.interval), ZoneId.systemDefault(), Instant.now())
+        val restart = restartAndForget(before, setup.columns, records(), stored(), PictureTime(setup.pictureAt, setup.interval.hours.toInt()), ZoneId.systemDefault(), Instant.now())
         prefs.edit(commit = true) {
             putBoolean("allSources", setup.allSources)
             putString("where", setup.where.name)
             // Before the first time on, the list stays unsaved, so it still starts from "Where".
             if (setup.allSources || prefs.contains("home")) putColumns(setup.list, list)
             putString("interval", setup.interval.name)
+            putInt("pictureAt", setup.pictureAt)
             putBoolean("fit", setup.fit)
             putString("videoDays", setup.videoDays.name)
             for ((source, part) in setup.parts) {
@@ -272,11 +282,16 @@ class Store(private val context: Context) {
     }
 
     /**
-     * The daily switch, at once (not part of [Setup]): writes [daily] (the caller cancels or
-     * schedules the job). Turning it on, the caller then runs [startAfresh] and [update] with `set`.
+     * The daily switch, at once (not part of [Setup]): writes [daily] (the caller cancels the
+     * jobs and the alarms, or arms them) and forgets the job's failed runs, both ways (off is off;
+     * on starts afresh). Turning it on, the caller then runs [startAfresh] and [update] with `set`.
      */
     fun switchDaily(on: Boolean) {
-        prefs.edit(commit = true) { putBoolean("daily", on) }
+        prefs.edit(commit = true) {
+            putBoolean("daily", on)
+            remove("failedRuns")
+            remove("failedAt")
+        }
     }
 
     /**
@@ -285,7 +300,7 @@ class Store(private val context: Context) {
      * column are forgotten; the next [setDue] sets each screen anew.
      */
     fun startAfresh(): Unit = synchronized(wallpaperLock) {
-        val restart = restartAndForget(columns, columns, records(), stored(), pictureTime(interval), ZoneId.systemDefault(), Instant.now())
+        val restart = restartAndForget(columns, columns, records(), stored(), pictureTime(), ZoneId.systemDefault(), Instant.now())
         prefs.edit(commit = true) { putRestart(restart) }
     }
 
@@ -322,11 +337,54 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("weekdayNoticeHidden", false)
         set(value) = prefs.edit { putBoolean("weekdayNoticeHidden", value) }
 
+    /** "New picture at", an hour 0–23 (part of the [setup]; an update from 0.5.0 gets 06:00). */
+    val pictureAt: Int
+        get() = prefs.getInt("pictureAt", DEFAULT_PICTURE_AT).takeIf { it in 0..23 } ?: DEFAULT_PICTURE_AT
+
     /**
-     * The change times ([PictureTime]): "New picture at" 06:00 until J2 stores it, every
-     * [interval] with turns. 0.6.0's `turnStartedAt` is no longer read.
+     * The change times ([PictureTime]): at [pictureAt], with turns every [interval] from it. 0.6.0's
+     * `turnStartedAt` is no longer read (left in the prefs).
      */
-    private fun pictureTime(interval: Interval) = PictureTime(everyHours = interval.hours.toInt())
+    private fun pictureTime() = PictureTime(pictureAt, interval.hours.toInt())
+
+    /**
+     * This device's offset after the clock's checks ([randomOffset], 0–10 min), drawn once and
+     * stored (`offset`, seconds), so a time zone's phones don't all ask at once.
+     */
+    private val offset: Duration
+        get() = synchronized(migrationLock) {
+            if (!prefs.contains("offset")) prefs.edit(commit = true) { putLong("offset", randomOffset().seconds) }
+            Duration.ofSeconds(prefs.getLong("offset", 0))
+        }
+
+    /**
+     * The job's run ended ([DailyJob]): a good one forgets the failed runs; a failed or stopped one
+     * counts them (`failedRuns`) and notes its end (`failedAt`), so the alarms retry 15 min later,
+     * then hourly ([nextAlarm]), also when armed again before the retry (a Set, a page open).
+     */
+    fun ranJob(failed: Boolean) = prefs.edit(commit = true) {
+        if (!failed) {
+            remove("failedRuns")
+            remove("failedAt")
+        } else {
+            putInt("failedRuns", prefs.getInt("failedRuns", 0) + 1)
+            putLong("failedAt", System.currentTimeMillis())
+        }
+    }
+
+    /**
+     * When the alarms should start the next run ([nextAlarm]): the change times of the stored
+     * setup, with their checks (15 min after a change time, then hourly in its window, hourly
+     * while a screen waits) and this device's [offset], or a failed run's retry when that comes
+     * first. Not under the wallpaper lock: the page's `onResume` and the alarms' receiver call it
+     * on the main thread, and a set holds that lock for seconds.
+     */
+    fun nextAlarm(): Instant {
+        val now = Instant.now()
+        val zone = ZoneId.systemDefault()
+        val time = pictureTime()
+        return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), instant("failedAt"), time, hasTurns, offset, waiting(columns, records(), time, zone, now))
+    }
 
     /**
      * Whether the user turned the daily change on. Hibernation or a force stop deletes the job,
@@ -655,7 +713,7 @@ class Store(private val context: Context) {
     private fun setDue(pull: Boolean): Pair<String?, Exception?> = synchronized(wallpaperLock) {
         val now = Instant.now()
         val stored = stored()
-        val plan = dueWallpapers(columns, records(), stored, pictureTime(interval), ZoneId.systemDefault(), now, pull)
+        val plan = dueWallpapers(columns, records(), stored, pictureTime(), ZoneId.systemDefault(), now, pull)
         write(plan.copy(screens = plan.screens.filterValues { !it.set }))
         val done = mutableListOf<String>()
         var failure: Exception? = null

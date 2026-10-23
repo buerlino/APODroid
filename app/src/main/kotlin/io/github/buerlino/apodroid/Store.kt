@@ -11,6 +11,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ImageDecoder
+import android.graphics.Paint
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.os.Environment
@@ -41,7 +42,12 @@ import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.download
 import io.github.buerlino.apodroid.core.dueWallpapers
 import io.github.buerlino.apodroid.core.fetchLatest
+import io.github.buerlino.apodroid.core.blurBackground
+import io.github.buerlino.apodroid.core.blurSize
+import io.github.buerlino.apodroid.core.edgeCopySize
+import io.github.buerlino.apodroid.core.edgesBlack
 import io.github.buerlino.apodroid.core.fitFrame
+import io.github.buerlino.apodroid.core.gray
 import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.nextAlarm as coreNextAlarm
 import io.github.buerlino.apodroid.core.randomOffset
@@ -70,8 +76,11 @@ enum class Where(val screens: Set<Screen>) {
     BOTH(Screen.entries.toSet()),
 }
 
-/** ⛶'s part of a source's post: the post's [date] and picture [url], where the frame sits ([position], 0–1). */
-data class Part(val date: LocalDate, val url: String?, val position: Float)
+/**
+ * ⛶'s part of a source's post: the post's [date] and picture [url], where the frame sits
+ * ([position], 0–1), and whether the wallpaper shows the [whole] picture instead (A3).
+ */
+data class Part(val date: LocalDate, val url: String?, val position: Float, val whole: Boolean = false)
 
 /**
  * Everything "Set as wallpaper" saves at once ([Store.saveSetup]); the page's draft until then.
@@ -84,7 +93,6 @@ data class Setup(
     val where: Where,
     val list: Map<Screen, List<Source>>,
     val interval: Interval,
-    val fit: Boolean,
     val videoDays: VideoDays,
     val parts: Map<Source, Part>,
     val pictureAt: Int = DEFAULT_PICTURE_AT,
@@ -235,7 +243,7 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, fit, videoDays, parts, pictureAt)
+        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt)
 
     /**
      * Blocking. "Set as wallpaper": saves [setup] in one commit (the list with [putColumns], so
@@ -244,7 +252,7 @@ class Store(private val context: Context) {
      * picture and the first page's draft file alone, B11), then
      * [restartAndForget]: the records of the screens with a column are forgotten (the change
      * times kept), so the next [setDue] gives each screen what the setup says afresh (a changed
-     * Fit or "my picture" too, with the same picture). A screen whose column was empty starts
+     * whole picture or "my picture" too, with the same picture). A screen whose column was empty starts
      * without a record. The daily switch isn't part of it ([switchDaily]). The caller then runs
      * [update] with `set` and arms the alarms ([DailyJob.ensure]) or cancels them as the stored
      * [daily] says.
@@ -260,12 +268,12 @@ class Store(private val context: Context) {
             if (setup.allSources || prefs.contains("home")) putColumns(setup.list, list)
             putString("interval", setup.interval.name)
             putInt("pictureAt", setup.pictureAt)
-            putBoolean("fit", setup.fit)
             putString("videoDays", setup.videoDays.name)
             for ((source, part) in setup.parts) {
                 putString(source.key("cropDate"), part.date.toString())
                 putString(source.key("cropUrl"), part.url)
                 putFloat(source.key("cropPosition"), part.position)
+                putBoolean(source.key("whole"), part.whole)
             }
             putRestart(restart)
         }
@@ -392,10 +400,6 @@ class Store(private val context: Context) {
      */
     val daily: Boolean
         get() = prefs.getBoolean("daily", false)
-
-    /** Fit (F1): all of the picture on black instead of the screen's shape cut from it (Fill); both screens. */
-    val fit: Boolean
-        get() = prefs.getBoolean("fit", false)
 
     /** Save every picture (F5): after each job run, each source in use's new post goes to the gallery ([saveInUse]). */
     var saveEvery: Boolean
@@ -792,11 +796,26 @@ class Store(private val context: Context) {
         return if (post.isNoted(date, prefs.getString(source.key("cropUrl"), null))) prefs.getFloat(source.key("cropPosition"), 0.5f) else 0.5f
     }
 
-    /** ⛶'s stored part per source, for the page's draft ([Setup.parts]); the job uses [cropPosition]. */
+    /**
+     * Whether the wallpaper shows all of [post]'s picture (A3): ⛶'s whole picture, kept beside
+     * the part for that post only (date and picture URL), so a new post drops it.
+     */
+    private fun isWhole(post: Post?): Boolean {
+        val source = post?.source ?: return false
+        val date = prefs.getString(source.key("cropDate"), null)?.let(LocalDate::parse)
+        return post.isNoted(date, prefs.getString(source.key("cropUrl"), null)) && prefs.getBoolean(source.key("whole"), false)
+    }
+
+    /** ⛶'s stored part per source, for the page's draft ([Setup.parts]); the job uses [cropPosition] and [isWhole]. */
     val parts: Map<Source, Part>
         get() = Source.entries.mapNotNull { source ->
             prefs.getString(source.key("cropDate"), null)?.let {
-                source to Part(LocalDate.parse(it), prefs.getString(source.key("cropUrl"), null), prefs.getFloat(source.key("cropPosition"), 0.5f))
+                source to Part(
+                    LocalDate.parse(it),
+                    prefs.getString(source.key("cropUrl"), null),
+                    prefs.getFloat(source.key("cropPosition"), 0.5f),
+                    prefs.getBoolean(source.key("whole"), false),
+                )
             }
         }.toMap()
 
@@ -805,17 +824,17 @@ class Store(private val context: Context) {
      * callers read [stored] and the records first: setting takes seconds, and a refresh storing
      * a new post meanwhile must not mark the new one as set. The crop is [wallpaperFrame], the
      * screen's portrait shape: without one, Android 15+ shows the left part of a wide picture.
-     * The user's own picture (video days) is always centred. With [fit] all of it on black
-     * ([fitted]). Writes no record.
+     * The user's own picture (video days) is always Fill, centred. A source's post with ⛶'s
+     * whole picture ([isWhole]): all of it, on black or blurred ([whole]). Writes no record.
      */
     private fun set(picture: Picture, screens: Set<Screen>, stored: Stored) {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
         val position = if (picture is Picture.Of) cropPosition(stored.post(picture.source)) else 0.5f
         val flags = screens.fold(0) { flags, it -> flags or if (it == Screen.HOME) WallpaperManager.FLAG_SYSTEM else WallpaperManager.FLAG_LOCK }
         val manager = WallpaperManager.getInstance(context)
-        if (fit) {
+        if (picture is Picture.Of && isWhole(stored.post(picture.source))) {
             // The screen's size already: the hint is all of it.
-            val bitmap = fitted(file, screen)
+            val bitmap = whole(file, screen)
             manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
         } else if (needsTurning(file)) {
             // Android would measure it unturned but draw it turned, stretching it (seen on API 36).
@@ -972,13 +991,15 @@ private fun decodeUpright(file: File, screen: Size): Bitmap =
     }
 
 /**
- * [file] upright, all of it as large as fits ([fitFrame]), centred on black in the [screen]'s size: Fit.
- * Decoded straight to the frame's size and drawn 1:1: shrinking the rendition (3726×2484 for a
+ * The whole picture (A3): [file] upright, all of it as large as fits ([fitFrame]), centred in
+ * the [screen]'s size on black when its edges are nearly black ([edgesBlack]: a planet on
+ * space blends in), else on the picture blurred and darkened ([blurred]). Decoded straight to the frame's size and drawn 1:1: shrinking the rendition (3726×2484 for a
  * 3:2 post) about 3× in one bilinear step can make stars jagged. `info.size` and `setTargetSize`
  * are both the upright size (Android 10's codec respects EXIF, 11+ swaps for the origin; AOSP's
  * ImageDecoder.cpp).
  */
-private fun fitted(file: File, screen: Size): Bitmap {
+private fun whole(file: File, screen: Size): Bitmap {
+    val background = if (hasBlackEdges(file)) null else blurred(file, screen)
     lateinit var frame: Frame
     val picture = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
         frame = fitFrame(info.size.width, info.size.height, screen.width, screen.height)
@@ -988,10 +1009,50 @@ private fun fitted(file: File, screen: Size): Bitmap {
     return Bitmap.createBitmap(screen.width, screen.height, Bitmap.Config.ARGB_8888).also {
         Canvas(it).run {
             drawColor(Color.BLACK)
+            background?.let { blur ->
+                drawBitmap(blur, null, Rect(0, 0, screen.width, screen.height), Paint(Paint.FILTER_BITMAP_FLAG))
+                blur.recycle()
+            }
             drawBitmap(picture, frame.left.toFloat(), frame.top.toFloat(), null)
         }
         picture.recycle()
     }
+}
+
+/** Whether [file]'s edges are nearly black, from an upright grey copy [edgeCopySize] large ([edgesBlack]). */
+private fun hasBlackEdges(file: File): Boolean {
+    val copy = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
+        val (w, h) = edgeCopySize(info.size.width, info.size.height)
+        decoder.setTargetSize(w, h)
+        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+    }
+    val w = copy.width
+    val h = copy.height
+    val pixels = IntArray(w * h).also { copy.getPixels(it, 0, w, 0, 0, w, h) }
+    copy.recycle()
+    return edgesBlack(IntArray(pixels.size) { gray(pixels[it]) }, w, h)
+}
+
+/**
+ * The blurred background ([blurBackground]): [file]'s middle in the [screen]'s shape, upright,
+ * at [blurSize] (decoded halved while it still covers that, then scaled), blurred and darkened.
+ * The caller draws it enlarged to the screen.
+ */
+private fun blurred(file: File, screen: Size): Bitmap {
+    val (bw, bh) = blurSize(screen.width, screen.height)
+    val decoded = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
+        val frame = wallpaperFrame(info.size.width, info.size.height, screen, 0.5f)
+        var sample = 1
+        while (frame.width() / (sample * 2) >= bw && frame.height() / (sample * 2) >= bh) sample *= 2
+        decoder.setTargetSampleSize(sample)
+        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+    }
+    val copy = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888)
+    Canvas(copy).drawBitmap(decoded, wallpaperFrame(decoded.width, decoded.height, screen, 0.5f), Rect(0, 0, bw, bh), Paint(Paint.FILTER_BITMAP_FLAG))
+    decoded.recycle()
+    val pixels = IntArray(bw * bh).also { copy.getPixels(it, 0, bw, 0, 0, bw, bh) }
+    copy.setPixels(blurBackground(pixels, bw, bh), 0, bw, 0, 0, bw, bh)
+    return copy
 }
 
 /** The MIME type of a decodable image, e.g. `image/jpeg`, or null. */

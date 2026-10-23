@@ -51,6 +51,17 @@ fun edgesBlack(gray: IntArray, w: Int, h: Int): Boolean {
     return black >= EDGE_BLACK_SHARE * total
 }
 
+/** How wide the grey copy for [edgesBlack] is, at most. */
+const val EDGE_COPY_WIDTH = 200
+
+/**
+ * The size of the grey copy a [width]×[height] picture's edges are judged on ([edgesBlack]):
+ * [EDGE_COPY_WIDTH] wide in the picture's shape (at least 1 px high), a narrower picture as it is.
+ */
+fun edgeCopySize(width: Int, height: Int): Pair<Int, Int> =
+    if (width <= EDGE_COPY_WIDTH) width to height
+    else EDGE_COPY_WIDTH to max(1, (height * EDGE_COPY_WIDTH / width.toDouble()).roundToInt())
+
 /**
  * The size of the copy the blurred background is made from: a quarter of the screen's width
  * and height (1/16 of its pixels), at least 1×1. The app decodes the picture's middle in the

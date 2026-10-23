@@ -25,16 +25,26 @@ packages unattended): `night.md`.
   also the crop hint, and `fitFrame`, where the whole picture goes on the screen with Fit (F1)
   (tests in `FrameTest`; a hint widened for landscape was tried and dropped, `CLAUDE.md`,
   Wallpaper).
-  `core/.../Turn.kt`: `isTurnOver`,
-  `nextSource` (the next ticked source with a picture) and `turnSlack` (tests in `TurnTest`).
+  `core/.../Turn.kt`: `nextSource` (the next ticked source in order for which a test holds;
+  tests in `TurnTest`; the Set clock, `isTurnOver` and `turnSlack`, went in J1).
+  `core/.../PictureTime.kt` (0.6.0, J1): `PictureTime(pictureAt, everyHours)` with `hours`,
+  `last`, `next`, `isChangeTime` (the change times in a zone, on the clock's hours through DST),
+  `pictureWindow` (3 h), `firstCheck` (15 min), `nextRun(now, zone, failures, time, turns,
+  offset, waiting)` (when the alarms should run next, J2), `randomOffset` and `maxOffset`
+  (tests in `PictureTimeTest`, also whole days in Zurich, Helsinki, Los Angeles, Sydney and UTC
+  with a run at each `nextRun`).
   `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
   `screensOf` and `placing` (S2: the list's change, a source on exactly its screens),
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in:
-  `picture(source)`), `Record` (owner, picture, stamp; `forget()`), and the pure
-  functions returning a `Plan` (clock, records, `sets` grouped by picture): `dueWallpapers`
-  (each run; equal columns: the lock screen follows home's owner, B2), `restartAndForget(before, after, …)` (S4, Set: the clock restarts, the records of
-  the screens with a column forgotten; a `Restart` with the plan and the screens whose record to
-  `drop`, a column that was empty), and `videoDayKept` for the page's status line (tests in `ScreensTest`).
+  `picture(source)`, `isNew(source, shown)`), `Record` (owner, picture, stamp: the change time,
+  `shown`: the last post shown per source; `forget()`), and the pure functions returning a
+  `Plan` (records, `sets` grouped by picture): `dueWallpapers(columns, records, stored, time,
+  zone, now, pull)` (each run, J1's three rules; equal columns: the lock screen follows home's
+  record and picture, B2), `waiting` (a screen with turns that found nothing new, for `nextRun`),
+  `restartAndForget(before, after, records, stored, time, zone, now)` (S4, Set: the pictures of
+  the screens with a column forgotten, each stamped with the current change time; a `Restart`
+  with the plan and the screens whose record to `drop`, a column that was empty), and
+  `videoDayKept` for the page's status line (tests in `ScreensTest`).
   `core/.../Saving.kt` (0.6.0, F5): `sourcesInUse` (what the job fetches and saves) and
   `toSave` (Save every picture's choice; tests in `SavingTest`).
   `core/.../Migration.kt` (0.6.0, M2): `migrate`, 0.5.0's prefs → 0.6.0's keys, run once by
@@ -125,11 +135,19 @@ packages unattended): `night.md`.
   A video day the same way, by setting `isVideo` to true. To run the job on the stored picture
   (e.g. with a moved position), fake only `wallpaperDate`, then `run -f`; faking all dates moves
   `cropDate` too, which is right.
-- End a turn (debug builds, 2026-10-16): after `am kill`, read `turnStartedAt`, then
-  `sed -i -e '/turnStartedAt/s,<value>,<value - 10800000>,'` (3 h back) and `run -f`. A script
-  that does it: `turn.sh [ms back]` in `private/wp7-handoff/` (gitignored; `W=<s>` waits longer, e.g. 45 for a
-  read timeout), with `swap.sh debug|r8 [sed args]` (install a build, fake prefs) and `ui.sh` (the
-  page's nodes with their tap coordinates: rows move when a tick changes).
+- End a turn (debug builds; since J1, 2026-10-23, the turns follow the change times, so
+  `turnStartedAt` and `private/wp7-handoff/turn.sh` no longer do anything): either fake the
+  clock past the next change time (`settings put global auto_time 0`, `cmd alarm set-time
+  <ms>`, then `run -f`; set `auto_time` back to 1 at the end and check the clock against the
+  desktop's `date`), or move a screen's record back one change: after `am kill`, read
+  `wallpaperStamp` (`lock.wallpaperStamp` for the lock screen; equal columns follow home's) and
+  `sed -i -e '/wallpaperStamp/s,<value>,<value - interval in ms>,'`, then `run -f`. A stamp
+  that isn't a change time counts as the current one and changes nothing, so subtract exactly
+  the interval (10800000 for 3 h, 86400000 for one source). A screen changes only to a source
+  whose newest post it hasn't shown: delete its `shownDate`/`shownUrl` keys (`nasa.`, `earth.`
+  for the others, `lock.` before them for the lock screen) to make a post count as new.
+  `swap.sh debug|r8 [sed args]` (install a build, fake prefs) and `ui.sh` (the page's nodes with
+  their tap coordinates: rows move when a tick changes) in `private/wp7-handoff/` still work.
   Each `run -f` pushes the periodic job's next window a period further; Set (with turns,
   any Set; without, a changed timing) schedules it afresh.
 - Put a file in place (debug builds), e.g. "my picture":

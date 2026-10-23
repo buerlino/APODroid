@@ -432,7 +432,8 @@ reading; their build check passed, 108 tests with `private/`):
 4c. **The picture time** (user, 2026-10-22 evening, after the FP6's job waited until 10:22
    for a 06:05 APOD; `CLAUDE.md`, Next features, 0.6.0: the picture time): three settings
    (New picture at, default 06:00; Turns start at, default 06:00; Opening the app, default the
-   wallpaper waits), built in 0.6.0 before P. **Tonight: J0** by hand, two rosie sessions as
+   wallpaper waits), built in 0.6.0 before P. **J0 done** (2026-10-23 morning: the pair of
+   alarms, J0 and J2). **That night: J0** by hand, two rosie sessions as
    V7's, the tablet on battery (instead of V7). Then J1 → J2 → J3 by day or night, the user
    approving J3's texts on the tablet, then **V7** on the new job (its setup takes the picture
    time too), then P, R, T. The probe for J0 is built by day first (J0, The probe).
@@ -1652,7 +1653,29 @@ decisions:
   at once. Only a report: whether Android keeps a periodic job's timing when the same id is
   scheduled again. No doc change from it before P repeats it on the FP6.
 
-### [ ] J0. Android check: which timed run lands with the screen off, on battery (Opus, medium)
+### [x] J0. Android check: which timed run lands with the screen off, on battery (Opus, medium)
+
+**Result (the night of 2026-10-22/23, rosie, tablet on battery 22:37–06:54, 80% → 79%; deep
+Doze all night, maintenance windows at 02:29 and 06:29; `.coord/runs/j0/report.md`, the raw
+logs beside it; PASS).** T = 00:36, 04:00, 06:00:
+- Allow-listed (`.unr`, Unrestricted, bucket `EXEMPTED`): the alarms (c) and (d) fired at
+  T + 10 min three times of three, `idle=true`, and the job each started ran 1 s later with the
+  network (`http=200`). The one-off jobs (a) (b) and the periodic (e) waited for a maintenance
+  window (+30 min to +2½ h); (b)'s deadline changed nothing.
+- Optimized (`.opt`, bucket `rare`): (c) fired at T + 10 min, but its job waited for the next
+  maintenance window (+30 min to +2½ h): no network for it in Doze. (d) `setWindow` without
+  allow-while-idle: once at the 02:29 window, twice never (still pending at 06:54). (a) (b)
+  (e) at the windows.
+- **Read with care (the morning's review, 2026-10-23):** (c) `setAndAllowWhileIdle` has a
+  window of **+1 h** (session 1's `dumpsys alarm`: `window=+1h0m0s0ms`); it fired at +10 min
+  because the probe also armed (d) `setWindow(T, 10 min)` at the same T and Android delivers
+  overlapping alarms together at the tightest window's end (opt's (c) likely rode along with
+  `.unr`'s). So what was measured is **the pair**; (c) alone may come up to 1 h late (not
+  measured). For an allow-listed app (d) alone is allowed in Doze (`flags=0x8`).
+- Not measured: whether the alarm receiver's own 10 s temporary allow-list
+  (`temporaryAppAllowlistDuration=10000`) lets an Optimized app fetch from the receiver.
+- The probes uninstalled and the tablet set back by rosie (her notes; the tablet was gone by
+  the morning's review, so not rechecked on it).
 
 (User, 2026-10-22 evening; `CLAUDE.md`, Next features, 0.6.0: the picture time.) The new job
 must run at a local time (06:00, or right after APOD's 00:05 US Eastern) on a sleeping phone.
@@ -1730,7 +1753,15 @@ what `:core` must compute (it shouldn't: J0 picks the mechanism, J1 the times).
 
 ### [ ] J2. `Store` and `DailyJob`: the job runs at the picture time (Opus, high)
 
-After J0 and J1. The mechanism J0 recommends; the job (or its alarm) is armed for J1's
+After J0 and J1. **The mechanism (J0):** at each next run time two alarms, as J0 measured
+them: `AlarmManager.setWindow(RTC_WAKEUP, T, 10 min)` and `setAndAllowWhileIdle(RTC_WAKEUP,
+T)` (no permission; the same receiver); the first that fires starts the run (a one-off job
+without delay and with any network), the second finds nothing due. The periodic job stays as
+the fallback (it lands at Doze's maintenance windows). Expect: Unrestricted about T + 10 min;
+Optimized the alarm on time but the run at the next maintenance window (up to hours, in Doze):
+the pause hint's "Unrestricted" line gains this reason (a text for the user). Re-arm when an
+alarm fires, after each run, at boot (`RECEIVE_BOOT_COMPLETED`, granted) and in
+`DailyJob.ensure`; the job (or its alarm) is armed for J1's
 `nextRun` after each run, Set, the daily switch on, a settings change, `onResume`'s `ensure`,
 and at boot if J0's mechanism needs it (`RECEIVE_BOOT_COMPLETED` is granted already).
 - `setDue()` applies J1's "may a newer post go on now"; `update(page = true)` with `openWaits`

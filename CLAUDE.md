@@ -833,10 +833,14 @@ out" is 21:05 in Los Angeles, 06:05 in Berlin, 15:05 in Sydney. Decided:
 - **Opening the app** [The wallpaper waits | Sets the new picture at once], default **waits**
   (the user: as the turns, on fixed times): the page fetches and shows the new post, the
   wallpaper changes at its time. "Set as wallpaper" and a pull set at once, as now.
-- **Android first** (J0): 0.5.0's tablet work saw a one-off job's delay alarm not wake a
-  sleeping device; the FP6's periodic job runs on time only at its window's end, which wakes it.
-  A night on the tablet on battery measures which timed run lands (JobScheduler with and without
-  a deadline, `AlarmManager`'s inexact wake-up alarms; no exact-alarm permission without asking).
+- **Android first** (J0, the night of 2026-10-22/23 on the tablet, on battery, deep Doze;
+  `plan-0.6.0.md`, J0): only a wake-up alarm lands in Doze. A pair, `setWindow(T, 10 min)` and
+  `setAndAllowWhileIdle(T)`, fired at T + 10 min three times of three; for an Unrestricted app
+  the run it started had the network at once, for an Optimized one it waited for Doze's next
+  maintenance window (up to hours). One-off jobs with a delay or a deadline and the periodic job
+  wake nothing (they wait for a maintenance window), as 0.5.0 saw. `setAndAllowWhileIdle`
+  alone has a 1 h window (measured only in the pair). So: the pair of alarms starts the run,
+  the periodic job stays as the fallback, no new permission (J2).
 - Built in 0.6.0 (user: before P, the release waits for it); V7 runs on the new job.
 
 **0.6.0: the picture** (user, 2026-10-22 evening; packages A1, A3, A4 in `plan-0.6.0.md`).

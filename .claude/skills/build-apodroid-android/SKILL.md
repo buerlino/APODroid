@@ -33,7 +33,8 @@ packages unattended): `night.md`.
   `core/.../PictureTime.kt` (0.6.0, J1): `PictureTime(pictureAt, everyHours)` with `hours`,
   `last`, `next`, `isChangeTime` (the change times in a zone, on the clock's hours through DST),
   `pictureWindow` (3 h), `firstCheck` (15 min), `nextRun(now, zone, failures, time, turns,
-  offset, waiting)` (when the alarms should run next, J2), `randomOffset` and `maxOffset`
+  offset, waiting)` (when the alarms should run next), `nextAlarm(now, zone, failures, failedAt, …)`
+  (J2: the same, armed at any time, keeping a failed run's retry), `randomOffset` and `maxOffset`
   (tests in `PictureTimeTest`, also whole days in Zurich, Helsinki, Los Angeles, Sydney and UTC
   with a run at each `nextRun`).
   `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
@@ -60,11 +61,15 @@ packages unattended): `night.md`.
   `setFailed`, the first failure; throws only a stop), `refresh(source)`
   (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
   `list` (the list's columns in both modes; before the first save APOD on "Where"'s screens,
-  `hasList`), `columns` (the mode's), `hasTurns`, `setup` (the stored `Setup`: mode,
-  "Where", list, interval, fit, video days, `parts`, ⛶'s `Part` per source) and
+  `hasList`), `columns` (the mode's), `hasTurns`, `pictureAt` (J2, pref `pictureAt`, default
+  `DEFAULT_PICTURE_AT` 6), `pictureTime()`, `offset` (pref `offset`, seconds, drawn once),
+  `nextAlarm()` (when the alarms go: `:core`'s `nextAlarm` with `failedRuns`/`failedAt`, not
+  under a lock) and `ranJob(failed)` (a job run's end: counts or clears the failures),
+  `setup` (the stored `Setup`: mode, "Where", list, interval, fit, video days, `parts`, ⛶'s
+  `Part` per source, `pictureAt`) and
   `saveSetup(setup, pick)` (S4, Set: one commit with the settings, `putColumns`, the parts and
   `restartAndForget`'s plan; `draftFallbackFile` renamed to `fallbackFile` first, only with `pick`, the page's own `draftFallback` (B11); not `daily`), `setsSinceSetup()` (after Set's update: whether any run set a screen since `saveSetup`, and whether one's last set failed; Set's toast, B14),
-  `switchDaily(on)` (S4f2: writes `daily` at once) and `startAfresh()` (the switch on:
+  `switchDaily(on)` (S4f2: writes `daily` at once, clears the job's failures) and `startAfresh()` (the switch on:
   `restartAndForget` with the stored columns),
   `lastScreens(source)` (S2: an unticked row's screens, `<source>.lastScreens`, written with the list), `record(screen)` (home unprefixed, lock `lock.`;
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
@@ -75,15 +80,15 @@ packages unattended): `night.md`.
   `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page, one instance (`launchMode="singleTop"` in `AndroidManifest.xml`, B4; `onNewIntent` does nothing) (`PictureSide`: `SourceTitle`, the shown source's name with its dropdown, and `PicturePage`, each source's picture, in a `HorizontalPager` whose settled page is `shown` (`tab`, `showTab`), then `Caption`, the boxes and the caption of the shown `post`; `show()` loads `posts` and `pictures` of every offered source (`sources`; `apod` decides them in APOD mode), `saved` per source;
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
-  the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob(context, store)` after its set, as Set's; Set's and the switch-on's runs go in the companion's process-wide `runs` scope with `setting`, `switching` and `switchRuns`, so a rotation or Back keeps their end, and `redrawAfterRun` goes to the page in `live` under the starter's `id`, kept by a rotation, B13; on while a load, Set or switch-on runs: owed in `switchRuns` (`core/.../SwitchRuns.kt`, `SwitchRunsTest`), run by `runNext` after it, as `loadAgain`, unless the switch-on run went on to set, `Updated.wentToSet`: B6); the draft (S4: `where`, `list`, `interval`, `fit`, `videoDays`, `parts`, `draftFallback`,
+  the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob(context)` (`DailyJob.ensure`: the alarms and the fallback) after its set, as Set's; Set's and the switch-on's runs go in the companion's process-wide `runs` scope with `setting`, `switching` and `switchRuns`, so a rotation or Back keeps their end, and `redrawAfterRun` goes to the page in `live` under the starter's `id`, kept by a rotation, B13; on while a load, Set or switch-on runs: owed in `switchRuns` (`core/.../SwitchRuns.kt`, `SwitchRunsTest`), run by `runNext` after it, as `loadAgain`, unless the switch-on run went on to set, `Updated.wentToSet`: B6); the draft (S4: `where`, `list`, `interval`, `fit`, `videoDays`, `parts`, `draftFallback`,
   `allSources`; `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`; `pages`, the live pages: a start deletes `fallback-draft.jpg` only without a saved draft and with no other page, B8;
   ✓ `keepPart`, `draftPosition`, `storedPosition`); the settings (`Settings`: `Header` for "Setup" and "Advanced settings", `setupOpen`/`advancedOpen`
   in the saved state, `setupSummary` of the stored setup; the highlight: `setupChanged`, `rowChanged`, `videoDaysChanged`, `highlight`, `Segments`
   (the segmented rows), `DropdownButton`; with the switch "More NASA pictures" `PictureList`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
-  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, `setsSinceSetup()`, then the job scheduled (`scheduleJob`) or cancelled by the stored `daily`);
+  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, `setsSinceSetup()`, then the alarms and the fallback armed (`scheduleJob`) or cancelled by the stored `daily`; `draft()` passes the stored `pictureAt` until J3);
   `zone` and `hours24` (the status line's and the problem box's times) from `readClock`, on resume and by `clockChanged` while resumed, B13; `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post, not while a load, a Set or the switch-on runs, once more when called during one (`followAgain`, B14); `saveFallback` copies a pick in `runs` (B14); `dropVideoDays()` and two `LaunchedEffect`s in `Settings()` put a hidden draft value back (B14).
-  `app/.../DailyJob.kt`: the job (id 1; after `update`, `saveInUse` unless stopped); `ensure` reschedules it only when its timing changes; while a run goes or a failed run's retry is due `schedule` and `ensure` are only noted and `rescheduleNoted` does them at the end of a run that didn't fail or of the retry (one retry at most, B5, B7; only the first retry of a failing series is waited for, B12; a series ends only with a good run, B12f1); a run `onStopJob` stopped counts as failed (`stoppedBySystem`); `cancel` stops it at once, drops the note and the retry due (S4f3, B7); the bookkeeping is `core/.../JobRuns.kt` (`JobRuns`, `Reschedule`; `JobRunsTest`): `started()` returns the generation `finished(generation, failed)` takes, `drop()` bumps it.
+  `app/.../DailyJob.kt` (J2): the run (`onStartJob`: `update`, then `saveInUse` unless stopped; `jobFinished(…, false)` and `onStopJob` false, no Android retry; `ended` notes `ranJob` and calls `ensure`, unless an off came since, `stoppedBySystem` counts as failed), two jobs: id 1 the 6 h fallback (`periodic`), id 2 the alarms' one-off (`runNow`, not while pending or a run goes); `ensure` arms the pair of alarms (`arm`: `setWindow` with request code 1, `setAndAllowWhileIdle` with 2, for `Store.nextAlarm()`) and schedules the fallback when missing or with another timing, not while a run goes; `cancel` (off) drops the generation and cancels both jobs and both alarms. `app/.../AlarmReceiver.kt` (J2, not exported): `ACTION_RUN` → `runNow`; `BOOT_COMPLETED`, `TIMEZONE_CHANGED`, `TIME_SET`, `MY_PACKAGE_REPLACED` → `ensure` while `daily`. The run count and the generation are `core/.../JobRuns.kt` (`JobRuns`: `started()`, `finished(generation)`, `going`, `drop()`; `JobRunsTest`).
 
 ## Working on the phone
 
@@ -100,9 +105,15 @@ packages unattended): `night.md`.
 - Release build on the phone (R8 isn't covered by unit tests): sign the unsigned release APK
   with `~/.android/debug.keystore` via `zipalign -p 4` + `apksigner`; that installs over debug
   builds.
-- Job: force a run with `adb shell cmd jobscheduler run -f io.github.buerlino.apodroid 1`, list
-  with `adb shell dumpsys jobscheduler | grep io.github.buerlino.apodroid` (`Last successful
-  run` outlives logcat). The job logs `Daily job: <SOURCE> <date>, wallpaper set` (or `video, wallpaper
+- Job: force a run of the fallback with `adb shell cmd jobscheduler run -f io.github.buerlino.apodroid 1`,
+  of the alarms' run with `… run -f io.github.buerlino.apodroid 2` while it's pending (an alarm
+  fired and it waits, e.g. for the network: with Wi-Fi off `run -f` forces it past the
+  constraint, so it fails), list with `adb shell dumpsys jobscheduler | grep io.github.buerlino.apodroid` (`Last successful
+  run` outlives logcat). The alarms (J2): `adb shell dumpsys alarm | grep -A3 apodroid` lists the
+  pair (two `PendingIntent`s, request codes 1 and 2, the same time; `RTC_WAKEUP`); the job logs
+  `Daily job: alarms for <UTC time>` each time it arms them, `Daily job: alarm, run scheduled`
+  when one fires, `Daily job: jobFinished (job <id>)` at a run's end. Since J2 no run asks
+  Android for a retry: after a failed run no backoff job is pending, the alarms come 15 min later. The job logs `Daily job: <SOURCE> <date>, wallpaper set` (or `video, wallpaper
   kept`; SOURCE is APOD also for "my picture") and `Daily job failed` under `adb logcat -d -s APODroid`; the page the same as `Page:
   …` and `Update failed`. Nothing is logged when there was nothing to set. Pull to refresh:
   `adb shell input swipe 400 300 400 1100 600` (tablet coordinates). Crashes:
@@ -151,8 +162,9 @@ packages unattended): `night.md`.
   for the others, `lock.` before them for the lock screen) to make a post count as new.
   `swap.sh debug|r8 [sed args]` (install a build, fake prefs) and `ui.sh` (the page's nodes with
   their tap coordinates: rows move when a tick changes) in `private/wp7-handoff/` still work.
-  Each `run -f` pushes the periodic job's next window a period further; Set (with turns,
-  any Set; without, a changed timing) schedules it afresh.
+  Each `run -f 1` pushes the fallback's next window a period further; since J2 nothing
+  schedules it afresh (its timing never changes), the alarms are armed again by each run, Set,
+  the daily switch on and each page open.
 - Put a file in place (debug builds), e.g. "my picture":
   `cat x.jpg | adb shell "run-as io.github.buerlino.apodroid sh -c 'cat > files/fallback.jpg'"`.
   The R8 build keeps the data of the debug build it's installed over, so set up a state with
@@ -206,8 +218,9 @@ packages unattended): `night.md`.
 - Whether Android 15+ holds a job back for charging or idle: `Num Required Flexible
   constraints` in its `dumpsys jobscheduler` entry (0 on the tablet, 2026-10-17).
 - Stop a running job as the system would: `adb shell cmd jobscheduler timeout
-  io.github.buerlino.apodroid 1`. Its retry may come minutes late (6½ min on the tablet, U7:
-  Android batches ready jobs); `Last successful run` in `dumpsys jobscheduler` shows it.
+  io.github.buerlino.apodroid 1` (or `2`). Since J2 Android doesn't retry it (`onStopJob`
+  returns false): the alarms come 15 min after the run's end (U7 saw Android's retry 6½ min late
+  before).
 - A full disk (tablet only, never the FP6; U7): note `df /data`, `dd` into `/data/local/tmp`
   slows to a crawl after ~25 GB, so `fallocate -l <size> /data/local/tmp/fill2` the rest at
   once, then a small file to leave about 200 KB (less than the picture to download; fake its

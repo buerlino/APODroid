@@ -591,7 +591,7 @@ class Store(private val context: Context) {
         }
         if (Thread.currentThread().isInterrupted) throw InterruptedException()
         if (!daily && !set) return Updated(null, false, failure, wentToSet = false)
-        val (done, setFailure) = setDue()
+        val (done, setFailure) = setDue(pull = force)
         if (failure != null && done != null) Log.i("APODroid", "Despite the failure: $done")
         return Updated(done, setFailure != null, failure ?: setFailure, wentToSet = true)
     }
@@ -650,11 +650,12 @@ class Store(private val context: Context) {
      * that record as it was, so the retry sets that screen only; the other sets still run, and
      * the first failure is returned with them. Under one lock, as the page and the job may both
      * get here. Returns what it set for the log (null when nothing) and the first failed set.
+     * A [pull] (pull to refresh) sets a newer picture of each screen's source at once.
      */
-    private fun setDue(): Pair<String?, Exception?> = synchronized(wallpaperLock) {
+    private fun setDue(pull: Boolean): Pair<String?, Exception?> = synchronized(wallpaperLock) {
         val now = Instant.now()
         val stored = stored()
-        val plan = dueWallpapers(columns, records(), stored, pictureTime(interval), ZoneId.systemDefault(), now)
+        val plan = dueWallpapers(columns, records(), stored, pictureTime(interval), ZoneId.systemDefault(), now, pull)
         write(plan.copy(screens = plan.screens.filterValues { !it.set }))
         val done = mutableListOf<String>()
         var failure: Exception? = null

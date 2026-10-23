@@ -770,7 +770,7 @@ page or job):
    change times (the phone off) make one change, not one each.
 2. **The window:** for 3 hours after the change time (`pictureWindow`) a newer picture of the
    owner, seen by a check, still replaces it (the change time kept); after it, the next change
-   time. A pull counts as in the window (`pull`; J2 wires it).
+   time. A pull counts as in the window (`pull`: `Store.update`'s `force`).
 3. **Nothing new** (several sources only): the picture and the stamp stay, so every check tries
    again (the screen **waits**, `waiting`): the first new picture of a ticked source goes on as
    soon as a check sees it (the next in order when two are), with the change time of then. A
@@ -813,7 +813,7 @@ count from the run. No model of each source's posting time. **Until J2** (`Store
 `pictureAt` is 06:00, the zone the system's, the offset unused; the job is still 0.6.0's (with
 turns, period `min(interval, 6 h)` with a 15 min flex; with one source 6 h, flex 6 h), so a
 change comes at the first job run after its change time, and a page open sets only what the
-rules say (a new post outside the window waits). A video-day choice or the mode switch in the
+rules say (a new post outside the window waits; a pull sets it). A video-day choice or the mode switch in the
 draft while an update runs makes the page run one more after it (that one read the offered
 sources before).
 

@@ -274,8 +274,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   opens and closes the draft's settings (a button for screen readers, "expanded"/"collapsed";
   closed: a summary of the **stored** setup under it, "APOD on both screens" in APOD mode (or "home screen", "lock screen", as the stored "Where" says), else
   "NASA on home screen, Earth on both screens", then, while the daily switch is on, " · every
-  6 h from 06:00" while a screen takes turns, else " · at 06:00" (J3, 2026-10-24 night,
-  placeholders; was " · turns every 6 h"; " · Fill" or " · Fit" went with Size in A3): at its
+  6 h from 06:00" while a screen takes turns, else " · at 06:00" (12/24 h as the system says;
+  J3, 2026-10-24 night, placeholders; was " · turns every 6 h"; " · Fill" or " · Fit" went with Size in A3): at its
   top the switch **More NASA pictures** (J3: Setup is the draft, Advanced acts at once), then
   in APOD mode **Where**, with the switch on **Pictures from** (the list); while the daily
   switch is on **New picture at** (J3), then, while a column takes turns, "Change every", and

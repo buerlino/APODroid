@@ -199,13 +199,19 @@ Risk: this is the site's internal WordPress API, not a documented public API. Th
 the fields could change. Keep the parsing in `:core`, tolerant (`ignoreUnknownKeys`, nullable
 fields), and fail without touching the current wallpaper.
 
-**Traffic (checked 2026-10-02):** one JSON GET per device per day (`Store.isCurrent`), plus the
-image. The job's period starts at each device's own enable time, so there's no shared burst at
-00:05 US Eastern. 1000 users ≈ 1000–2000 requests a day, like 1000 Tasker tasks against
-`api.nasa.gov`. The risk is fragility, not load. Since 0.5.0 (WP7c, 2026-10-18) NASA and
-Earth have no post on weekends, so their checks repeat: a page open skips a source checked
-without a problem within the hour (The page); the job (3–6 h apart) and its retries always
-check. A picture that isn't one is downloaded once (Fetch).
+**Traffic (checked 2026-10-02; the checks by the clock since J2, 2026-10-23):** a check is one
+JSON GET per source in use, plus the image when the post is new (`Store.isCurrent` skips a
+source whose stored post is today's). The job checks at each change time ("New picture at",
+with turns every "Change every" from it), 15 min after it and hourly for the 3 hours after it
+(06:00, 06:15, 07:15, 08:15), hourly while a screen with several sources waits, and after a
+failed run 15 min later, then hourly; the 6 h fallback job adds up to four more a day. So about
+4–8 checks a day with one source, more with turns or a waiting screen. Every phone of a time
+zone has the same change times; a per-device offset (0–10 min, drawn once) spreads each burst
+over 10 minutes. 1000 users ≈ 5000–10000 requests a day, spread over the day by the time
+zones. The risk is fragility, not load. Since 0.5.0 (WP7c, 2026-10-18) NASA and Earth have no
+post on weekends, so their checks repeat: a page open skips a source checked without a problem
+within the hour (The page); the job's runs always check. A picture that isn't one is
+downloaded once (Fetch).
 
 **User-Agent (2026-10-02):** both requests send
 `APODroid/<versionName> (+https://github.com/buerlino/APODroid)`, so the site can tell this app
@@ -338,11 +344,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
     records' pictures, the change times kept (`:core`'s `restartAndForget`; Turns and the picture time), then
     `update(page = true, show, set = true)` fetches what a newly offered source needs and sets
     each screen afresh (a changed Fit or "my picture" too, the same picture again), also with
-    the daily switch off (a one-off set of the same setup), then schedules
-    or cancels the job as the stored daily switch says (not part of the draft; after the set: a freshly scheduled job runs at
-    once and would set first; with turns `DailyJob.schedule` afresh, so the period starts with
-    the Set, else `ensure`, which keeps the job's window when the timing is unchanged; until J2's
-    alarms, Background update). The shown picture decides nothing: to put Earth on a screen,
+    the daily switch off (a one-off set of the same setup), then arms
+    the alarms and the fallback job or cancels them as the stored daily switch says (not part of
+    the draft; after the set: a freshly scheduled fallback runs at once and would set first;
+    `DailyJob.ensure`, which leaves a fallback with the same timing alone and stops no running
+    run; the change times don't move with a Set; Background update). The shown picture decides nothing: to put Earth on a screen,
     tick Earth (0.5.0's "set the shown picture" dropped). A source whose fetch fails: the setup
     is saved anyway and each screen gets what has a picture (Turns). Toasts: "Wallpaper set"
     when a screen was set, also by a page load or the job that set the saved setup before Set's
@@ -362,7 +368,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   - **More NASA pictures** (was "All NASA pictures" until S5: user, 2026-10-20 evening, after a
     review called the mockup's "Extended API mode" a developer's word; 0.6.0, M3; the pref `allSources`, default off: APOD mode). Part of
     the draft: "Where" and the list swap at once and the page offers the new mode's sources;
-    Set saves it and reschedules the job (its period follows the mode). Each mode keeps its
+    Set saves it and arms the alarms afresh (the change times follow the columns). Each mode keeps its
     settings: "Where" is APOD mode's, the list the other's (`Store.list`, kept in APOD mode
     too). The first time on, the list starts from the draft's "Where" (the list is saved only
     once it was on: `Store.hasList`), also after a Set in APOD mode changed "Where" (B14, CR 3:
@@ -669,22 +675,66 @@ before. NASA's enclosure `length` isn't parsed, so it isn't used. ★ ignores th
 
 ### Background update
 
-(Decided 2026-10-01; the timing changes with the picture time, 2026-10-22, Next features.) **`JobScheduler`** (part of Android, no library), not WorkManager (an
-AndroidX dependency) or `AlarmManager` (needs our own retry and reboot handling). `DailyJob.kt`:
-periodic, every ~6 hours (with turns: Turns), only with network, `setPersisted(true)`. **Always any network** (B10); a `wifiOnly` key in a dev build's prefs is ignored. Each run, and each page
-open or pull (2026-10-16, one path): `Store.update(force)`, `refresh(source)` for each source
-in use unless its stored post is today's (always with `force`), then, while `daily` is on,
-`setDue()`: what each screen is due (`:core`'s `dueWallpapers`, Turns), set where it isn't
-what the screen's record notes. **A record per screen** (0.6.0, M2, 2026-10-20): home's the
+(Decided 2026-10-01; by the clock since J2, 2026-10-23: Next features, 0.6.0: the picture
+time.) **Alarms at the change times start the run; a periodic job is the fallback** (J0: only a
+wake-up alarm lands in Doze; part of Android, no library, no new permission; not WorkManager,
+an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
+- **The alarms:** at each next run T (`Store.nextAlarm`: `:core`'s `nextAlarm`; Turns, the next
+  run) a pair, `AlarmManager.setWindow(RTC_WAKEUP, T, 10 min)` and
+  `setAndAllowWhileIdle(RTC_WAKEUP, T)`, two `PendingIntent`s to `AlarmReceiver` with request
+  codes 1 and 2 (one code would make the second replace the first). Arming again replaces the
+  pair. The first that fires (`DailyJob.runNow`) schedules a one-off job, **id 2** (the same
+  service, no delay, any network, not persisted) unless it's pending (`getPendingJob`) or a run
+  goes; the second finds it so and does nothing. Expect about T + 10 min when Unrestricted;
+  Optimized: the alarm on time, the network only at Doze's next maintenance window (accepted).
+- **Armed again** (`DailyJob.ensure`, while `daily` is on): after each run's end (either id),
+  Set, the daily switch on, each `onResume`; at boot, after a time zone or clock change and after
+  an update of the app (`AlarmReceiver` in the manifest, not exported: `BOOT_COMPLETED`,
+  `TIMEZONE_CHANGED`, `TIME_SET`, `MY_PACKAGE_REPLACED`; alarms are absolute times and survive
+  neither a boot nor an update; on a phone with a PIN boot's only after the first unlock).
+- **The fallback**, **id 1**: periodic, every 6 h with a 6 h flex (0.4.0's), any network,
+  `setPersisted(true)`. Its timing never changes: `ensure` compares interval and flex, so a
+  0.5.0 or older 0.6.0 install's turns job (3 h, 15 min flex) is replaced once at the first
+  start (scheduling runs it at once), else nothing schedules it again. Hibernation or a force
+  stop deletes it (and the alarms), so each `onResume` schedules it again when `daily` is on
+  (the pref, user, 2026-10-04; until 0.1.2 `getPendingJob`).
+- **No reschedule stops a run:** scheduling a job's id again stops its run, so neither id is
+  scheduled while a run goes (`JobRuns.going`, process-wide: the page and the job share one
+  process); a run's end calls `ensure`, which does what was skipped. So a Set or the daily
+  switch on during a run arms the alarms and leaves the run alone.
+- **Retries by the alarms** (user, 2026-10-23 night): every run ends with
+  `jobFinished(params, false)` and `onStopJob` returns false, for both ids, so Android keeps no
+  backoff retry (in Doze it waits for a maintenance window and, pending, blocks the alarms). A
+  failed run (a fetch's or a set's failure in `Updated`) or one `onStopJob` stopped
+  (`stoppedBySystem`) counts: `Store.ranJob` keeps `failedRuns` (in a row) and `failedAt`; a
+  good run clears them, the daily switch either way too. The alarms then come 15 min after the
+  run, then hourly (`nextAlarm` keeps that retry when armed again before it, by a Set or a page
+  open; a retry whose time passed without a run, after a boot or the process dying, comes at
+  once). A run that waits for the network (id 2 pending) arms nothing until it runs.
+- **Off is off** (`DailyJob.cancel`): both jobs and both alarms cancelled, a running run too;
+  `JobRuns.drop` bumps a generation each run takes at its start, so a run from before an off
+  ends without effect (it arms and notes nothing; a lock keeps its end and the cancel apart;
+  `:core`'s `JobRuns`, `JobRunsTest`). 0.6.0's notes during a run, the retry due and the
+  failing series (S4f3, B5, B7, B12, B12f1) are gone with Android's retries.
+
+Each run (either id), and each page open or pull (2026-10-16, one path): `Store.update(force)`,
+`refresh(source)` for each source in use unless its stored post is today's (always with
+`force`), then, while `daily` is on, `setDue()`: what each screen is due by the change times
+(`:core`'s `dueWallpapers`, Turns), set where it isn't what the screen's record notes; then the
+job, with "Save every picture", `saveInUse` (not after a stop). **Always any network** (B10); a
+`wifiOnly` key in a dev build's prefs is ignored. A page open sets only what's due by the
+times (a new post outside the window waits for the next change time; no setting, user,
+2026-10-23); Set and a pull set at once. **A record per screen** (0.6.0, M2, 2026-10-20): home's the
 unprefixed keys (as before), the lock screen's under `lock.`: `wallpaperSource` (whose turn,
 the owner), `wallpaperPicture` (the picture's source or `own`) with `wallpaperDate` and
 `wallpaperUrl` (the URL since WP7d, 2026-10-18: a site may post a second picture on the same
-date, never seen in the 60 feed items; none matches by date), `wallpaperStamp` (the turn it
-belongs to) and `wallpaperSetAt`. Both screens
+date, never seen in the 60 feed items; none matches by date), `wallpaperStamp` (the change
+time it belongs to), the notes of what it showed (`shownDate`/`shownUrl` per source, J1) and
+`wallpaperSetAt`. Both screens
 due the same picture: one set with both flags (one wallpaper); else `FLAG_SYSTEM` and
 `FLAG_LOCK` each (M0). Each screen's record is written right after its own set; a failed set
 leaves it, so the retry sets that screen only. Set ("Set as wallpaper", S4) writes the
-settings and the records in one commit (`Store.saveSetup`), then `update(set =
+settings (with `pictureAt`) and the records in one commit (`Store.saveSetup`), then `update(set =
 true)` sets, also with `daily` off; `update` returns `Updated` (what it set, whether a set
 failed, the first failure) and throws only a stop. The page reads home's record, the lock screen's
 when only it has a column (APOD mode with "Where" = Lock). The sources in use (the job): the
@@ -692,64 +742,27 @@ ones ticked on either screen, and on an APOD video day the stand-in, while APOD 
 somewhere; the page with
 the sources it offers (the draft's mode's: all three with `allSources` on). One failing doesn't stop the others, and its stored picture still counts (user, 2026-10-17,
 after a code review: a failed check ended the current turn early, and a weekend shows Friday's
-stored picture anyway); the set is logged "Despite the failure: …" and the job retries. A
+stored picture anyway); the set is logged "Despite the failure: …" and the alarms retry. A
 separate
 date is needed because a refresh with the switch off downloads without setting. On a video
 day with "keep" nothing is saved, so switching to "my picture" later that day takes effect with
 Set (S4). `refresh()` and `save()` hold one lock, as the page and the job can
 run at once; `setDue()`, every set and every change to the records or columns hold another (not
 the refresh lock: ★ would wait seconds for a set), so a page and a job running at once set once;
-the page calls them off the main thread.
-Failures return `needsReschedule` (30 s exponential backoff). Set with the daily switch on
-schedules the job after its set: with turns afresh (`DailyJob.schedule`: the period starts with
-the Set; since J1 the change times don't move with it, so until J2 a change comes at the first run after it; `ensure` would keep the old windows and the first turn would end up to a
-period late), otherwise `ensure` (a fresh one without turns runs at once and would set first; with the
-timing unchanged it schedules nothing and the job keeps its window: B14 on the tablet, +6 h
-after a run; whether Android keeps the window when the timing changes, V9's case, is P's); off
-cancels it. Turning the daily switch on (S4f2) does the same after setting the stored setup
-afresh (`Store.startAfresh`); off cancels at once. Quick taps (on, off, on while the first
+the page calls them off the main thread (`Store.nextAlarm` takes neither: `onResume` and the
+receiver call it on the main thread).
+Set with the daily switch on arms the alarms and ensures the fallback after its set (a fresh
+fallback runs at once and would set first); off cancels them. Turning the daily switch on
+(S4f2) does the same after setting the stored setup afresh (`Store.startAfresh`); off cancels
+at once. Quick taps (on, off, on while the first
 switch-on still runs) set once, not twice (user, 2026-10-20 night; B6, 2026-10-21: S4f2 set
 the same picture twice, 0.6 s apart): an on while a switch-on run goes owes one run after it,
 which that run pays when it got past its set's check of the switch (`Updated.wentToSet`), so
 only a run that gave up (the switch off at its check) leaves the last on to run once more and
 the taps never end on with nothing set (`:core`'s `SwitchRuns`, `SwitchRunsTest`). An off and on
 that come after the run's set (during its redraw: taps about 0.35–1 s apart on the tablet) owe a
-run that sets the same picture once more and schedules the job (B6's fix round: the off had
-cancelled it; accepted, user, 2026-10-21: the end state is right). **No reschedule stops a running run** (user, 2026-10-20 evening; S4f3):
-scheduling the job's id again stops a run, so a Set with turns during a run delayed its saves
-to the next run (an `ensure` with another timing too). While a run goes (`DailyJob`'s count of
-runs, process-wide: the page and the job share one process), `schedule` and `ensure` only note
-what's wanted (afresh wins), and the run does it after `jobFinished`, by the stored setup then
-and only while `daily` is on. Off still cancels at once, a running run too, and drops the note.
-Accepted: the process dying before the run's end loses the note; `onResume`'s `ensure` covers a
-changed timing, but a fresh period for the same timing is lost (turns stay on their clock, the
-job may come up to a period off). **A failed run keeps its backoff retry** (user, 2026-10-20
-night; B5: S4f3 let a reschedule noted during a failed run replace the retry, so with turns
-the retry waited up to a period; B7, user, 2026-10-21, from the night's pass 8 and regression
-4): the note waits for the retry, **one retry at most**: the retry's end does it, good or failed
-(a source that keeps failing, e.g. a picture that isn't one all weekend, would otherwise hold
-back a Set's period or a new interval for days; the cost: a failed retry's own backoff is
-replaced by the fresh schedule, the next period retries). A run `onStopJob` stopped counts as
-failed (`stoppedBySystem`), also during the saves after a good update, so a noted reschedule
-doesn't replace the system's retry. After a failed run, until the next run starts, a retry is
-due: a `schedule` or `ensure` then (a Set just after the run; with turns it restarted the
-period, so the failing source waited up to a period) is noted as during a run and done at the
-retry's end; the process dying loses it, as a note. Only the first retry of a failing series
-is waited for (user, 2026-10-21; B12: B7 kept a retry due after a failed retry
-with nothing noted, so while a source kept failing every Set waited for the next retry, which
-Android delays twice as long after each failure, up to 5 h): after a failed retry no retry is
-due, and a later `schedule` or `ensure` is done at once (it replaces the job's own backoff with a
-fresh schedule: the next period retries, and Set's own update is a try). A series ends only
-with a good run (B12f1: B12 let the next failed run after a failed retry start a new series, so
-while a source kept failing a retry was due every other run and a Set then waited for the
-growing backoff): its later failed runs leave no retry due either; the first failed run after a
-good one (or after a fresh process or an off) starts a new series. Off (`cancel`, `JobRuns.drop`) leaves no
-retry due and no note, and a run started before it ends without effect (a generation `drop`
-bumps, taken by each run at its start), so the next on schedules at once (`:core`'s `JobRuns`,
-`JobRunsTest`). The switch's state is the pref `daily` (user, 2026-10-04; until 0.1.2 it was
-`getPendingJob`, no pref): hibernation or a force stop deletes the job, so each `onResume`
-schedules it again when `daily` is on and the job is missing or has another timing
-(`DailyJob.ensure`; scheduling the same id again would stop a running job).
+run that sets the same picture once more and arms the job (B6's fix round: the off had
+cancelled it; accepted, user, 2026-10-21: the end state is right).
 
 **Turns and the picture time** (0.5.0's turns, WP5; per screen since 0.6.0, M1/M2; by the
 clock since J1, 2026-10-23: the rules of Next features, 0.6.0: the picture time; in `:core`'s
@@ -804,17 +817,18 @@ every run, so both are due one picture and get one set; home with no record star
 screen's owner. So they match again after a Set from columns that differed and after a failed
 set on one screen (its retry takes home's picture). Columns that differ: each screen its own
 owner, the same change times. A changed interval or picture time takes effect with Set.
-**The next run** (`nextRun(now, zone, failures, time, turns, offset, waiting)`, for J2's
+**The next run** (`nextRun(now, zone, failures, time, turns, offset, waiting)`, for the
 alarms): the earliest of the next change time; within the window 15 min after the change time,
 then hourly (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone); hourly
 while a screen waits, until the next change time; after a failed or stopped run 15 min later,
 then hourly (`failures`, the failed runs in a row). The clock's checks come a per-device offset
-later (`randomOffset`, 0–10 min in whole seconds, drawn once by J2; kept in range); the retries
-count from the run. No model of each source's posting time. **Until J2** (`Store`, the bridge):
-`pictureAt` is 06:00, the zone the system's, the offset unused; the job is still 0.6.0's (with
-turns, period `min(interval, 6 h)` with a 15 min flex; with one source 6 h, flex 6 h), so a
-change comes at the first job run after its change time, and a page open sets only what the
-rules say (a new post outside the window waits; a pull sets it). A video-day choice or the mode switch in the
+later (`randomOffset`, 0–10 min in whole seconds, drawn once; kept in range); the retries
+count from the run. No model of each source's posting time. **In `Store`** (J2): `pictureAt` (pref
+`pictureAt`, default 6, also after an update from 0.5.0; part of `Setup` and `saveSetup`, the
+page passes the stored one until J3 shows it), the zone the system's, the offset (pref
+`offset`, seconds, drawn at the first `nextAlarm`); `nextAlarm` also keeps a failed run's retry
+(Background update). 0.6.0's `turnStartedAt` is no longer read (left in the prefs, no
+migration). A video-day choice or the mode switch in the
 draft while an update runs makes the page run one more after it (that one read the offered
 sources before).
 
@@ -837,7 +851,7 @@ for good, also when the switch is turned on again (user: it's the user's choice;
 storage brings it back). No battery-optimisation permission.
 
 Permissions (user approved, 2026-10-01), all granted at install with no prompt: `INTERNET`,
-`SET_WALLPAPER`, `RECEIVE_BOOT_COMPLETED` (for `setPersisted`), `ACCESS_NETWORK_STATE` (Android
+`SET_WALLPAPER`, `RECEIVE_BOOT_COMPLETED` (for `setPersisted` and the alarms' boot receiver), `ACCESS_NETWORK_STATE` (Android
 14+ throws on `schedule()` for a job with a network constraint without it; no constraint would
 wake and fail offline).
 
@@ -912,7 +926,8 @@ decided by the clock, not by what's on the screen):
   so the new picture can come hours after the picture time (the same morning on the tablet:
   06:29 for 06:00, but up to 2½ h in J0). The pause hint's "Unrestricted" line says so (J3's
   text). Not tried: fetching inside the alarm's 10 s allowance (`temporaryAppAllowlistDuration`).
-- Built in 0.6.0 (user: before P, the release waits for it); V7 runs on the new job. The
+- Built in 0.6.0 (user: before P, the release waits for it; J1's rules, J2's alarms, the night
+  of 2026-10-23/24, the tablet's checks rosie's); V7 runs on the new job. The
   alarms are re-armed after a time zone or clock change and after an app update too (no
   permission; 2026-10-23, from a review of the plan).
 - **The job simplified with it** (user, 2026-10-23 night): with fixed times the periodic job

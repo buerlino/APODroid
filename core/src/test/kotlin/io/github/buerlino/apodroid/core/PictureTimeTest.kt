@@ -193,6 +193,59 @@ class PictureTimeTest {
         assertEquals("15 06:30", next("2026-07-15T06:15", failures = 1))
     }
 
+    // The alarms armed outside a run's end (J2)
+
+    private fun alarm(
+        now: String,
+        failedAt: String? = null,
+        failures: Int = 1,
+        time: PictureTime = PictureTime(),
+        turns: Boolean = false,
+        offset: Duration = Duration.ZERO,
+        waiting: Boolean = false,
+    ) = local(zurich, nextAlarm(at(zurich, now), zurich, failures, failedAt?.let { at(zurich, it) }, time, turns, offset, waiting))
+
+    /** At a run's end the alarms come at [nextRun]'s time, with or without failures. */
+    @Test
+    fun theAlarmAtARunsEndIsTheNextRun() {
+        for (now in listOf("2026-07-15T05:00", "2026-07-15T06:00", "2026-07-15T06:40", "2026-07-15T10:00", "2026-07-15T23:59")) {
+            for (failures in 0..3) {
+                for (turns in listOf(false, true)) {
+                    val t = at(zurich, now)
+                    val time = PictureTime(6, 3)
+                    val seven = Duration.ofMinutes(7)
+                    assertEquals(
+                        nextRun(t, zurich, failures, time, turns, seven, waiting = turns),
+                        nextAlarm(t, zurich, failures, t, time, turns, seven, waiting = turns),
+                        "$now $failures $turns",
+                    )
+                }
+            }
+        }
+    }
+
+    /** A Set or a page open after a failed run keeps its retry: armed from the run, not from now. */
+    @Test
+    fun aLaterArmingKeepsTheRetry() {
+        assertEquals("15 10:15", alarm("2026-07-15T10:05", failedAt = "2026-07-15T10:00"))
+        assertEquals("15 11:00", alarm("2026-07-15T10:30", failedAt = "2026-07-15T10:00", failures = 2))
+        // Without a failure: by the clock.
+        assertEquals("16 06:00", alarm("2026-07-15T10:05", failures = 0))
+        assertEquals("16 06:00", alarm("2026-07-15T10:05", failedAt = "2026-07-15T10:00", failures = 0))
+        assertEquals("16 06:00", alarm("2026-07-15T10:05", failedAt = null))
+        // The clock's check first when it's earlier.
+        assertEquals("15 06:00", alarm("2026-07-15T05:50", failedAt = "2026-07-15T05:00", failures = 2))
+    }
+
+    /** A retry whose time passed without a run (the process died, a boot): at once. */
+    @Test
+    fun aRetryDueComesAtOnce() {
+        assertEquals("15 10:40", alarm("2026-07-15T10:40", failedAt = "2026-07-15T10:00"))
+        assertEquals("15 13:00", alarm("2026-07-15T13:00", failedAt = "2026-07-15T10:00", failures = 4))
+        // The clock set back: a failure "after" now retries no later than the clock's next check.
+        assertEquals("16 06:00", alarm("2026-07-15T10:00", failedAt = "2026-07-17T10:00"))
+    }
+
     @Test
     fun theOffsetMovesTheClocksChecksNotTheRetries() {
         val seven = Duration.ofMinutes(7)

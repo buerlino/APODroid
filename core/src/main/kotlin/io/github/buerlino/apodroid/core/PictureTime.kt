@@ -98,10 +98,35 @@ fun nextRun(
         checks += check
         check += hourly
     }
-    val retry = when {
-        failures <= 0 -> null
-        failures == 1 -> now + firstCheck
-        else -> now + hourly
-    }
+    val retry = retryAfter(failures)?.let { now + it }
     return (checks.map { it + off }.filter { it > now } + listOfNotNull(retry)).min()
+}
+
+/** How long after the last of [failures] failed or stopped runs in a row the alarms retry: null without one. */
+private fun retryAfter(failures: Int): Duration? = when {
+    failures <= 0 -> null
+    failures == 1 -> firstCheck
+    else -> hourly
+}
+
+/**
+ * When to arm the alarms at [now], also outside a run's end (Set, the daily switch on, a page
+ * open, a boot, a clock or time zone change, an app update), which must not move a failed run's
+ * retry: [nextRun] by the clock from [now], or the retry of the last of [failures] failed runs in
+ * a row, which ended at [failedAt], when that comes first; a retry already due comes at [now].
+ * At a run's end ([failedAt] = [now]) the same as [nextRun] with [failures].
+ */
+fun nextAlarm(
+    now: Instant,
+    zone: ZoneId,
+    failures: Int,
+    failedAt: Instant?,
+    time: PictureTime,
+    turns: Boolean,
+    offset: Duration,
+    waiting: Boolean,
+): Instant {
+    val clock = nextRun(now, zone, 0, time, turns, offset, waiting)
+    val retry = failedAt?.let { at -> retryAfter(failures)?.let { at + it } } ?: return clock
+    return minOf(clock, maxOf(retry, now))
 }

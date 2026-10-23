@@ -294,14 +294,12 @@ class MainActivity : ComponentActivity() {
         fun toast(context: Context, text: String) = Toast.makeText(context.applicationContext, text, Toast.LENGTH_SHORT).show()
 
         /**
-         * After a set that started the stored setup afresh (Set, the daily switch on): with turns the
-         * clock just restarted, so the job is scheduled afresh and its period starts now (ensure would
-         * keep the old windows and stretch the first turn); without turns [DailyJob.ensure] (a fresh
-         * job runs at once, so only after the set, or it would set first). While the job runs, both
-         * wait for its end (S4f3: [DailyJob] notes them, so the run and its saves aren't stopped).
+         * After a set of the stored setup (Set, the daily switch on): arms the alarms for the next
+         * change time or check and the fallback job ([DailyJob.ensure]; a fresh fallback runs at
+         * once, so only after the set, or it would set first). A run going isn't stopped.
          */
-        fun scheduleJob(context: Context, store: Store) {
-            if (!(if (store.hasTurns) DailyJob.schedule(context) else DailyJob.ensure(context))) toast(context, "Couldn't schedule the daily change")
+        fun scheduleJob(context: Context) {
+            if (!DailyJob.ensure(context)) toast(context, "Couldn't schedule the daily change")
         }
 
         /** After a run: each page alive runs what waited for it ([runNext]). */
@@ -393,7 +391,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, fit, videoDays, parts)
+    private fun draft() = Setup(allSources, where, list, interval, fit, videoDays, parts, stored.pictureAt)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -411,7 +409,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Hibernation or a force stop deleted the job; scheduling runs it at once.
+        // Hibernation or a force stop deleted the job (scheduling runs it at once) and the alarms.
         if (store.daily && !DailyJob.ensure(this)) Log.w("APODroid", "Couldn't schedule the daily job again")
         checkPausing()
         readClock()
@@ -722,9 +720,10 @@ class MainActivity : ComponentActivity() {
 
     /**
      * The daily switch, at once (not part of the draft; S4f2): [Store.switchDaily] writes it. Off
-     * cancels the job. On starts the stored setup afresh ([Store.startAfresh]: the clock restarts,
-     * both records forgotten), sets it ([Store.update] with set: the stored setup, not the draft,
-     * which stays a draft), then schedules the job, after the set as Set does. "Wallpaper set" or
+     * cancels the jobs and the alarms. On starts the stored setup afresh ([Store.startAfresh]:
+     * both records' pictures forgotten, the change times kept), sets it ([Store.update] with set:
+     * the stored setup, not the draft, which stays a draft), then arms the alarms and the
+     * fallback job ([scheduleJob]), after the set as Set does. "Wallpaper set" or
      * "Couldn't set the wallpaper"; no toast when nothing was set (the status line says it).
      * Turned on while a load, a Set or its own run goes: one run after it ([runNext]), so its set
      * and its toast aren't taken by the other; none after its own run when that one went on to
@@ -767,7 +766,7 @@ class MainActivity : ComponentActivity() {
             // run that runNext starts (B6 fix round 1: else they were dropped and no job scheduled).
             switchRuns.ended(checkedOn = updated?.wentToSet == true)
             // Switched off again meanwhile: off is off.
-            if (store.daily) scheduleJob(app, store)
+            if (store.daily) scheduleJob(app)
             result.exceptionOrNull()?.let { Log.w("APODroid", "Switch on failed: $it", it) }
             updated?.done?.let { Log.i("APODroid", "Switch on: $it") }
             updated?.failure?.let { Log.w("APODroid", "Switch on: $it", it) }
@@ -827,10 +826,11 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * "Set as wallpaper": saves the draft ([Store.saveSetup]: the clock restarts, both records
-     * forgotten), sets each screen what it says ([Store.update] with set, also with the daily
-     * change off: a one-off set), then schedules or cancels the job as the stored daily switch
-     * says ([scheduleJob], after the set; the switch isn't part of the draft). Disabled while the
+     * "Set as wallpaper": saves the draft ([Store.saveSetup]: both records' pictures forgotten,
+     * the change times kept), sets each screen what it says ([Store.update] with set, also with
+     * the daily change off: a one-off set), then arms the alarms and the fallback job or cancels
+     * them as the stored daily switch says ([scheduleJob], after the set; the switch isn't part
+     * of the draft). Disabled while the
      * daily switch's run goes; the switch turned on meanwhile runs after it ([runNext]).
      */
     private fun setAsWallpaper() {
@@ -854,7 +854,7 @@ class MainActivity : ComponentActivity() {
                     store.update(force = false, page = true, show = offered, set = true) to store.setsSinceSetup()
                 }
             }
-            if (store.daily) scheduleJob(app, store) else DailyJob.cancel(app)
+            if (store.daily) scheduleJob(app) else DailyJob.cancel(app)
             setting = false
             val updated = result.getOrNull()?.first
             // Also what a load or the job set of this setup before Set's own update got there (CR 5).

@@ -1,24 +1,29 @@
 package io.github.buerlino.apodroid.core
 
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 /*
- * What each screen is due (0.6.0). The rules, in short (the full rules: CLAUDE.md, Background
- * update, Turns):
+ * What each screen is due (0.6.0; the picture time since J1). The rules (CLAUDE.md, Background
+ * update, Turns; the times in PictureTime.kt), by the clock, never by what's on the screen:
+ * 1. At a change time a screen changes: with one source to its newest picture, with several to
+ *    the next source (APOD → NASA → Earth, round to itself) whose newest picture it hasn't shown.
+ * 2. In the [pictureWindow] after the change time a newer picture of the source that went on
+ *    still replaces it.
+ * 3. With several sources and nothing new the picture stays and the screen waits: the first new
+ *    picture goes on as soon as a check sees it.
  * - Each screen has a column, the sources ticked for it; an empty column is left alone. In
  *   APOD mode the columns come from "Where" ([apodColumns]).
- * - A column with two or more takes turns, on one shared clock (`turnStartedAt`). Each screen's
- *   [Record] notes whose turn it is ([Record.owner]), what it shows ([Record.picture]) and the
- *   clock's value it belongs to ([Record.stamp]).
- * - [dueWallpapers] works out every screen from one reading of the clock, before anything is
- *   set: the caller writes the clock first if it restarts, then the sets ([Plan.sets]), each
- *   screen's record right after its own set (a failed set leaves it, so the retry sets that
- *   screen only).
+ * - Each screen's [Record] notes whose turn it is ([Record.owner]), what it shows
+ *   ([Record.picture]), the change time it belongs to ([Record.stamp]) and the last picture it
+ *   showed of each source ([Record.shown]).
+ * - [dueWallpapers] works out every screen before anything is set: the caller writes the records
+ *   without a set at once, then the sets ([Plan.sets]), each screen's record right after its own
+ *   set (a failed set leaves it, so the retry sets that screen only).
  * - Settings change only on Set ("Set as wallpaper"): the whole setup at once, then
- *   [restartAndForget] (the clock restarts, the records forgotten) and [dueWallpapers], so each
- *   screen gets what the setup says afresh: the settings always say what each screen gets.
+ *   [restartAndForget] (the records' pictures forgotten, the change times kept) and
+ *   [dueWallpapers], so each screen gets what the setup says afresh.
  */
 
 /** The two screens a wallpaper can go on. */
@@ -96,24 +101,38 @@ class Stored(
         }
     }
 
+    /**
+     * Whether [source]'s newest post is new to a screen that showed [shown]: it has something to
+     * show ([picture]: on an APOD video day the stand-in) and the post isn't the one noted (on an
+     * APOD video day "new" is APOD's post being new).
+     */
+    fun isNew(source: Source, shown: Map<Source, Picture.Of>): Boolean {
+        if (picture(source) == null) return false
+        val newest = posts[source]?.picture() ?: return false
+        return !shows(shown[source], newest)
+    }
+
     private fun sourcePicture(source: Source): Picture.Of? =
         posts[source]?.takeIf { !it.isVideo && it.imageUrl != null && source in files }?.picture()
 }
 
 /**
  * One screen's record. [owner]: whose turn it is (on an APOD video day still APOD while a
- * stand-in shows, so NASA standing in doesn't end APOD's turn). [picture]: what the screen shows
- * (null: forgotten or never set, so the owner's is due). [stamp]: the clock's value of the turn
- * it belongs to.
+ * stand-in shows). [picture]: what the screen shows (null: forgotten by Set or never set, so the
+ * owner's is due). [stamp]: the change time it belongs to (a stamp that isn't one counts as the
+ * current change time). [shown]: per source the last post this screen showed (date and picture
+ * URL), so a change skips a picture it has shown; a stand-in counts for its own source too, and
+ * on a video day APOD's post for APOD.
  */
 data class Record(
     val owner: Source,
     val picture: Picture? = null,
     val stamp: Instant? = null,
+    val shown: Map<Source, Picture.Of> = emptyMap(),
 ) {
     /**
-     * Set ([restartAndForget]): drops the picture, keeps the owner and the stamp, so the next run
-     * puts the owner's current picture on again instead of moving the screen on one.
+     * Set ([restartAndForget]): drops the picture, keeps the owner, the stamp and the notes, so
+     * the next run puts the owner's current picture on again instead of moving the screen on.
      */
     fun forget(): Record = copy(picture = null)
 }
@@ -121,12 +140,8 @@ data class Record(
 /** A screen after a run: its [record], to write after its set when [set], else at once (when it changed). */
 data class Due(val record: Record, val set: Boolean)
 
-/**
- * The outcome of a run or a change: the [clock] afterwards ([restarted]: it's `now`, write it
- * first) and the [screens] whose record changed or which need a set. Screens not in it are
- * left alone.
- */
-data class Plan(val clock: Instant?, val restarted: Boolean, val screens: Map<Screen, Due>) {
+/** The outcome of a run or a change: the [screens] whose record changed or which need a set. Screens not in it are left alone. */
+data class Plan(val screens: Map<Screen, Due>) {
     /**
      * The sets, grouped by the due picture, not by the columns: both screens due the same picture
      * and both needing it → one set with both flags (one wallpaper); otherwise each on its own,
@@ -141,78 +156,137 @@ data class Plan(val clock: Instant?, val restarted: Boolean, val screens: Map<Sc
 }
 
 /**
- * Per screen what is due, from one reading of the clock ([clock], `turnStartedAt`, turns of
- * [length]) at [now]. Screens with an empty column are left out.
+ * Per screen what is due at [now] by the change times of [time] in [zone] (a column with two or
+ * more sources takes turns: every [PictureTime.everyHours] from [PictureTime.pictureAt]; one
+ * source: [PictureTime.pictureAt] only). Screens with an empty column are left out.
  *
- * - **The clock** restarts (to [now], first) when a column takes turns and the turn is over
- *   ([isTurnOver]: [turnSlack], a [clock] in the future counts as over), never for an early
- *   change. Its value is the current stamp.
- * - **With turns**, a screen whose stamp isn't the current one is due its next source
- *   ([nextSource] from its owner, with a picture) and takes the current stamp; when no other
- *   source has a picture the stamp moves and nothing is set. An **early change** (the owner
- *   unticked or with nothing to show: no picture yet, an APOD video with "Skip it") moves the
- *   owner but not the stamp, so it ends with the turn.
- * - **With one source** the screen shows it (on an APOD video day the stand-in; with "Skip it"
- *   or nothing stored it keeps its picture) and takes the current stamp.
+ * - **A change time** since the record's stamp (rule 1): with one source the screen is due its
+ *   newest picture (on an APOD video day the stand-in; with "Skip it" or nothing stored it keeps
+ *   its picture) and takes the change time; with several the next source after the owner whose
+ *   newest picture this screen hasn't shown ([Stored.isNew]), and takes the change time. None
+ *   new: the picture stays and the stamp too, so every check tries again (rule 3, the screen
+ *   waits; [waiting]): the first new picture goes on at once with the change time of then.
+ * - **Within the change** (the stamp is the current change time): in the [pictureWindow] after
+ *   it a newer picture of the owner replaces it (rule 2); after it nothing until the next change
+ *   time. A forgotten picture (Set) or a new screen puts the owner's picture on at once; an
+ *   owner with nothing to show (with several sources) or no longer ticked gives way to the next
+ *   new source, else the next with any picture. [pull] (a pull to refresh) counts as within the
+ *   window.
+ * - **A stamp that isn't a change time** (0.6.0's Set clock, migrated 0.5.0 turns, a time zone
+ *   changed since) or one after [now] (the clock set back) counts as the current change time: it
+ *   takes it, and nothing is set until the next one (but with [pull]).
  * - **A screen with no record** starts on the other screen's owner if that's in its column,
- *   else the first ticked source with a picture, with the current stamp.
+ *   else the first ticked source with a picture, with the current change time.
  * - **Equal columns** (the same sources on both screens) change together: home goes as above
- *   (with no record of its own it starts on the lock screen's owner), and the lock screen takes
- *   home's owner and stamp and is due the same picture, so [Plan.sets] makes one set with both
- *   flags. So the screens match again after Set from columns that differed, and after a failed
- *   set on one screen (B2).
+ *   (with no record of its own it starts on the lock screen's owner) and the lock screen takes
+ *   home's record and picture, so [Plan.sets] makes one set with both flags. So the screens
+ *   match again after Set from columns that differed, and after a failed set on one screen (B2).
  * - A screen needs a set when its due picture isn't the one it shows ([Picture.Of.url] null
  *   matches by date); nothing to show keeps the picture.
  */
 fun dueWallpapers(
     columns: Map<Screen, List<Source>>,
-    clock: Instant?,
-    length: Duration,
     records: Map<Screen, Record>,
     stored: Stored,
+    time: PictureTime,
+    zone: ZoneId,
     now: Instant,
+    pull: Boolean = false,
 ): Plan {
-    val restarted = columns.values.any { it.size >= 2 } && isTurnOver(clock, length, now)
-    val current = if (restarted) now else clock
+    val rules = Rules(stored, time, zone, now)
     val due = mutableMapOf<Screen, Due>()
     val home = columns[Screen.HOME].orEmpty()
     if (home.isNotEmpty() && home.toSet() == columns[Screen.LOCK].orEmpty().toSet()) {
-        val base = records[Screen.HOME] ?: Record(
-            records[Screen.LOCK]?.owner?.takeIf { it in home } ?: home.firstOrNull { stored.picture(it) != null } ?: home.first(),
-            stamp = current,
-        )
-        val lead = dueOn(home, base, current, stored)
+        val lead = rules.dueOn(home, records[Screen.HOME] ?: rules.start(home, records[Screen.LOCK]), pull)
         due[Screen.HOME] = lead
-        val follow = records[Screen.LOCK]?.copy(owner = lead.record.owner, stamp = lead.record.stamp)
-            ?: Record(lead.record.owner, stamp = lead.record.stamp)
-        due[Screen.LOCK] = show(follow, stored.picture(lead.record.owner))
-        return Plan(if (restarted) now else clock, restarted, due.filter { (screen, it) -> it.set || it.record != records[screen] })
+        due[Screen.LOCK] = rules.show(lead.record.copy(picture = records[Screen.LOCK]?.picture), lead.record.picture)
+    } else {
+        val (known, unknown) = Screen.entries.filter { columns[it].orEmpty().isNotEmpty() }.partition { it in records }
+        for (screen in known) due[screen] = rules.dueOn(columns.getValue(screen), records.getValue(screen), pull)
+        for (screen in unknown) {
+            val other = Screen.entries.first { it != screen }
+            val column = columns.getValue(screen)
+            due[screen] = rules.dueOn(column, rules.start(column, due[other]?.record ?: records[other]), pull)
+        }
     }
-    val (known, unknown) = Screen.entries.filter { columns[it].orEmpty().isNotEmpty() }.partition { it in records }
-    for (screen in known) due[screen] = dueOn(columns.getValue(screen), records.getValue(screen), current, stored)
-    for (screen in unknown) {
-        val column = columns.getValue(screen)
-        val other = Screen.entries.first { it != screen }
-        val owner = (due[other]?.record ?: records[other])?.owner?.takeIf { it in column }
-            ?: column.firstOrNull { stored.picture(it) != null } ?: column.first()
-        due[screen] = dueOn(column, Record(owner, stamp = current), current, stored)
-    }
-    return Plan(if (restarted) now else clock, restarted, due.filter { (screen, it) -> it.set || it.record != records[screen] })
+    return Plan(due.filter { (screen, it) -> it.set || it.record != records[screen] })
 }
 
-private fun dueOn(column: List<Source>, record: Record, current: Instant?, stored: Stored): Due {
-    var r = record
-    if (column.size < 2) return show(r.copy(owner = column.single(), stamp = current), stored.picture(column.single()))
-    val hasPicture = { source: Source -> stored.picture(source) != null }
-    // No ticked source with a picture: the owner stays, unless it isn't ticked here (CR 1: it
-    // would set an unticked source's picture); then the column's first, which has none to set.
-    val next = { nextSource(column, r.owner, hasPicture) ?: r.owner.takeIf { it in column } ?: column.first() }
-    r = when {
-        r.stamp != current -> r.copy(owner = next(), stamp = current)
-        r.owner !in column || !hasPicture(r.owner) -> r.copy(owner = next())
-        else -> r
+/**
+ * Whether a screen with turns waits (rule 3): a change time came since its stamp and nothing new
+ * went on, so the next run checks hourly ([nextRun]). A failed set looks the same and is
+ * checked hourly too.
+ */
+fun waiting(columns: Map<Screen, List<Source>>, records: Map<Screen, Record>, time: PictureTime, zone: ZoneId, now: Instant): Boolean =
+    Screen.entries.any { screen ->
+        val stamp = records[screen]?.stamp
+        columns[screen].orEmpty().size >= 2 && stamp != null &&
+            time.isChangeTime(stamp, zone, true) && stamp < time.last(now, zone, true)
     }
-    return show(r, stored.picture(r.owner))
+
+private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId, val now: Instant) {
+    fun current(column: List<Source>): Instant = time.last(now, zone, column.size >= 2)
+
+    /** A screen with no record: on [other]'s owner if ticked here, else the first with a picture. */
+    fun start(column: List<Source>, other: Record?): Record {
+        val owner = other?.owner?.takeIf { it in column } ?: column.firstOrNull { stored.picture(it) != null } ?: column.first()
+        return Record(owner, stamp = current(column))
+    }
+
+    /** The next source after [record]'s owner with a new picture, else with any picture. */
+    fun pick(column: List<Source>, record: Record): Source? =
+        nextSource(column, record.owner) { stored.isNew(it, record.shown) }
+            ?: nextSource(column, record.owner) { stored.picture(it) != null }
+
+    fun dueOn(column: List<Source>, record: Record, pull: Boolean): Due {
+        val turns = column.size >= 2
+        val current = current(column)
+        val stamp = record.stamp
+        if (stamp == null || stamp > current || !time.isChangeTime(stamp, zone, turns)) {
+            val r = record.copy(stamp = current)
+            return if (pull) within(column, r, true) else show(r, null)
+        }
+        if (stamp == current) return within(column, record, pull)
+        // Rule 1: a change time came.
+        if (!turns) return show(record.copy(owner = column.single(), stamp = current), stored.picture(column.single()))
+        // Rule 3: nothing new, the screen waits with its stamp.
+        val next = nextSource(column, record.owner) { stored.isNew(it, record.shown) } ?: return show(record, null)
+        return show(record.copy(owner = next, stamp = current), stored.picture(next))
+    }
+
+    /** Within the current change: rule 2, a forgotten picture, an owner that has to give way. */
+    private fun within(column: List<Source>, record: Record, pull: Boolean): Due {
+        if (column.size < 2) {
+            val source = column.single()
+            val r = record.copy(owner = source)
+            return if (record.owner != source || record.picture == null || pull || inWindow(record)) show(r, stored.picture(source)) else show(r, null)
+        }
+        if (record.owner !in column || record.picture == null && stored.picture(record.owner) == null) {
+            // CR 1: an owner no longer ticked here gives way, and its picture doesn't go on.
+            val owner = pick(column, record) ?: return show(record.copy(owner = record.owner.takeIf { it in column } ?: column.first()), null)
+            return show(record.copy(owner = owner), stored.picture(owner))
+        }
+        return if (record.picture == null || pull || inWindow(record)) show(record, stored.picture(record.owner)) else show(record, null)
+    }
+
+    private fun inWindow(record: Record) = now < record.stamp!! + pictureWindow
+
+    /** [record] showing [picture] (null keeps what it shows), its notes brought up to date. */
+    fun show(record: Record, picture: Picture?): Due {
+        if (picture == null) return Due(noted(record), false)
+        return Due(noted(record.copy(picture = picture)), !shows(record.picture, picture))
+    }
+
+    /** The notes of a screen showing its owner's current picture: the owner's post, and a stand-in's own source. */
+    private fun noted(record: Record): Record {
+        val picture = record.picture ?: return record
+        val current = stored.picture(record.owner) ?: return record
+        if (!shows(picture, current)) return record
+        var shown = record.shown
+        stored.post(record.owner)?.let { shown = shown + (record.owner to it.picture()) }
+        if (current is Picture.Of && current.source != record.owner) shown = shown + (current.source to current)
+        return if (shown == record.shown) record else record.copy(shown = shown)
+    }
 }
 
 /**
@@ -231,39 +305,42 @@ fun videoDayKept(column: List<Source>, record: Record?, stored: Stored, everSet:
     return !shows(picture, standIn)
 }
 
-/** [record] showing [picture]; null keeps what it shows. */
-private fun show(record: Record, picture: Picture?): Due {
-    if (picture == null) return Due(record, false)
-    return Due(record.copy(picture = picture), !shows(record.picture, picture))
-}
 
 private fun shows(noted: Picture?, due: Picture): Boolean =
     noted == due || noted is Picture.Of && due is Picture.Of && noted.url == null &&
         noted.source == due.source && noted.date == due.date
 
 /**
- * Set ("Set as wallpaper", S4): the setup is saved with the columns [before] → [after], then
- * [dueWallpapers] gives each screen what the setup says afresh. The clock restarts (to [now]);
- * the records of the screens with a column in [after] are forgotten ([Record.forget]: owner
- * kept) and those on the current turn take the new stamp (one still due a retry keeps its old
- * stamp, so it moves on). A screen left alone (an empty column) keeps its record, so the page
- * still knows what it shows. A screen whose column was empty and now isn't is in [Restart.drop]:
- * its record is stale (the app left it alone meanwhile), so it starts as a screen with no record
- * (on the other screen's source if that's in its column). Write the result at once, then run
- * [dueWallpapers].
+ * Set ("Set as wallpaper", S4; J1): the setup is saved with the columns [before] → [after], then
+ * [dueWallpapers] gives each screen what the setup says afresh. The records of the screens with
+ * a column in [after] are forgotten ([Record.forget]: the picture dropped, so it goes on again
+ * with the new setup). A screen whose owner is still ticked keeps it; otherwise the next source
+ * with a new picture, else the next with any picture. Each takes the current change time of
+ * [time] in [zone] at [now] as its stamp, so the next run doesn't move it on: the change times
+ * don't move, the next change comes at the next one. The notes stay. A screen left alone (an
+ * empty column) keeps its record, so the page still knows what it shows. A screen whose column
+ * was empty and now isn't is in [Restart.drop]: its record is stale (the app left it alone
+ * meanwhile), so it starts as a screen with no record (on the other screen's source if that's
+ * in its column). Write the result at once, then run [dueWallpapers].
  */
 fun restartAndForget(
     before: Map<Screen, List<Source>>,
     after: Map<Screen, List<Source>>,
-    clock: Instant?,
     records: Map<Screen, Record>,
+    stored: Stored,
+    time: PictureTime,
+    zone: ZoneId,
     now: Instant,
 ): Restart {
+    val rules = Rules(stored, time, zone, now)
     val used = Screen.entries.filter { after[it].orEmpty().isNotEmpty() }
     val drop = used.filter { before[it].orEmpty().isEmpty() && it in records }.toSet()
-    val forgotten = records.filterKeys { it in used && it !in drop }
-        .mapValues { (_, r) -> Due(r.forget().copy(stamp = if (r.stamp == clock) now else r.stamp), false) }
-    return Restart(Plan(now, true, forgotten), drop)
+    val forgotten = records.filterKeys { it in used && it !in drop }.mapValues { (screen, r) ->
+        val column = after.getValue(screen)
+        val owner = r.owner.takeIf { it in column } ?: rules.pick(column, r) ?: column.first()
+        Due(r.forget().copy(owner = owner, stamp = rules.current(column)), false)
+    }
+    return Restart(Plan(forgotten), drop)
 }
 
 /** [restartAndForget]'s outcome: the [plan] to write, and the screens whose record to remove ([drop]). */

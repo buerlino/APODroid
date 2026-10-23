@@ -1,0 +1,107 @@
+package io.github.buerlino.apodroid.core
+
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
+import kotlin.random.Random
+
+/*
+ * The picture time (0.6.0, J1; CLAUDE.md, Background update, Turns): one time, one clock, three
+ * rules, decided by the clock, never by what is on the screen.
+ * 1. At "New picture at", and with several sources every "Change every" from then, a screen
+ *    changes: to its source's newest picture, or to the next source with a picture it hasn't
+ *    shown ([dueWallpapers]).
+ * 2. A newer picture of that source seen in the [pictureWindow] after the change still replaces it.
+ * 3. With several sources and nothing new, the picture stays until one comes out (the screen waits).
+ * This file has the times: when a screen changes ([PictureTime]) and when the next run checks
+ * ([nextRun]).
+ */
+
+/** After a change time, a newer picture of the source that went on still replaces it for this long (rule 2). */
+val pictureWindow: Duration = Duration.ofHours(3)
+
+/** The first check after a change time, and a failed run's first retry; then hourly. */
+val firstCheck: Duration = Duration.ofMinutes(15)
+
+private val hourly: Duration = Duration.ofHours(1)
+
+/** The per-device offset is at most this, so a time zone's phones don't all ask at once. */
+val maxOffset: Duration = Duration.ofMinutes(10)
+
+/** A device's offset, 0 to [maxOffset] in whole seconds; drawn once and stored. */
+fun randomOffset(random: Random = Random.Default): Duration = Duration.ofSeconds(random.nextLong(0, maxOffset.seconds + 1))
+
+/**
+ * "New picture at" ([pictureAt], an hour 0–23) and "Change every" ([everyHours]: 24, 12, 6 or 3).
+ * A column with turns (two or more sources) changes at [pictureAt] + k × [everyHours], a column
+ * with one source at [pictureAt] only, every day, on the clock's hours in the time zone: a DST
+ * day has 23 or 25 hours between two 06:00s; an hour that doesn't exist (02:00 on a spring-forward
+ * night) comes at the gap's end (03:00), one that happens twice counts once, the first time.
+ */
+data class PictureTime(val pictureAt: Int = 6, val everyHours: Int = 24) {
+    init {
+        require(pictureAt in 0..23) { "pictureAt $pictureAt" }
+        require(everyHours in 1..24 && 24 % everyHours == 0) { "everyHours $everyHours" }
+    }
+
+    /** The hours of the day a column changes at, in order. */
+    fun hours(turns: Boolean): List<Int> =
+        if (!turns) listOf(pictureAt) else (0 until 24 / everyHours).map { (pictureAt + it * everyHours) % 24 }.sorted()
+
+    /** The change times of the local day before [t], its own and the one after, in order. */
+    private fun around(t: Instant, zone: ZoneId, turns: Boolean): List<Instant> {
+        val day = t.atZone(zone).toLocalDate()
+        return (-1L..1L).flatMap { d -> hours(turns).map { day.plusDays(d).atTime(it, 0).atZone(zone).toInstant() } }.distinct().sorted()
+    }
+
+    /** The latest change time at or before [now]: the current one. */
+    fun last(now: Instant, zone: ZoneId, turns: Boolean): Instant = around(now, zone, turns).last { it <= now }
+
+    /** The first change time after [now]. */
+    fun next(now: Instant, zone: ZoneId, turns: Boolean): Instant = around(now, zone, turns).first { it > now }
+
+    /** Whether [t] is one of the change times (a record's stamp from 0.6.0's Set clock or 0.5.0 isn't). */
+    fun isChangeTime(t: Instant, zone: ZoneId, turns: Boolean): Boolean = t in around(t, zone, turns)
+}
+
+/**
+ * When the next run should check (J2 arms the alarms for it), at [now] after a run, by the
+ * change times of [time] ([turns]: a column takes turns, so its hours count; they include
+ * [PictureTime.pictureAt]). The earliest of:
+ * - the next change time;
+ * - within the [pictureWindow] after the current change time, [firstCheck] after it, then hourly
+ *   (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone);
+ * - while a screen [waiting] (several sources, nothing new: [waiting]), the same checks hourly
+ *   until the next change time;
+ * - after [failures] failed or stopped runs in a row, [firstCheck] after the first, hourly after
+ *   more (the alarms retry, not Android's backoff).
+ * The clock's checks come [offset] later (0 to [maxOffset], kept in that range); the retries
+ * count from [now]. No model of each source's posting time (user, 2026-10-23).
+ */
+fun nextRun(
+    now: Instant,
+    zone: ZoneId,
+    failures: Int,
+    time: PictureTime,
+    turns: Boolean,
+    offset: Duration,
+    waiting: Boolean,
+): Instant {
+    val off = offset.coerceIn(Duration.ZERO, maxOffset)
+    // The current change time may be the last one only once its offset has passed: a run at
+    // 06:03 with an offset of 7 min still checks at 06:07.
+    val last = time.last(now, zone, turns)
+    val next = time.next(now, zone, turns)
+    val checks = mutableListOf(last, next)
+    var check = last + firstCheck
+    while (check < next && (waiting || check < last + pictureWindow)) {
+        checks += check
+        check += hourly
+    }
+    val retry = when {
+        failures <= 0 -> null
+        failures == 1 -> now + firstCheck
+        else -> now + hourly
+    }
+    return (checks.map { it + off }.filter { it > now } + listOfNotNull(retry)).min()
+}

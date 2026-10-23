@@ -24,6 +24,7 @@ import io.github.buerlino.apodroid.core.Frame
 import io.github.buerlino.apodroid.core.HttpStatus
 import io.github.buerlino.apodroid.core.OWN_PICTURE
 import io.github.buerlino.apodroid.core.Picture
+import io.github.buerlino.apodroid.core.PictureTime
 import io.github.buerlino.apodroid.core.Plan
 import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Record
@@ -233,16 +234,16 @@ class Store(private val context: Context) {
      * [lastScreens] follows; ⛶'s parts), the draft "my picture" renamed into place first when
      * this Set's own draft holds the pick ([pick]: a second page without one leaves the stored
      * picture and the first page's draft file alone, B11), then
-     * [restartAndForget]: the clock restarts and the records of the screens with a column are
-     * forgotten, so the next [setDue] gives each screen what the setup says afresh (a changed Fit
-     * or "my picture" too, with the same picture). A screen whose column was empty starts
+     * [restartAndForget]: the records of the screens with a column are forgotten (the change
+     * times kept), so the next [setDue] gives each screen what the setup says afresh (a changed
+     * Fit or "my picture" too, with the same picture). A screen whose column was empty starts
      * without a record. The daily switch isn't part of it ([switchDaily]). The caller then runs
      * [update] with `set` and schedules or cancels the job as the stored [daily] says.
      */
     fun saveSetup(setup: Setup, pick: Boolean): Unit = synchronized(wallpaperLock) {
         if (pick && draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
         val before = columns
-        val restart = restartAndForget(before, setup.columns, turnStartedAt, records(), Instant.now())
+        val restart = restartAndForget(before, setup.columns, records(), stored(), pictureTime(setup.interval), ZoneId.systemDefault(), Instant.now())
         prefs.edit(commit = true) {
             putBoolean("allSources", setup.allSources)
             putString("where", setup.where.name)
@@ -280,11 +281,11 @@ class Store(private val context: Context) {
 
     /**
      * Blocking. The stored setup afresh, as Set does without saving anything (the daily switch
-     * turned on): [restartAndForget] with the stored columns, so the clock restarts and the records
-     * of the screens with a column are forgotten; the next [setDue] sets each screen anew.
+     * turned on): [restartAndForget] with the stored columns, so the records of the screens with a
+     * column are forgotten; the next [setDue] sets each screen anew.
      */
     fun startAfresh(): Unit = synchronized(wallpaperLock) {
-        val restart = restartAndForget(columns, columns, turnStartedAt, records(), Instant.now())
+        val restart = restartAndForget(columns, columns, records(), stored(), pictureTime(interval), ZoneId.systemDefault(), Instant.now())
         prefs.edit(commit = true) { putRestart(restart) }
     }
 
@@ -321,9 +322,11 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("weekdayNoticeHidden", false)
         set(value) = prefs.edit { putBoolean("weekdayNoticeHidden", value) }
 
-    /** The shared clock: when the current turn began (both screens change at the same moment). */
-    val turnStartedAt: Instant?
-        get() = instant("turnStartedAt")
+    /**
+     * The change times ([PictureTime]): "New picture at" 06:00 until J2 stores it, every
+     * [interval] with turns. 0.6.0's `turnStartedAt` is no longer read.
+     */
+    private fun pictureTime(interval: Interval) = PictureTime(everyHours = interval.hours.toInt())
 
     /**
      * Whether the user turned the daily change on. Hibernation or a force stop deletes the job,
@@ -417,7 +420,12 @@ class Store(private val context: Context) {
                 }
             }
         }
-        return Record(owner, picture, instant(screen.key("wallpaperStamp")))
+        val shown = Source.entries.mapNotNull { source ->
+            prefs.getString(screen.key(source.key("shownDate")), null)?.let {
+                source to Picture.Of(source, LocalDate.parse(it), prefs.getString(screen.key(source.key("shownUrl")), null))
+            }
+        }.toMap()
+        return Record(owner, picture, instant(screen.key("wallpaperStamp")), shown)
     }
 
     private fun records(): Map<Screen, Record> = Screen.entries.mapNotNull { s -> record(s)?.let { s to it } }.toMap()
@@ -429,16 +437,21 @@ class Store(private val context: Context) {
         putString(screen.key("wallpaperDate"), (picture as? Picture.Of)?.date?.toString())
         putString(screen.key("wallpaperUrl"), (picture as? Picture.Of)?.url)
         putLong(screen.key("wallpaperStamp"), record.stamp?.toEpochMilli() ?: 0)
+        // The last post shown per source (J1's rule 1: a change skips what this screen has shown).
+        for (source in Source.entries) {
+            val shown = record.shown[source]
+            putString(screen.key(source.key("shownDate")), shown?.date?.toString())
+            putString(screen.key(source.key("shownUrl")), shown?.url)
+        }
     }
 
-    /** Writes [plan]'s clock (first) and its records without a set; the sets are [setDue]'s. */
+    /** Writes [plan]'s records without a set; the sets are [setDue]'s. */
     private fun write(plan: Plan) {
-        if (!plan.restarted && plan.screens.isEmpty()) return
+        if (plan.screens.isEmpty()) return
         prefs.edit(commit = true) { putPlan(plan) }
     }
 
     private fun SharedPreferences.Editor.putPlan(plan: Plan) {
-        if (plan.restarted) putLong("turnStartedAt", plan.clock?.toEpochMilli() ?: 0)
         plan.screens.forEach { (screen, due) -> putRecord(screen, due.record) }
     }
 
@@ -631,8 +644,8 @@ class Store(private val context: Context) {
     }
 
     /**
-     * Sets what each screen is due ([dueWallpapers], from one reading of the clock): the clock
-     * written first when it restarts, then the sets (one with both flags when both screens are
+     * Sets what each screen is due ([dueWallpapers], by the change times): the records without a
+     * set written first, then the sets (one with both flags when both screens are
      * due the same picture), each screen's record right after its own set. A failed set leaves
      * that record as it was, so the retry sets that screen only; the other sets still run, and
      * the first failure is returned with them. Under one lock, as the page and the job may both
@@ -641,7 +654,7 @@ class Store(private val context: Context) {
     private fun setDue(): Pair<String?, Exception?> = synchronized(wallpaperLock) {
         val now = Instant.now()
         val stored = stored()
-        val plan = dueWallpapers(columns, turnStartedAt, Duration.ofHours(interval.hours), records(), stored, now)
+        val plan = dueWallpapers(columns, records(), stored, pictureTime(interval), ZoneId.systemDefault(), now)
         write(plan.copy(screens = plan.screens.filterValues { !it.set }))
         val done = mutableListOf<String>()
         var failure: Exception? = null

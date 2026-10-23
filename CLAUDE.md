@@ -401,7 +401,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
   - **Size** [Fill | Fit]: **gone** (A3, 2026-10-24 night, with the pref `fit`, never released and
-    ignored on test devices; the plan had the row go in A4, but without the pref it set nothing).
+    ignored on test devices; the plan had the row go in A4, but without the pref it set nothing;
+    the summary's " · Fill"/" · Fit" went with it). Its place: ⛶ mode's "Whole picture" (A4).
     Was: (always Fill, a whole picture per post from ⛶ mode; Size
     returns in 0.7.0 as [Fill | Live]; Next features, 0.6.0: the picture, 2026-10-22) (0.6.0, F1, 2026-10-20; the pref `fit`, default Fill; the heading
     "Size" (was "Fit") and the choices approved by the user in C, 2026-10-20): under "Where" or "Change every". One
@@ -595,7 +596,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (AOSP's `ImageDecoder.cpp`; an EXIF-turned "my picture" with Fit is checked in V1).
   **The whole picture** (A3, 2026-10-24 night; F1's Fit setting gone): per post, beside ⛶'s
   part (`<source>.whole`, keyed by the part's `cropDate`/`cropUrl`, so a new post drops it;
-  `Part.whole`, part of the draft until Set; A4 adds its toggle in ⛶ mode). Each set of a
+  `Part.whole`, part of the draft until Set; its toggle is ⛶ mode's "Whole picture", A4). Each set of a
   source's post with it: drawn as Fit above (`setBitmap`, the hint all of it) on black when
   `:core`'s `edgesBlack` says so (an upright grey copy decoded straight to `edgeCopySize`, 200
   px wide), else on the blurred background (the picture's middle in the screen's shape,
@@ -624,6 +625,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
   Advanced's state and the shown source survive (user, 2026-10-22: left as is; V9, V10). Set stores it (a Set while crop mode is open keeps the dragged part, as ✓
   would). The position (0–1) is per source for that post only (date and picture URL), so each new
   picture starts centred (a new post drops a draft part); the job uses only the stored one. The user's own picture (video days) is always centred.
+  **Whole picture** (A4, 2026-10-24 night; texts placeholders): in ⛶ mode a toggle at the
+  picture's top left (where the chip is otherwise; the chip's dark pill), "Whole picture", "✓ Whole
+  picture" while on. While on, the frame hides (no dimming, no drag) and the page shows the
+  picture as it is (no preview of the background: that comes with Live, 0.7.0). ✓ keeps it with
+  the part in the draft (`Part.whole`), Back drops it, reopening ⛶ shows the draft's; Set
+  stores it (also from open crop mode), per source for that post only, as the part. The toggle
+  and ⛶ show in `tertiary` while it differs from the stored one (⛶ also for the part); screen
+  readers: "Whole picture", a switch, "On"/"Off" with ", not set yet" while it differs.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title.
 - **Icon:** the user's SVGs in `logo/` as an adaptive icon; a monochrome layer for themed icons

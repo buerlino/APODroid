@@ -1444,10 +1444,10 @@ class MainActivity : ComponentActivity() {
                 mine -> "This APOD is a video, so it's skipped.$watch Pick a picture below to use it on video days."
                 else -> "This APOD is a video, so it's skipped.$watch To change that, choose another picture for video days below."
             }
-            other != null && pictureSource(pageScreen) == other -> "This APOD is a video, so ${other.possessive} is the wallpaper.$watch"
-            other != null -> "This APOD is a video. ${other.possessive} becomes the wallpaper once it has loaded.$watch"
-            mine && hasFallback ->
-                "This APOD is a video, so your own picture is the wallpaper.$watch"
+            // B15: "takes its place", not "is the wallpaper": the wallpaper changes at the next check or change time.
+            other != null && pictureSource(pageScreen) == other -> "This APOD is a video, so ${other.possessive} takes its place.$watch"
+            other != null -> "This APOD is a video. ${other.possessive} takes its place once it has loaded.$watch"
+            mine && hasFallback -> "This APOD is a video, so your own picture takes its place.$watch"
             mine -> "$kept$watch Pick a picture below to use it on video days."
             else -> "$kept$watch To change that, choose another picture for video days below."
         }
@@ -2004,7 +2004,7 @@ private val Source.shortLabel
         Source.EARTH -> "Earth"
     }
 
-/** The source's picture in a sentence, e.g. "NASA's Image of the Day is the wallpaper". */
+/** The source's picture in a sentence, e.g. "NASA's Image of the Day takes its place". */
 private val Source.possessive
     get() = when (this) {
         Source.APOD -> "the APOD"

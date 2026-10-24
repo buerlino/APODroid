@@ -2,6 +2,7 @@ package io.github.buerlino.apodroid.core
 
 import org.junit.Assume.assumeTrue
 import java.io.File
+import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -43,6 +44,7 @@ class SourcesTest {
         assertEquals("https://www.nasa.gov/image-detail/made-up-launch/", post.pageUrl)
         assertEquals("A rocket's plume over a made-up pad.", post.explanation)
         assertEquals(false, post.isVideo)
+        assertEquals(Instant.parse("2026-10-16T16:33:00Z"), post.published)
     }
 
     @Test
@@ -64,6 +66,13 @@ class SourcesTest {
         assertEquals(LocalDate.of(2026, 10, 15), date("Fri, 16 Oct 2026 03:00 GMT"))
         assertEquals(LocalDate.of(2026, 10, 16), date("Fri, 16 Oct 2026 16:33:12 GMT"))
         assertEquals(LocalDate.of(2026, 10, 2), date("Fri, 2 Oct 2026 14:00 GMT"))
+    }
+
+    @Test
+    fun keepsThePubDateAsThePublishTime() {
+        fun published(pubDate: String) = parseLatest(Source.NASA, feed(item(pubDate = pubDate))).published
+        assertEquals(Instant.parse("2026-10-16T03:00:00Z"), published("Fri, 16 Oct 2026 03:00 GMT"))
+        assertEquals(Instant.parse("2026-10-16T16:33:12Z"), published("Fri, 16 Oct 2026 16:33:12 GMT"))
     }
 
     @Test
@@ -94,6 +103,7 @@ class SourcesTest {
         assertEquals("https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/iotd/2026/coast/coast_20261011.jpg", post.imageUrl)
         assertEquals("https://science.nasa.gov/earth/earth-observatory/made-up-coast/", post.pageUrl)
         assertEquals("Satellites saw smoke drift over a made-up coast.", post.explanation)
+        assertEquals(Instant.parse("2026-10-16T04:00:00Z"), post.published)
     }
 
     @Test
@@ -144,6 +154,13 @@ class SourcesTest {
         assertEquals("EO_2026-03-03_A_Made_Up_Picture", name(Source.EARTH))
     }
 
+    /** B15: every real post has a publish time, on its US Eastern date. */
+    private fun assertPublishedOn(p: Post) {
+        val published = p.published
+        assertTrue(published != null, "${p.source} ${p.date}")
+        assertEquals(p.date, published.atZone(java.time.ZoneId.of("America/New_York")).toLocalDate())
+    }
+
     /** The real responses in the gitignored `private/`, when they're there (not in CI). */
     @Test
     fun readsEveryRealPost() {
@@ -161,11 +178,13 @@ class SourcesTest {
                 assertTrue(p.explanation.length > 50 && '<' !in p.explanation, p.explanation)
                 assertTrue(p.date.year == 2026, "${p.date}")
                 assertEquals(null, p.credit)
+                assertPublishedOn(p)
             }
         }
         val apods = apodPosts(apod.readText()).toList()
         assertEquals(100, apods.size)
         for (p in apods) {
+            assertPublishedOn(p)
             val credit = p.credit!!
             assertTrue(Regex("""^[\p{L} &]*Credit[\p{L} &]*: \S""").containsMatchIn(credit), credit)
             assertTrue(Regex("""<|&\w+;|\s[,;:)]|,;|\(\s|;\s*;|\s\s|::""").find(credit) == null, credit)

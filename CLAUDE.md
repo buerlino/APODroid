@@ -772,7 +772,11 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   open; a retry whose time passed without a run, after a boot or the process dying, comes at
   once). A run that waits for the network (id 2 pending) arms nothing until it runs. Each run's
   start arms the alarms 15 min ahead (B16), so a run that never reaches its end (a frozen or
-  killed process) is retried by them; its end arms them again as above. A stop leaves the
+  killed process) is retried by them; its end arms them again as above. An arming during a run
+  (a page open, a Set, the daily switch on, `TIME_SET`/`TIMEZONE_CHANGED`) keeps that retry:
+  the earlier of the clock's next check and `lastRunAt` + 15 min, at the earliest now (B16f1,
+  2026-10-24: it armed the next change time, so a run killed mid-run, e.g. swiped from Recents,
+  waited up to a day; a run left from before an off and on costs one spare check). A stop leaves the
   thread interrupted (`Store.update`), and an interrupted thread's `commit()` skips the prefs
   listeners, so the run clears the flag (`Thread.interrupted()`) before `ranJob` (B16).
 - **Off is off** (`DailyJob.cancel`): both jobs and both alarms cancelled, a running run too;

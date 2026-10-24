@@ -137,8 +137,13 @@ class DailyJob : JobService() {
                 scheduler(context).schedule(job) == JobScheduler.RESULT_SUCCESS
         }
 
-        /** The pair of alarms for [Store.nextAlarm]'s time, replacing the pair armed before. */
-        private fun arm(context: Context) = arm(context, Store(context).nextAlarm().toEpochMilli())
+        /**
+         * The pair of alarms for [Store.nextAlarm]'s time, replacing the pair armed before; while a
+         * run goes no later than its start's pair ([started], B16f1): a page open, a Set or a
+         * clock change mid-run would else arm the next change time, and a process killed before
+         * the run's end would wait for it.
+         */
+        private fun arm(context: Context) = arm(context, Store(context).nextAlarm(running = runs.going).toEpochMilli())
 
         /** The pair of alarms for [at] (epoch ms), replacing the pair armed before. */
         private fun arm(context: Context, at: Long) {

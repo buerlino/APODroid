@@ -517,6 +517,29 @@ packages unattended): `night.md`.
   validity interval is out-of-date", the stapled OCSP), so fetches need a clock at or after the
   real time; and `am kill` keeps the page's saved draft, so a Set after reopening saves that
   draft, not prefs pushed meanwhile (as designed). Evidence in the run's `tablet/`.
+  V11c (2026-10-25 night, the debug build of dev e8709b1, tablet; passed): **fast taps**, each
+  in one `input` line: Set ×3: one set, one arming, one toast; the daily switch ×5 (off → on):
+  one set, one toast, the switch's arming plus the fallback's at-once run (15 min ahead at its
+  start, the clock at its end); "New picture at" 08:00 and Set: a Set tap while the menu still
+  closes goes to the menu (a Compose popup takes the tap that dismisses it), so Set came
+  right after it: one set, the stamp 23:00, the pair at 02:00 + the offset; the mode switch
+  off + Set: home only (lock kept its picture), the pair at 08:00 CET (tonight's DST change
+  right); on + Set: one set with both flags. **A rotation during Set** (Earth ticked in the
+  draft, `user_rotation` 1 in the same line): Set's end after the recreated page's resume, with
+  its log line, toast, alarms, and Setup closed with the new summary. **⛶'s "Whole picture"**
+  (made-up pictures as `files/apod.jpg`: 8000×6000 PNG, 600×3000, 8000×1000, 2000×1500 with
+  black edges): each Set in 2–3 s, no crash; the launcher shows the first three on the blur,
+  the black-edged one on black. **Memory:** 20 whole Sets of the 8000×6000 PNG: TOTAL PSS
+  113 → 167 → 174 MB (sets 1, 10, 20; native heap 22 → 64 MB), after a forced GC (SIGUSR1)
+  108 MB (native 19): garbage, no leak; no OOM. **A fresh install** (`pm clear`): APOD mode,
+  "APOD on both screens", daily off with no "New picture at", no "If APOD is a video", no
+  Advanced; on: "New picture at: 06:00", "Skip it", Advanced shown, the pair for 06:00 CET +
+  the offset (one with a 10 min window, one allow-while-idle). **Setup at font scale 2.0,
+  `wm density 344`:** the mode switch at the top, the list (Earth's dropdown wrapped under its
+  name), "New picture at" and its menu, APOD mode's "Where" (two-line segments, one height):
+  nothing cut off. `run -f 1` after it: silent, armed again. Not checked: the photo picker's
+  odd pictures as "my picture" (Fill, centred; V10's gap), a whole picture on a screen alone
+  (lock or home apart; V11d did). Evidence in the run's `tablet/`.
 - 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
   device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
   for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked

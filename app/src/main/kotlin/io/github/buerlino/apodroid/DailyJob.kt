@@ -62,15 +62,16 @@ class DailyJob : JobService() {
         worker = thread {
             val store = Store(this)
             started(this, store, generation)
-            val result = runCatching { store.update(force = false) }
+            // The stop flag besides the interrupt: an interrupted thread's commit() clears it (CR2's finding 2).
+            val result = runCatching { store.update(force = false, stopped = { stoppedBySystem }) }
             val failure = result.exceptionOrNull() ?: result.getOrNull()?.failure
             result.getOrNull()?.done?.let { Log.i("APODroid", "Daily job: $it") }
             if (failure != null) Log.w("APODroid", "Daily job failed: $failure", failure)
             // Save every picture: also after a failed run (a failing source mustn't stop the others'
             // saves), not after a stop. A failed save doesn't retry the job; the next run tries again.
-            val stopped = result.exceptionOrNull().let { it is InterruptedException || it?.isStop() == true }
+            val stopped = stoppedBySystem || result.exceptionOrNull().let { it is InterruptedException || it?.isStop() == true }
             if (!stopped) {
-                runCatching { store.saveInUse() }
+                runCatching { store.saveInUse(stopped = { stoppedBySystem }) }
                     .onSuccess { if (it != null) Log.i("APODroid", "Daily job: $it") }
                     .onFailure { Log.w("APODroid", "Daily job's saves ended: $it") }
             }
@@ -165,12 +166,23 @@ class DailyJob : JobService() {
          * is on, unless a run goes in this process (scheduling it again would stop it) or this
          * process scheduled it and it hasn't started (the second alarm of the pair lands here; it
          * may be about to start). A pending [RUN] from before the process died (Android may
-         * reschedule a run that died with it, with its own backoff, B16) is replaced.
+         * reschedule a run that died with it, with its own backoff, B16) is replaced. An alarm
+         * that lands in a going run arms the pair [firstCheck] ahead, as the run's start did
+         * (B18, CR2's finding 1): it had replaced that pair (an arming during the run, or the run
+         * outlasting it), so a process killed before the run's end would else have no alarm left.
+         * The run's end arms them again.
          */
         fun runNow(context: Context) {
             if (!Store(context).daily) return
-            if (runs.going || runScheduled && scheduler(context).getPendingJob(RUN) != null) {
-                Log.i("APODroid", "Daily job: alarm, a run is pending or going")
+            if (runs.going) {
+                synchronized(lock) {
+                    if (runs.going && Store(context).daily) arm(context, System.currentTimeMillis() + firstCheck.toMillis())
+                }
+                Log.i("APODroid", "Daily job: alarm, a run is going")
+                return
+            }
+            if (runScheduled && scheduler(context).getPendingJob(RUN) != null) {
+                Log.i("APODroid", "Daily job: alarm, a run is pending")
                 return
             }
             val job = JobInfo.Builder(RUN, ComponentName(context, DailyJob::class.java))

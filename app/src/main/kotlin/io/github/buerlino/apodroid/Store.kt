@@ -519,11 +519,6 @@ class Store(private val context: Context) {
     }
 
     /** Writes [plan]'s records without a set; the sets are [setDue]'s. */
-    private fun write(plan: Plan) {
-        if (plan.screens.isEmpty()) return
-        prefs.edit(commit = true) { putPlan(plan) }
-    }
-
     private fun SharedPreferences.Editor.putPlan(plan: Plan) {
         plan.screens.forEach { (screen, due) -> putRecord(screen, due.record) }
     }
@@ -646,15 +641,22 @@ class Store(private val context: Context) {
      * ([setDue]). The sources in use: the ones ticked on any screen, and on an APOD video day the
      * stand-in, while APOD is ticked somewhere. A failing source doesn't stop the others, and its
      * stored picture still counts. Only a stop is thrown; every other failure is in the result
-     * (the job retries).
+     * (the job retries). A stop is the thread's interrupt or [stopped] (the job's, which outlives
+     * the interrupt: see [isStopped]).
      */
-    fun update(force: Boolean, page: Boolean = false, show: Collection<Source> = emptyList(), set: Boolean = false): Updated {
+    fun update(
+        force: Boolean,
+        page: Boolean = false,
+        show: Collection<Source> = emptyList(),
+        set: Boolean = false,
+        stopped: () -> Boolean = { false },
+    ): Updated {
         var failure: Exception? = null
         for (source in Source.entries) {
             // Asked for each source: APOD's refresh (first) tells whether the stand-in is in use.
             if (source !in show && source !in inUse()) continue
             // A stopped job (DailyJob.onStopJob) ends the run: no more downloads, no set.
-            if (Thread.currentThread().isInterrupted) throw InterruptedException()
+            if (isStopped(stopped)) throw InterruptedException()
             try {
                 if (force || !page || !checkedRecently(source)) checkSite(source, force)
             } catch (e: Exception) {
@@ -662,11 +664,29 @@ class Store(private val context: Context) {
                 failure = failure ?: e
             }
         }
-        if (Thread.currentThread().isInterrupted) throw InterruptedException()
+        if (isStopped(stopped)) throw InterruptedException()
         if (!daily && !set) return Updated(null, false, failure, wentToSet = false)
-        val (done, setFailure) = setDue(pull = force)
+        val (done, setFailure) = setDue(pull = force, stopped)
         if (failure != null && done != null) Log.i("APODroid", "Despite the failure: $done")
         return Updated(done, setFailure != null, failure ?: setFailure, wentToSet = true)
+    }
+
+    /**
+     * A stop: the thread interrupted, or [stopped] (the job's `onStopJob` came). The interrupt
+     * alone isn't enough: an interrupted thread's `commit()` returns early, skips the prefs
+     * listeners and clears the flag, so after a commit the run would go on as if not stopped
+     * (CR2's finding 2: the other screen's set, then "Save every picture"'s downloads).
+     */
+    private fun isStopped(stopped: () -> Boolean) = Thread.currentThread().isInterrupted || stopped()
+
+    /**
+     * A commit on a thread a stop may have reached: the flag cleared first, so the commit calls
+     * the listeners (the open page hears a set's record), then the stop thrown.
+     */
+    private fun commitBeforeStop(stopped: () -> Boolean, action: SharedPreferences.Editor.() -> Unit) {
+        val interrupted = Thread.interrupted()
+        prefs.edit(commit = true, action)
+        if (interrupted || stopped()) throw InterruptedException()
     }
 
     /** The sources in use ([sourcesInUse]): what the job fetches and [saveInUse] saves. */
@@ -679,9 +699,9 @@ class Store(private val context: Context) {
      * is tried by the next run; a stop ends it (thrown). The original once per post: the try is
      * noted first (`saveTried`, its picture URL), so after a stop the next job save is the stored
      * picture. An original over [saveLimit] isn't downloaded in full: the stored picture instead,
-     * no retry. Returns what it saved for the log, or null.
+     * no retry. Returns what it saved for the log, or null. [stopped] as for [update].
      */
-    fun saveInUse(): String? {
+    fun saveInUse(stopped: () -> Boolean = { false }): String? {
         if (!saveEvery) return null
         val saved = Source.entries.mapNotNull { source ->
             prefs.getString(source.key("savedDate"), null)?.let { source to Picture.Of(source, LocalDate.parse(it), prefs.getString(source.key("savedUrl"), null)) }
@@ -689,8 +709,8 @@ class Store(private val context: Context) {
         val tried = Source.entries.mapNotNull { source -> prefs.getString(source.key("saveTried"), null)?.let { source to it } }.toMap()
         val done = mutableListOf<String>()
         for ((post, original) in toSave(inUse(), stored(), saved, tried)) {
-            if (Thread.currentThread().isInterrupted) throw InterruptedException()
-            if (original) prefs.edit(commit = true) { putString(post.source.key("saveTried"), post.imageUrl) }
+            if (isStopped(stopped)) throw InterruptedException()
+            if (original) commitBeforeStop(stopped) { putString(post.source.key("saveTried"), post.imageUrl) }
             val result = try {
                 save(post, original, limit = saveLimit * 1_000_000L).also { prefs.edit { remove(post.source.key("saveTried")) } }
             } catch (e: Exception) {
@@ -723,16 +743,19 @@ class Store(private val context: Context) {
      * that record as it was, so the retry sets that screen only; the other sets still run, and
      * the first failure is returned with them. Under one lock, as the page and the job may both
      * get here. Returns what it set for the log (null when nothing) and the first failed set.
-     * A [pull] (pull to refresh) sets a newer picture of each screen's source at once.
+     * A [pull] (pull to refresh) sets a newer picture of each screen's source at once. A stop
+     * ([isStopped]) ends it before the next set, the record of a set done still written.
      */
-    private fun setDue(pull: Boolean): Pair<String?, Exception?> = synchronized(wallpaperLock) {
+    private fun setDue(pull: Boolean, stopped: () -> Boolean): Pair<String?, Exception?> = synchronized(wallpaperLock) {
         val now = Instant.now()
         val stored = stored()
         val plan = dueWallpapers(columns, records(), stored, pictureTime(), ZoneId.systemDefault(), now, pull)
-        write(plan.copy(screens = plan.screens.filterValues { !it.set }))
+        val unset = plan.screens.filterValues { !it.set }
+        if (unset.isNotEmpty()) commitBeforeStop(stopped) { putPlan(plan.copy(screens = unset)) }
         val done = mutableListOf<String>()
         var failure: Exception? = null
         for ((picture, screens) in plan.sets) {
+            if (isStopped(stopped)) throw InterruptedException()
             try {
                 set(picture, screens, stored)
             } catch (e: Exception) {
@@ -740,9 +763,15 @@ class Store(private val context: Context) {
                 screens.forEach { setsSinceSetup[it] = false }
                 continue
             }
-            prefs.edit(commit = true) { screens.forEach { putRecord(it, plan.screens.getValue(it).record); putSetAt(it) } }
             screens.forEach { setsSinceSetup[it] = true }
             done += "$picture on ${screens.joinToString("+")}"
+            // A stop during the set (seconds with the whole picture) ends the run here.
+            try {
+                commitBeforeStop(stopped) { screens.forEach { putRecord(it, plan.screens.getValue(it).record); putSetAt(it) } }
+            } catch (e: InterruptedException) {
+                Log.i("APODroid", "Stopped after: ${done.joinToString()}")
+                throw e
+            }
         }
         done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: ") to failure
     }

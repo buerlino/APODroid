@@ -940,6 +940,18 @@ wake and fail offline).
 
 ## Next features
 
+**0.6.0's release gate** (user, 2026-10-24 evening, from a review of the plan): a code freeze
+from 25 Oct: only bug fixes, no new texts or settings unless a bug needs one. Stable when V11a–d,
+V7 and P all pass on the same tree with no open `BUG:` line; a fix after V7 or P that touches the
+job or the rules reruns that part; the skill's "Still untested" is updated; the release slips a
+day rather than ship a job change only a unit test has seen. Why: the last complete passes
+(V3–V10) ran on the tree of 21–22 Oct; since then the job was rebuilt (J1, J2, B15, B16, B16f1),
+the drawing is new (A3) and Setup changed (J3, A4), and no R8 build or update from 0.5.0 ran on
+the new job. Decided the same evening (Opus pass 18's questions): the APOD-mode video notice
+follows `standInReady` as "More NASA pictures" mode does (B17); a stand-in's own publish time
+counts for the window (a newer post of the standing-in source within 3 h replaces it); B15's
+notice texts approved.
+
 **0.6.0: the picture time** (user, 2026-10-22, after the FP6 showed the job's 6 h rhythm;
 packages J0–J3 in `plan-0.6.0.md`, before V7 and P). **Seen on the FP6** (0.5.0, battery
 Unrestricted, standby bucket `EXEMPTED`, not held by Doze): the job ran every 6 h on the dot

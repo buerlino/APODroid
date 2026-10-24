@@ -152,6 +152,14 @@ a stale pending run), then the regression. B16 waits for B15 (both change `Pictu
 tablet checks fake the clock with `auto_time` off and back on at the end (the plan, J2). V7 follows on the night of
 25 Oct, by hand.
 
+The night after (user, 2026-10-24 evening; the plan, Remaining 4g, the release gate): right after the shift of 24 Oct,
+a second one. **B17** (the APOD-mode video notice), **CR2** (a code review by reading of everything since 910bfeb),
+**B18** (CR2's clear bugs, at most six; decisions are QUESTION lines: code freeze), then the final tablet pass, riskiest
+first: **V11a** (the system against the new job), **V11d** (R8 and the update from 0.5.0 without opening the page),
+**V11b** (the rules on a faked clock), **V11c** (the new UI), rosie as each row's worker, then the regression. The V11
+rows have no After: they run after B18 also when it stays unmerged (they say which tree they tested). What doesn't fit
+runs on Sunday by day. V7 follows on the night of 25 Oct, by hand.
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -199,6 +207,13 @@ tablet checks fake the clock with `auto_time` off and back on at the end (the pl
 | 43 | J3 | Settings: New picture at, "More NASA pictures" into Setup, the pause hint | winston | opus, medium | yes | J2 | plan J3 |
 | 44 | B15 | The window by publish time, the 09:00 check, the stand-in shown twice, the video notice | winston | opus, high | yes | — | plan B15 |
 | 45 | B16 | The job: a passed check kept on re-arming, one run at a time, a stale pending run | winston | opus, high | yes | B15 | plan B16 |
+| 46 | B17 | The APOD-mode video notice follows `standInReady` | winston | opus, medium | yes | — | plan B17 |
+| 47 | CR2 | Code review of what changed since 910bfeb, read as a whole | winston | opus, high | no | — | plan CR2 |
+| 48 | B18 | CR2's bugs | winston | opus, high | yes | CR2 | plan B18 |
+| 49 | V11a | Final pass 1: what the system does to the new job | rosie | opus, high | no | — | plan V + plan V11a |
+| 50 | V11d | Final pass 2: R8 and the update from 0.5.0 without opening the page | rosie | opus, high | no | — | plan V + plan V11d |
+| 51 | V11b | Final pass 3: the rules on a faked clock | rosie | opus, high | no | — | plan V + plan V11b |
+| 52 | V11c | Final pass 4: what a user does to the new UI | rosie | opus, high | no | — | plan V + plan V11c |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

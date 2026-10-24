@@ -268,6 +268,13 @@ Advanced settings ▸                                closed by default
 | A4 | ⛶'s Whole picture toggle; Size goes | Opus, medium |
 | B15 | The window by publish time, the 09:00 check, the stand-in shown twice, the video notice | Opus, high |
 | B16 | The job: a passed check kept on re-arming, one run at a time, a stale pending run | Opus, high |
+| B17 | The APOD-mode video notice follows `standInReady` | Opus, medium |
+| CR2 | Code review of what changed since 910bfeb, read as a whole | Opus, high |
+| B18 | CR2's bugs | Opus, high |
+| V11a | Final pass 1: what the system does to the new job | Opus, high |
+| V11d | Final pass 2: R8 and the update from 0.5.0 without opening the page | Opus, high |
+| V11b | Final pass 3: the rules on a faked clock | Opus, high |
+| V11c | Final pass 4: what a user does to the new UI | Opus, high |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
@@ -297,6 +304,7 @@ scripts/night.sh --until <HH:MM>    # B10, B7, B8, B9, then the regression: the 
 scripts/pipeline.sh B12; scripts/pipeline.sh B11    # by day, 2026-10-22
 scripts/night.sh --until <HH:MM>    # J1, A1, J2, A3, A4, J3, then the regression (2026-10-23)
 scripts/night.sh --until <HH:MM>    # B15, B16, then the regression (2026-10-24)
+scripts/night.sh --until <HH:MM>    # B17, CR2, B18, V11a, V11d, V11b, V11c, then the regression (2026-10-25)
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -483,6 +491,13 @@ reading; their build check passed, 108 tests with `private/`):
    To fix: **B15** (`:core` and `Store`: the window, the stand-in, the notice) and **B16** (the
    job: the reviews' findings 1–4). **Tonight (Sat 24):** B15 → B16, then the regression.
    **Sun 25 to Mon 26:** V7 (by hand), also looking at `BOOT_COMPLETED`. **Mon 26 evening:** P.
+4g. **The release gate** (user, 2026-10-24 evening, from a review of the plan; `CLAUDE.md`,
+   0.6.0's release gate): a code freeze, then **CR2** (a review by reading of everything since
+   910bfeb) and **B18** (its bugs) before **V11a–d**, the final tablet pass. Then V7 and P on
+   that tree. The night of 24 Oct runs B15, B16 (and B16f1); right after it, a second shift:
+   B17 → CR2 → B18 → V11a → V11d → V11b → V11c (riskiest first, user) → the regression. What
+   doesn't fit runs on Sunday by day. **Sun 25 to Mon 26:** V7. **Mon 26 evening:** P. Then
+   R and T.
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then R and T.
 Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
@@ -1707,7 +1722,7 @@ decisions:
   at once. Only a report: whether Android keeps a periodic job's timing when the same id is
   scheduled again. No doc change from it before P repeats it on the FP6.
 
-### [ ] B15. The window by publish time, the 09:00 check, the stand-in shown twice, the video notice (Opus, high)
+### [x] B15. The window by publish time, the 09:00 check, the stand-in shown twice, the video notice (Opus, high)
 
 From a review of J1 on `dev` by reading and scratch tests (2026-10-24); the user's decisions are
 in `CLAUDE.md` (Next features, 0.6.0: the picture time: the window by publish time; the video
@@ -1764,7 +1779,7 @@ notice under Video days on the page).
   - the smoke list.
 - **Done when:** the tests pass, the tablet passes.
 
-### [ ] B16. The job: a passed check kept on re-arming, one run at a time, a stale pending run (Opus, high)
+### [x] B16. The job: a passed check kept on re-arming, one run at a time, a stale pending run (Opus, high)
 
 After B15 (both change `PictureTime.kt` and `Store.kt`). From a review of J2 on `dev` by reading
 (2026-10-24).
@@ -2108,6 +2123,185 @@ After A3 (user, 2026-10-23 night; J3 comes after it).
 - **Files:** `MainActivity.kt`, `CLAUDE.md` (Settings: the Size row gone; Choosing the part:
   the toggle).
 - **Done when:** built, the tablet passes, the texts listed for the user.
+
+### [ ] B17. The APOD-mode video notice follows `standInReady` (Opus, medium)
+
+(User, 2026-10-24 evening, from Opus pass 18's question.) In APOD mode `VideoNotice` says "…
+takes its place once it has loaded." whenever the stand-in isn't the picture's source yet, also
+while it is loaded and only waits for the change time.
+- Fix: branch on `standInReady`, as "More NASA pictures" mode does. "… takes its place." when
+  the stand-in's picture is stored; "… takes its place once it has loaded." only when it isn't.
+- "Your own picture takes its place." is unchanged. The texts are B15's, approved by the user
+  2026-10-24.
+- **Files:** `MainActivity.kt` (`VideoNotice`), `CLAUDE.md` (Video days on the page) if it says
+  otherwise.
+- **Tablet:** APOD mode on a faked video day, with NASA as the stand-in, stored and not stored
+  (its prefs and file removed); "Use my picture" with a picture. One screenshot each; then the
+  smoke list.
+- **Done when:** built, the tablet passes.
+
+### [ ] CR2. Code review of what changed since 910bfeb, read as a whole (Opus, high)
+
+(User, 2026-10-24 evening: before the final tablet pass, V11; CR's form.) By reading, no
+device, no code changes. `git diff 910bfeb..HEAD -- core/src/main app/src/main` and the whole of
+each changed file, against `CLAUDE.md`:
+- `DailyJob.kt`, `AlarmReceiver.kt`, `Store.kt`, `PictureTime.kt`, `Screens.kt`,
+  `Background.kt`, `JobRuns.kt`, `Post.kt`;
+- `MainActivity.kt`'s scheduling calls, Setup (J3), ⛶'s toggle (A4) and the set path (A3);
+- the manifest.
+
+Each package was audited alone, and B16f1 shows that a cross-check still finds bugs. Look for:
+- **The alarms and the jobs together:** every path that arms, re-arms, cancels or schedules
+  (a run's start and end, a page open, Set, the switch, boot, time zone, time, update, an
+  alarm); two of them interleaved; a check, retry or safety alarm lost or doubled; id 1 and
+  id 2 together; a run from before an off.
+- **The rules against the clock:** history-dependence; the publish time missing or in another
+  zone; DST; a time zone change between runs; the stamps after Set and after the migration;
+  equal columns; the stand-in; a failed set.
+- **The prefs and the files disagreeing**, and what the next run does then.
+- **Memory:** the whole picture's decodes (the edge copy, the blur copy, the fitted bitmap)
+  on a huge or odd picture; bitmaps held or recycled.
+- **Failure paths:** a `runCatching` that swallows a stop, a log or toast that says the wrong
+  thing.
+- **`CLAUDE.md` contradicted by the code**, or a rule written there that no code enforces.
+
+Write `.claude/skills/build-apodroid-android/review-0.6.0-cr2.md` in CR's form: one numbered
+finding each, worst first, with severity, `file:line`, the failure (steps → what goes wrong),
+the fix in one or two lines, and whether it's a bug or a decision. Only what you verified, and
+say how sure. Commit it, then the report commit.
+- **The audit** checks the form and that the cited lines exist. A finding it thinks wrong is
+  not a FIX: B18 checks each again.
+- **Done when:** every file read (listed in the report), the findings committed.
+
+### [ ] B18. CR2's bugs (Opus, high)
+
+After CR2. Its findings in `review-0.6.0-cr2.md` on `dev`. For each, check it again in the code
+first. Then:
+- **A bug** (the app contradicts `CLAUDE.md`, crashes, loses data, sets a wrong wallpaper,
+  misses or doubles a run, or gets stuck) with a clear fix: fix it, with a test that fails on
+  the old code (`:core`) or a `Device (tablet …)` bullet in your report that shows it.
+  `CLAUDE.md` updated where it says what happens.
+- **A decision** (a text, the UI, a rule `CLAUDE.md` set), or a fix you aren't sure of: not
+  built. A `QUESTION:` line in your report, with your recommendation (code freeze: no new
+  texts or settings).
+- **A finding you think wrong:** say why, not built.
+
+At most six fixes, worst first; the rest listed for the morning. None: say so and commit the
+report only.
+- **Files:** as each fix needs; `CLAUDE.md`; the skill's "Where things are" if a function moved.
+- **Tablet:** each fixed bug's steps, then the smoke list.
+- **Done when:** each finding fixed, a QUESTION, or argued wrong; the checks pass; the tablet
+  passes.
+
+### [ ] V11a. Final pass 1: what the system does to the new job (Opus, high)
+
+(User, 2026-10-24 evening: the final tablet pass, a release condition; V9 redone for the alarms.
+The rows' rules: V.) The tree with B17 and B18 (or without B18 when it stayed unmerged: say
+which). **Hunt, don't confirm:** go through the whole list even after a bug, with one `BUG:`
+line each. For each item note the app's alarms (`dumpsys alarm | grep -B2 -A8 apodroid`: when,
+both request codes), the jobs (`dumpsys jobscheduler`: id 1 6 h/6 h, id 2 pending or not), the
+log (`logcat -s APODroid`: "alarms for …", runs, sets), the records (`run-as cat` the prefs) and
+`dumpsys wallpaper`. Look for a crash (`exit-info`). Faked clock with `auto_time` off, back on
+at the end (J2). "More NASA pictures" on with turns on one screen, unless an item says otherwise.
+- **Reboot** (`adb reboot`, wait for `sys.boot_completed`): the pair armed again after
+  `BOOT_COMPLETED` for the next change time; id 1 listed; no set at boot. A PIN: NOT RUN for the
+  rest.
+- **Time zone and clock:**
+  - `cmd alarm set-timezone America/New_York`, `Asia/Tehran` and back: re-armed for the new
+    zone's next change time; the status line's zone follows; nothing set twice.
+  - The clock 3 h forward and back (`cmd alarm set-time`): re-armed (`TIME_SET`); nothing
+    stuck.
+- **Doze, Unrestricted** (`cmd deviceidle whitelist +io.github.buerlino.apodroid`, `cmd battery
+  unplug`, the alarms a few minutes ahead by "New picture at" or the clock, then `dumpsys
+  deviceidle force-idle`): the alarm fires in idle, its run has the network and sets.
+- **Doze, Optimized** (the whitelist entry removed, `am set-standby-bucket … rare`): the alarm
+  fires, and id 2 waits pending for the network. Step the clock an hour so the next alarm comes:
+  it replaces the pending run (B16), and the run isn't starved. `dumpsys deviceidle step` to
+  IDLE_MAINTENANCE: it runs and sets. Then undo the bucket, the whitelist as it was, `battery
+  reset`, `deviceidle unforce`.
+- **Battery saver** (`cmd power set-mode 1`): the alarm's run sets.
+- **During a run** (a slow download: the proxy at 2000 B/s on `assets.science.nasa.gov` with a
+  source's date faked back, or a big rendition):
+  - `run-as … kill -9`: the safety alarm brings a run within about 15 min.
+  - `am force-stop`: Android drops the alarms and the jobs. Note what re-arms them (the next
+    page open, or `BOOT_COMPLETED` when the app leaves the stopped state: say which).
+  - `install -r` of the same build: `MY_PACKAGE_REPLACED` re-arms; the run counts failed and
+    is retried by the alarms.
+  - Airplane mode on: the run fails, the alarms re-armed 15 min later, then hourly (step the
+    clock); airplane off: the next alarm's run sets.
+  - The daily switch off: nothing set after, both alarms and both jobs gone.
+  - A page open: the run's 15-minute retry kept (B16f1).
+- **Low storage during a Set** (V9's way): the setup saved, the sets from the stored pictures,
+  no `.part`, the problem box.
+- **Tonight's real DST change** (25 Oct 03:00 → 02:00): if the app's log or `dumpsys alarm`'s
+  history from tonight is still there, what it shows; else Not tested.
+- **Done when:** each item ran or is under Not tested with the reason; every setting set back.
+
+### [ ] V11d. Final pass 2: R8 and the update from 0.5.0 without opening the page (Opus, high)
+
+(V5 and V6 redone on the new job; the rows' rules: V.) R8 builds signed with the debug key (the
+skill): `v0.5.0` (a worktree of the tag) and the current tree.
+- **The update, every F-Droid user's first morning:**
+  1. `pm clear`, the 0.5.0 R8 build, its state seeded by `run-as`: daily on, APOD + NASA, Both,
+     "Change every" 3 h, so 0.5.0's job is 3 h with a 15 min flex.
+  2. The page opened once (0.5.0 sets and schedules), then Home.
+  3. The 0.6.0 R8 build by `install -r`, **without opening the page**.
+  4. Expect: `logcat` `MY_PACKAGE_REPLACED` (the receiver), one "Migrated from 0.5.0", the pair
+     armed (`dumpsys alarm`), id 1 now 6 h / 6 h (0.5.0's 3 h job replaced), `pictureAt`
+     absent and read as 06:00, no set at the update.
+  5. The next alarm's run (the clock stepped to it) sets what the rules say.
+  6. Then the page: the summary, the status lines, no crash.
+- **The same from 0.5.0 in APOD mode** (APOD alone, Both), not opening the page: armed, no set;
+  then the page.
+- **The 0.6.0 R8 build:**
+  - the smoke list;
+  - ⛶'s "Whole picture" on a wide post (blurred) and on one with black edges (black);
+  - "Save every picture" with a job run (one save logged);
+  - B15's publish time read on R8 (`<source>.published` in the prefs after a pull).
+- **Done when:** each item ran or is under Not tested; the tablet set back (the original app
+  data restored).
+
+### [ ] V11b. Final pass 3: the rules on a faked clock (Opus, high)
+
+(The rules' cases no device has seen; the rows' rules: V.) Debug build, `auto_time` off. Real
+posts with chosen picture times and the network cut stand in for a made-up feed.
+- **The window by publish time** (today's real APOD, published 00:05 US Eastern):
+  - "New picture at" a few hours before it, with yesterday's on; the network cut (airplane
+    mode) from the change time until after the post's time; on again within the window: set at
+    the next check.
+  - The same, on again only after the window: set all the same (publish time, B15).
+  - A picture time whose window ends before the post: not set until the next change time.
+- **The checks:** after a change time `dumpsys alarm` steps through T, T + 15 min, then hourly,
+  and T + 3 h (step the clock to each).
+- **A waiting screen** (NASA + Earth on one screen on a weekend: nothing new): no set at its
+  change times, hourly checks armed.
+- **A post without `published`** (the key removed after `am kill`): it counts as its date's
+  00:00 US Eastern; the next run sets what the rules say, no crash.
+- **A stopped run** (`cmd jobscheduler timeout`): the status line afterwards, the alarms 15 min
+  later.
+- **A Set while a run goes:** the run not stopped.
+- **The stand-in:** a faked APOD video day with NASA standing in, after NASA's picture was
+  already shown on that screen: not shown twice (B15).
+- A failed set retried after 09:00: Not tested unless a way to fail a set exists (V3).
+- **Done when:** each item ran or is under Not tested.
+
+### [ ] V11c. Final pass 4: what a user does to the new UI (Opus, high)
+
+(V10 redone where J3, A3 and A4 changed the page; the rows' rules: V.)
+- **Fast taps** (one `input` line): Set three times; the daily switch five times; "New picture
+  at" changed and Set at once; the mode switch at Setup's top and Set. One set each, the
+  alarms armed once at the end, no crash.
+- **A rotation during Set:** its end kept (B13): the toast, the alarms, the log.
+- **⛶'s "Whole picture"** on made-up pictures in `files/` (debug build): a huge PNG (8000×6000),
+  a tall one (600×3000), a panorama (8000×1000), one with black edges. Each set whole: the
+  background (black or blurred) as the edges say, no crash.
+- **Memory:** 20 whole-picture Sets in a row, then `dumpsys meminfo io.github.buerlino.apodroid`
+  (no climb against the first, no OOM in `logcat`).
+- **A fresh install** (`pm clear`): the defaults (APOD mode, "New picture at" 06:00 once the
+  daily switch is on, Advanced hidden while it's off); the switch on arms the pair.
+- **The new Setup** at font scale 2.0 at a phone's width (`wm density 344`): the mode switch at
+  the top, "New picture at", the list.
+- **Done when:** each item ran or is under Not tested; the tablet set back.
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 

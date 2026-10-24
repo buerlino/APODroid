@@ -490,6 +490,33 @@ packages unattended): `night.md`.
   `earth.published` in the prefs (read with the debug build installed over the R8 data): 04:05Z,
   18:59Z, 04:00Z. Not checked: `pictureAt`'s absence by reading the prefs (an R8 build has no
   `run-as`; read from the summary and the alarm instead). Evidence in the run's `tablet/`.
+  V11b (2026-10-25 night, the debug build of dev 88b2872, `auto_time` off, the clock stepped
+  with `cmd alarm set-time`, prefs pushed after `am kill`; passed): **the window by publish
+  time** with APOD 24 Oct (published 04:05Z), APOD mode, Both, the record on 23 Oct: "New
+  picture at" 04:00, airplane mode from 04:10 (the run there found 23 Oct current in US
+  Eastern, stamp 04:00, no set), at 06:30 a failed run (retry 06:45), the network on, at 06:45
+  APOD 24 Oct set HOME+LOCK, next alarm 07:09:37 (T + 3 h + the offset); offline through 07:30
+  (failed runs 2 and 3: 15 min, then hourly) and on only after the window: set all the same at
+  the next run; 02:00 (window to 05:00, before the post): fetched, not set, set at the next
+  change time 25 Oct 02:09:37. **The checks** from T = 25 Oct 02:00 CEST, the real DST night:
+  02:24:37 CEST, 02:24:37 CET, 03:24:37 CET, 04:09:37 CET (three real hours), then 26 Oct
+  02:09:37 CET. **A waiting screen** (NASA + Earth on both, 3 h from 06:00, a Sunday, both
+  shown): runs at 09:09:37 and 12:09:37 and the hourly ones between set nothing, the stamp stays
+  06:00. **No `published`** (NASA alone, 08:00, faked 23 Oct 08:30): with `nasa.published`
+  (18:59Z) not set; without it set (counted as 04:00Z), no crash. **A stopped run** (`timeout`
+  during the fetch): "Daily job failed: InterruptedException", `failedRuns` 1, no problem
+  stored, the alarms 15 min after the run; the page's status line then "Wallpaper changed 25
+  Oct, 01:14", no problem box (the page set the due picture itself within 3 s, so the line
+  before that set wasn't caught). **The stand-in** (APOD + NASA on both, 3 h, NASA for video
+  days, APOD 24 Oct faked a video, NASA 23 Oct noted shown on both): at the 04:00 CET change
+  NASA fetched, nothing set, the record and stamp kept (waiting). Not decisive: **a Set while a
+  run goes** (three tries: the runs took 0.2–1.3 s on this Wi-Fi, so Set's arming always came
+  after `jobFinished`; every run ended normally; the test proxy can't slow the app with the
+  Tailscale VPN up). Not tested: a failed set retried after 09:00 (no way to fail a set, V3).
+  Learned: a clock faked into the past breaks TLS after a while ("Response is unreliable: its
+  validity interval is out-of-date", the stapled OCSP), so fetches need a clock at or after the
+  real time; and `am kill` keeps the page's saved draft, so a Set after reopening saves that
+  draft, not prefs pushed meanwhile (as designed). Evidence in the run's `tablet/`.
 - 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
   device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
   for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked

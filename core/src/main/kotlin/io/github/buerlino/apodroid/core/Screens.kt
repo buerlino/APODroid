@@ -9,8 +9,10 @@ import java.time.ZoneId
  * update, Turns; the times in PictureTime.kt), by the clock, never by what's on the screen:
  * 1. At a change time a screen changes: with one source to its newest picture, with several to
  *    the next source (APOD → NASA → Earth, round to itself) whose newest picture it hasn't shown.
- * 2. In the [pictureWindow] after the change time a newer picture of the source that went on
- *    still replaces it.
+ * 2. A newer picture of the source that went on, published in the [pictureWindow] after the
+ *    change time, still replaces it whenever a check sees it (B15: by the publish time, not by
+ *    when it's seen). With one source that is the whole rule: from each change time T the
+ *    screen shows the newest picture published before T + 3 h, and never goes back.
  * 3. With several sources and nothing new the picture stays and the screen waits: the first new
  *    picture goes on as soon as a check sees it.
  * - Each screen has a column, the sources ticked for it; an empty column is left alone. In
@@ -104,12 +106,25 @@ class Stored(
     /**
      * Whether [source]'s newest post is new to a screen that showed [shown]: it has something to
      * show ([picture]: on an APOD video day the stand-in) and the post isn't the one noted (on an
-     * APOD video day "new" is APOD's post being new).
+     * APOD video day "new" is APOD's post being new, and only while the stand-in's picture isn't
+     * noted for its own source either, B15: else the turn passes on, as with "Skip it").
      */
     fun isNew(source: Source, shown: Map<Source, Picture.Of>): Boolean {
-        if (picture(source) == null) return false
+        val picture = picture(source) ?: return false
         val newest = posts[source]?.picture() ?: return false
+        if (picture is Picture.Of && picture.source != source && shows(shown[picture.source], picture)) return false
         return !shows(shown[source], newest)
+    }
+
+    /**
+     * Whether what [source] shows now ([picture]) was published before [limit] (B15): its post
+     * ([Post.publishedAt]), and a stand-in's own post too. False with nothing stored.
+     */
+    fun publishedBefore(source: Source, limit: Instant): Boolean {
+        val post = posts[source] ?: return false
+        if (post.publishedAt >= limit) return false
+        val picture = picture(source) as? Picture.Of ?: return true
+        return picture.source == source || posts[picture.source]?.let { it.publishedAt < limit } == true
     }
 
     private fun sourcePicture(source: Source): Picture.Of? =
@@ -166,15 +181,25 @@ data class Plan(val screens: Map<Screen, Due>) {
  *   newest picture this screen hasn't shown ([Stored.isNew]), and takes the change time. None
  *   new: the picture stays and the stamp too, so every check tries again (rule 3, the screen
  *   waits; [waiting]): the first new picture goes on at once with the change time of then.
- * - **Within the change** (the stamp is the current change time): in the [pictureWindow] after
- *   it a newer picture of the owner replaces it (rule 2); after it nothing until the next change
- *   time. A forgotten picture (Set) or a new screen puts the owner's picture on at once; an
- *   owner with nothing to show (with several sources) or no longer ticked gives way to the next
- *   new source, else the next with any picture. [pull] (a pull to refresh) counts as within the
- *   window.
+ * - **One source** (B15): whenever a run comes, the screen takes the current change time T
+ *   and is due its newest stored picture when that was published before T + [pictureWindow]
+ *   ([Stored.publishedBefore]; a post stored before B15 counts from its date's 00:00 US
+ *   Eastern); one published later waits for the next change time. A function of the clock and
+ *   the posts: a failed or offline check moves nothing, the picture goes on whenever a run sees
+ *   it. A forgotten picture (Set), a new screen and [pull] put the newest on at once, whenever
+ *   it was published.
+ * - **Within the change** (several sources, the stamp is the current change time): a newer
+ *   picture of the owner published before the stamp + [pictureWindow] replaces it whenever a run
+ *   sees it (rule 2); a later one waits for the owner's next turn. A forgotten picture (Set) or
+ *   a new screen puts the owner's picture on at once; an owner with nothing to show or no
+ *   longer ticked gives way to the next new source, else the next with any picture. [pull] (a
+ *   pull to refresh) puts the owner's newest on at once.
  * - **A stamp that isn't a change time** (0.6.0's Set clock, migrated 0.5.0 turns, a time zone
  *   changed since) or one after [now] (the clock set back) counts as the current change time: it
- *   takes it, and nothing is set until the next one (but with [pull]).
+ *   takes it; with several sources nothing is set until the next one (but with [pull]), with
+ *   one the publish time decides as above.
+ * - **Never back:** a picture of the same source with an older date than the one on the screen
+ *   isn't set (only a stored post older than the shown one could ask for it).
  * - **A screen with no record** starts on the other screen's owner if that's in its column,
  *   else the first ticked source with a picture, with the current change time.
  * - **Equal columns** (the same sources on both screens) change together: home goes as above
@@ -244,11 +269,11 @@ private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId,
         val stamp = record.stamp
         if (stamp == null || stamp > current || !time.isChangeTime(stamp, zone, turns)) {
             val r = record.copy(stamp = current)
-            return if (pull) within(column, r, true) else show(r, null)
+            return if (pull || !turns) within(column, r, pull) else show(r, null)
         }
         if (stamp == current) return within(column, record, pull)
-        // Rule 1: a change time came.
-        if (!turns) return show(record.copy(owner = column.single(), stamp = current), stored.picture(column.single()))
+        // Rule 1: a change time came. One source: the publish time decides (B15).
+        if (!turns) return within(column, record.copy(stamp = current), pull)
         // Rule 3: nothing new, the screen waits with its stamp.
         val next = nextSource(column, record.owner) { stored.isNew(it, record.shown) } ?: return show(record, null)
         return show(record.copy(owner = next, stamp = current), stored.picture(next))
@@ -269,13 +294,18 @@ private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId,
         return if (record.picture == null || pull || inWindow(record)) show(record, stored.picture(record.owner)) else show(record, null)
     }
 
-    private fun inWindow(record: Record) = now < record.stamp!! + pictureWindow
+    /** Rule 2 by the publish time (B15): the owner's picture came out before the record's change time + the window. */
+    private fun inWindow(record: Record) = stored.publishedBefore(record.owner, record.stamp!! + pictureWindow)
 
-    /** [record] showing [picture] (null keeps what it shows), its notes brought up to date. */
+    /** [record] showing [picture] (null, or an older picture of the source on it, keeps what it shows), its notes brought up to date. */
     fun show(record: Record, picture: Picture?): Due {
-        if (picture == null) return Due(noted(record), false)
+        if (picture == null || isOlder(picture, record.picture)) return Due(noted(record), false)
         return Due(noted(record.copy(picture = picture)), !shows(record.picture, picture))
     }
+
+    /** [picture] is an older post of the source [on] shows: a screen never goes back. */
+    private fun isOlder(picture: Picture, on: Picture?) =
+        picture is Picture.Of && on is Picture.Of && picture.source == on.source && picture.date < on.date
 
     /** The notes of a screen showing its owner's current picture: the owner's post, and a stand-in's own source. */
     private fun noted(record: Record): Record {

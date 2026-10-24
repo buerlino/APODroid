@@ -16,7 +16,8 @@ packages unattended): `night.md`.
 
 - `core/.../Post.kt`: `Source`, `Post`, `fetchLatest(source, userAgent)`, `parseLatest`
   (`parseApod`, `nasaPosts`, `earthPosts`), `download(url, to, userAgent, limit)` (`TooLarge` over the limit, F6), `renditionUrl`,
-  `originalUrl`, title, video, explanation and credit parsing (`apodPosts`, `credit`), `Post.fileName`. Tests with made-up data
+  `originalUrl`, title, video, explanation and credit parsing (`apodPosts`, `credit`), `Post.fileName`,
+  `Post.published` and `publishedAt` (B15: the publish time, `wpPublished` for WordPress's `date`). Tests with made-up data
   shaped like the real responses: APOD in `ApodTest` (also the HTTP part), NASA, Earth and the
   URLs in `SourcesTest`, whose `readsEveryRealPost` reads `private/` when it's there. Real
   responses in `private/` (`latest.json`, `last100.json`, `iotd-feed-2026-10-16.xml`,
@@ -35,12 +36,12 @@ packages unattended): `night.md`.
   `pictureWindow` (3 h), `firstCheck` (15 min), `nextRun(now, zone, failures, time, turns,
   offset, waiting)` (when the alarms should run next), `nextAlarm(now, zone, failures, failedAt, …)`
   (J2: the same, armed at any time, keeping a failed run's retry), `randomOffset` and `maxOffset`
-  (tests in `PictureTimeTest`, also whole days in Zurich, Helsinki, Los Angeles, Sydney and UTC
-  with a run at each `nextRun`).
+  (tests in `PictureTimeTest`, also whole days in Zurich, Helsinki, Los Angeles, Sydney, Tehran,
+  New York and UTC with a run at each `nextRun`, offline spells and pulls, B15).
   `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
   `screensOf` and `placing` (S2: the list's change, a source on exactly its screens),
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in:
-  `picture(source)`, `isNew(source, shown)`), `Record` (owner, picture, stamp: the change time,
+  `picture(source)`, `isNew(source, shown)`, `publishedBefore(source, limit)`, B15), `Record` (owner, picture, stamp: the change time,
   `shown`: the last post shown per source; `forget()`), and the pure functions returning a
   `Plan` (records, `sets` grouped by picture): `dueWallpapers(columns, records, stored, time,
   zone, now, pull)` (each run, J1's three rules; equal columns: the lock screen follows home's

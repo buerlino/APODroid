@@ -203,7 +203,7 @@ fields), and fail without touching the current wallpaper.
 JSON GET per source in use, plus the image when the post is new (`Store.isCurrent` skips a
 source whose stored post is today's). The job checks at each change time ("New picture at",
 with turns every "Change every" from it), 15 min after it and hourly for the 3 hours after it
-(06:00, 06:15, 07:15, 08:15), hourly while a screen with several sources waits, and after a
+and at their end (06:00, 06:15, 07:15, 08:15, 09:00; B15), hourly while a screen with several sources waits, and after a
 failed run 15 min later, then hourly; the 6 h fallback job adds up to four more a day. So about
 4–8 checks a day with one source, more with turns or a waiting screen. Every phone of a time
 zone has the same change times; a per-device offset (0–10 min, drawn once) spreads each burst
@@ -461,7 +461,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (`videoNoticeHidden`, no confirmation). The second help text besides the pause hint (the problem box is a status, not help). `refresh()` stores the
   entry without a picture and deletes the previous `apod.jpg`; `isCurrent` doesn't need one.
 - **Fetch** in `:core`: newest post → `Post(source, date, title, imageUrl, pageUrl, isVideo,
-  explanation)` (`Source` APOD, NASA, EARTH; 0.5.0).
+  explanation, credit, published)` (`Source` APOD, NASA, EARTH; 0.5.0). `published` (B15,
+  2026-10-24): when the post came out, APOD's and Earth's WordPress `date` with its time read as
+  US Eastern (`2026-10-23T00:05:00` → 04:05 UTC; null when the time doesn't parse, the date still
+  counts), NASA's `pubDate`; on all 200 real posts in `private/`, on the post's date. `Store`
+  writes it with the post as `<source>.published` (epoch ms); a post stored before B15 has none
+  and counts as published at its date's 00:00 US Eastern (`Post.publishedAt`, no migration).
   The picture is downloaded as tall as the screen (`renditionUrl(imageUrl, screen.height)`,
   0.5.0; [Sharper wallpaper](#next-features)); if that fails, APOD and Earth fall back to the
   plain `imageUrl` (1280 px for APOD), NASA fails (its plain URL is the original, up to 97 MB).
@@ -508,8 +513,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   2026-10-20; the second case untested until V), prefixed with its name
   ("NASA Image of the Day: …"; its `problemNoticeKey` starts `nasa:`) unless it's APOD's with
   APOD ticked alone. The video-day
-  texts (user approved, 2026-10-16): "This APOD is a video, so NASA's Image of the Day is the
-  wallpaper." (or "… becomes the wallpaper once it has loaded."), with "Keep" "To change that,
+  texts (user approved, 2026-10-16; "… takes its place" since B15, Video days on the page): "This APOD is a video, so NASA's Image of the Day takes its
+  place." (or "… takes its place once it has loaded."), with "Keep" "To change that,
   choose another picture for video days below.", and the status line "Wallpaper changed
   16 Oct, 20:43 · NASA" when the wallpaper isn't APOD's or two or more sources are ticked (the
   source's short name since 2026-10-20, user: the full names wrapped in the tablet's settings
@@ -812,25 +817,36 @@ pref is no longer read. Each screen's record notes the change time it belongs to
 (`wallpaperStamp`) and, per source, the last post it showed (date and picture URL; J1's notes,
 `shownDate`/`shownUrl`, `lock.` for the lock screen). **The rules** (`dueWallpapers`, every run,
 page or job):
-1. **A change time since the record's stamp:** with one source the screen is due its newest
-   picture (no set when it's on already) and takes the change time; with several the next
+1. **A change time since the record's stamp:** with one source the screen takes the change
+   time and is due its newest picture by rule 2's publish time (no set when it's on already); with several the next
    source after its owner (APOD → NASA → Earth, round to itself) among its ticked sources whose
    newest post this screen hasn't shown (`Stored.isNew`), and takes the change time. Missed
    change times (the phone off) make one change, not one each.
-2. **The window:** for 3 hours after the change time (`pictureWindow`) a newer picture of the
-   owner, seen by a check, still replaces it (the change time kept); after it, the next change
-   time. A pull counts as in the window (`pull`: `Store.update`'s `force`).
+2. **The window, by the publish time** (B15, 2026-10-24): a newer picture of the owner
+   published before the change time + 3 hours (`pictureWindow`; `Stored.publishedBefore`:
+   `Post.publishedAt`, and a stand-in's own post too) replaces it whenever a run sees it, also
+   after 09:00 (an offline morning, a 503, Doze, a set that failed and is retried later); one
+   published later waits for the next change time (with turns the owner's next turn). The change
+   time kept. With one source this is the whole rule: from each change time T (the last one ≤
+   now, taken by every run) the screen shows the newest stored picture published before T + 3 h,
+   whenever a run sees it, a function of the clock and the posts (a failed or offline check
+   moves nothing). A pull, Set, a forgotten picture and a new screen put the newest on at once,
+   whenever it was published; the next change time's target then decides. **Never back:** a
+   picture of the same source older (by date) than the one on the screen isn't set.
 3. **Nothing new** (several sources only): the picture and the stamp stay, so every check tries
    again (the screen **waits**, `waiting`): the first new picture of a ticked source goes on as
    soon as a check sees it (the next in order when two are), with the change time of then. A
    screen with one source never waits.
 A stamp that isn't a change time (M2's migrated 0.5.0 clock, 0.6.0's own Set clock, a time zone
 changed since) or lies ahead (the clock set back) counts as the current change time: it takes
-it, and nothing is set until the next one (but by a pull). **The stand-in** fills APOD's turn
+it; with several sources nothing is set until the next one (but by a pull), with one rule 2's
+publish time decides (B15). **The stand-in** fills APOD's turn
 on an APOD video day on every screen where APOD is ticked, with turns too (NASA's, Earth's or
 the user's own picture; with "Skip it" APOD has nothing new, so a screen with APOD alone keeps
 its picture and one with turns goes to the next new source or waits); "new" is APOD's post
-being new, and the record keeps APOD as the owner. A stand-in shown counts as shown for its own
+being new, and the record keeps APOD as the owner, and only while the stand-in's picture isn't
+noted for its own source on that screen (B15, 2026-10-24: else APOD's turn passes on, as with
+"Skip it"; was: allowed twice in a row). A stand-in shown counts as shown for its own
 source too (and APOD's video post for APOD), so NASA isn't put on twice. When an owner is no
 longer ticked, or a forgotten picture's owner has nothing to show, it gives way to the next new
 source, else the next with any picture; with none the screen keeps its picture (CR 1: an
@@ -854,7 +870,9 @@ set on one screen (its retry takes home's picture). Columns that differ: each sc
 owner, the same change times. A changed interval or picture time takes effect with Set.
 **The next run** (`nextRun(now, zone, failures, time, turns, offset, waiting)`, for the
 alarms): the earliest of the next change time; within the window 15 min after the change time,
-then hourly (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone); hourly
+then hourly (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone), and the
+window's end (09:00, B15: a half-hour zone's post published within it, Tehran's 08:35; three
+real hours, so 02:00 CET on the EU's autumn DST night for a change at 00:00 CEST); hourly
 while a screen waits, until the next change time; after a failed or stopped run 15 min later,
 then hourly (`failures`, the failed runs in a row). The clock's checks come a per-device offset
 later (`randomOffset`, 0–10 min in whole seconds, drawn once; kept in range); the retries

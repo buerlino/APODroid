@@ -9,7 +9,9 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URI
 import java.time.DateTimeException
+import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -47,7 +49,16 @@ data class Post(
     val explanation: String = "",
     /** Who made the picture, with its label ("Credit & Copyright: …"); APOD only, null without one. */
     val credit: String? = null,
+    /**
+     * When the post came out (B15): APOD's and Earth's WordPress `date` with its time (US
+     * Eastern), NASA's `pubDate`. Null for a post stored before B15 ([publishedAt]).
+     */
+    val published: Instant? = null,
 ) {
+    /** [published], or for a post without one (stored before B15) its [date]'s 00:00 US Eastern. */
+    val publishedAt: Instant
+        get() = published ?: date.atStartOfDay(eastern).toInstant()
+
     /**
      * A name for the saved picture, without extension:
      * `APOD_2026-10-01_Harvest_Moon_with_Erupting_Mount_Etna` (`NASA_…`, `EO_…`). Unique per
@@ -186,6 +197,13 @@ private fun wpDate(date: String): LocalDate = try {
     throw SiteChanged("Bad date: $date", e)
 }
 
+/** The WordPress `date` with its time (US Eastern, `2026-10-23T00:05:00`); null without a time it can read (the date alone still counts). */
+private fun wpPublished(date: String): Instant? = try {
+    LocalDateTime.parse(date).atZone(eastern).toInstant()
+} catch (e: DateTimeParseException) {
+    null
+}
+
 internal fun parseApod(body: String): Post = apodPosts(body).firstOrNull() ?: throw SiteChanged("No post")
 
 /** APOD posts, newest first. */
@@ -202,6 +220,7 @@ internal fun apodPosts(body: String): Sequence<Post> = wpPosts(body).asSequence(
         isVideo = isVideo,
         explanation = explanation(content),
         credit = credit(content),
+        published = wpPublished(p.date),
     )
 }
 
@@ -219,6 +238,7 @@ internal fun earthPosts(body: String): Sequence<Post> = wpPosts(body).asSequence
         pageUrl = p.link,
         isVideo = false,
         explanation = plainText(p.excerpt?.rendered.orEmpty()),
+        published = wpPublished(p.date),
     )
 }
 
@@ -236,13 +256,15 @@ internal fun nasaPosts(body: String): Sequence<Post> = item.findAll(body).map { 
     val pubDate = element("pubDate")?.trim().orEmpty()
     if (title.isEmpty()) throw SiteChanged("No title")
     if (link.isEmpty()) throw SiteChanged("No link")
+    val published = try {
+        ZonedDateTime.parse(pubDate, DateTimeFormatter.RFC_1123_DATE_TIME)
+    } catch (e: DateTimeException) {
+        throw SiteChanged("Bad date: $pubDate", e)
+    }
     Post(
         source = Source.NASA,
-        date = try {
-            ZonedDateTime.parse(pubDate, DateTimeFormatter.RFC_1123_DATE_TIME).withZoneSameInstant(eastern).toLocalDate()
-        } catch (e: DateTimeException) {
-            throw SiteChanged("Bad date: $pubDate", e)
-        },
+        date = published.withZoneSameInstant(eastern).toLocalDate(),
+        published = published.toInstant(),
         title = title,
         imageUrl = enclosure.find(xml)?.groupValues?.get(1)?.let(::decodeEntities) ?: throw SiteChanged("No image"),
         pageUrl = link,

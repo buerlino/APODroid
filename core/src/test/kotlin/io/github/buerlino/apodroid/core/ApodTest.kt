@@ -5,6 +5,7 @@ import java.io.File
 import java.io.IOException
 import java.io.InterruptedIOException
 import java.net.InetSocketAddress
+import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -36,6 +37,31 @@ class ApodTest {
         assertEquals("https://science.nasa.gov/image-article/apod-2026-march-3-a-made-up-nebula/", apod.pageUrl)
         assertFalse(apod.isVideo)
         assertEquals("a mission", apod.explanation)
+        // B15: the WordPress date's time, US Eastern (05:05 UTC in March, before the DST change).
+        assertEquals(Instant.parse("2026-03-03T05:05:00Z"), apod.published)
+    }
+
+    @Test
+    fun readsThePublishTimeInUsEasternSummerTime() {
+        val apod = parseApod(post().replace("2026-03-03T00:05:00", "2026-10-23T00:05:00"))
+        assertEquals(Instant.parse("2026-10-23T04:05:00Z"), apod.published)
+        assertEquals(LocalDate.of(2026, 10, 23), apod.date)
+    }
+
+    @Test
+    fun aDateWithoutATimeHasNoPublishTime() {
+        val apod = parseApod(post().replace("2026-03-03T00:05:00", "2026-03-03"))
+        assertEquals(LocalDate.of(2026, 3, 3), apod.date)
+        assertEquals(null, apod.published)
+    }
+
+    @Test
+    fun aPostWithoutAPublishTimeCountsFromItsDatesMidnightUsEastern() {
+        val day = Post(Source.APOD, LocalDate.of(2026, 10, 23), "T", "u", "p", false)
+        assertEquals(Instant.parse("2026-10-23T04:00:00Z"), day.publishedAt)
+        assertEquals(Instant.parse("2026-12-01T05:00:00Z"), day.copy(date = LocalDate.of(2026, 12, 1)).publishedAt)
+        val at = Instant.parse("2026-10-23T04:05:00Z")
+        assertEquals(at, day.copy(published = at).publishedAt)
     }
 
     @Test

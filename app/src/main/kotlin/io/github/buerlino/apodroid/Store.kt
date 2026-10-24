@@ -451,6 +451,8 @@ class Store(private val context: Context) {
             explanation = prefs.getString(source.key("explanation"), null).orEmpty(),
             // APOD only; a post stored by 0.5.0 has none until the next one.
             credit = prefs.getString(source.key("credit"), null),
+            // B15; a post stored before it has none and counts from its date's 00:00 US Eastern (Post.publishedAt).
+            published = instant(source.key("published")),
         )
     }
 
@@ -463,6 +465,7 @@ class Store(private val context: Context) {
         putBoolean(source.key("isVideo"), post.isVideo)
         putString(source.key("explanation"), post.explanation)
         putString(source.key("credit"), post.credit)
+        post.published?.let { putLong(source.key("published"), it.toEpochMilli()) } ?: remove(source.key("published"))
     }
 
     /**

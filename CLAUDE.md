@@ -513,8 +513,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   2026-10-20; the second case untested until V), prefixed with its name
   ("NASA Image of the Day: …"; its `problemNoticeKey` starts `nasa:`) unless it's APOD's with
   APOD ticked alone. The video-day
-  texts (user approved, 2026-10-16): "This APOD is a video, so NASA's Image of the Day is the
-  wallpaper." (or "… becomes the wallpaper once it has loaded."), with "Keep" "To change that,
+  texts (user approved, 2026-10-16; "… takes its place" since B15, Video days on the page): "This APOD is a video, so NASA's Image of the Day takes its
+  place." (or "… takes its place once it has loaded."), with "Keep" "To change that,
   choose another picture for video days below.", and the status line "Wallpaper changed
   16 Oct, 20:43 · NASA" when the wallpaper isn't APOD's or two or more sources are ticked (the
   source's short name since 2026-10-20, user: the full names wrapped in the tablet's settings

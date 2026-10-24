@@ -724,14 +724,28 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   `setAndAllowWhileIdle(RTC_WAKEUP, T)`, two `PendingIntent`s to `AlarmReceiver` with request
   codes 1 and 2 (one code would make the second replace the first). Arming again replaces the
   pair. The first that fires (`DailyJob.runNow`) schedules a one-off job, **id 2** (the same
-  service, no delay, any network, not persisted) unless it's pending (`getPendingJob`) or a run
-  goes; the second finds it so and does nothing. Expect about T + 10 min when Unrestricted;
+  service, no delay, any network, not persisted) unless a run goes in the process or this
+  process scheduled it and it hasn't started (`runScheduled` and `getPendingJob`); the second
+  finds it so and does nothing. A pending id 2 from before the process died (Android may
+  reschedule a run that died with it, with its own backoff, and while pending it blocked the
+  alarms; B16, 2026-10-24, from a review of J2) is replaced. Expect about T + 10 min when Unrestricted;
   Optimized: the alarm on time, the network only at Doze's next maintenance window (accepted).
+- **A passed check kept** (B16): each run's start (either id) notes `lastRunAt` (also the
+  daily switch on, whose own update sets; off removes it). A check time after it that has
+  passed is armed at once, not dropped (`:core`'s `nextRun`/`nextAlarm`, `lastRun`): arming
+  replaces the pair, so a page open, a Set or a `TIME_SET` (network time) between 06:07 (the
+  armed check) and its alarm's delivery (up to 06:17) armed for 06:22 and the 06:07 check never
+  ran; so did a run's end when the run did its update before the check. The checks are taken
+  from the change time of now less the offset, so the one before's stay in view until the
+  current one's offset has passed. Without a `lastRunAt` (a fresh install) nothing is owed.
 - **Armed again** (`DailyJob.ensure`, while `daily` is on): after each run's end (either id),
   Set, the daily switch on, each `onResume`; at boot, after a time zone or clock change and after
   an update of the app (`AlarmReceiver` in the manifest, not exported: `BOOT_COMPLETED`,
   `TIMEZONE_CHANGED`, `TIME_SET`, `MY_PACKAGE_REPLACED`; alarms are absolute times and survive
   neither a boot nor an update; on a phone with a PIN boot's only after the first unlock).
+  Seen on the tablet (rosie, J2, Android 15): `BOOT_COMPLETED` after `am kill`, likely Android
+  15+ delivering it when an app leaves the stopped state (a force stop, `pm clear`, an install).
+  Harmless: it only arms again (no code; B16).
 - **The fallback**, **id 1**: periodic, every 6 h with a 6 h flex (0.4.0's), any network,
   `setPersisted(true)`. Its timing never changes: `ensure` compares interval and flex, so a
   0.5.0 or older 0.6.0 install's turns job (3 h, 15 min flex) is replaced once at the first
@@ -742,6 +756,12 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   scheduled while a run goes (`JobRuns.going`, process-wide: the page and the job share one
   process); a run's end calls `ensure`, which does what was skipped. So a Set or the daily
   switch on during a run arms the alarms and leaves the run alone.
+- **One run at a time** (B16): a job of either id that starts while a run goes ends at once
+  (`onStartJob` returns false, `JobRuns.start` null): both ids share the one `DailyJob`'s
+  `worker` and `stoppedBySystem`, so the fallback starting beside the alarm's run made one
+  `onStopJob` interrupt the other's thread, and both runs counted as failed. The going run's end
+  arms again, and a check it missed comes at once (A passed check kept). `stoppedBySystem` is
+  reset at each start; `onStopJob` interrupts only for the running id.
 - **Retries by the alarms** (user, 2026-10-23 night): every run ends with
   `jobFinished(params, false)` and `onStopJob` returns false, for both ids, so Android keeps no
   backoff retry (in Doze it waits for a maintenance window and, pending, blocks the alarms). A
@@ -750,7 +770,11 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   good run clears them, the daily switch either way too. The alarms then come 15 min after the
   run, then hourly (`nextAlarm` keeps that retry when armed again before it, by a Set or a page
   open; a retry whose time passed without a run, after a boot or the process dying, comes at
-  once). A run that waits for the network (id 2 pending) arms nothing until it runs.
+  once). A run that waits for the network (id 2 pending) arms nothing until it runs. Each run's
+  start arms the alarms 15 min ahead (B16), so a run that never reaches its end (a frozen or
+  killed process) is retried by them; its end arms them again as above. A stop leaves the
+  thread interrupted (`Store.update`), and an interrupted thread's `commit()` skips the prefs
+  listeners, so the run clears the flag (`Thread.interrupted()`) before `ranJob` (B16).
 - **Off is off** (`DailyJob.cancel`): both jobs and both alarms cancelled, a running run too;
   `JobRuns.drop` bumps a generation each run takes at its start, so a run from before an off
   ends without effect (it arms and notes nothing; a lock keeps its end and the cancel apart;
@@ -880,7 +904,7 @@ count from the run. No model of each source's posting time. **In `Store`** (J2):
 `pictureAt`, default 6, also after an update from 0.5.0; part of `Setup` and `saveSetup`, the
 page's draft since J3, "New picture at" in Setup), the zone the system's, the offset (pref
 `offset`, seconds, drawn at the first `nextAlarm`); `nextAlarm` also keeps a failed run's retry
-(Background update). 0.6.0's `turnStartedAt` is no longer read (left in the prefs, no
+and arms at once for a check passed since `lastRunAt` (Background update, B16). 0.6.0's `turnStartedAt` is no longer read (left in the prefs, no
 migration). A video-day choice or the mode switch in the
 draft while an update runs makes the page run one more after it (that one read the offered
 sources before).

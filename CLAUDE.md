@@ -457,7 +457,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
   APOD mode says the same "… takes its place" (user, 2026-10-24; B15; was 0.5.0's "… is the
   wallpaper" and "… becomes the wallpaper once it has loaded", untrue for hours since the
   wallpaper changes at the next check or change time, e.g. all evening after a 21:05 video in
-  Los Angeles). "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
+  Los Angeles). Both modes by the same test (B17, user, 2026-10-24 evening): "… takes its
+  place." once the stand-in's picture is stored (`standInReady`), "… takes its place once it
+  has loaded." only while it isn't (APOD mode had asked whether the screen showed it yet, so a
+  stored stand-in waiting for its change time said "once it has loaded"). "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
   (`videoNoticeHidden`, no confirmation). The second help text besides the pause hint (the problem box is a status, not help). `refresh()` stores the
   entry without a picture and deletes the previous `apod.jpg`; `isCurrent` doesn't need one.
 - **Fetch** in `:core`: newest post → `Post(source, date, title, imageUrl, pageUrl, isVideo,

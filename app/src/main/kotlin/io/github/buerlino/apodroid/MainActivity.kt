@@ -1423,7 +1423,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Says why the wallpaper didn't change on a video day and what the user can do; follows the
-     * settings. With the switch on (also with turns) what takes APOD's place; with APOD ticked
+     * settings. What takes APOD's place ("… takes its place." once its picture is stored, B17), with the switch on also with turns; with APOD ticked
      * nowhere only that it's a video.
      */
     @Composable
@@ -1445,7 +1445,8 @@ class MainActivity : ComponentActivity() {
                 else -> "This APOD is a video, so it's skipped.$watch To change that, choose another picture for video days below."
             }
             // B15: "takes its place", not "is the wallpaper": the wallpaper changes at the next check or change time.
-            other != null && pictureSource(pageScreen) == other -> "This APOD is a video, so ${other.possessive} takes its place.$watch"
+            // B17: by the stand-in's stored picture, as above, not by what the screen shows yet.
+            other != null && standInReady -> "This APOD is a video, so ${other.possessive} takes its place.$watch"
             other != null -> "This APOD is a video. ${other.possessive} takes its place once it has loaded.$watch"
             mine && hasFallback -> "This APOD is a video, so your own picture takes its place.$watch"
             mine -> "$kept$watch Pick a picture below to use it on video days."

@@ -779,9 +779,19 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   (a page open, a Set, the daily switch on, `TIME_SET`/`TIMEZONE_CHANGED`) keeps that retry:
   the earlier of the clock's next check and `lastRunAt` + 15 min, at the earliest now (B16f1,
   2026-10-24: it armed the next change time, so a run killed mid-run, e.g. swiped from Recents,
-  waited up to a day; a run left from before an off and on costs one spare check). A stop leaves the
+  waited up to a day; a run left from before an off and on costs one spare check). An alarm that
+  lands in a going run (such an arming's earlier check, or the run outlasting its own 15 min)
+  arms the pair 15 min ahead again, as the run's start did (B18, 2026-10-24, CR2's finding 1:
+  `runNow` dropped it and armed nothing, so a process killed before the run's end had no alarm
+  left). A stop leaves the
   thread interrupted (`Store.update`), and an interrupted thread's `commit()` skips the prefs
-  listeners, so the run clears the flag (`Thread.interrupted()`) before `ranJob` (B16).
+  listeners, so the run clears the flag (`Thread.interrupted()`) before `ranJob` (B16). Such a
+  `commit()` also clears the flag, so a stop doesn't rest on it alone (B18, CR2's finding 2: a
+  stop during a set went on with the other screen's set and "Save every picture"'s downloads):
+  `update` and `saveInUse` also read the job's `stoppedBySystem` before each source, each set
+  and each save, a commit on the job's thread clears the flag first and then ends the run
+  (the record of a set done is written, the page hears it), and a run `onStopJob` stopped
+  saves nothing.
 - **Off is off** (`DailyJob.cancel`): both jobs and both alarms cancelled, a running run too;
   `JobRuns.drop` bumps a generation each run takes at its start, so a run from before an off
   ends without effect (it arms and notes nothing; a lock keeps its end and the cancel apart;

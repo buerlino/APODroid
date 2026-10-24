@@ -242,6 +242,78 @@ class PictureTimeTest {
         assertEquals("15 06:00", alarm("2026-07-15T05:50", failedAt = "2026-07-15T05:00", failures = 2))
     }
 
+    // A passed check kept (B16)
+
+    private val sevenMinutes = Duration.ofMinutes(7)
+
+    /** The alarms armed at [now] after the job's last run started at [lastRun], with an offset of 7 min. */
+    private fun owed(
+        now: String,
+        lastRun: String?,
+        time: PictureTime = PictureTime(),
+        turns: Boolean = false,
+        waiting: Boolean = false,
+        failedAt: String? = null,
+        failures: Int = 0,
+    ) = local(zurich, nextAlarm(at(zurich, now), zurich, failures, failedAt?.let { at(zurich, it) }, time, turns, sevenMinutes, waiting, lastRun?.let { at(zurich, it) }))
+
+    /**
+     * A page open (or a Set, a clock change) between the 06:07 check and its alarm's delivery
+     * (up to 06:17): the pair it replaces would have run, so the run comes at once. Before B16 it
+     * was armed for 06:22, and the 06:07 check never ran.
+     */
+    @Test
+    fun aPageOpenBeforeTheAlarmCameKeepsTheCheck() {
+        assertEquals("15 06:10", owed("2026-07-15T06:10", lastRun = "2026-07-14T09:07"))
+        assertEquals("15 06:16", owed("2026-07-15T06:16", lastRun = "2026-07-14T09:07"))
+        // The same without a last run: dropped, as before (a fresh install has none).
+        assertEquals("15 06:22", owed("2026-07-15T06:10", lastRun = null))
+        // The 06:22 check passed too, its alarm not yet delivered.
+        assertEquals("15 06:25", owed("2026-07-15T06:25", lastRun = "2026-07-15T06:08"))
+    }
+
+    /** A run that did its update before the check (a fallback run at 06:05) ends after it: one more run, at once. */
+    @Test
+    fun aRunThatStartedBeforeTheCheckAndEndedAfterIt() {
+        assertEquals("15 06:08", owed("2026-07-15T06:08", lastRun = "2026-07-15T06:05"))
+        // Ended before the check: the check stays the alarm.
+        assertEquals("15 06:07", owed("2026-07-15T06:06", lastRun = "2026-07-15T06:05"))
+        // Started at or after the check (the alarm's run, late in its window): nothing owed.
+        assertEquals("15 06:22", owed("2026-07-15T06:13", lastRun = "2026-07-15T06:12"))
+        assertEquals("15 06:22", owed("2026-07-15T06:08", lastRun = "2026-07-15T06:07"))
+    }
+
+    /** Network time moves the clock past a check (TIME_SET): at once. The clock set back: nothing owed. */
+    @Test
+    fun theClockMovedOn() {
+        assertEquals("15 08:30", owed("2026-07-15T08:30", lastRun = "2026-07-15T06:22"))
+        // A missed morning (the phone off), switched on after the window: the change time is owed.
+        assertEquals("15 11:00", owed("2026-07-15T11:00", lastRun = "2026-07-14T09:07"))
+        assertEquals("15 06:22", owed("2026-07-15T06:10", lastRun = "2026-07-15T07:00"))
+        // Nothing passed since the last run (after the window, all checks done): the next morning.
+        assertEquals("16 06:07", owed("2026-07-15T11:00", lastRun = "2026-07-15T09:07"))
+    }
+
+    /**
+     * The checks of the change time before stay in view until the offset of the current one has
+     * passed: with turns every 3 h, at 06:03 with an offset of 7 min, a run that started at 05:20
+     * missed 03:00's 05:22 check.
+     */
+    @Test
+    fun theChangeTimeBeforeWithinTheOffset() {
+        val time = PictureTime(0, 3)
+        assertEquals("15 06:03", owed("2026-07-15T06:03", lastRun = "2026-07-15T05:20", time = time, turns = true, waiting = true))
+        assertEquals("15 06:07", owed("2026-07-15T06:03", lastRun = "2026-07-15T05:23", time = time, turns = true, waiting = true))
+    }
+
+    /** An owed check comes before a retry not yet due. */
+    @Test
+    fun anOwedCheckBeforeTheRetry() {
+        assertEquals("15 06:10", owed("2026-07-15T06:10", lastRun = "2026-07-15T06:00", failedAt = "2026-07-15T06:02", failures = 1))
+        // Before the check: the check, then the retry.
+        assertEquals("15 06:07", owed("2026-07-15T06:05", lastRun = "2026-07-15T06:00", failedAt = "2026-07-15T06:02", failures = 1))
+    }
+
     /** A retry whose time passed without a run (the process died, a boot): at once. */
     @Test
     fun aRetryDueComesAtOnce() {

@@ -79,6 +79,12 @@ data class PictureTime(val pictureAt: Int = 6, val everyHours: Int = 24) {
  *   more (the alarms retry, not Android's backoff).
  * The clock's checks come [offset] later (0 to [maxOffset], kept in that range); the retries
  * count from [now]. No model of each source's posting time (user, 2026-10-23).
+ *
+ * A check that has passed since [lastRun] (the job's last run's start) is owed: the run comes at
+ * [now] (B16). Every arming replaces the pair before it, so a page open, a Set or a clock change
+ * between a check (06:07) and its alarm's delivery (up to 06:17), or a run's end when the run did
+ * its update before the check, would otherwise drop it. Without a [lastRun] (none yet) or with
+ * one ahead of [now] (the clock set back) nothing is owed.
  */
 fun nextRun(
     now: Instant,
@@ -88,20 +94,25 @@ fun nextRun(
     turns: Boolean,
     offset: Duration,
     waiting: Boolean,
+    lastRun: Instant? = null,
 ): Instant {
     val off = offset.coerceIn(Duration.ZERO, maxOffset)
-    // The current change time may be the last one only once its offset has passed: a run at
-    // 06:03 with an offset of 7 min still checks at 06:07.
-    val last = time.last(now, zone, turns)
-    val next = time.next(now, zone, turns)
+    // The checks on the clock without the offset, from the current change time of [now] less the
+    // offset: a run at 06:03 with an offset of 7 min still checks at 06:07, and the 05:22 check
+    // of the change time before (05:15 + 7 min) is still among them for [lastRun].
+    val shifted = now - off
+    val last = time.last(shifted, zone, turns)
+    val next = time.next(shifted, zone, turns)
     val checks = mutableListOf(last, next, last + pictureWindow)
     var check = last + firstCheck
     while (check < next && (waiting || check < last + pictureWindow)) {
         checks += check
         check += hourly
     }
+    val clock = checks.map { it + off }
+    if (lastRun != null && clock.any { it > lastRun && it <= now }) return now
     val retry = retryAfter(failures)?.let { now + it }
-    return (checks.map { it + off }.filter { it > now } + listOfNotNull(retry)).min()
+    return (clock.filter { it > now } + listOfNotNull(retry)).min()
 }
 
 /** How long after the last of [failures] failed or stopped runs in a row the alarms retry: null without one. */
@@ -115,8 +126,8 @@ private fun retryAfter(failures: Int): Duration? = when {
  * When to arm the alarms at [now], also outside a run's end (Set, the daily switch on, a page
  * open, a boot, a clock or time zone change, an app update), which must not move a failed run's
  * retry: [nextRun] by the clock from [now], or the retry of the last of [failures] failed runs in
- * a row, which ended at [failedAt], when that comes first; a retry already due comes at [now].
- * At a run's end ([failedAt] = [now]) the same as [nextRun] with [failures].
+ * a row, which ended at [failedAt], when that comes first; a retry already due comes at [now],
+ * as a check passed since [lastRun] does (B16). At a run's end ([failedAt] = [now]) the same as [nextRun] with [failures].
  */
 fun nextAlarm(
     now: Instant,
@@ -127,8 +138,9 @@ fun nextAlarm(
     turns: Boolean,
     offset: Duration,
     waiting: Boolean,
+    lastRun: Instant? = null,
 ): Instant {
-    val clock = nextRun(now, zone, 0, time, turns, offset, waiting)
+    val clock = nextRun(now, zone, 0, time, turns, offset, waiting, lastRun)
     val retry = failedAt?.let { at -> retryAfter(failures)?.let { at + it } } ?: return clock
     return minOf(clock, maxOf(retry, now))
 }

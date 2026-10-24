@@ -283,6 +283,26 @@ class PictureTimeTest {
         assertEquals("15 06:22", owed("2026-07-15T06:08", lastRun = "2026-07-15T06:07"))
     }
 
+    /**
+     * A page open (or a Set, the switch on, a TIME_SET) while a run goes keeps the pair the run's
+     * start armed, 15 min after it, so a process killed mid-run is retried (B16f1). Before, a
+     * fallback run at 12:00 and a page open at 12:01 armed tomorrow's 06:07 check.
+     */
+    @Test
+    fun aReArmDuringARunKeepsItsRetry() {
+        fun during(now: String, lastRun: String) = local(
+            zurich,
+            nextAlarm(at(zurich, now), zurich, 0, null, PictureTime(), false, sevenMinutes, false, at(zurich, lastRun), running = true),
+        )
+        assertEquals("15 12:15", during("2026-07-15T12:01", "2026-07-15T12:00"))
+        // Not running: the clock's next check, as before.
+        assertEquals("16 06:07", owed("2026-07-15T12:01", lastRun = "2026-07-15T12:00"))
+        // An earlier check stays the alarm.
+        assertEquals("15 06:07", during("2026-07-15T06:01", "2026-07-15T06:00"))
+        // A run going longer than 15 min: at once (the floor).
+        assertEquals("15 12:20", during("2026-07-15T12:20", "2026-07-15T12:00"))
+    }
+
     /** Network time moves the clock past a check (TIME_SET): at once. The clock set back: nothing owed. */
     @Test
     fun theClockMovedOn() {

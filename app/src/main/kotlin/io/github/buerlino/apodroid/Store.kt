@@ -392,14 +392,14 @@ class Store(private val context: Context) {
      * When the alarms should start the next run ([nextAlarm]): the change times of the stored
      * setup, with their checks (15 min after a change time, then hourly in its window, hourly
      * while a screen waits) and this device's [offset], or a failed run's retry when that comes
-     * first; at once when a check passed since the last run's start (`lastRunAt`, B16). Not under the wallpaper lock: the page's `onResume` and the alarms' receiver call it
+     * first; at once when a check passed since the last run's start (`lastRunAt`, B16); while a run goes ([running]) no later than 15 min after its start (B16f1). Not under the wallpaper lock: the page's `onResume` and the alarms' receiver call it
      * on the main thread, and a set holds that lock for seconds.
      */
-    fun nextAlarm(): Instant {
+    fun nextAlarm(running: Boolean = false): Instant {
         val now = Instant.now()
         val zone = ZoneId.systemDefault()
         val time = pictureTime()
-        return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), instant("failedAt"), time, hasTurns, offset, waiting(columns, records(), time, zone, now), instant("lastRunAt"))
+        return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), instant("failedAt"), time, hasTurns, offset, waiting(columns, records(), time, zone, now), instant("lastRunAt"), running)
     }
 
     /**

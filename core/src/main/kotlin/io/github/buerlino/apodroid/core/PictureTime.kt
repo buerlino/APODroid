@@ -128,6 +128,9 @@ private fun retryAfter(failures: Int): Duration? = when {
  * retry: [nextRun] by the clock from [now], or the retry of the last of [failures] failed runs in
  * a row, which ended at [failedAt], when that comes first; a retry already due comes at [now],
  * as a check passed since [lastRun] does (B16). At a run's end ([failedAt] = [now]) the same as [nextRun] with [failures].
+ * While a run goes ([running], started at [lastRun]), no later than [firstCheck] after its start
+ * (at the earliest [now]): the pair its start armed stays, so a run that never reaches its end
+ * (the process killed or frozen) is still retried (B16f1).
  */
 fun nextAlarm(
     now: Instant,
@@ -139,8 +142,11 @@ fun nextAlarm(
     offset: Duration,
     waiting: Boolean,
     lastRun: Instant? = null,
+    running: Boolean = false,
 ): Instant {
     val clock = nextRun(now, zone, 0, time, turns, offset, waiting, lastRun)
-    val retry = failedAt?.let { at -> retryAfter(failures)?.let { at + it } } ?: return clock
-    return minOf(clock, maxOf(retry, now))
+    val retry = failedAt?.let { at -> retryAfter(failures)?.let { at + it } }
+    val next = if (retry == null) clock else minOf(clock, maxOf(retry, now))
+    if (!running || lastRun == null) return next
+    return minOf(next, maxOf(lastRun + firstCheck, now))
 }

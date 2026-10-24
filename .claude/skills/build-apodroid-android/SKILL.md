@@ -468,6 +468,28 @@ packages unattended): `night.md`.
   by one. Left after the restore: one shared wallpaper (APOD, the same picture the records
   name) instead of home and lock set apart; a WebLibre task in Recents (a tap opened NASA's
   page). Evidence in the run's `tablet/`.
+  V11d (2026-10-25 night, R8 builds signed with the debug key: `v0.5.0` (V6's APK, the same
+  tag) and dev d1c1e2b, passed): **the update without opening the page**, from 0.5.0 seeded
+  by `run-as` (daily on, APOD + NASA, Both, 3 h; its page opened once, which set NASA and
+  scheduled a 3 h / 15 min job): `install -r` of 0.6.0's R8 build logged one "Migrated from
+  0.5.0" (`allSources=true`, `home`/`lock` APOD,NASA, the record copied to `lock.*`), the
+  receiver's `MY_PACKAGE_REPLACED, arming again`, the pair at 01:20:06 (01:15 + the offset:
+  06:00 with 3 h turns), id 1 now 6 h / 6 h, which ran at once and set nothing (wallpaper id
+  unchanged). The clock stepped to 01:20:06: the alarm's run set nothing (NASA's turn, nothing
+  newer); to 03:05 CET (the first change time after the DST change): APOD on HOME+LOCK in one
+  set, the next pair 03:20:06. The page then: "APOD on both screens, NASA on both screens ·
+  every 3 h from 06:00" (so `pictureAt` read as 06:00), "Wallpaper changed 25 Oct, 03:05 ·
+  APOD", no set, no crash. **APOD mode** (APOD alone, Both): migrated once (`allSources=false`),
+  armed for 06:08:38 CET, id 1 kept (0.5.0's was already 6 h / 6 h), no set; the page "APOD on
+  both screens · at 06:00". **0.6.0's R8 build:** the smoke list (both modes, a draft list and
+  Set, `run -f 1` twice, no crash); "Save every picture" with `run -f 1`: one save each ("saved:
+  APOD 2026-10-24 original", then NASA's); ⛶'s "Whole picture": NASA's RS-25 photo on the home
+  screen on the blur, APOD's Rosetta (edge strip 99.6% dark) on the lock screen on black;
+  Earth's El Niño globe on black got the blur, rightly by the rule: its strip is 96.5% dark (the
+  globe and the legend touch it), under the 97%; after a pull `published`, `nasa.published` and
+  `earth.published` in the prefs (read with the debug build installed over the R8 data): 04:05Z,
+  18:59Z, 04:00Z. Not checked: `pictureAt`'s absence by reading the prefs (an R8 build has no
+  `run-as`; read from the summary and the alarm instead). Evidence in the run's `tablet/`.
 - 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
   device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
   for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked

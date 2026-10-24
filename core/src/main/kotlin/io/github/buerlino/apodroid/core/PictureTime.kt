@@ -11,7 +11,8 @@ import kotlin.random.Random
  * 1. At "New picture at", and with several sources every "Change every" from then, a screen
  *    changes: to its source's newest picture, or to the next source with a picture it hasn't
  *    shown ([dueWallpapers]).
- * 2. A newer picture of that source seen in the [pictureWindow] after the change still replaces it.
+ * 2. A newer picture of that source published in the [pictureWindow] after the change still
+ *    replaces it, whenever a check sees it (B15: by the publish time).
  * 3. With several sources and nothing new, the picture stays until one comes out (the screen waits).
  * This file has the times: when a screen changes ([PictureTime]) and when the next run checks
  * ([nextRun]).
@@ -70,7 +71,8 @@ data class PictureTime(val pictureAt: Int = 6, val everyHours: Int = 24) {
  * [PictureTime.pictureAt]). The earliest of:
  * - the next change time;
  * - within the [pictureWindow] after the current change time, [firstCheck] after it, then hourly
- *   (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone);
+ *   (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone), and at its end
+ *   (09:00: a half-hour zone's post, Tehran's 08:35, published within it; B15);
  * - while a screen [waiting] (several sources, nothing new: [waiting]), the same checks hourly
  *   until the next change time;
  * - after [failures] failed or stopped runs in a row, [firstCheck] after the first, hourly after
@@ -92,7 +94,7 @@ fun nextRun(
     // 06:03 with an offset of 7 min still checks at 06:07.
     val last = time.last(now, zone, turns)
     val next = time.next(now, zone, turns)
-    val checks = mutableListOf(last, next)
+    val checks = mutableListOf(last, next, last + pictureWindow)
     var check = last + firstCheck
     while (check < next && (waiting || check < last + pictureWindow)) {
         checks += check

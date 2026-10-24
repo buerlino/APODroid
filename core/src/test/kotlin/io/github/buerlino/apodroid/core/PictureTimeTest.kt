@@ -160,23 +160,28 @@ class PictureTimeTest {
         assertEquals("15 06:15", next("2026-07-15T06:00"))
         assertEquals("15 07:15", next("2026-07-15T06:15"))
         assertEquals("15 08:15", next("2026-07-15T07:15"))
-        assertEquals("16 06:00", next("2026-07-15T08:15"))
+        // The window's end (B15): a half-hour zone's post, published within it.
+        assertEquals("15 09:00", next("2026-07-15T08:15"))
+        assertEquals("16 06:00", next("2026-07-15T09:00"))
         // A run in between (a page open) keeps the grid.
         assertEquals("15 07:15", next("2026-07-15T06:40"))
         // With turns the next change comes first: every 3 h, the window ends with it.
         assertEquals("15 09:00", next("2026-07-15T08:15", PictureTime(6, 3), turns = true))
         assertEquals("15 09:15", next("2026-07-15T09:00", PictureTime(6, 3), turns = true))
-        assertEquals("15 12:00", next("2026-07-15T08:15", PictureTime(6, 6), turns = true))
+        assertEquals("15 09:00", next("2026-07-15T08:15", PictureTime(6, 6), turns = true))
+        assertEquals("15 12:00", next("2026-07-15T09:00", PictureTime(6, 6), turns = true))
     }
 
     @Test
     fun aWaitingScreenIsCheckedHourly() {
         val time = PictureTime(6, 6)
-        assertEquals("15 09:15", next("2026-07-15T08:15", time, turns = true, waiting = true))
+        assertEquals("15 09:00", next("2026-07-15T08:15", time, turns = true, waiting = true))
+        assertEquals("15 09:15", next("2026-07-15T09:00", time, turns = true, waiting = true))
         assertEquals("15 11:15", next("2026-07-15T10:15", time, turns = true, waiting = true))
         assertEquals("15 12:00", next("2026-07-15T11:15", time, turns = true, waiting = true))
-        // Without a waiting screen: the next change time.
-        assertEquals("15 12:00", next("2026-07-15T08:15", time, turns = true))
+        // Without a waiting screen: the window's end, then the next change time.
+        assertEquals("15 09:00", next("2026-07-15T08:15", time, turns = true))
+        assertEquals("15 12:00", next("2026-07-15T09:00", time, turns = true))
         // Every 24 h: hourly all day.
         assertEquals("15 21:15", next("2026-07-15T20:15", PictureTime(6, 24), turns = true, waiting = true))
     }
@@ -273,22 +278,25 @@ class PictureTimeTest {
 
     private data class Out(val at: Instant, val post: Post)
 
-    private fun post(source: Source, date: LocalDate, video: Boolean = false) =
-        Post(source, date, "$source $date", if (video) null else "https://x/$source-$date.jpg", "https://p/$source-$date", video)
+    /** A post published at [at] (B15), as the sites say. */
+    private fun post(source: Source, date: LocalDate, at: Instant, video: Boolean = false) =
+        Post(source, date, "$source $date", if (video) null else "https://x/$source-$date.jpg", "https://p/$source-$date", video, published = at)
+
+    private fun out(source: Source, date: LocalDate, at: Instant, video: Boolean = false) = Out(at, post(source, date, at, video))
 
     private fun apod(day: String, video: Boolean = false): Out {
         val date = LocalDate.parse(day)
-        return Out(date.atTime(0, 5).atZone(newYork).toInstant(), post(APOD, date, video))
+        return out(APOD, date, date.atTime(0, 5).atZone(newYork).toInstant(), video)
     }
 
     private fun earth(day: String): Out {
         val date = LocalDate.parse(day)
-        return Out(date.atTime(0, 0, 30).atZone(newYork).toInstant(), post(EARTH, date))
+        return out(EARTH, date, date.atTime(0, 0, 30).atZone(newYork).toInstant())
     }
 
     private fun nasa(day: String): Out {
         val date = LocalDate.parse(day)
-        return Out(date.atTime(16, 30).atZone(utc).toInstant(), post(NASA, date))
+        return out(NASA, date, date.atTime(16, 30).atZone(utc).toInstant())
     }
 
     /** Every source's posts from [from] to [to]: APOD daily, NASA and Earth on weekdays. */
@@ -322,18 +330,23 @@ class PictureTimeTest {
         val posts: List<Out>,
         var records: Map<Screen, Record>,
         val standIn: StandIn = StandIn.SKIP,
+        /** While offline every check fails and the stored posts are those out at its start (B15). */
+        val offline: ClosedRange<Instant>? = null,
     ) {
         val sets = mutableListOf<String>()
         val runs = mutableListOf<String>()
         private val turns = columns.values.any { it.size >= 2 }
 
+        fun isOffline(now: Instant) = offline?.contains(now) == true
+
         fun stored(now: Instant): Stored {
-            val newest = posts.filter { it.at <= now }.groupBy { it.post.source }.mapValues { (_, outs) -> outs.maxBy { it.at }.post }
+            val known = if (isOffline(now)) offline!!.start else now
+            val newest = posts.filter { it.at <= known }.groupBy { it.post.source }.mapValues { (_, outs) -> outs.maxBy { it.at }.post }
             return Stored(newest, newest.filterValues { !it.isVideo }.keys, true, standIn)
         }
 
-        fun check(now: Instant, failSets: Boolean = false) {
-            val plan = dueWallpapers(columns, records, stored(now), time, zone, now)
+        fun check(now: Instant, failSets: Boolean = false, pull: Boolean = false) {
+            val plan = dueWallpapers(columns, records, stored(now), time, zone, now, pull)
             if (failSets) {
                 records = records + plan.screens.filterValues { !it.set }.mapValues { it.value.record }
                 return
@@ -356,12 +369,15 @@ class PictureTimeTest {
             val opens = pages.sorted().toMutableList()
             var set = setAt
             var now = from
+            var failures = 0
             while (now < until) {
                 while (opens.isNotEmpty() && opens.first() < now) check(opens.removeAt(0))
                 if (set != null && set < now) set(set).also { set = null }
                 runs += local(zone, now)
                 check(now)
-                now = nextRun(now, zone, 0, time, turns, Duration.ZERO, waiting(columns, records, time, zone, now))
+                // An offline run fails: the alarms retry it (Background update).
+                failures = if (isOffline(now)) failures + 1 else 0
+                now = nextRun(now, zone, failures, time, turns, Duration.ZERO, waiting(columns, records, time, zone, now))
             }
         }
     }
@@ -369,10 +385,132 @@ class PictureTimeTest {
     private val both = apodColumns(setOf(HOME, LOCK))
 
     /** APOD mode, yesterday's APOD on, set at yesterday's [change]. */
-    private fun apodPhone(zone: ZoneId, onDay: String, change: String, posts: List<Out>, pictureAt: Int = 6): Phone {
+    private fun apodPhone(zone: ZoneId, onDay: String, change: String, posts: List<Out>, pictureAt: Int = 6, offline: ClosedRange<Instant>? = null): Phone {
         val on = apod(onDay)
         val record = Record(APOD, pic(on), at(zone, change), notes(on))
-        return Phone(zone, both, PictureTime(pictureAt), posts, mapOf(HOME to record, LOCK to record))
+        return Phone(zone, both, PictureTime(pictureAt), posts, mapOf(HOME to record, LOCK to record), offline = offline)
+    }
+
+    // The window by publish time (B15)
+
+    @Test
+    fun zurichSetsTodaysApodFirstSeenAt0901() {
+        // Every check failed until 09:00 (a 503, Doze); a page open at 09:01 sees the 06:05 post.
+        val posts = listOf(apod("2026-07-14"), apod("2026-07-15"), apod("2026-07-16"))
+        val phone = apodPhone(zurich, "2026-07-14", "2026-07-14T06:00", posts, offline = at(zurich, "2026-07-15T05:59")..at(zurich, "2026-07-15T09:00"))
+        phone.run(at(zurich, "2026-07-15T05:00"), at(zurich, "2026-07-16T05:00"), pages = listOf(at(zurich, "2026-07-15T09:01")))
+        assertEquals(listOf("15 09:01 APOD 07-15"), phone.sets)
+    }
+
+    @Test
+    fun zurichOfflineFrom0600To0900SetsTodaysApodAt1000() {
+        // The failing checks took the change time (one source); the 10:00 retry still sets it.
+        val posts = listOf(apod("2026-07-14"), apod("2026-07-15"), apod("2026-07-16"))
+        val phone = apodPhone(zurich, "2026-07-14", "2026-07-14T06:00", posts, offline = at(zurich, "2026-07-15T05:59")..at(zurich, "2026-07-15T09:59"))
+        phone.run(at(zurich, "2026-07-15T05:00"), at(zurich, "2026-07-16T05:00"))
+        assertEquals(listOf("15 10:00 APOD 07-15"), phone.sets)
+        assertEquals(listOf("15 05:00", "15 06:00", "15 06:15", "15 07:15", "15 08:15", "15 09:00", "15 10:00"), phone.runs)
+    }
+
+    @Test
+    fun zurichAPageOpenedOfflineAt0700ThenARunAt1000() {
+        val posts = listOf(apod("2026-07-14"), apod("2026-07-15"))
+        val phone = apodPhone(zurich, "2026-07-14", "2026-07-14T06:00", posts, offline = at(zurich, "2026-07-15T05:59")..at(zurich, "2026-07-15T07:00"))
+        phone.check(at(zurich, "2026-07-15T07:00"))
+        assertEquals(at(zurich, "2026-07-15T06:00"), phone.records.getValue(HOME).stamp)
+        assertEquals(emptyList(), phone.sets)
+        phone.check(at(zurich, "2026-07-15T10:00"))
+        assertEquals(listOf("15 10:00 APOD 07-15"), phone.sets)
+    }
+
+    @Test
+    fun losAngelesAfterAnEveningPull() {
+        // A pull at 21:30 puts the 21:05 post on at once; the next morning nothing goes back and
+        // nothing changes at 06:00 (it's the target, on already); the next 21:05 post waits for its 06:00.
+        val posts = listOf(apod("2026-10-19"), apod("2026-10-20"), apod("2026-10-21"))
+        val phone = apodPhone(la, "2026-10-19", "2026-10-19T06:00", posts)
+        phone.check(at(la, "2026-10-19T21:30"), pull = true)
+        phone.run(at(la, "2026-10-19T22:00"), at(la, "2026-10-21T07:00"), pages = listOf(at(la, "2026-10-20T21:30")))
+        assertEquals(listOf("19 21:30 APOD 10-20", "21 06:00 APOD 10-21"), phone.sets)
+        assertTrue(phone.runs.containsAll(listOf("20 06:00", "20 06:15", "20 09:00")))
+    }
+
+    @Test
+    fun tehranGetsTheApodOf0835AtThe0900Check() {
+        // Iran on UTC+3:30 all year: APOD at 00:05 EST is 08:35, within the window, seen at its end.
+        val tehran = ZoneId.of("Asia/Tehran")
+        val phone = apodPhone(tehran, "2026-12-01", "2026-12-01T06:00", listOf(apod("2026-12-01"), apod("2026-12-02")))
+        phone.run(at(tehran, "2026-12-02T05:00"), at(tehran, "2026-12-03T05:00"))
+        assertEquals(listOf("02 09:00 APOD 12-02"), phone.sets)
+        assertEquals(at(tehran, "2026-12-02T08:35"), apod("2026-12-02").at)
+    }
+
+    @Test
+    fun aPictureTimeOf0200OnTheEuDstNightOf2026() {
+        // 25 Oct 2026, Zurich: 02:00 happens twice, the change at the first (00:00 UTC). Today's
+        // APOD (05:05 CET) is after the window (04:00 CET): yesterday's goes on, today's the next night.
+        val posts = listOf(apod("2026-10-23"), apod("2026-10-24"), apod("2026-10-25"))
+        val phone = apodPhone(zurich, "2026-10-23", "2026-10-24T02:00", posts, pictureAt = 2)
+        phone.run(at(zurich, "2026-10-25T01:30"), at(zurich, "2026-10-26T03:00"))
+        assertEquals(listOf("25 02:00 APOD 10-24", "26 02:00 APOD 10-25"), phone.sets)
+        // The first check of the night: 02:00 CEST, 02:15 CEST, 02:15 CET, 03:15, the window's end 04:00 CET.
+        assertEquals(listOf("25 01:30", "25 02:00", "25 02:15", "25 02:15", "25 03:15", "25 04:00"), phone.runs.take(6))
+        assertEquals(Instant.parse("2026-10-25T03:00:00Z"), nextRun(at(zurich, "2026-10-25T03:15"), zurich, 0, PictureTime(2), false, Duration.ZERO, false))
+    }
+
+    @Test
+    fun aPictureTimeOf0200OnTheEuDstNightOf2027() {
+        // 28 Mar 2027, Zurich: no 02:00, the change at 03:00 CEST (01:00 UTC), the window to 06:00
+        // CEST; APOD at 06:05 CEST is after it, so 27 Mar's goes on, 28 Mar's the next night.
+        val posts = listOf(apod("2027-03-26"), apod("2027-03-27"), apod("2027-03-28"))
+        val phone = apodPhone(zurich, "2027-03-26", "2027-03-27T02:00", posts, pictureAt = 2)
+        phone.run(at(zurich, "2027-03-28T01:00"), at(zurich, "2027-03-29T03:00"))
+        assertEquals(listOf("28 03:00 APOD 03-27", "29 02:00 APOD 03-28"), phone.sets)
+        assertEquals(listOf("28 01:00", "28 03:00", "28 03:15", "28 04:15", "28 05:15", "28 06:00", "29 02:00"), phone.runs.take(7))
+    }
+
+    @Test
+    fun losAngelesOnTheUsDstDay() {
+        // 1 Nov 2026: Los Angeles and New York fall back at 02:00. The APOD of 1 Nov is out at
+        // 21:05 PDT the evening before, that of 2 Nov at 21:05 PST: each on at its 06:00.
+        val posts = listOf(apod("2026-10-30"), apod("2026-10-31"), apod("2026-11-01"), apod("2026-11-02"))
+        val phone = apodPhone(la, "2026-10-30", "2026-10-30T06:00", posts)
+        phone.run(at(la, "2026-10-31T05:00"), at(la, "2026-11-02T07:00"))
+        assertEquals(listOf("31 06:00 APOD 10-31", "01 06:00 APOD 11-01", "02 06:00 APOD 11-02"), phone.sets)
+        assertTrue(phone.runs.containsAll(listOf("01 06:00", "01 06:15", "01 07:15", "01 08:15", "01 09:00")))
+    }
+
+    @Test
+    fun sydneyOnItsDstDay() {
+        // 4 Oct 2026: Sydney springs forward at 02:00. APOD is out at 14:05 AEST on 3 Oct, at
+        // 15:05 AEDT on 4 Oct: each on the next morning at 06:00.
+        val posts = listOf(apod("2026-10-02"), apod("2026-10-03"), apod("2026-10-04"))
+        val phone = apodPhone(sydney, "2026-10-02", "2026-10-03T06:00", posts)
+        phone.run(at(sydney, "2026-10-03T07:00"), at(sydney, "2026-10-05T07:00"))
+        assertEquals(listOf("04 06:00 APOD 10-03", "05 06:00 APOD 10-04"), phone.sets)
+        assertTrue(phone.runs.containsAll(listOf("04 06:00", "04 06:15", "04 07:15", "04 08:15", "04 09:00")))
+    }
+
+    @Test
+    fun aTimeZoneChangeBetweenRuns() {
+        // On 19 Oct in Zurich, today's APOD on since 06:15; the phone then runs in New York.
+        val posts = listOf(apod("2026-10-18"), apod("2026-10-19"), apod("2026-10-20"))
+        val on = apod("2026-10-19")
+        val record = Record(APOD, pic(on), at(zurich, "2026-10-19T06:00"), notes(on))
+        val phone = Phone(newYork, both, PictureTime(), posts, mapOf(HOME to record, LOCK to record))
+        // Zurich's 06:00 isn't a change time there: New York's 06:00 is taken, nothing is set.
+        phone.check(at(newYork, "2026-10-19T18:00"))
+        assertEquals(emptyList(), phone.sets)
+        assertEquals(at(newYork, "2026-10-19T06:00"), phone.records.getValue(HOME).stamp)
+        // The next morning by New York's clock: the APOD of 00:05 at the 06:00 change.
+        phone.run(at(newYork, "2026-10-19T19:00"), at(newYork, "2026-10-21T05:00"))
+        assertEquals(listOf("20 06:00 APOD 10-20"), phone.sets)
+        // With turns: the stamp taken, nothing set until the next change time.
+        val turns = Record(APOD, pic(on), at(zurich, "2026-10-19T06:00"), notes(on, nasa("2026-10-16"), earth("2026-10-16")))
+        val weekend = Phone(newYork, mapOf(HOME to Source.entries, LOCK to Source.entries), PictureTime(6, 6), week("2026-10-16", "2026-10-19"), mapOf(HOME to turns, LOCK to turns))
+        weekend.check(at(newYork, "2026-10-19T03:00"))
+        assertEquals(emptyList(), weekend.sets)
+        assertEquals(at(newYork, "2026-10-19T00:00"), weekend.records.getValue(HOME).stamp)
     }
 
     @Test
@@ -380,7 +518,7 @@ class PictureTimeTest {
         val phone = apodPhone(zurich, "2026-07-14", "2026-07-14T06:00", listOf(apod("2026-07-14"), apod("2026-07-15"), apod("2026-07-16")))
         phone.run(at(zurich, "2026-07-15T05:00"), at(zurich, "2026-07-16T05:00"))
         assertEquals(listOf("15 06:15 APOD 07-15"), phone.sets)
-        assertEquals(listOf("15 05:00", "15 06:00", "15 06:15", "15 07:15", "15 08:15"), phone.runs)
+        assertEquals(listOf("15 05:00", "15 06:00", "15 06:15", "15 07:15", "15 08:15", "15 09:00"), phone.runs)
     }
 
     @Test
@@ -542,6 +680,7 @@ class PictureTimeTest {
         val phone = Phone(zurich, mapOf(HOME to Source.entries, LOCK to Source.entries), PictureTime(0, 3), posts, mapOf(HOME to record, LOCK to record))
         phone.run(at(zurich, "2026-10-25T01:50"), at(zurich, "2026-10-25T04:00"))
         assertEquals(emptyList(), phone.sets)
-        assertEquals(listOf("25 01:50", "25 02:15", "25 02:15", "25 03:00", "25 03:15"), phone.runs)
+        // 02:00 CET (01:00 UTC) is the window's end, three real hours after 00:00 CEST.
+        assertEquals(listOf("25 01:50", "25 02:15", "25 02:00", "25 02:15", "25 03:00", "25 03:15"), phone.runs)
     }
 }

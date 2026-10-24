@@ -292,13 +292,15 @@ class Store(private val context: Context) {
     /**
      * The daily switch, at once (not part of [Setup]): writes [daily] (the caller cancels the
      * jobs and the alarms, or arms them) and forgets the job's failed runs, both ways (off is off;
-     * on starts afresh). Turning it on, the caller then runs [startAfresh] and [update] with `set`.
+     * on starts afresh). Turning it on, the caller then runs [startAfresh] and [update] with `set`,
+     * which counts as the last run's start (`lastRunAt`, B16): the checks before it aren't owed.
      */
     fun switchDaily(on: Boolean) {
         prefs.edit(commit = true) {
             putBoolean("daily", on)
             remove("failedRuns")
             remove("failedAt")
+            if (on) putLong("lastRunAt", System.currentTimeMillis()) else remove("lastRunAt")
         }
     }
 
@@ -366,6 +368,12 @@ class Store(private val context: Context) {
         }
 
     /**
+     * The job's run starts ([DailyJob]): notes when (`lastRunAt`), so a check that passes after it
+     * and before the next run is armed at once ([nextAlarm], B16), not dropped by a re-arming.
+     */
+    fun runStarts() = prefs.edit(commit = true) { putLong("lastRunAt", System.currentTimeMillis()) }
+
+    /**
      * The job's run ended ([DailyJob]): a good one forgets the failed runs; a failed or stopped one
      * counts them (`failedRuns`) and notes its end (`failedAt`), so the alarms retry 15 min later,
      * then hourly ([nextAlarm]), also when armed again before the retry (a Set, a page open).
@@ -384,14 +392,14 @@ class Store(private val context: Context) {
      * When the alarms should start the next run ([nextAlarm]): the change times of the stored
      * setup, with their checks (15 min after a change time, then hourly in its window, hourly
      * while a screen waits) and this device's [offset], or a failed run's retry when that comes
-     * first. Not under the wallpaper lock: the page's `onResume` and the alarms' receiver call it
+     * first; at once when a check passed since the last run's start (`lastRunAt`, B16). Not under the wallpaper lock: the page's `onResume` and the alarms' receiver call it
      * on the main thread, and a set holds that lock for seconds.
      */
     fun nextAlarm(): Instant {
         val now = Instant.now()
         val zone = ZoneId.systemDefault()
         val time = pictureTime()
-        return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), instant("failedAt"), time, hasTurns, offset, waiting(columns, records(), time, zone, now))
+        return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), instant("failedAt"), time, hasTurns, offset, waiting(columns, records(), time, zone, now), instant("lastRunAt"))
     }
 
     /**

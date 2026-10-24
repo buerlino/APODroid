@@ -34,7 +34,8 @@ packages unattended): `night.md`.
   `core/.../PictureTime.kt` (0.6.0, J1): `PictureTime(pictureAt, everyHours)` with `hours`,
   `last`, `next`, `isChangeTime` (the change times in a zone, on the clock's hours through DST),
   `pictureWindow` (3 h), `firstCheck` (15 min), `nextRun(now, zone, failures, time, turns,
-  offset, waiting)` (when the alarms should run next), `nextAlarm(now, zone, failures, failedAt, …)`
+  offset, waiting, lastRun)` (when the alarms should run next; at `now` for a check passed since
+  `lastRun`, B16), `nextAlarm(now, zone, failures, failedAt, …, lastRun)`
   (J2: the same, armed at any time, keeping a failed run's retry), `randomOffset` and `maxOffset`
   (tests in `PictureTimeTest`, also whole days in Zurich, Helsinki, Los Angeles, Sydney, Tehran,
   New York and UTC with a run at each `nextRun`, offline spells and pulls, B15).
@@ -64,8 +65,9 @@ packages unattended): `night.md`.
   `list` (the list's columns in both modes; before the first save APOD on "Where"'s screens,
   `hasList`), `columns` (the mode's), `hasTurns`, `pictureAt` (J2, pref `pictureAt`, default
   `DEFAULT_PICTURE_AT` 6), `pictureTime()`, `offset` (pref `offset`, seconds, drawn once),
-  `nextAlarm()` (when the alarms go: `:core`'s `nextAlarm` with `failedRuns`/`failedAt`, not
-  under a lock) and `ranJob(failed)` (a job run's end: counts or clears the failures),
+  `nextAlarm()` (when the alarms go: `:core`'s `nextAlarm` with `failedRuns`/`failedAt` and
+  `lastRunAt`, not under a lock), `runStarts()` (a job run's start: `lastRunAt`, B16) and
+  `ranJob(failed)` (a job run's end: counts or clears the failures),
   `setup` (the stored `Setup`: mode, "Where", list, interval, video days, `parts`, ⛶'s
   `Part` per source with its `whole`, `pictureAt`) and
   `saveSetup(setup, pick)` (S4, Set: one commit with the settings, `putColumns`, the parts and
@@ -89,7 +91,7 @@ packages unattended): `night.md`.
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
   all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, `setsSinceSetup()`, then the alarms and the fallback armed (`scheduleJob`) or cancelled by the stored `daily`; `draft()` with the draft's `pictureAt` (J3); `ModeSwitch` at Setup's top, `PictureAtChoice` and `hourLabel` (J3));
   `zone` and `hours24` (the status line's and the problem box's times) from `readClock`, on resume and by `clockChanged` while resumed, B13; `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post, not while a load, a Set or the switch-on runs, once more when called during one (`followAgain`, B14); `saveFallback` copies a pick in `runs` (B14); `dropVideoDays()` and two `LaunchedEffect`s in `Settings()` put a hidden draft value back (B14).
-  `app/.../DailyJob.kt` (J2): the run (`onStartJob`: `update`, then `saveInUse` unless stopped; `jobFinished(…, false)` and `onStopJob` false, no Android retry; `ended` notes `ranJob` and calls `ensure`, unless an off came since, `stoppedBySystem` counts as failed), two jobs: id 1 the 6 h fallback (`periodic`), id 2 the alarms' one-off (`runNow`, not while pending or a run goes); `ensure` arms the pair of alarms (`arm`: `setWindow` with request code 1, `setAndAllowWhileIdle` with 2, for `Store.nextAlarm()`) and schedules the fallback when missing or with another timing, not while a run goes; `cancel` (off) drops the generation and cancels both jobs and both alarms. `app/.../AlarmReceiver.kt` (J2, not exported): `ACTION_RUN` → `runNow`; `BOOT_COMPLETED`, `TIMEZONE_CHANGED`, `TIME_SET`, `MY_PACKAGE_REPLACED` → `ensure` while `daily`. The run count and the generation are `core/.../JobRuns.kt` (`JobRuns`: `started()`, `finished(generation)`, `going`, `drop()`; `JobRunsTest`).
+  `app/.../DailyJob.kt` (J2): the run (`onStartJob`: ends at once while a run goes, B16; `started` notes `runStarts` and arms the alarms 15 min ahead; `update`, then `saveInUse` unless stopped; `jobFinished(…, false)` and `onStopJob` false, no Android retry; the interrupt flag cleared, then `ended` notes `ranJob` and calls `ensure`, unless an off came since, `stoppedBySystem` (reset at each start) counts as failed), two jobs: id 1 the 6 h fallback (`periodic`), id 2 the alarms' one-off (`runNow`, not while a run goes or while this process's own is pending, `runScheduled`; a stale pending one is replaced, B16); `ensure` arms the pair of alarms (`arm`: `setWindow` with request code 1, `setAndAllowWhileIdle` with 2, for `Store.nextAlarm()`) and schedules the fallback when missing or with another timing, not while a run goes; `cancel` (off) drops the generation and cancels both jobs and both alarms. `app/.../AlarmReceiver.kt` (J2, not exported): `ACTION_RUN` → `runNow`; `BOOT_COMPLETED`, `TIMEZONE_CHANGED`, `TIME_SET`, `MY_PACKAGE_REPLACED` → `ensure` while `daily`. The run count and the generation are `core/.../JobRuns.kt` (`JobRuns`: `start()`, null while a run goes, `counts(generation)`, `finished(generation)`, `going`, `drop()`; `JobRunsTest`).
 
 ## Working on the phone
 

@@ -275,7 +275,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   closed: a summary of the **stored** setup under it, "APOD on both screens" in APOD mode (or "home screen", "lock screen", as the stored "Where" says), else
   "NASA on home screen, Earth on both screens", then, while the daily switch is on, " · every
   6 h from 06:00" while a screen takes turns, else " · at 06:00" (12/24 h as the system says;
-  J3, 2026-10-24 night, placeholders; was " · turns every 6 h"; " · Fill" or " · Fit" went with Size in A3): at its
+  J3, 2026-10-23 night, approved by the user 2026-10-24 from the tablet's screenshots, with
+  its night default: turns on one screen show only " · every 6 h from 06:00"; was " · turns every 6 h"; " · Fill" or " · Fit" went with Size in A3): at its
   top the switch **More NASA pictures** (J3: Setup is the draft, Advanced acts at once), then
   in APOD mode **Where**, with the switch on **Pictures from** (the list); while the daily
   switch is on **New picture at** (J3), then, while a column takes turns, "Change every", and
@@ -285,7 +286,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   and Advanced's survive a rotation (the saved state). **Set as wallpaper**, always, after
   Setup. **Advanced settings ▸/▾**, closed by default, only while the daily switch is on (J3:
   empty otherwise): "Save every picture" (F5) with "Largest original" under it while on (F6).
-  - **New picture at** (J3, 2026-10-24 night; the label and the times placeholders): a
+  - **New picture at** (J3, 2026-10-23 night; the label and the times approved by the user,
+    2026-10-24): a
     dropdown as "Largest original", the button "06:00 ▾" (12/24 h as the system says, B13's
     `hours24`: "6:00 AM ▾"), a menu of 00:00 … 23:00 with ✓ before the chosen one, screen
     readers "New picture at: 06:00". The pref `pictureAt` (Background update, Turns and the
@@ -408,7 +410,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     not fixed), APOD mode's only (the list has its columns). Default: both. Its segments, like "Change every"'s, share one
     height when a label wraps (WP8, 2026-10-18: in the FP6's landscape pane only "Home screen"
     wrapped and its segment stood taller).
-  - **Size** [Fill | Fit]: **gone** (A3, 2026-10-24 night, with the pref `fit`, never released and
+  - **Size** [Fill | Fit]: **gone** (A3, 2026-10-23 night, with the pref `fit`, never released and
     ignored on test devices; the plan had the row go in A4, but without the pref it set nothing;
     the summary's " · Fill"/" · Fit" went with it). Its place: ⛶ mode's "Whole picture" (A4).
     Was: (always Fill, a whole picture per post from ⛶ mode; Size
@@ -451,7 +453,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
   picture). With the switch on (M4; also with turns) it says what takes APOD's place ("This
   APOD is a video, so your own picture takes its place.", "… so NASA's Image of the Day takes
   its place." or "… takes its place once it has loaded.", "… so it's skipped." with "Skip it";
-  approved by the user, 2026-10-20), and with APOD ticked nowhere only "This APOD is a video.". "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
+  approved by the user, 2026-10-20), and with APOD ticked nowhere only "This APOD is a video.".
+  APOD mode says the same "… takes its place" (user, 2026-10-24; B15; was 0.5.0's "… is the
+  wallpaper" and "… becomes the wallpaper once it has loaded", untrue for hours since the
+  wallpaper changes at the next check or change time, e.g. all evening after a 21:05 video in
+  Los Angeles). "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
   (`videoNoticeHidden`, no confirmation). The second help text besides the pause hint (the problem box is a status, not help). `refresh()` stores the
   entry without a picture and deletes the previous `apod.jpg`; `isCurrent` doesn't need one.
 - **Fetch** in `:core`: newest post → `Post(source, date, title, imageUrl, pageUrl, isVideo,
@@ -602,7 +608,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   bitmap of the screen's portrait size (about 11 MB on the FP6) and set with `setBitmap`, the
   hint all of it. `info.size` and `setTargetSize` are the upright size on Android 10 and later
   (AOSP's `ImageDecoder.cpp`; an EXIF-turned "my picture" with Fit is checked in V1).
-  **The whole picture** (A3, 2026-10-24 night; F1's Fit setting gone): per post, beside ⛶'s
+  **The whole picture** (A3, 2026-10-23 night; F1's Fit setting gone): per post, beside ⛶'s
   part (`<source>.whole`, keyed by the part's `cropDate`/`cropUrl`, so a new post drops it;
   `Part.whole`, part of the draft until Set; its toggle is ⛶ mode's "Whole picture", A4). Each set of a
   source's post with it: drawn as Fit above (`setBitmap`, the hint all of it) on black when
@@ -633,7 +639,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   Advanced's state and the shown source survive (user, 2026-10-22: left as is; V9, V10). Set stores it (a Set while crop mode is open keeps the dragged part, as ✓
   would). The position (0–1) is per source for that post only (date and picture URL), so each new
   picture starts centred (a new post drops a draft part); the job uses only the stored one. The user's own picture (video days) is always centred.
-  **Whole picture** (A4, 2026-10-24 night; texts placeholders): in ⛶ mode a toggle at the
+  **Whole picture** (A4, 2026-10-23 night; texts approved by the user, 2026-10-24): in ⛶ mode a toggle at the
   picture's top left (where the chip is otherwise; the chip's dark pill), "Whole picture", "✓ Whole
   picture" while on. While on, the frame hides (no dimming, no drag) and the page shows the
   picture as it is (no preview of the background: that comes with Live, 0.7.0). ✓ keeps it with
@@ -874,7 +880,8 @@ true) and "pause/manage app if unused" off (API 31+). Each line is the path in A
 2026-10-04: "Unrestricted" alone didn't say where): on API 35+ the battery line says to tap
 "Allow background usage" and turn it on first (Unrestricted is greyed out until then), on 33–34
 it doesn't (no such row there, not checked on a phone); either ends with " (on Optimized, a new
-picture can come hours late)" (J3, placeholder; Next features, 0.6.0: the picture time). With "App info"
+picture can come hours late)" (J3; approved by the user, 2026-10-24, in brackets on the battery
+line as the night left it; Next features, 0.6.0: the picture time). With "App info"
 (`ACTION_APPLICATION_DETAILS_SETTINGS`) and "Don't show again". The latter asks first in a dialog
 saying what will happen ("the user has all power"); the pref `pauseHintHidden` keeps it hidden
 for good, also when the switch is turned on again (user: it's the user's choice; only clearing
@@ -924,8 +931,20 @@ decided by the clock, not by what's on the screen):
   clock's hours through a DST change). 0.6.0's Set clock (`turnStartedAt`) goes. A few random
   minutes after the time (0–10, fixed per phone), so a zone's phones don't all ask at once (it
   replaces the job's spread from each device's own enable time, Traffic).
-- **Checks:** at the change time, 15 min after it, then hourly until the 3 hours are over
-  (06:00, 06:15, 07:15, 08:15: they catch the :05 posts of every whole-hour time zone), and
+- **The window is measured by the post's publish time, not by when a check sees it** (user,
+  2026-10-24, from a review of J1 on `dev`; B15): J1 counted "came out within 3 hours" as "seen
+  by a check within 3 hours", so a post first seen after 09:00 (an Optimized phone in Doze, a
+  503 until then, a slow download) never went on that day, and with one source a failed check
+  moved the stamp so a later one set nothing. With the publish time (APOD's and Earth's `date`
+  with its time, US Eastern; NASA's `pubDate`) a screen with one source shows, from each change
+  time T, the newest picture published before T + 3 h, whenever the app sees it: no history.
+  With several sources rule 2's replacement is decided the same way.
+- **Los Angeles with turns, accepted** (user, 2026-10-24): an evening Set or pull there puts the
+  new 21:05 APOD on; on a weekend the next morning then has nothing new, so the screen waits and
+  changes the next evening (rule 3 as written), back on the change times within a day or two.
+- **Checks:** at the change time, 15 min after it, then hourly, and at the window's end (06:00,
+  06:15, 07:15, 08:15, 09:00: the last for half-hour zones such as Tehran, APOD at 08:35; B15),
+  and
   hourly while a screen with several sources waits (rule 3). No model of each source's posting
   time (user, 2026-10-23). A failed or stopped run is retried the same way, 15 min later, then
   hourly, by the alarms, not by Android's backoff (user, 2026-10-23 night: in Doze a backoff
@@ -1001,7 +1020,7 @@ library (ML Kit needs Play Services; Tesseract is large). Decided:
   of a box blur on a small copy, no blocky upscale) and darkened. Why not always blurred: the
   enlarged copy of a bright planet becomes a large glow behind it, not black. Built in
   `:core` (A1, the night of 2026-10-23/24; `Background.kt`, `BackgroundTest`; the thresholds
-  are the night's defaults, for the user to approve): `edgesBlack` on a grey copy about 200 px
+  approved by the user, 2026-10-24, from A3's real sets on the tablet): `edgesBlack` on a grey copy about 200 px
   wide, true when at least 97% of the outer strip (3% of each side, rounded up, at least 1 px)
   has a grey value up to 40 of 255; `blurBackground` on the picture's middle in the screen's
   shape, decoded at `blurSize` (a quarter of the screen's width and height, 1/16 of its

@@ -266,6 +266,8 @@ Advanced settings ▸                                closed by default
 | A1 | `:core`: the background, black or blurred | Opus, medium |
 | A3 | `Store`: the whole picture per post, on black or blurred | Opus, medium |
 | A4 | ⛶'s Whole picture toggle; Size goes | Opus, medium |
+| B15 | The window by publish time, the 09:00 check, the stand-in shown twice, the video notice | Opus, high |
+| B16 | The job: a passed check kept on re-arming, one run at a time, a stale pending run | Opus, high |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
@@ -294,6 +296,7 @@ scripts/night.sh --until <HH:MM>    # after the user's look at S5: B2, B4–B6, 
 scripts/night.sh --until <HH:MM>    # B10, B7, B8, B9, then the regression: the queue in night.md
 scripts/pipeline.sh B12; scripts/pipeline.sh B11    # by day, 2026-10-22
 scripts/night.sh --until <HH:MM>    # J1, A1, J2, A3, A4, J3, then the regression (2026-10-23)
+scripts/night.sh --until <HH:MM>    # B15, B16, then the regression (2026-10-24)
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -470,6 +473,16 @@ reading; their build check passed, 108 tests with `private/`):
    its real night to Tue 27 (P, the picture time on the FP6), the rest of P with the user.
    Then R and T. The real 06:05 case (APOD after the picture time) happens only from 2 Nov
    (the US switches on 1 Nov): J2's faked clock is enough (user, 2026-10-23 night).
+4f. **The night of 2026-10-23** (user, 2026-10-24 morning, after the report
+   `.coord/reports/2026-10-23-night.md` and two reviews of `dev` by reading, J1's with scratch
+   tests): J1, A1, J2, A3, A4 and J3 merged with tablet PASS, regression 7 PASS; master
+   fast-forwarded to `dev` 84404ed. Approved: A1's thresholds (from A3's real sets), A4's and
+   J3's texts and J3's two night defaults, the traffic (4–8 checks a day, hourly retries),
+   B14's toast default. Decided: the window by publish time with a check at its end, Los
+   Angeles with turns accepted, the APOD-mode video notice "… takes its place" (`CLAUDE.md`).
+   To fix: **B15** (`:core` and `Store`: the window, the stand-in, the notice) and **B16** (the
+   job: the reviews' findings 1–4). **Tonight (Sat 24):** B15 → B16, then the regression.
+   **Sun 25 to Mon 26:** V7 (by hand), also looking at `BOOT_COMPLETED`. **Mon 26 evening:** P.
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then R and T.
 Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
@@ -1496,7 +1509,9 @@ least 6 hours apart, the tablet left alone between them. Real timing, so no `tur
   **On battery** (user, 2026-10-22: a phone is mostly not on power; the plan had it charging):
   the user unplugs it after the session (Wi-Fi on, the screen locked, the app in the background,
   Home). End with
-  what session 2 should expect (each boundary's set or keep, with its time, as above).
+  what session 2 should expect (each boundary's set or keep, with its time, as above). Also note any
+  `BOOT_COMPLETED` in `logcat -s APODroid` without a reboot (J2's tablet check saw one after
+  `am kill`; B16 thinks it's Android 15 ending the app's stopped state: say what came before it).
 - **Session 2 (read-out, about 20 min; "Do V7's second session"):** read `start.md`, then
   `dumpsys jobscheduler` (`Last successful run`, the next window), `logcat -d -s APODroid` (it
   may have rolled over: the prefs are the evidence), `dumpsys wallpaper`, the prefs, the
@@ -1692,6 +1707,107 @@ decisions:
   at once. Only a report: whether Android keeps a periodic job's timing when the same id is
   scheduled again. No doc change from it before P repeats it on the FP6.
 
+### [ ] B15. The window by publish time, the 09:00 check, the stand-in shown twice, the video notice (Opus, high)
+
+From a review of J1 on `dev` by reading and scratch tests (2026-10-24); the user's decisions are
+in `CLAUDE.md` (Next features, 0.6.0: the picture time: the window by publish time; the video
+notice under Video days on the page).
+
+- **The publish time:** `Post` gets `published: Instant?`.
+  - APOD and Earth: the WordPress `date` with its time (US Eastern local time, e.g.
+    `2026-10-23T00:05:00`). NASA: the feed's `pubDate` (GMT).
+  - Tests in `ApodTest` and `SourcesTest`, `readsEveryRealPost` included.
+  - `Store` writes `<source>.published` with the post. A post stored before B15 has none and
+    counts as published at its date's 00:00 US Eastern (no migration).
+- **One source (review finding 2):** from each change time T (the last one ≤ now), the target
+  is the newest stored picture published before T + 3 h. It's set whenever a run sees it and
+  it's newer (by publish time) than what's on; a screen never goes back to an older picture.
+  The decision is a function of the clock and the posts: a failed or offline check moves
+  nothing.
+- **A pull and Set:** they still put the newest on at once (also one published after T + 3 h).
+  The next change time's target then decides, and it never goes back.
+- **Several sources (finding 1):** rule 2's replacement takes a newer picture of the source on
+  the screen when it was published before T + 3 h, whenever it's seen. So a failed set retried
+  after 09:00 (finding 6) still happens. Rules 1 and 3 ("hasn't shown", waiting) as built.
+- **The stand-in (finding 3):** APOD's turn with a stand-in counts as new only while the
+  stand-in's picture hasn't been shown on that screen. Otherwise the turn passes on, as with
+  "Skip it".
+- **The window's end (finding 5):** `nextRun` also checks at T + 3 h (09:00), for half-hour
+  zones (Tehran, APOD at 08:35).
+- **The video notice in APOD mode** (`MainActivity.VideoNotice`): "… is the wallpaper." →
+  "… takes its place."; "… becomes the wallpaper once it has loaded." → "… takes its place once
+  it has loaded."; "your own picture is the wallpaper." → "your own picture takes its place."
+- **Tests** (`PictureTimeTest`, `ScreensTest`):
+  - Zurich, today's APOD first seen at 09:01: set.
+  - Zurich, every check failing 06:00–09:00, then online at 10:00: set.
+  - Zurich, a page opened offline at 07:00, then a run at 10:00: set.
+  - Los Angeles, a pull at 21:30, then the next morning: no change back, and nothing at 06:00
+    since the 21:05 picture is on.
+  - A stored post without a publish time.
+  - Tehran, 08:35: set at the 09:00 check.
+  - The stand-in already shown on that screen.
+  - A failed set retried after 09:00.
+  - The review's uncovered cases:
+    - picture time 02:00 on 25 Oct 2026 and on 28 Mar 2027, through `dueWallpapers` and
+      `nextRun`;
+    - US 1 Nov and Sydney 4 Oct, through the rules;
+    - equal columns with the lock screen's set failing inside the window and retried after it;
+    - a time zone change between runs.
+- **Files:** `Post.kt` and its tests, `Screens.kt`, `PictureTime.kt`, `Store.kt`,
+  `MainActivity.kt` (the texts only), `ScreensTest.kt`, `PictureTimeTest.kt`, `CLAUDE.md`
+  (Turns and the picture time; Fetch: `published`).
+- **Tablet** (rosie, `auto_time` off and back on as J2's check):
+  - yesterday's APOD on, today's stored with a publish time of 06:05 (faked prefs), the clock
+    faked to 09:30: set at the next check;
+  - the same with the publish time 09:05: not set until the next day's change time;
+  - the APOD-mode notice on a faked video day with "Use my picture" and with NASA;
+  - the smoke list.
+- **Done when:** the tests pass, the tablet passes.
+
+### [ ] B16. The job: a passed check kept on re-arming, one run at a time, a stale pending run (Opus, high)
+
+After B15 (both change `PictureTime.kt` and `Store.kt`). From a review of J2 on `dev` by reading
+(2026-10-24).
+
+- **A passed check kept (finding 1):** `nextRun`/`nextAlarm` drop check times before `now`, and
+  every re-arm replaces the pair armed before. So a page open, a Set or a `TIME_SET` (network
+  time) between 06:07 (the armed check) and its alarm's delivery (up to 06:17) re-armed for
+  06:22, and the 06:07 check never ran. The same happened at a run's end when the run did its
+  update before the check time.
+  - Fix: store each run's start (`lastRunAt`). A check time after it that has passed is armed at
+    `now`, instead of being dropped.
+  - Tests in `PictureTimeTest`.
+- **One run at a time (finding 2):** the periodic job (id 1) could start while the alarm's run
+  (id 2) went. Both share the one `DailyJob` instance's `worker` and `stoppedBySystem`, so one
+  `onStopJob` interrupted the other's thread, and both runs counted as failed.
+  - Fix: a job of either id that starts while a run goes ends at once (`return false` from
+    `onStartJob`). The going run's end re-arms, and finding 1's rule covers what it missed.
+  - `stoppedBySystem` is reset at each start.
+- **A stale pending run (finding 3):** after the process dies during a run, Android may
+  reschedule id 2 with its own backoff. While that is pending, `runNow` did nothing and no alarm
+  was armed (in Doze: until a maintenance window).
+  - Fix: `runNow` schedules id 2 unless a run goes in this process; a pending one is replaced
+    (harmless while it isn't running).
+  - Each run arms the alarms 15 min ahead at its start, so a run that never reaches its end (a
+    frozen or killed process) is retried by them. Its end re-arms as now.
+- **The interrupt flag (finding 4):** `Store.update` leaves the thread interrupted after a stop,
+  so `ranJob`'s `commit()` skipped the prefs listeners. Fix: clear it (`Thread.interrupted()`)
+  before `ranJob`.
+- **`BOOT_COMPLETED` after `am kill`** (rosie, J2): likely Android 15+ delivering it when an
+  app leaves the stopped state (a force stop, `pm clear`, an install). Harmless: it only
+  re-arms. Note it in `CLAUDE.md` as seen; no code.
+- **Files:** `PictureTime.kt`, `Store.kt`, `DailyJob.kt`, `JobRuns.kt` if needed, their tests,
+  `CLAUDE.md` (Background update), the skill.
+- **Tablet** (rosie, `auto_time` off and back on):
+  - alarms armed for a check a few minutes ahead (faked clock); a page open after that time but
+    before the alarm fired: `dumpsys alarm` shows the pair at once, the run comes;
+  - `cmd jobscheduler run -f io.github.buerlino.apodroid 1` while an alarm's run goes: logcat
+    shows id 1 ending at once, no interrupted download;
+  - `run-as … kill -9` during a run: the alarms bring a run within about 15 min (`dumpsys
+    alarm`, logcat);
+  - the smoke list.
+- **Done when:** the tests pass, the tablet passes.
+
 ### [x] J0. Android check: which timed run lands with the screen off, on battery (Opus, medium)
 
 **Result (the night of 2026-10-22/23, rosie, tablet on battery 22:37–06:54, 80% → 79%; deep
@@ -1761,7 +1877,7 @@ periodic job runs at its window's end, which wakes it. Measure it, don't guess.
 - **Done when:** both sessions ran, the table and the recommendation written, the tablet set
   back, the probes uninstalled.
 
-### [ ] J1. `:core`: the picture time and the three rules (Opus, high)
+### [x] J1. `:core`: the picture time and the three rules (Opus, high)
 
 Pure Kotlin, tested with JUnit (`PictureTimeTest` new, `ScreensTest`, `TurnTest`), no Android.
 The rules are `CLAUDE.md`'s (Next features, 0.6.0: the picture time; user, 2026-10-23 night,
@@ -1825,7 +1941,7 @@ the simplification): one time, one clock, three rules.
   or a record's stamp instead).
 - **Done when:** the tests pass, the rules in `CLAUDE.md`.
 
-### [ ] J2. `Store` and `DailyJob`: alarms at the change times, the job simplified (Opus, high)
+### [x] J2. `Store` and `DailyJob`: alarms at the change times, the job simplified (Opus, high)
 
 After J1.
 - **The mechanism (J0):** at each next run T (J1's `nextRun`), two alarms:
@@ -1912,7 +2028,7 @@ After J1.
   - Then the smoke list.
 - **Done when:** the checks pass, the tablet passes.
 
-### [ ] J3. Settings: New picture at, "More NASA pictures" into Setup, the pause hint (Opus, medium)
+### [x] J3. Settings: New picture at, "More NASA pictures" into Setup, the pause hint (Opus, medium)
 
 After J2, and last of the night (after A4: both change the settings in `MainActivity.kt`).
 Placeholders until the user approves them on the tablet.
@@ -1935,7 +2051,7 @@ Placeholders until the user approves them on the tablet.
   Screenshots for the user.
 - **Done when:** built, the tablet passes, the texts listed for the user.
 
-### [ ] A1. `:core`: the background, black or blurred (Opus, medium)
+### [x] A1. `:core`: the background, black or blurred (Opus, medium)
 
 (`CLAUDE.md`, Next features, 0.6.0: the picture.) Plain Kotlin, tested with JUnit.
 - The whole picture: `fitFrame` (F1) as it is.
@@ -1959,7 +2075,7 @@ Placeholders until the user approves them on the tablet.
 Done: 253 real APODs × six versions, 148 clear picks; the result and the rules tested in
 `CLAUDE.md` (Next features, 0.6.0: the picture). It decided always Fill; nothing to build.
 
-### [ ] A3. `Store`: the whole picture per post, on black or blurred (Opus, medium)
+### [x] A3. `Store`: the whole picture per post, on black or blurred (Opus, medium)
 
 After A1 (user, 2026-10-23 night: independent of J2, so the picture work lands even if J2 needs
 another night; it builds on `dev` as it is, and whichever of J2 and A3 comes second rebases on
@@ -1979,7 +2095,7 @@ the other's `Store`).
   screenshots.
 - **Done when:** the tablet passes; `CLAUDE.md`, Wallpaper.
 
-### [ ] A4. ⛶'s Whole picture toggle; Size goes (Opus, medium)
+### [x] A4. ⛶'s Whole picture toggle; Size goes (Opus, medium)
 
 After A3 (user, 2026-10-23 night; J3 comes after it).
 - ⛶ mode gets a "Whole picture" toggle (placeholder) for the shown post. While it's on, the

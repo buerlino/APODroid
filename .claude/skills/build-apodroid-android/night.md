@@ -146,6 +146,12 @@ its tablet check turns `auto_time` off for its faked clock and back on at the en
 texts are placeholders the user approves from the screenshots in the morning. The night is tight: J3 and the
 regression may slip to Saturday. V7 follows on the night of 25 Oct, by hand.
 
+The next night (user, 2026-10-24; the plan, Remaining 4f): every row above is merged. **B15, B16**, from two reviews of
+`dev` by reading (the window by publish time, the stand-in, the video notice; the job's re-arming, one run at a time,
+a stale pending run), then the regression. B16 waits for B15 (both change `PictureTime.kt` and `Store.kt`). Both
+tablet checks fake the clock with `auto_time` off and back on at the end (the plan, J2). V7 follows on the night of
+25 Oct, by hand.
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -191,6 +197,8 @@ regression may slip to Saturday. V7 follows on the night of 25 Oct, by hand.
 | 41 | A3 | `Store`: the whole picture per post, on black or blurred | winston | opus, medium | yes | A1 | plan A3 |
 | 42 | A4 | ⛶'s Whole picture toggle; Size goes | winston | opus, medium | yes | A3 | plan A4 |
 | 43 | J3 | Settings: New picture at, "More NASA pictures" into Setup, the pause hint | winston | opus, medium | yes | J2 | plan J3 |
+| 44 | B15 | The window by publish time, the 09:00 check, the stand-in shown twice, the video notice | winston | opus, high | yes | — | plan B15 |
+| 45 | B16 | The job: a passed check kept on re-arming, one run at a time, a stale pending run | winston | opus, high | yes | B15 | plan B16 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

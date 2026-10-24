@@ -775,7 +775,11 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   open; a retry whose time passed without a run, after a boot or the process dying, comes at
   once). A run that waits for the network (id 2 pending) arms nothing until it runs. Each run's
   start arms the alarms 15 min ahead (B16), so a run that never reaches its end (a frozen or
-  killed process) is retried by them; its end arms them again as above. An arming during a run
+  killed process) is retried by them; its end arms them again as above. Unless something arms
+  first after the process died (an update's `MY_PACKAGE_REPLACED`, a boot, a page open): no run
+  goes then and the dead run left no `failedRuns`, so the arming takes the clock's next check
+  and the retry is gone (V11a, 2026-10-25, `install -r` during a run: not counted failed,
+  re-armed by the clock; Android re-ran job 1 at once itself; open question). An arming during a run
   (a page open, a Set, the daily switch on, `TIME_SET`/`TIMEZONE_CHANGED`) keeps that retry:
   the earlier of the clock's next check and `lastRunAt` + 15 min, at the earliest now (B16f1,
   2026-10-24: it armed the next change time, so a run killed mid-run, e.g. swiped from Recents,

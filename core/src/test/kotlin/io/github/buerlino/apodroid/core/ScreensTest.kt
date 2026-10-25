@@ -46,7 +46,8 @@ class ScreensTest {
         standIn: StandIn = StandIn.SKIP,
         own: Boolean = true,
         files: Set<Source> = posts.keys,
-    ) = Stored(posts, files, own, standIn)
+        gaps: Set<Source> = emptySet(),
+    ) = Stored(posts, files, own, standIn, gaps)
 
     private fun pic(source: Source, date: LocalDate = d1) = post(source, date).picture()
 
@@ -156,6 +157,119 @@ class ScreensTest {
         assertEquals(listOf(pic(APOD, d2) to setOf(HOME)), due(home, records, late, now = t0 + day).sets)
         // A pull puts it on at once, whenever it was published.
         assertEquals(listOf(pic(APOD, d2) to setOf(HOME)), due(home, records, late, now = t0 + h3 + h1, pull = true).sets)
+    }
+
+    // B21: one source after a day offline
+
+    /** At 21:05 the evening before its date, as Los Angeles sees APOD (here in UTC, change times at 06:00). */
+    private fun evening(source: Source, date: LocalDate) = post(source, date, published = date.minusDays(1).atTime(21, 5).toInstant(zone))
+
+    @Test
+    fun afterADayOfflineTheNewestGoesOnWhenARunSeesIt() {
+        // CR2's finding 3: APOD alone; D−1's post (out at 21:05 on D−2) went on at 06:00 on D−1,
+        // then the phone was offline from 20:00 on D−1 to 22:00 on D. The 22:00 fetch stores
+        // D+1's post (out at 21:05 on D, after D's window); D's is gone (only the newest is stored).
+        val dm1 = d1
+        val d = d2
+        val records = mapOf(HOME to Record(APOD, evening(APOD, dm1).picture(), t0, shown(evening(APOD, dm1).picture())))
+        val home = apodColumns(setOf(HOME))
+        val lastCheck = t0 + Duration.ofHours(14) // 20:00 on D−1
+        val now = d.atTime(22, 0).toInstant(zone)
+        val newest = evening(APOD, d.plusDays(1))
+        assertTrue(afterGap(lastCheck, now))
+        val marked = stored(posts + (APOD to newest), gaps = setOf(APOD))
+        val plan = due(home, records, marked, now = now)
+        assertEquals(listOf(newest.picture() to setOf(HOME)), plan.sets)
+        // The change time kept (D's 06:00).
+        assertEquals(t0 + day, plan.screens.getValue(HOME).record.stamp)
+        // Once on, it isn't set again.
+        assertEquals(emptyList(), due(home, apply(records, plan), marked, now = now + h1).sets)
+        // A failed set (the record stays): the next run still sets it.
+        assertEquals(listOf(newest.picture() to setOf(HOME)), due(home, records, marked, now = now + h1).sets)
+        // Never back: a marked post older than the one on the screen isn't set.
+        val ahead = mapOf(HOME to Record(APOD, evening(APOD, d.plusDays(2)).picture(), t0 + day))
+        assertEquals(emptyList(), due(home, ahead, marked, now = now).sets)
+    }
+
+    @Test
+    fun theNormalEveningStaysUnset() {
+        // The same evening online: checked at 20:00 on D, D+1's post stored at 21:15, not marked.
+        val d = d2
+        val records = mapOf(HOME to Record(APOD, evening(APOD, d).picture(), t0 + day, shown(evening(APOD, d).picture())))
+        val home = apodColumns(setOf(HOME))
+        val now = d.atTime(21, 15).toInstant(zone)
+        assertFalse(afterGap(d.atTime(20, 0).toInstant(zone), now))
+        val newest = stored(posts + (APOD to evening(APOD, d.plusDays(1))))
+        assertEquals(emptyList(), due(home, records, newest, now = now).sets)
+        assertEquals(emptyList(), due(home, records, newest, now = now + h1).sets)
+        // It goes on at the next change time.
+        assertEquals(listOf(evening(APOD, d.plusDays(1)).picture() to setOf(HOME)), due(home, records, newest, now = t0 + day + day).sets)
+    }
+
+    @Test
+    fun nasaFridayToMondayWithDailyChecksStaysUnsetUntilTheChangeTime() {
+        // NASA alone in Europe (UTC here): Friday's post on the screen; the checks at each change
+        // time (and the window's, the fallback's) succeed over the weekend with nothing new.
+        // Monday's comes out at 16:00 and the 18:00 fallback stores it: no gap, so Tuesday 06:00.
+        val friday = LocalDate.parse("2026-10-23")
+        val monday = LocalDate.parse("2026-10-26")
+        val nasa = cols(listOf(NASA), emptyList())
+        val fridayPost = post(NASA, friday, published = friday.atTime(16, 0).toInstant(zone))
+        val mondayPost = post(NASA, monday, published = monday.atTime(16, 0).toInstant(zone))
+        val mondayAt6 = monday.atTime(6, 0).toInstant(zone)
+        val records = mapOf(HOME to Record(NASA, fridayPost.picture(), mondayAt6, shown(fridayPost.picture())))
+        val lastCheck = monday.atTime(9, 0).toInstant(zone)
+        val stored = monday.atTime(18, 0).toInstant(zone)
+        val gaps = if (afterGap(lastCheck, stored)) setOf(NASA) else emptySet()
+        assertEquals(emptySet(), gaps)
+        val withMonday = stored(posts + (NASA to mondayPost), gaps = gaps)
+        assertEquals(emptyList(), due(nasa, records, withMonday, now = stored).sets)
+        assertEquals(emptyList(), due(nasa, records, withMonday, now = mondayAt6 + day - min1).sets)
+        assertEquals(listOf(mondayPost.picture() to setOf(HOME)), due(nasa, records, withMonday, now = mondayAt6 + day).sets)
+        // Saturday's and Sunday's checks noted the check, so Monday's isn't after a gap either.
+        assertFalse(afterGap(monday.minusDays(1).atTime(9, 0).toInstant(zone), mondayAt6))
+    }
+
+    @Test
+    fun theGapIsMoreThanADayWithoutASuccessfulCheck() {
+        val at = Instant.parse("2026-10-20T22:00:00Z")
+        assertTrue(afterGap(at - Duration.ofHours(25), at))
+        assertFalse(afterGap(at - Duration.ofHours(23), at))
+        assertFalse(afterGap(at - day, at))
+        assertTrue(afterGap(at - day - Duration.ofSeconds(1), at))
+        // No check yet (a fresh install, a source's first check): no gap.
+        assertFalse(afterGap(null, at))
+    }
+
+    @Test
+    fun theStandInsOwnMarkCountsOnAVideoDay() {
+        // APOD alone, NASA stands in. After a day offline APOD's video (out at 21:05) and NASA's
+        // post are both stored after the gap: NASA's picture goes on.
+        val d = d2
+        val records = mapOf(HOME to Record(APOD, evening(APOD, d1).picture(), t0, shown(evening(APOD, d1).picture())))
+        val home = apodColumns(setOf(HOME))
+        val now = d.atTime(22, 0).toInstant(zone)
+        val video = post(APOD, d.plusDays(1), video = true, published = d.atTime(21, 5).toInstant(zone))
+        val nasa = post(NASA, d, published = d.atTime(16, 0).toInstant(zone))
+        val newest = posts + (APOD to video) + (NASA to nasa)
+        val both = stored(newest, StandIn.NASA, files = setOf(NASA, EARTH), gaps = setOf(APOD, NASA))
+        assertEquals(listOf(nasa.picture() to setOf(HOME)), due(home, records, both, now = now).sets)
+        // The normal evening on a video day: APOD checked in the evening (no mark), NASA's first
+        // fetch this video day marked: APOD's video came out after the window, so it waits.
+        val standInOnly = stored(newest, StandIn.NASA, files = setOf(NASA, EARTH), gaps = setOf(NASA))
+        assertEquals(emptyList(), due(home, records, standInOnly, now = now).sets)
+        // APOD's video marked, NASA's not but published after the window: it waits too.
+        val apodOnly = stored(newest, StandIn.NASA, files = setOf(NASA, EARTH), gaps = setOf(APOD))
+        assertEquals(emptyList(), due(home, records, apodOnly, now = now).sets)
+    }
+
+    @Test
+    fun turnsIgnoreTheMark() {
+        // Several sources: a marked post of the owner published after the window waits for its next turn.
+        val records = mapOf(HOME to Record(NASA, pic(NASA), t0, shown(pic(APOD), pic(NASA), pic(EARTH))))
+        val late = stored(posts + (NASA to post(NASA, d2, published = t0 + h3 + min1)), gaps = setOf(NASA))
+        val daily = dueWallpapers(cols(listOf(APOD, NASA), emptyList()), records, late, PictureTime(6, 24), zone, t0 + h3 + h1)
+        assertEquals(emptyList(), daily.sets)
     }
 
     @Test

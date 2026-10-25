@@ -857,8 +857,9 @@ class MainActivity : ComponentActivity() {
         runs.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
-                    store.saveSetup(setup, pick)
-                    store.update(force = false, page = true, show = offered, set = true) to store.setsSinceSetup()
+                    // Not written (a full disk, B20): the sets still run from memory, the toast says so.
+                    val saved = store.saveSetup(setup, pick)
+                    Triple(store.update(force = false, page = true, show = offered, set = true), store.setsSinceSetup(), saved)
                 }
             }
             if (store.daily) scheduleJob(app) else DailyJob.cancel(app)
@@ -866,19 +867,21 @@ class MainActivity : ComponentActivity() {
             val updated = result.getOrNull()?.first
             // Also what a load or the job set of this setup before Set's own update got there (CR 5).
             val (wasSet, setFailed) = result.getOrNull()?.second ?: (false to true)
+            val saved = result.getOrNull()?.third ?: true
             result.exceptionOrNull()?.let { Log.w("APODroid", "Set failed: $it", it) }
             updated?.done?.let { Log.i("APODroid", "Set: $it") }
             updated?.failure?.let { Log.w("APODroid", "Set: $it", it) }
             live[page]?.run {
                 if (pick) draftFallback = store.draftFallbackFile.exists()
                 if (derivedList && !store.hasList && list == setup.list) list = store.list
-                // Saved: "Setup" closes on its summary. A failure leaves it open.
-                if (updated != null && !setFailed) setupOpen = false
+                // Saved: "Setup" closes on its summary. A failure, or a setup not written, leaves it open.
+                if (updated != null && !setFailed && saved) setupOpen = false
                 redrawAfterRun(failed = updated?.failure != null || result.isFailure)
             }
             toast(
                 app,
                 when {
+                    !saved -> "Couldn't save the setup. Check the free space."
                     updated == null || setFailed -> "Couldn't set the wallpaper"
                     wasSet -> "Wallpaper set"
                     else -> "Setup saved. Nothing to set yet."

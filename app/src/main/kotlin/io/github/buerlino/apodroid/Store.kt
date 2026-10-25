@@ -256,13 +256,15 @@ class Store(private val context: Context) {
      * whole picture or "my picture" too, with the same picture). A screen whose column was empty starts
      * without a record. The daily switch isn't part of it ([switchDaily]). The caller then runs
      * [update] with `set` and arms the alarms ([DailyJob.ensure]) or cancels them as the stored
-     * [daily] says.
+     * [daily] says. Returns whether the commit was written to disk (B20: on a full disk it
+     * isn't, and the setup lives only in the process's memory; Set's toast says so).
      */
-    fun saveSetup(setup: Setup, pick: Boolean): Unit = synchronized(wallpaperLock) {
+    fun saveSetup(setup: Setup, pick: Boolean): Boolean = synchronized(wallpaperLock) {
         if (pick && draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
         val before = columns
         val restart = restartAndForget(before, setup.columns, records(), stored(), PictureTime(setup.pictureAt, setup.interval.hours.toInt()), ZoneId.systemDefault(), Instant.now())
-        prefs.edit(commit = true) {
+        // edit(commit = true) { } drops commit()'s result (B20).
+        val saved = with(prefs.edit()) {
             putBoolean("allSources", setup.allSources)
             putString("where", setup.where.name)
             // Before the first time on, the list stays unsaved, so it still starts from "Where".
@@ -277,8 +279,11 @@ class Store(private val context: Context) {
                 putBoolean(source.key("whole"), part.whole)
             }
             putRestart(restart)
+            commit()
         }
+        if (!saved) Log.w("APODroid", "Couldn't save the setup")
         setsSinceSetup = mutableMapOf()
+        saved
     }
 
     /**

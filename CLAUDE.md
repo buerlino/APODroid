@@ -345,7 +345,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
     own update got there (B14, CR 5: Set said "Nothing to set yet"; `Store.setsSinceSetup`, each
     screen's last set since `saveSetup`); "Setup saved. Nothing to set yet." when none was (an APOD video with
     "Skip it" alone, or nothing stored and the fetch failed: the problem box says why);
-    "Couldn't set the wallpaper" when a set failed (also when another worked). With the daily
+    "Couldn't set the wallpaper" when a set failed (also when another worked); "Couldn't save the
+    setup. Check the free space." instead of all of them when `saveSetup`'s commit wasn't written
+    (B20, a full disk: the setup lives only in memory until the process dies; the sets still run,
+    Setup stays open). With the daily
     switch on the job sets the rest later. A rotation or Back during Set's run or the daily
     switch's keeps its end (B13, 2026-10-22: the brute test's V10 found the job not scheduled
     afresh, no toast, no log line after a rotation): the runs live in the process, not the page;

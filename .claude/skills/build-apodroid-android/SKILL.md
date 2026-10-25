@@ -71,7 +71,7 @@ packages unattended): `night.md`.
   `setup` (the stored `Setup`: mode, "Where", list, interval, video days, `parts`, ⛶'s
   `Part` per source with its `whole`, `pictureAt`) and
   `saveSetup(setup, pick)` (S4, Set: one commit with the settings, `putColumns`, the parts and
-  `restartAndForget`'s plan; `draftFallbackFile` renamed to `fallbackFile` first, only with `pick`, the page's own `draftFallback` (B11); not `daily`), `setsSinceSetup()` (after Set's update: whether any run set a screen since `saveSetup`, and whether one's last set failed; Set's toast, B14),
+  `restartAndForget`'s plan; returns whether the commit was written, B20; `draftFallbackFile` renamed to `fallbackFile` first, only with `pick`, the page's own `draftFallback` (B11); not `daily`), `setsSinceSetup()` (after Set's update: whether any run set a screen since `saveSetup`, and whether one's last set failed; Set's toast, B14),
   `switchDaily(on)` (S4f2: writes `daily` at once, clears the job's failures) and `startAfresh()` (the switch on:
   `restartAndForget` with the stored columns),
   `lastScreens(source)` (S2: an unticked row's screens, `<source>.lastScreens`, written with the list), `record(screen)` (home unprefixed, lock `lock.`;

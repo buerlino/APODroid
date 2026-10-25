@@ -123,14 +123,23 @@ private fun retryAfter(failures: Int): Duration? = when {
 }
 
 /**
+ * How long after a run's start its own retry comes, should it never reach its end (the process
+ * killed or frozen), after [failures] failed runs in a row before it (a killed one counted at the
+ * next start, B19): it would be one more, so [firstCheck] with none before, an hour after one or
+ * more. A crash on every run is retried 15 min later, then hourly, not every 15 min all day.
+ */
+fun runRetry(failures: Int): Duration = retryAfter(maxOf(failures, 0) + 1)!!
+
+/**
  * When to arm the alarms at [now], also outside a run's end (Set, the daily switch on, a page
  * open, a boot, a clock or time zone change, an app update), which must not move a failed run's
  * retry: [nextRun] by the clock from [now], or the retry of the last of [failures] failed runs in
  * a row, which ended at [failedAt], when that comes first; a retry already due comes at [now],
  * as a check passed since [lastRun] does (B16). At a run's end ([failedAt] = [now]) the same as [nextRun] with [failures].
- * While a run goes ([running], started at [lastRun]), no later than [firstCheck] after its start
- * (at the earliest [now]): the pair its start armed stays, so a run that never reaches its end
- * (the process killed or frozen) is still retried (B16f1).
+ * While a run goes ([running], started at [lastRun]; also one that started and never ended, in a
+ * new process, B19), no later than [runRetry] after its start (at the earliest [now]): the pair
+ * its start armed stays, so a run that never reaches its end (the process killed or frozen) is
+ * still retried (B16f1). The last failure's retry then doesn't count: the run going is it.
  */
 fun nextAlarm(
     now: Instant,
@@ -145,8 +154,7 @@ fun nextAlarm(
     running: Boolean = false,
 ): Instant {
     val clock = nextRun(now, zone, 0, time, turns, offset, waiting, lastRun)
-    val retry = failedAt?.let { at -> retryAfter(failures)?.let { at + it } }
-    val next = if (retry == null) clock else minOf(clock, maxOf(retry, now))
-    if (!running || lastRun == null) return next
-    return minOf(next, maxOf(lastRun + firstCheck, now))
+    if (running && lastRun != null) return minOf(clock, maxOf(lastRun + runRetry(failures), now))
+    val retry = failedAt?.let { at -> retryAfter(failures)?.let { at + it } } ?: return clock
+    return minOf(clock, maxOf(retry, now))
 }

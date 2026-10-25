@@ -303,6 +303,43 @@ class PictureTimeTest {
         assertEquals("15 12:20", during("2026-07-15T12:20", "2026-07-15T12:00"))
     }
 
+    /**
+     * A run that started and never ended (killed by `install -r`, `kill -9`, the low-memory killer
+     * or a Recents swipe) counts as going in a new process too, so an arming there keeps its retry
+     * (B19; V11a armed the clock's next check, 05:24 for a 04:27 run). The cap is 15 min after the
+     * start with no failure before, an hour with one or more: the next run's start counts the
+     * killed one ([failedAt] its start), so a crash on every run is retried 15 min later, then
+     * hourly. Before B19 the counted failure's retry made it 15 min every time.
+     */
+    @Test
+    fun aKilledRunKeepsItsRetryAndCounts() {
+        fun during(now: String, lastRun: String, failures: Int = 0, failedAt: String? = null) = local(
+            zurich,
+            nextAlarm(
+                at(zurich, now), zurich, failures, failedAt?.let { at(zurich, it) }, PictureTime(), false, sevenMinutes, false,
+                at(zurich, lastRun), running = true,
+            ),
+        )
+        // No failure before: 15 min after the start (the page open after a kill at 04:28).
+        assertEquals("15 04:42", during("2026-07-15T04:29", "2026-07-15T04:27"))
+        // The next run's start counted the killed one (failedAt = its start): an hour after it.
+        assertEquals("15 05:42", during("2026-07-15T04:42", "2026-07-15T04:42", failures = 1, failedAt = "2026-07-15T04:42"))
+        assertEquals("15 05:42", during("2026-07-15T04:50", "2026-07-15T04:42", failures = 1, failedAt = "2026-07-15T04:42"))
+        assertEquals("15 13:00", during("2026-07-15T12:01", "2026-07-15T12:00", failures = 3, failedAt = "2026-07-15T12:00"))
+        // The clock's earlier check stays the alarm; one long passed: at once.
+        assertEquals("15 06:07", during("2026-07-15T05:30", "2026-07-15T05:20", failures = 1, failedAt = "2026-07-15T05:20"))
+        assertEquals("15 14:00", during("2026-07-15T14:00", "2026-07-15T12:00", failures = 2, failedAt = "2026-07-15T12:00"))
+        // The retry while no run goes stays as before: 15 min after the first failure, then hourly.
+        assertEquals("15 04:57", alarmAt("2026-07-15T04:43", failures = 1, failedAt = "2026-07-15T04:42"))
+        assertEquals("15 05:42", alarmAt("2026-07-15T04:43", failures = 2, failedAt = "2026-07-15T04:42"))
+        assertEquals(Duration.ofMinutes(15), runRetry(0))
+        assertEquals(Duration.ofHours(1), runRetry(1))
+        assertEquals(Duration.ofHours(1), runRetry(5))
+    }
+
+    private fun alarmAt(now: String, failures: Int, failedAt: String) =
+        local(zurich, nextAlarm(at(zurich, now), zurich, failures, at(zurich, failedAt), PictureTime(), false, sevenMinutes, false))
+
     /** Network time moves the clock past a check (TIME_SET): at once. The clock set back: nothing owed. */
     @Test
     fun theClockMovedOn() {

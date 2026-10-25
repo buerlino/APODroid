@@ -715,20 +715,29 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   run, then hourly (`nextAlarm` keeps that retry when armed again before it, by a Set or a page
   open; a retry whose time passed without a run, after a boot or the process dying, comes at
   once). A run that waits for the network (id 2 pending) arms nothing until it runs. Each run's
-  start arms the alarms 15 min ahead (B16), so a run that never reaches its end (a frozen or
-  killed process) is retried by them; its end arms them again as above. Unless something arms
-  first after the process died (an update's `MY_PACKAGE_REPLACED`, a boot, a page open): no run
-  goes then and the dead run left no `failedRuns`, so the arming takes the clock's next check
-  and the retry is gone (V11a, 2026-10-25, `install -r` during a run: not counted failed,
-  re-armed by the clock; Android re-ran job 1 at once itself; open question). An arming during a run
+  start arms the alarms 15 min ahead (B16), an hour after one or more failed runs in a row
+  (`runRetry`, B19), so a run that never reaches its end (a frozen or killed process) is
+  retried by them; its end arms them again as above. **A killed run** (B19, 2026-10-25, from
+  V11a: `install -r` during a run, `kill -9`, the low-memory killer, a Recents swipe) **keeps
+  its retry and counts as failed:** the start notes `runGoing` (removed by `ranJob` and the
+  daily switch either way), and `nextAlarm` counts it as a run going in every process, so an
+  arming after the process died (an update's `MY_PACKAGE_REPLACED`, a boot, a page open) keeps
+  the start's retry, not the clock's next check (before B19 it took that, V11a: 05:24 for a
+  04:27 run; Android re-runs a killed job 1 itself, a killed id 2 not). The next run's start
+  finds the note and counts that run in `failedRuns` and `failedAt` before its own work, as a
+  stop by Android, so a crash on every run (out of memory decoding a huge picture, downloaded
+  again each time) is retried 15 min later, then hourly. An arming during a run
   (a page open, a Set, the daily switch on, `TIME_SET`/`TIMEZONE_CHANGED`) keeps that retry:
-  the earlier of the clock's next check and `lastRunAt` + 15 min, at the earliest now (B16f1,
-  2026-10-24: it armed the next change time, so a run killed mid-run, e.g. swiped from Recents,
-  waited up to a day; a run left from before an off and on costs one spare check). An alarm that
-  lands in a going run (such an arming's earlier check, or the run outlasting its own 15 min)
-  arms the pair 15 min ahead again, as the run's start did (B18, 2026-10-24, CR2's finding 1:
-  `runNow` dropped it and armed nothing, so a process killed before the run's end had no alarm
-  left). A stop leaves the
+  the earlier of the clock's next check and `lastRunAt` + `runRetry` (15 min, an hour after a
+  failure), at the earliest now; the last failure's retry doesn't count then, the run going is
+  it (B16f1, 2026-10-24: it armed the next change time, so a run killed mid-run, e.g. swiped
+  from Recents, waited up to a day; a run left from before an off and on costs one spare
+  check). An alarm that lands in a going run (such an arming's earlier check, or the run
+  outlasting its own retry) arms the pair `runRetry` ahead again, as the run's start did (B18,
+  2026-10-24, CR2's finding 1: `runNow` dropped it and armed nothing, so a process killed before
+  the run's end had no alarm left). A run the daily switch off dropped logs "Daily job: stopped
+  (the switch off)", not a failure (B19: it logged `InterruptedIOException` with a stack); a
+  stop by Android stays a failure. A stop leaves the
   thread interrupted (`Store.update`), and an interrupted thread's `commit()` skips the prefs
   listeners, so the run clears the flag (`Thread.interrupted()`) before `ranJob` (B16). Such a
   `commit()` also clears the flag, so a stop doesn't rest on it alone (B18, CR2's finding 2: a

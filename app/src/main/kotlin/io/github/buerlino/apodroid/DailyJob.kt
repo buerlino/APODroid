@@ -11,7 +11,6 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import io.github.buerlino.apodroid.core.JobRuns
-import io.github.buerlino.apodroid.core.firstCheck
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -28,8 +27,10 @@ import kotlin.concurrent.thread
  * - **The fallback** ([PERIODIC]): every 6 hours with a 6 hour flex, a timing that never changes,
  *   so after the first start's [ensure] nothing schedules it again while it runs.
  *
- * Every run's start notes when (`lastRunAt`) and arms the alarms 15 min ahead, so a run that never
- * reaches its end (a frozen or killed process) is retried by them (B16). Every run's end arms the
+ * Every run's start notes when (`lastRunAt`) and that it goes, and arms the alarms 15 min ahead (an
+ * hour after a failed run), so a run that never reaches its end (a frozen or killed process) is
+ * retried by them (B16), also when a new process arms them before the next run, and the next run's
+ * start counts it as failed (B19). Every run's end arms the
  * alarms again: by the clock after a good run (at once for a check that passed during the run),
  * 15 min later after a failed or stopped one, then hourly. So no run asks Android for a retry
  * (`jobFinished(…, false)`, [onStopJob] `false`): in Doze a backoff retry waits for a maintenance
@@ -66,7 +67,9 @@ class DailyJob : JobService() {
             val result = runCatching { store.update(force = false, stopped = { stoppedBySystem }) }
             val failure = result.exceptionOrNull() ?: result.getOrNull()?.failure
             result.getOrNull()?.done?.let { Log.i("APODroid", "Daily job: $it") }
-            if (failure != null) Log.w("APODroid", "Daily job failed: $failure", failure)
+            // The switch off (a run from before it, B19): not a failure, it isn't counted or retried.
+            if (!runs.counts(generation)) Log.i("APODroid", "Daily job: stopped (the switch off)")
+            else if (failure != null) Log.w("APODroid", "Daily job failed: $failure", failure)
             // Save every picture: also after a failed run (a failing source mustn't stop the others'
             // saves), not after a stop. A failed save doesn't retry the job; the next run tries again.
             val stopped = stoppedBySystem || result.exceptionOrNull().let { it is InterruptedException || it?.isStop() == true }
@@ -167,7 +170,7 @@ class DailyJob : JobService() {
          * process scheduled it and it hasn't started (the second alarm of the pair lands here; it
          * may be about to start). A pending [RUN] from before the process died (Android may
          * reschedule a run that died with it, with its own backoff, B16) is replaced. An alarm
-         * that lands in a going run arms the pair [firstCheck] ahead, as the run's start did
+         * that lands in a going run arms the pair [Store.runRetry] ahead, as the run's start did
          * (B18, CR2's finding 1): it had replaced that pair (an arming during the run, or the run
          * outlasting it), so a process killed before the run's end would else have no alarm left.
          * The run's end arms them again.
@@ -176,7 +179,8 @@ class DailyJob : JobService() {
             if (!Store(context).daily) return
             if (runs.going) {
                 synchronized(lock) {
-                    if (runs.going && Store(context).daily) arm(context, System.currentTimeMillis() + firstCheck.toMillis())
+                    val store = Store(context)
+                    if (runs.going && store.daily) arm(context, System.currentTimeMillis() + store.runRetry().toMillis())
                 }
                 Log.i("APODroid", "Daily job: alarm, a run is going")
                 return
@@ -220,13 +224,15 @@ class DailyJob : JobService() {
 
         /**
          * A run's start, on its thread: unless an off came since or the switch is off, notes it
-         * ([Store.runStarts]) and arms the alarms [firstCheck] ahead, so a run that never reaches
-         * its end (the process frozen or killed) is retried by them; its end arms them again.
+         * ([Store.runStarts], which counts a run before it that never ended as failed, B19) and
+         * arms the alarms [Store.runRetry] ahead (15 min, an hour after a failed run), so a run
+         * that never reaches its end (the process frozen or killed) is retried by them; its end
+         * arms them again.
          */
         private fun started(context: Context, store: Store, generation: Int) = synchronized(lock) {
             if (!runs.counts(generation) || !store.daily) return
-            store.runStarts()
-            arm(context, System.currentTimeMillis() + firstCheck.toMillis())
+            if (store.runStarts()) Log.w("APODroid", "Daily job: the run before never ended (killed), counted as failed")
+            arm(context, System.currentTimeMillis() + store.runRetry().toMillis())
         }
 
         /**

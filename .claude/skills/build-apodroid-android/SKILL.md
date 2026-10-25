@@ -553,6 +553,38 @@ packages unattended): `night.md`.
   prefs (no `run-as` on R8; the summary and the alarm say 06:00); whether ZuiMemoryCleaner
   force-stops the app on a real morning without a clock step. Left after the restore: one
   shared wallpaper (APOD, as the records name). Evidence in the run's `tablet/`.
+  V12b (2026-10-25 evening, V11b again on dev e59cd62 with B19, B20 and B21 merged; the debug
+  build, prefs pushed after `am kill`, `run -f 1`; the day's APOD came out late, 09:19 CET, so
+  the real clock served the window (a past clock breaks TLS, V11b) and `auto_time` was off only
+  to step forward; passed): **B21, the gap mark** (APOD mode, Both, "New picture at" 06:00, its
+  window ending 09:00 before the post, the stored post and both records faked back to 24 Oct):
+  with `checkedAt` 1 h old the run stored 25 Oct with `afterGap` false and set nothing (alarm 26
+  Oct 06:09:37); with `checkedAt` 25 h old it stored 25 Oct with `afterGap` true and set it on
+  HOME+LOCK in one set, the stamp kept at 06:00. **The window by publish time:** 21:00 (in the
+  window now), an airplane-mode run failed (alarm at the clock's 22:24:37 check, before the
+  retry), the next run online set 25 Oct; 09:00 (window to 12:00, the post inside it), the run
+  at 22:24 set it, no mark, stamp kept. **The checks** (APOD alone, 23:00, offset 9:37):
+  23:09:37, 23:24:37, 00:24:37, 01:24:37, 02:09:37 (the window's end), then 26 Oct 23:09:37;
+  each run's start armed the pair 15 min ahead. **A waiting screen** (NASA + Earth on home, 3 h
+  from 23:00, Sunday, both noted shown): no set at the 23:00 and 02:00 change times, the stamp
+  kept at 20:00, hourly alarms. **No `published`:** with it (09:19, window to 09:00) no set;
+  without it (00:00 US Eastern) set, no crash. **A stopped run** (`timeout` 1.5 s into a fetch,
+  sent from the tablet's shell): "Daily job failed: InterruptedIOException", `failedRuns` 1, no
+  problem stored, the alarms 15 min later; the page then "Wallpaper changed 25 Oct, 22:29", no
+  problem box, no set (checked within the hour), the retry kept. **A Set while a run goes,
+  decisive this time** (job 1 with "Save every picture" at no limit and three posts faked back,
+  Set tapped 0.8 s after `run -f`, from the tablet's shell): the run 22:32:48.3–51.3, Set armed
+  and set at 22:32:50.1 inside it; the run went on, set, saved APOD's and NASA's originals and
+  ended with `jobFinished`, no stop, no failure. **The stand-in** (APOD + NASA on both, 3 h
+  from 07:00, NASA for video days, APOD 25 Oct faked a video, the screens on APOD 24 Oct, NASA
+  23 Oct noted shown): after the 22:00 change nothing set, the stamp kept (waiting); without
+  the notes NASA set. **Open for the user:** with APOD alone (no turns) the stand-in NASA went
+  on although NASA 23 Oct was noted shown on that screen (the screen showed APOD 24 Oct before):
+  `Screens.kt`'s one-source rule ("due its newest picture, on an APOD video day the stand-in"),
+  so as built; whether B15's "not twice" should cover one source too is the user's call. Not
+  tested: a failed set retried after 09:00 (no way to fail a set, V3); the smoke list (a device
+  package). Left after the restore: one shared wallpaper (APOD, as the records name); the two
+  test pictures deleted. Evidence in the run's `tablet/`.
   V11d (2026-10-25 night, R8 builds signed with the debug key: `v0.5.0` (V6's APK, the same
   tag) and dev d1c1e2b, passed): **the update without opening the page**, from 0.5.0 seeded
   by `run-as` (daily on, APOD + NASA, Both, 3 h; its page opened once, which set NASA and

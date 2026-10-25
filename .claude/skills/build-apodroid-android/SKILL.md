@@ -585,6 +585,31 @@ packages unattended): `night.md`.
   tested: a failed set retried after 09:00 (no way to fail a set, V3); the smoke list (a device
   package). Left after the restore: one shared wallpaper (APOD, as the records name); the two
   test pictures deleted. Evidence in the run's `tablet/`.
+  V12c (2026-10-25 night, V11c again on the debug build of dev 1b602e0 with B19, B20 and B21
+  merged, tablet; passed, the same results as V11c): **fast taps**, each in one `input` line:
+  Set ×3: one set, one arming; the daily switch ×5 (off → on): one set, the switch's arming
+  plus the fallback's at-once run (15 min ahead at its start, the clock at its end); "New
+  picture at" 08:00 and Set in one line: the Set tap went to the closing menu again (accepted),
+  Set right after: one set, the stamp 20:00, the pair at 23:00 + the offset; the mode switch
+  off + Set: home only, the lock screen kept its own; on + Set (Setup opened, switch, Set in one
+  line): one set with both flags. **A rotation during Set** (Earth ticked in the draft,
+  `user_rotation` 1 in the same line): rotated at 00.75 s, the recreated page resumed at 00.96,
+  Set ended at 01.26 with its log line, its arming, its toast (`ToastUI`) and Setup closed with
+  the new summary. **⛶'s "Whole picture"** (V11c's made-up pictures as `files/apod.jpg`:
+  8000×6000 PNG, 600×3000, 8000×1000, 2000×1500 with black edges): each Set within a second,
+  no crash; the launcher shows the first three on the blur, the black-edged one on black.
+  **Memory:** 20 whole Sets of the 8000×6000 PNG: TOTAL PSS 118 → 121 → 129 MB (sets 1, 10, 20;
+  native heap 24 → 29 → 34 MB), after a forced GC (SIGUSR1) 108 MB (native 21): no leak, no
+  OOM. **A fresh install** (`pm clear`): APOD mode, "APOD on both screens", Where Both; daily
+  off: no "New picture at", no "If APOD is a video", no Advanced; on: "New picture at: 06:00",
+  "Skip it", Advanced, the pair for 06:00 + a fresh offset. **Setup at font scale 2.0, `wm
+  density 344`:** APOD mode's "Where" (two-line segments, one height), the mode switch at the
+  top turned on in the draft (highlighted) with the list, the time menu with ✓ before 06:00:
+  nothing cut off. `run -f 1` after it: silent, armed again. The draft of that step survived
+  `am kill` (the saved state, by design) and was dropped by swiping APODroid's task away in
+  Recents. Not checked: the photo picker's odd pictures as "my picture" (V10's gap), a whole
+  picture on one screen alone (V11d did). Left after the restore: one shared wallpaper (APOD,
+  as the records name). Evidence in the run's `tablet/`.
   V11d (2026-10-25 night, R8 builds signed with the debug key: `v0.5.0` (V6's APK, the same
   tag) and dev d1c1e2b, passed): **the update without opening the page**, from 0.5.0 seeded
   by `run-as` (daily on, APOD + NASA, Both, 3 h; its page opened once, which set NASA and

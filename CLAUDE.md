@@ -27,6 +27,7 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   (custom hours dropped, 2026-10-17: [Next features](#next-features)).
 - Work for 0.6.0 (APOD first, the "All NASA pictures" switch, and the features from 0.1.1's
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
+- 0.7.0, on time on any phone ("Exact timing", the detector; 2026-10-25): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
   Only APODroid's nights use the tablet HA24BZ2Y (user, 2026-10-20: pascaline's nights leave it alone).
@@ -1137,6 +1138,27 @@ the job (it jumps, every set redraws and recolours the system's theme colours, s
 dozens of sets a day). Open for 0.7.0: the route (straight, or slowing over what matters), the
 night (still at the end, or back to the start), Android 10–13's lock screen, Auto and Fill as
 live too (one drawing code for the wallpaper and the preview).
+
+**0.7.0: on time on any phone** (user, 2026-10-25, after a friend's Chinese phone had no
+"Unrestricted"; after 0.6.0 ships, the freeze; the findings, the plan and the checks in
+[on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md)). Two layers stop the
+job: Android's (Optimized: no network in Doze, hours late; standby buckets) and the maker's
+(Xiaomi, Huawei, Samsung, Oppo, Vivo: Autostart and the like, which no app setting gets past).
+Decided:
+- **"Exact timing"**, a switch in Advanced settings, default off: an exact alarm
+  (`setExactAndAllowWhileIdle`) starts each run as a `dataSync` foreground service, so it
+  should have the network in Doze (to check first, J0's way). Permissions approved:
+  `SCHEDULE_EXACT_ALARM` (asked only when the switch is turned on: Android's "Alarms &
+  reminders"), `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` (at install, no prompt).
+  The notification permission is never asked (the run works without it).
+- **The detector:** a page open that sets a wallpaper due at a change time 30 min or more ago,
+  with no job run started since (not after a boot, an update or the switch turned on since),
+  shows a box at the first miss pointing to "Exact timing"; with it already on, the maker's
+  settings path for `Build.MANUFACTURER` and "App info".
+- **Live (D)** checks for a new picture when the screen turns on (the system keeps the current
+  live wallpaper running).
+- Rejected: a permanent foreground service with a permanent notification, `setAlarmClock`,
+  `USE_EXACT_ALARM`.
 
 **0.6.0: APOD first** (user, 2026-10-19; the logic and `Store` built in M1–M2, the settings in M3, the page in M4, by the night shift of 2026-10-20, approved by the user that morning; F1, F3, F4 and F5 by day the same day, with two fixes from their review (F1f1, F5f1); the early look on the tablet (C) on the user's go-ahead, then the tablet pass by night (V1–V6, and V8: V1, V2 and V4 again where S4–S6 changed them; user, 2026-10-20 night: a complete test on the final tree before the stable release; B2, B4–B6, S6, V3, V5, V6 and V8 passed the night of 2026-10-20/21, B7–B9 from its report), turns over hours (V7, a night of its own), the FP6 (P); the how, the layout and the order in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different

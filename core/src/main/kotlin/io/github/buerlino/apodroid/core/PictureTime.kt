@@ -12,7 +12,8 @@ import kotlin.random.Random
  *    changes: to its source's newest picture, or to the next source with a picture it hasn't
  *    shown ([dueWallpapers]).
  * 2. A newer picture of that source published in the [pictureWindow] after the change still
- *    replaces it, whenever a check sees it (B15: by the publish time).
+ *    replaces it, whenever a check sees it (B15: by the publish time). With one source a post
+ *    stored after a gap in the checks ([afterGap], B21) goes on whenever a run sees it too.
  * 3. With several sources and nothing new, the picture stays until one comes out (the screen waits).
  * This file has the times: when a screen changes ([PictureTime]) and when the next run checks
  * ([nextRun]).
@@ -20,6 +21,18 @@ import kotlin.random.Random
 
 /** After a change time, a newer picture of the source that went on still replaces it for this long (rule 2). */
 val pictureWindow: Duration = Duration.ofHours(3)
+
+/** A source's checks this far apart or more are a gap (B21; [afterGap]). */
+val checkGap: Duration = Duration.ofHours(24)
+
+/**
+ * Whether a new post stored [now] came after a gap (B21): the source's last successful check
+ * ([lastCheck], read before this check notes it) is more than [checkGap] old. With one source
+ * such a post goes on whenever a run sees it ([Stored.gaps]), so a day offline doesn't lose the
+ * day's picture. No check yet (a fresh install, a source's first check) is no gap. Weekends
+ * aren't gaps: the change time's checks succeed with nothing new and still note the check.
+ */
+fun afterGap(lastCheck: Instant?, now: Instant): Boolean = lastCheck != null && Duration.between(lastCheck, now) > checkGap
 
 /** The first check after a change time, and a failed run's first retry; then hourly. */
 val firstCheck: Duration = Duration.ofMinutes(15)

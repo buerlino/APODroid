@@ -12,7 +12,9 @@ import java.time.ZoneId
  * 2. A newer picture of the source that went on, published in the [pictureWindow] after the
  *    change time, still replaces it whenever a check sees it (B15: by the publish time, not by
  *    when it's seen). With one source that is the whole rule: from each change time T the
- *    screen shows the newest picture published before T + 3 h, and never goes back.
+ *    screen shows the newest picture published before T + 3 h, and never goes back; a post
+ *    stored after a day without a successful check ([Stored.gaps], B21) goes on whenever a run
+ *    sees it, so the day's picture isn't lost to a newer one.
  * 3. With several sources and nothing new the picture stays and the screen waits: the first new
  *    picture goes on as soon as a check sees it.
  * - Each screen has a column, the sources ticked for it; an empty column is left alone. In
@@ -78,13 +80,15 @@ enum class StandIn(val source: Source? = null) {
 
 /**
  * What is stored: the newest [posts], the sources whose picture file is there ([files]),
- * whether the user's own picture is there ([own]), and the video-day choice ([standIn]).
+ * whether the user's own picture is there ([own]), the video-day choice ([standIn]), and the
+ * sources whose newest post was stored after a gap in their checks ([gaps], [afterGap]; B21).
  */
 class Stored(
     private val posts: Map<Source, Post>,
     private val files: Set<Source>,
     private val own: Boolean,
     private val standIn: StandIn,
+    private val gaps: Set<Source> = emptySet(),
 ) {
     fun post(source: Source): Post? = posts[source]
 
@@ -118,13 +122,15 @@ class Stored(
 
     /**
      * Whether what [source] shows now ([picture]) was published before [limit] (B15): its post
-     * ([Post.publishedAt]), and a stand-in's own post too. False with nothing stored.
+     * ([Post.publishedAt]), and a stand-in's own post too. With [orAfterGap] (one source, B21) a
+     * post stored after a gap ([gaps]) counts as published before it. False with nothing stored.
      */
-    fun publishedBefore(source: Source, limit: Instant): Boolean {
+    fun publishedBefore(source: Source, limit: Instant, orAfterGap: Boolean = false): Boolean {
+        fun due(post: Post) = post.publishedAt < limit || orAfterGap && post.source in gaps
         val post = posts[source] ?: return false
-        if (post.publishedAt >= limit) return false
+        if (!due(post)) return false
         val picture = picture(source) as? Picture.Of ?: return true
-        return picture.source == source || posts[picture.source]?.let { it.publishedAt < limit } == true
+        return picture.source == source || posts[picture.source]?.let(::due) == true
     }
 
     private fun sourcePicture(source: Source): Picture.Of? =
@@ -184,9 +190,10 @@ data class Plan(val screens: Map<Screen, Due>) {
  * - **One source** (B15): whenever a run comes, the screen takes the current change time T
  *   and is due its newest stored picture when that was published before T + [pictureWindow]
  *   ([Stored.publishedBefore]; a post stored before B15 counts from its date's 00:00 US
- *   Eastern); one published later waits for the next change time. A function of the clock and
- *   the posts: a failed or offline check moves nothing, the picture goes on whenever a run sees
- *   it. A forgotten picture (Set), a new screen and [pull] put the newest on at once, whenever
+ *   Eastern) or stored after a gap in its checks ([Stored.gaps], B21: a day offline would
+ *   otherwise lose the day's picture to a newer one); one published later waits for the next
+ *   change time. A function of the clock, the posts and their marks: a failed or offline check
+ *   moves nothing, the picture goes on whenever a run sees it. A forgotten picture (Set), a new screen and [pull] put the newest on at once, whenever
  *   it was published.
  * - **Within the change** (several sources, the stamp is the current change time): a newer
  *   picture of the owner published before the stamp + [pictureWindow] replaces it whenever a run
@@ -284,7 +291,9 @@ private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId,
         if (column.size < 2) {
             val source = column.single()
             val r = record.copy(owner = source)
-            return if (record.owner != source || record.picture == null || pull || inWindow(record)) show(r, stored.picture(source)) else show(r, null)
+            // B21: a post stored after a gap in the checks goes on whenever a run sees it.
+            val due = record.owner != source || record.picture == null || pull || inWindow(record, orAfterGap = true)
+            return show(r, if (due) stored.picture(source) else null)
         }
         if (record.owner !in column || record.picture == null && stored.picture(record.owner) == null) {
             // CR 1: an owner no longer ticked here gives way, and its picture doesn't go on.
@@ -295,7 +304,8 @@ private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId,
     }
 
     /** Rule 2 by the publish time (B15): the owner's picture came out before the record's change time + the window. */
-    private fun inWindow(record: Record) = stored.publishedBefore(record.owner, record.stamp!! + pictureWindow)
+    private fun inWindow(record: Record, orAfterGap: Boolean = false) =
+        stored.publishedBefore(record.owner, record.stamp!! + pictureWindow, orAfterGap)
 
     /** [record] showing [picture] (null, or an older picture of the source on it, keeps what it shows), its notes brought up to date. */
     fun show(record: Record, picture: Picture?): Due {

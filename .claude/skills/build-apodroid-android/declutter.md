@@ -483,3 +483,84 @@ but off) wasn't turned on, as other sessions share the phone. Where the work dif
 long-press / ✓ change was already committed (6c25ac4), not in the working tree. In 4.2 the
 Releases paragraph also lost the F-Droid merge request link (it's in the skill, F-Droid), and
 line 14 (101 characters) was rewrapped too; the four link lines in the list at the top stay long.
+
+## Pass 2026-10-25 (verification and declutter, under 0.6.0's freeze)
+
+A check of the work packages, `CLAUDE.md` against the code, and the docs, before the night of
+B19–B21 and V12. No app code changed (the freeze); the full report with every item's evidence:
+`.coord/reports/2026-10-25-declutter.md` (gitignored). The user decided on each item the same
+day.
+
+Ran on master 82df16a: `:core:test :app:lintDebug :app:lintAnalyzeDebug :app:compileReleaseKotlin
+--rerun-tasks --warning-mode all`: 196 tests green, lint 2 warnings (C1), 3 compiler warnings (C2),
+the only deprecation `Configuration.setVisible`. Two clean unsigned `assembleRelease` builds from
+fresh clones: the same sha256 (`408e0c64…`). `pipeline.test.sh` ok (59 rows). F-Droid ships 0.5.0,
+0.3.1, 0.3.0 (it skipped 0.4.0). Actions current. Not run: anything on a device; a bug review of
+the code (CR2 did that on 24 Oct). Two read-only subagents swept the code and the skill; their
+findings were spot-checked.
+
+### Plan and queue (before the night of 2026-10-25)
+- [x] Q1 B19's spec: counting a killed run alone left a crash loop at 15 min (`started()` and
+  `nextAlarm`'s `running` cap always 15 min): both now `retryAfter(failedRuns + 1)`, with
+  `PictureTimeTest` cases in Done when.
+- [x] Q2 V12b: APOD's keys have no prefix (`checkedAt`, `afterGap`).
+- [x] Q3 A note above the plan's Decisions (every bundle carries them): what changed since 19–20
+  Oct, `CLAUDE.md` wins.
+- [x] Q4 `turn.sh` (no effect since J1) out of night.md and the V rules; the regression's and the
+  smoke list's 0.5.0 words (tabs, "All NASA pictures") updated.
+- [ ] Q5 V12b's "Set while a run goes" needs Tailscale off on the tablet: the user's, before
+  `night.sh`.
+- [x] Q6 B21 settled: the 24 h test a `:core` function with tests; no `checkedAt` isn't a gap; the
+  stand-in's own mark counts.
+- [x] Q7 The plan's Packages table and commands: B19–B21, V12, V7 (rosie's default, Sonnet,
+  medium), tonight's `night.sh`.
+- [x] Q8 V7's expectations for the night of Mon 26 → Tue 27.
+- [x] Q9 P after V12a–d and V7. Q10 the stale `JobInfo.networkType` note gone. Q11 the
+  regression's 90 min against the pipeline's 2 h made explicit.
+- [x] Q12 night.md: rows 1–52 are done (josh sees only the log's last 80 header and RESULT
+  lines, and `pipeline.sh` doesn't refuse a merged ID).
+- [x] Q13 susanna's audit rule: forgetting keeps the owner, the stamp becomes the current change
+  time (J1); device rows "M0, V1–V12d".
+
+### Docs
+- [x] D1–D19 `CLAUDE.md`, before the night: Releases one line per version and F-Droid's state;
+  Size, Fit, No Share and the "was …" chains gone; Next features' built sections (APOD first,
+  0.5.0, the 0.1.1 review, the picture time) to their why and what was rejected; package ids
+  where the fact alone does. 1321 → 1142 lines, 115 → 97 KB. Also: the pref `interval` (not
+  `DAY`), "choosing the check time" out of Left out ("New picture at" sets it), the Clear-storage
+  `(1).jpg` fact moved into Save, the migration's "not a read fallback" into Stack.
+- [ ] D-rest, after the night's merge: Set as wallpaper (B20's), Retries by the alarms (B19's)
+  and the release gate's B19–B21 lines, as B19–B21 left them; Fetch's pointer to this file's
+  "Review of 0.1.2, 2.2" once D26 moves it.
+- [ ] D20 `SKILL.md` Still untested: open gaps only, one line each with the row that found them
+  (17 tested since, 14 obsolete); the V rule (`plan-0.6.0.md`, V: every row appends its
+  results there) changed to match.
+- [ ] D21 `plan-0.6.0.md` after 0.6.0 ships: finished packages to one line each, headings kept;
+  the old Decisions rewritten.
+- [ ] D22 `SKILL.md`'s 10 stale points (the job's log lines, `swap.sh r8` installing 0.5.0's APK,
+  force-stop and the alarms, `onNewIntent`, the Store listing note, …) and 9 repeats of
+  `CLAUDE.md`.
+- [ ] D23 `features.md` ticked and trimmed (R); deleted when 0.7.0's queue starts, with
+  `pipeline.test.sh`'s F2 check.
+- [ ] D24 `keep-running.md`: a header line (before the alarms), the dead `features.md` reference,
+  0.7.0's Live and foreground service.
+- [ ] D25 night.md: the queue's history prose cut (keeping Q12's line, the table format, the rows
+  the test needs: M1, M2, F2), "about 1 k tokens" → about 6 k, "Tested (2026-10-19)" to its two
+  unseen cases.
+- [ ] D26 This file: the passes of 4–7 Oct to a short "left on purpose" list.
+- [ ] D27 Delete `plan-0.4.0.md`, `plan-0.5.0.md` (with `CLAUDE.md`'s pointer), `review-0.6.0.md`;
+  `review-0.6.0-cr2.md` once B21 is merged. Keep `on-time-0.7.0.md`; a `plan-0.7.0.md` would
+  become the pipeline's plan at once.
+
+### Code (after 0.6.0 ships, one package)
+- [ ] C1–C12 The 3 compiler warnings (`: Unit` on `started`/`ended`, errors from Kotlin 2.5) and
+  lint's 2 `UseKtx`; the duplicates (⛶'s noted part three times, one dropdown four times,
+  `VideoNotice`'s branches, the problem's words, `columns`/`hasList`, `PictureTime`, `:app`/`:core`
+  constants); unused defaults; 6 wrong comments. Nothing is dead (no unreferenced code, resource
+  or pref).
+
+### Repo, build and CI
+- [x] G1 `git gc` (2469 loose objects, 19.8 MB). G2 the two empty folders in `.claude/worktrees/`.
+- [ ] G3–G6 later: `.coord`'s 1.8 GB of old APKs; changelogs 3, 4, 8 (never built by F-Droid);
+  `private/wp7-handoff/`'s `turn.sh` and 0.5.0 APK; a guard in `pipeline.sh` against a merged ID
+  and the 0.6.0 rows dropped at 0.7.0's start.

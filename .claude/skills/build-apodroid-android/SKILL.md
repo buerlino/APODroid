@@ -521,6 +521,38 @@ packages unattended): `night.md`.
   mid-run (B19's "Daily job: stopped (the switch off)"), and low storage during Set (B20's
   toast, Setup open). Left after it: one shared wallpaper (APOD on both screens, which the
   records name) instead of home and lock set apart. Evidence in the run's `tablet/`.
+  V12d (2026-10-25 evening, V11d again on dev c3aae6f with B19, B20 and B21 merged; R8 builds
+  signed with the debug key: `v0.5.0` (V6's APK) and this tree; passed): **the update without
+  opening the page** (0.5.0 seeded by `run-as`: daily on, APOD + NASA, Both, 3 h; its page
+  opened once: NASA set, a 3 h / 15 min job): `install -r` of 0.6.0's R8 logged one "Migrated
+  from 0.5.0" (`allSources=true`, the record copied to `lock.*`), `MY_PACKAGE_REPLACED, arming
+  again`, the pair at 22:20:06 (21:15 + the offset, hourly in the 21:00 window), id 1 now 6 h /
+  6 h (it ran at once and set nothing), the wallpaper id unchanged. **Seen once: Lenovo's
+  ZuiMemoryCleaner** (`Force stopping io.github.buerlino.apodroid … ZuiMemoryCleaner[Aggressive-
+  MemFreeCritical]`) force-stopped the cached app 2 s after the clock step to 22:20:08 (its
+  `TIME_SET` had armed the pair at once), with F-Droid, the permission controller and others;
+  the force stop deleted both alarms and job 1, so nothing ran until the page was opened (the
+  maker layer of on-time-0.7.0.md; not seen in V11d's identical step). The page then (step 6
+  before step 5): "APOD on both screens, NASA on both screens · every 3 h from 06:00",
+  "Wallpaper changed 25 Oct, 22:02 · NASA", the chip "On wallpaper", no set; it armed the owed
+  check at once and scheduled id 1 (6 h / 6 h). The clock stepped to 00:05:08 (the 00:00 change
+  time + the offset) with the page in the background: `TIME_SET`, the alarm, run (id 2), APOD
+  on HOME+LOCK in one set, the next pair 00:20:06. **APOD mode** (APOD alone, Both): migrated
+  once (`allSources=false`), armed for 06:01:37, id 1 kept 6 h / 6 h, no set; the page "APOD on
+  both screens · at 06:00", "Wallpaper changed 25 Oct, 22:08", no chip (one source). **0.6.0's
+  R8 build:** the smoke list (APOD mode, "More NASA pictures" on with the weekday dialog, a
+  draft APOD on the lock screen and NASA on the home screen and Set: home and lock set apart,
+  the toast, a status line per screen, `run -f 1` successful, no crash in logcat or
+  `exit-info`); "Save every picture" with `run -f 1`: one log line "saved: APOD 2026-10-25
+  original, NASA 2026-10-23 original" (two files), a second run saved nothing; "Whole picture":
+  NASA's RS-25 photo on the home screen on the blur; on black only with V11d's Rosetta PNG put
+  in as `files/apod.jpg` by the debug build and the R8 build installed over it (none of the
+  day's posts has black edges): the lock screen on black; after a pull `published` 08:19:48Z
+  (the day's APOD came out late, 04:19 US Eastern), `nasa.published` 18:59Z, `earth.published`
+  04:00Z, read with the debug build over the R8 data. Not checked: `pictureAt`'s absence in the
+  prefs (no `run-as` on R8; the summary and the alarm say 06:00); whether ZuiMemoryCleaner
+  force-stops the app on a real morning without a clock step. Left after the restore: one
+  shared wallpaper (APOD, as the records name). Evidence in the run's `tablet/`.
   V11d (2026-10-25 night, R8 builds signed with the debug key: `v0.5.0` (V6's APK, the same
   tag) and dev d1c1e2b, passed): **the update without opening the page**, from 0.5.0 seeded
   by `run-as` (daily on, APOD + NASA, Both, 3 h; its page opened once, which set NASA and

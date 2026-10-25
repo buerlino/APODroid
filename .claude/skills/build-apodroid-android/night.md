@@ -167,6 +167,10 @@ after B19, both change `Store.kt`), **B21** (`:core`: one source after a day off
 The V12 rows have no After: they run also when a B row stays unmerged (they say which tree they tested). V7 moves to
 the night of 26 Oct, by hand, beside P's real night on the FP6.
 
+**Rows 1–52 are done:** each has a MERGED line in the log, most of them out of josh's view (night.sh shows only the
+last 80 of the log's night headers and RESULT lines). Pass over them; tonight's rows are 53–59 (2026-10-25:
+`pipeline.sh` doesn't refuse a merged ID).
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -303,7 +307,7 @@ Judge the diff against the criteria and `CLAUDE.md`; read other files only to ch
   thread, Android in `:core`;
 - the plan's rules for the package (for 0.6.0: one reading of the clock; grouping by the due picture, not by the
   columns; Set applies the whole setup, no set by hand and no hold (since S4); the daily switch acts at once (from
-  S4f2); the stand-in; forgetting keeps the owner and the stamp; the migration is a
+  S4f2); the stand-in; forgetting keeps the owner, the stamp becomes the current change time (J1); the migration is a
   one-time write at the first start, under a lock, and sets nothing at the first run);
 - logic without a test, a test that passes for the wrong reason, a fixed bug without a regression test;
 - what R8 can break (serialized classes, reflection);
@@ -337,14 +341,15 @@ Reply APPROVED, or FIX with at most five findings: file:line, the concrete failu
 - Install the APK the prompt names (`install -r`). If that fails because a release-signed build is installed,
   uninstall it (the tablet only; its data is test data) and install.
 - Run the package's device bullets ("Android check first", "Device (tablet …)") and what winston's report asks.
-  The skill's "Working on the phone" has the how-tos; `private/wp7-handoff/` has `turn.sh`, `swap.sh`, `ui.sh`.
+  The skill's "Working on the phone" has the how-tos (a change time passed: "End a turn"); `private/wp7-handoff/`
+  has `swap.sh`, `ui.sh` (`turn.sh` does nothing since J1).
 - Prefer text evidence: `dumpsys wallpaper`, `dumpsys jobscheduler`, `uiautomator dump`, `logcat -d -s APODroid`,
   crashes from `logcat` and `dumpsys activity exit-info`. Screenshots (`exec-out screencap -p`) go into your folder
   for the user; look at one only when the check needs eyes (each costs tokens). For texts the user must approve:
   one screenshot per screen state, named for what it shows.
 - **The smoke list**, after the package's own checks on every check of winston's work (not in a device package
-  such as M0, which runs 0.5.0's code): the app starts; the page loads in APOD mode and, once the switch exists,
-  with the mode switch on ("All NASA pictures", "More NASA pictures" from S5); a draft change and "Set as
+  such as M0, which runs 0.5.0's code): the app starts; the page loads in APOD mode and with "More NASA
+  pictures" on; a draft change and "Set as
   wallpaper" set the wallpaper (`dumpsys wallpaper`); a forced job run
   (`cmd jobscheduler run -f io.github.buerlino.apodroid 1`, daily switch on) ends as a successful run in
   `dumpsys jobscheduler` (the log names a set, or is silent when there was nothing to set);
@@ -370,22 +375,23 @@ rosie on Sonnet, after the night's last merge: the whole app on dev's debug buil
 another shows before the user takes `dev` into master. It doesn't replace the plan's own tablet pass (0.6.0's V:
 the R8 build, the update from 0.5.0, turns over hours). The device rules are those of "For rosie: the tablet
 checks" (the backup first, everything set back at the end, the tablet only); no code, no commits. At most 90
-minutes; when time runs short, keep the order below and name what was left under `Not tested:`.
+minutes (the pipeline ends the session at 2 h, rule 9); when time runs short, keep the order below and name what
+was left under `Not tested:`.
 1. Install the APK the prompt names, run [the smoke list](#for-rosie-the-tablet-checks).
 2. **What the night built:** each merged package the prompt names (its section in the plan): its device bullets
    again, on this build (not the V rows, which are tablet passes themselves, and not CR, which has no device
    bullets; 2026-10-21). What another package changed since its own check matters most.
-3. **APOD mode as 0.5.0** (`CLAUDE.md`, The app; "All NASA pictures" off, or 0.5.0's settings before M3): the page
-   with title, then date (no source line and no tabs with APOD alone, except the video-day source's tab on a
-   video day) and the explanation ("more", the tap, the long presses); pull to refresh; ⛶ with ✓ and
-   Back; ★ (then delete the saved file, the skill says how); "Where" each way with "Set as wallpaper"
-   (`dumpsys wallpaper`); the daily switch on and off (`dumpsys jobscheduler`) and a forced run; a faked video day
+3. **APOD mode** (`CLAUDE.md`, The app; "More NASA pictures" off): the page with title, then date (no source line
+   and the title alone with APOD alone; "APOD ▾" and the swipe on a video day) and the explanation ("more", the
+   tap, the long presses); pull to refresh; ⛶ with ✓ and Back, and its "Whole picture"; ★ (then delete the saved
+   file, the skill says how); "Where" each way with "Set as wallpaper" (`dumpsys wallpaper`); "New picture at";
+   the daily switch on and off (`dumpsys jobscheduler`, `dumpsys alarm`: the pair) and a forced run; a faked video day
    with each choice (the ▶ tile, the video notice and its buttons); the problem box offline (the skill: the firewall
    chain or the proxy, set back after) and its Dismiss; the battery hint.
-4. **With the mode switch on** ("More NASA pictures" from S5): the three sources and their pictures (tabs; the
-   title dropdown and the swipe from S6), the list ("Pictures from") with Home and Lock different and then equal,
-   each applied with "Set as wallpaper" (`dumpsys wallpaper`), the mode back and forth (each keeps its settings),
-   a turn ended with `turn.sh`.
+4. **With "More NASA pictures" on:** the three sources and their pictures (the title dropdown and the swipe), the
+   list ("Pictures from") with Home and Lock different and then equal, each applied with "Set as wallpaper"
+   (`dumpsys wallpaper`), the mode back and forth (each keeps its settings), a change time passed (the skill's
+   "End a turn"), Advanced ("Save every picture", "Largest original").
 5. **The edges:** a rotation and two panes, font scale 2.0 at the phone's width (`wm density 344`), `am kill` and
    reopen, no crash in `logcat` and `dumpsys activity exit-info`.
 
@@ -410,7 +416,7 @@ night can make; josh carries out your reply as written.
 4. Night defaults in the reports: keep those within the plan; the rest become QUESTION lines. A doc that disagrees
    with the code: fix the doc on dev (under `scripts/devlock.sh acquire integ pass-<n> 600`, committed with the Opus
    trailer). A STOP from rosie or an unmerged package: a FIX if the night can fix it, else a QUESTION. A device
-   package's FIX or STOP (Agent rosie in the queue: M0, V1–V10): always a QUESTION, never a FIX line (2026-10-20):
+   package's FIX or STOP (Agent rosie in the queue: M0, V1–V12d): always a QUESTION, never a FIX line (2026-10-20):
    its fix package would take the row's worker, rosie, who writes no code; the morning makes it a `B<n>` package.
    The bugs V9 and V10 report are B13's, CR's findings B14's: no FIX line for them (2026-10-21).
 5. Reply in exactly this form, nothing before `OPUS PASS` and nothing after NOTES. No backtick, no dollar sign and

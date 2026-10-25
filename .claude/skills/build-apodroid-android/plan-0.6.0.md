@@ -6,6 +6,11 @@ and note where the work differed from the plan. Each package writes its decision
 `CLAUDE.md` (the source of truth) when it lands; this file is the how. Finished packages become
 one line each here; git keeps their notes.
 
+**The Decisions and "Set applies the setup" below are those of 19–20 Oct** (every night bundle
+carries them). Since then: the change times by the clock, and Set doesn't restart them (J1–J2);
+no Size row (A3–A4); no "Wi-Fi only" (B10); "More NASA pictures" and "New picture at" at the top
+of Setup (J3); a stand-in not twice in a row (B15). Where they differ, `CLAUDE.md` is right.
+
 ## The request
 
 From the user looking at 0.5.0 (2026-10-19):
@@ -275,6 +280,11 @@ Advanced settings ▸                                closed by default
 | V11d | Final pass 2: R8 and the update from 0.5.0 without opening the page | Opus, high |
 | V11b | Final pass 3: the rules on a faked clock | Opus, high |
 | V11c | Final pass 4: what a user does to the new UI | Opus, high |
+| B19 | The job: a killed run keeps its retry; the switch's stop isn't logged as a failure | Opus, high |
+| B20 | Set says when its setup couldn't be saved | Opus, medium |
+| B21 | One source after a day offline: the newest goes on | Opus, high |
+| V12 | The final pass again (V12a–d: V11a–d on the tree with B19–B21) | Opus, high |
+| V7 | Turns over hours, by hand: rosie's default (Sonnet, medium), as its commands below | Sonnet, medium |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
@@ -305,6 +315,7 @@ scripts/pipeline.sh B12; scripts/pipeline.sh B11    # by day, 2026-10-22
 scripts/night.sh --until <HH:MM>    # J1, A1, J2, A3, A4, J3, then the regression (2026-10-23)
 scripts/night.sh --until <HH:MM>    # B15, B16, then the regression (2026-10-24)
 scripts/night.sh --until <HH:MM>    # B17, CR2, B18, V11a, V11d, V11b, V11c, then the regression (2026-10-25)
+scripts/night.sh --until 07:30      # B19, B20, B21, V12a, V12d, V12b, V12c, then the regression (the night of 2026-10-25)
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -511,9 +522,6 @@ reading; their build check passed, 108 tests with `private/`):
    side. Then the rest of P by day, R and T.
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then R and T.
-Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
-(deprecated since API 28; it works, and `requiredNetwork` would mean comparing
-`NetworkRequest`s).
 
 ### [x] F1. Fill / Fit (Opus, medium)
 
@@ -1412,7 +1420,8 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
 - Rosie's device rules (`night.md`, For rosie): note each setting and the app's prefs and files
   first, set them back at the end. Text evidence first (`dumpsys`, `run-as cat`, `logcat`);
   screenshots for the user into your folder, named for what they show. The how-tos: the skill,
-  Working on the phone; `private/wp7-handoff/` (`turn.sh`, `swap.sh`, `ui.sh`, `proxy/`).
+  Working on the phone (a change time passed: its "End a turn"); `private/wp7-handoff/`
+  (`swap.sh`, `ui.sh`, `proxy/`; `turn.sh` does nothing since J1).
 - Your verdict: PASS when everything you ran works; FIX for a bug in our app (the steps, what
   happened, the logcat line); STOP for Android doing what the plan didn't expect. The morning
   makes each bug a `B<n>` package.
@@ -1502,24 +1511,24 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
   today's 208 MB one: ★ saves the original anyway; the file deleted after), the swipe between
   sources (S6); no crash (`logcat`, `exit-info`). R8 isn't covered by the unit tests.
 
-### [ ] V7. Turns over hours (a night of its own, after B7–B9)
+### [ ] V7. Turns over hours (a night of its own, after V12)
 
 **Moved after J1–J3** (user, 2026-10-22 evening): it tests the new job. Its setup then also
 takes the picture time and the three rules (`CLAUDE.md`, Next features): Home APOD alone,
 Lock NASA + Earth every 3 h, "New picture at" 06:00 (change times 06, 09, …, 00, 03). On
 battery (below). **The night of Monday 26 to Tuesday 27 Oct** (user, 2026-10-25: moved a night for
 B19–B21 and V12; was Sunday 25 to Monday 26, user, 2026-10-23: a weekday morning brings new NASA
-and Earth posts; the DST night is faked in J2's check instead). The weekend lines below were
-written for Sunday night: session 1 writes the night's own expectations from the stored posts.
+and Earth posts; the DST night is faked in J2's check instead). Session 1 still writes the
+night's own expectations from the stored posts.
 Expect, Zurich time (EU on winter time, the US not until 1 Nov: APOD at 05:05, Earth at 05:00):
-- Home: Monday's APOD on at 06:00 plus the offset and the alarm's window (about 06:00–06:20).
+- Home: Tuesday's APOD on at 06:00 plus the offset and the alarm's window (about 06:00–06:20).
   The Zurich case (yesterday's still on at 06:00) can't happen before 1 Nov; J2's faked clock
   covers it.
-- Lock: at Set its source stays (or the other Friday picture); at 00:00 the Friday picture not
-  yet shown goes on (rule 1), if any; then nothing new, so it waits and nothing is set at 03:00
-  (the weekend); Monday's Earth goes on at the first check after 05:00 (rule 3, a waiting
-  screen's hourly checks); the 06:00 and 09:00 change times find nothing new (NASA posts in the
-  afternoon), so nothing is set.
+- Lock: at Set its source stays (or Monday's other picture); at 00:00 Monday's picture not yet
+  shown goes on (rule 1), if any; then nothing new, so it waits and nothing is set at 03:00;
+  Tuesday's Earth goes on at the first check after 05:00 (rule 3, a waiting screen's hourly
+  checks); the 06:00 and 09:00 change times find nothing new (NASA posts in the afternoon), so
+  nothing is set.
 - Session 1 writes the expected sets with their times into `start.md` from the stored posts.
 
 (User, 2026-10-21: after B7–B12 are merged, a night with nothing else queued; session 1 at
@@ -2331,7 +2340,11 @@ posts with chosen picture times and the network cut stand in for a made-up feed.
   stop by Android: a run that starts and finds the previous run's note still there counts that
   one in `failedRuns` (and `failedAt`) before its own work, so a crash on every run (e.g. out of
   memory decoding a huge picture, never stored, downloaded again each time) is retried 15 min
-  later, then hourly, not every 15 min all day.
+  later, then hourly, not every 15 min all day. For that, the start's pair (`DailyJob.started`,
+  now always `now + firstCheck`) and `nextAlarm`'s cap while a run goes (`:core`'s
+  `nextAlarm`, `running`: now always `lastRun + firstCheck`) come `retryAfter(failedRuns + 1)`
+  after the start, once the killed run is counted: 15 min with no failure before, an hour after
+  one or more. Counting alone changes nothing (the declutter pass of 2026-10-25).
 - **The switch off mid-run** logs "Daily job failed: java.io.InterruptedIOException" with a
   stack (`DailyJob.onStartJob`): a run dropped by the switch (`runs.counts(generation)` false)
   logs one info line, "Daily job: stopped (the switch off)", no stack. A stop by Android stays a
@@ -2341,9 +2354,11 @@ posts with chosen picture times and the network cut stand in for a made-up feed.
 - **Tablet:** a run made long (V11a's way: a source's date faked back), then `install -r` of
   the same build 1–2 s in: `dumpsys alarm` shows the pair at the run's start + 15 min (or at
   once), not the clock's next check; the same with `run-as … kill -9` and a page open after it.
-  The next run's start counts the killed one: `failedRuns` 1 in the prefs.
+  The next run's start counts the killed one: `failedRuns` 1 in the prefs, and its pair an
+  hour ahead (`dumpsys alarm`).
   The daily switch off 2 s into a run: the info line, no "failed". Then the smoke list.
-- **Done when:** a `:core` or `Store`-level test where one fits, the tablet passes.
+- **Done when:** `PictureTimeTest` cases for `nextAlarm(running = true)`: no failure before, the
+  cap `lastRun` + 15 min; one or more, `lastRun` + 1 h. The tablet passes.
 
 ### [ ] B20. Set says when its setup couldn't be saved (Opus, medium)
 
@@ -2386,6 +2401,15 @@ source is stored, so D−1's is gone.
   Weekends and weekdays without a post aren't gaps: the checks at each change time succeed with
   nothing new and still note `checkedAt` (also when `isCurrent` skips the fetch). Never back
   holds. Turns aren't changed (their next change time moves on anyway).
+- **Settled** (user, 2026-10-25, the declutter pass):
+  - The 24 h decision is a `:core` function (e.g. `afterGap(lastCheck: Instant?, now: Instant)`)
+    with tests (25 h marks, 23 h doesn't), so the weekend case is a unit test; `Store.refresh`
+    calls it and writes the mark.
+  - No `checkedAt` yet (a fresh install, a source's first check) isn't a gap: no mark. Set and
+    the daily switch on put the newest on anyway; an update from 0.5.0 has `checkedAt` (0.4.0).
+  - On APOD's turn on a video day the stand-in's own mark counts, as its publish time does
+    (B15). A stand-in is fetched only on video days, so its first fetch each video day is
+    usually marked; with one source that post went on at the change time anyway.
 - **A side effect, accepted:** a phone in the RESTRICTED standby bucket (one alarm a day) can
   have gaps over 24 h every day, so its newest goes on whenever that one run comes; its timing
   is off anyway. `CLAUDE.md` says so.
@@ -2393,7 +2417,8 @@ source is stored, so D−1's is gone.
   and the picture time, rule 2; Next features, 0.6.0: the picture time, rule 2's line).
 - **Tablet:** none of its own; V12b checks it on a faked clock.
 - **Done when:** a test that fails on the old code (CR2's Los Angeles steps); tests that NASA
-  Friday → Monday with daily checks and the normal evening stay unset; all `:core` tests pass.
+  Friday → Monday with daily checks and the normal evening stay unset; the gap function's tests;
+  all `:core` tests pass.
 
 ### [ ] V12. The final pass again, on the tree with B19–B21 (Opus, high)
 
@@ -2407,9 +2432,9 @@ merged), with these changes:
   `kill -9` during a run: the retry kept (B19). The switch off mid-run: B19's info line. Low
   storage during Set: B20's toast, Setup open.
 - **V12d (V11d):** as written, on the new tree.
-- **V12b (V11b):** add B21, as V11a aged the checks: APOD alone, `apod.checkedAt` aged to 25 h,
-  the stored post's date faked back, and a "New picture at" whose window ends before today's
-  post: the next run fetches it, marks it (`apod.afterGap`) and sets it. The same with
+- **V12b (V11b):** add B21, as V11a aged the checks: APOD alone, `checkedAt` (APOD's keys have
+  no prefix) aged to 25 h, the stored post's date faked back, and a "New picture at" whose
+  window ends before today's post: the next run fetches it, marks it (`afterGap`) and sets it. The same with
   `checkedAt` 1 h old: no mark, no set until the next change time. "A Set while a run
   goes": try again with a big rendition or the proxy (works only with Tailscale's VPN off on
   the tablet), else Not tested.
@@ -2449,8 +2474,8 @@ changes at about 06:00–06:20 (APOD comes out at 05:05 Zurich until 1 Nov, 06:0
 (the set came before the screen was first turned on). "New picture at" and "More NASA
 pictures" in Setup, and the pause hint's new "Unrestricted" text on the phone. A **reboot with the PIN**: no
 alarm armed until the first unlock (`BOOT_COMPLETED` waits for it), armed right after; a time
-zone change in Settings: armed again for the new zone's 06:00. After V1–V7 and their `B<n>`
-fixes. Report what was tested; a bug becomes a
+zone change in Settings: armed again for the new zone's 06:00. After V12a–d and V7 and their
+`B<n>` fixes. Report what was tested; a bug becomes a
 `B<n>` package (night.md, The morning, step 6) before R.
 
 ### [ ] R. Docs, changelog, store texts, screenshots (Opus, medium)

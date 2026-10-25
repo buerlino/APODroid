@@ -23,11 +23,21 @@ Two layers, and they need different fixes.
 **2. The phone maker's (on top of Android's).** dontkillmyapp.com ranks Huawei, Xiaomi, OnePlus
 and Samsung worst (5 of 5), then Oppo, Meizu, Asus (4), Vivo, realme, Motorola, Lenovo (3).
 Stock-like phones (Pixel, Nokia, the FP6) don't add a layer.
+**The friend's phone** (2026-10-25, from its About phone): Honor X60, model BRC-AN00 (the China
+model), MagicOS 9.0, Android 15, APODroid in use. App info has no "Unrestricted" row (the
+user's report): the pause hint's battery line names a path that isn't there.
 - **Xiaomi / Redmi / POCO** (MIUI, HyperOS): with **Autostart** off, a stopped app isn't started
   again by alarms, jobs or boot; plus Battery saver per app ("No restrictions") and locking in
   Recents. No public API; a library (MIUI-autostart) can read the Autostart state.
 - **Huawei / Honor** (EMUI, MagicOS): "App launch" → "Manage manually" with all three switches;
-  PowerGenie (EMUI 9+) kills apps not on its own list, and no user setting stops it.
+  PowerGenie (EMUI 9+) kills apps not on its own list, and no user setting stops it. On
+  MagicOS (Honor since the split from Huawei): Settings → Apps → Apps → the app → Battery usage
+  details → App launch settings (or Settings → Battery, the app), "Manage automatically" off,
+  then "Auto-launch", "Secondary launch" and "Run in background" on ("Run in background" stops
+  the freeze with the screen off). Android's Doze allowlist is there as Settings → search
+  "Battery optimisation" → "All apps" → the app → "Don't allow": the same exemption as
+  "Unrestricted", so `isIgnoringBatteryOptimizations` sees it (sportstracklive.com's Honor
+  guide; MagicOS 9 itself unchecked).
 - **Samsung** (One UI): "Sleeping apps" and "Deep sleeping apps" after about 3 days unused (no
   alarms then); "Never sleeping apps" and "Unrestricted". Samsung says foreground services that
   follow Android 14's rules work since One UI 6.0.
@@ -92,11 +102,27 @@ battery."
     info, allow Autostart and set Battery saver to No restrictions.", Samsung "In Battery, add
     APODroid to Never sleeping apps.", Oppo/realme/OnePlus "In App info, allow background
     activity and auto launch.", Vivo/iQOO "In App info, allow high background power use and
-    Autostart.", Huawei/Honor "In Battery, App launch, set APODroid to Manage manually with all
-    switches on.", others "In App info, allow APODroid to run in the background." The paths are
+    Autostart.", Huawei/Honor "In App info, Battery usage details, App launch settings, turn off
+    Manage automatically and turn on all three switches.", others "In App info, allow APODroid to run in the background." The paths are
     from dontkillmyapp.com; check them on real phones where possible. Buttons "App info" and
     "Dismiss".
 - The pref: `missedAt` (T of the last miss) and the dismissed one; nothing else stored.
+
+### The pause hint per maker
+
+(User, 2026-10-25, after the Honor X60: in 0.7.0, not as a 0.6.0 fix.) The detection is right
+everywhere (`isIgnoringBatteryOptimizations`, which a maker's "Battery optimisation" list sets
+too); the battery line's text is the Pixel's path ("App battery usage → Allow background usage
+→ Unrestricted"). Planned:
+- The line names the phone's own path by `Build.MANUFACTURER`, as the detector's texts (Honor:
+  "Battery optimisation" → "Don't allow"; with the App launch line from the detector), the
+  Pixel path on stock-like phones.
+- Beside "App info" a button that opens Android's Battery optimisation list
+  (`Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`; no permission, unlike
+  `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, which stays rejected), where App info has no
+  Unrestricted row or always (to decide with the texts).
+- The texts are the user's to approve, from screenshots; the paths checked on the friend's
+  Honor where possible (no adb there: by the friend's screenshots).
 
 ### D. Live (0.7.0's headline) checks when the screen turns on
 
@@ -120,8 +146,9 @@ detector then recommends Live.
    after a force stop, as now).
 6. The detector: alarms cancelled (`am force-stop` overnight), a page open after the change
    time: the box; a boot after the change time: no box.
-7. If the friend's phone can be lent (or adb over Wi-Fi): Autostart off, then on, with "Exact
-   timing" on.
+7. The friend's Honor X60 (MagicOS 9, Android 15; the friend keeps it, no adb): with App launch
+   on "Manage automatically" and then manual with all three switches, "Exact timing" on: the
+   status line's time after a morning, by the friend's screenshots.
 
 ## F-Droid and Obtainium
 
@@ -148,4 +175,4 @@ detector then recommends Live.
 Sources: developer.android.com (Restrictions on starting a foreground service from the
 background; Schedule exact alarms are denied by default, Android 14; Foreground service types;
 Foreground service timeouts; App Standby buckets); dontkillmyapp.com (ranking, Xiaomi, Samsung,
-Huawei).
+Huawei); sportstracklive.com's Honor guide (MagicOS paths).

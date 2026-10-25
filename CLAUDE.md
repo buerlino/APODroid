@@ -1160,6 +1160,10 @@ Decided:
   with no job run started since (not after a boot, an update or the switch turned on since),
   shows a box at the first miss pointing to "Exact timing"; with it already on, the maker's
   settings path for `Build.MANUFACTURER` and "App info".
+- **The pause hint per maker** (after the friend's Honor X60, MagicOS 9: App info has no
+  "Unrestricted"): the battery line names the phone's own path (`Build.MANUFACTURER`), and a
+  button opens Android's Battery optimisation list (`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`,
+  no permission). The detection (`isIgnoringBatteryOptimizations`) already works there.
 - **Live (D)** checks for a new picture when the screen turns on (the system keeps the current
   live wallpaper running).
 - Rejected: a permanent foreground service with a permanent notification, `setAlarmClock`,

@@ -516,7 +516,8 @@ packages unattended): `night.md`.
   clock's next check. No crash (`exit-info`). Still open (the 50-minute time box: the 15 real
   minutes ran twice, because job 1's own restart spoiled the first try): V11a's other items on
   this tree (reboot, time zones, the clock ±3 h, Doze Unrestricted, Doze Optimized with
-  `working_set`, battery saver, `force-stop` and airplane mode during a run), the switch off
+  `working_set`, battery saver, `force-stop` and airplane mode during a run, a page open
+  during a run (B16f1's retry kept)), the switch off
   mid-run (B19's "Daily job: stopped (the switch off)"), and low storage during Set (B20's
   toast, Setup open). Left after it: one shared wallpaper (APOD on both screens, which the
   records name) instead of home and lock set apart. Evidence in the run's `tablet/`.

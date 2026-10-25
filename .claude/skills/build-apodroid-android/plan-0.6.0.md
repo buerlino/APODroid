@@ -498,6 +498,17 @@ reading; their build check passed, 108 tests with `private/`):
    B17 → CR2 → B18 → V11a → V11d → V11b → V11c (riskiest first, user) → the regression. What
    doesn't fit runs on Sunday by day. **Sun 25 to Mon 26:** V7. **Mon 26 evening:** P. Then
    R and T.
+4h. **The night of 2026-10-24/25** (user, 2026-10-25 morning, after the report
+   `.coord/reports/2026-10-24-night.md`): B17, CR2, B18 and V11a–d merged (V11a's STOP was
+   Android, no app bug; its results merged by hand), regression 9 PASS; master fast-forwarded.
+   Accepted (`CLAUDE.md`, 0.6.0's release gate): the RARE bucket's quota, the menu's swallowed
+   tap, CR2's finding 4, the 97% edge threshold. To fix (user: "fix all bugs and retest"):
+   **B19** (a killed run keeps its retry; the switch's stop not logged as a failure), **B20**
+   (Set says when its setup couldn't be saved), **B21** (one source after a day offline), then
+   the final pass again in full, **V12a–d**. **Tonight (Sun 25):** B19 → B20, B21, then V12a →
+   V12d → V12b → V12c → the regression. **Mon 26 to Tue 27:** V7 (tablet, by hand) and P's real
+   night (FP6: the release build installed in the evening without opening the page), side by
+   side. Then the rest of P by day, R and T.
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then R and T.
 Left as is (2026-10-20): the compiler warning on `JobInfo.networkType` in `DailyJob.ensure`
@@ -1496,8 +1507,10 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
 **Moved after J1–J3** (user, 2026-10-22 evening): it tests the new job. Its setup then also
 takes the picture time and the three rules (`CLAUDE.md`, Next features): Home APOD alone,
 Lock NASA + Earth every 3 h, "New picture at" 06:00 (change times 06, 09, …, 00, 03). On
-battery (below). **The night of Sunday 25 to Monday 26 Oct** (user, 2026-10-23: a weekday
-morning brings new NASA and Earth posts; the DST night is faked in J2's check instead).
+battery (below). **The night of Monday 26 to Tuesday 27 Oct** (user, 2026-10-25: moved a night for
+B19–B21 and V12; was Sunday 25 to Monday 26, user, 2026-10-23: a weekday morning brings new NASA
+and Earth posts; the DST night is faked in J2's check instead). The weekend lines below were
+written for Sunday night: session 1 writes the night's own expectations from the stored posts.
 Expect, Zurich time (EU on winter time, the US not until 1 Nov: APOD at 05:05, Earth at 05:00):
 - Home: Monday's APOD on at 06:00 plus the offset and the alarm's window (about 06:00–06:20).
   The Zurich case (yesterday's still on at 06:00) can't happen before 1 Nov; J2's faked clock
@@ -2301,6 +2314,89 @@ posts with chosen picture times and the network cut stand in for a made-up feed.
   daily switch is on, Advanced hidden while it's off); the switch on arms the pair.
 - **The new Setup** at font scale 2.0 at a phone's width (`wm density 344`): the mode switch at
   the top, "New picture at", the list.
+- **Done when:** each item ran or is under Not tested; the tablet set back.
+
+### [ ] B19. The job: a killed run keeps its retry; the switch's stop isn't logged as a failure (Opus, high)
+
+(User, 2026-10-25, from V11a's findings 2 and 4; a bug fix under the freeze.)
+- **A killed run keeps its retry.** V11a: `install -r` during a run killed it before its end;
+  `MY_PACKAGE_REPLACED`'s `ensure` armed the clock's next check (05:24 for a 04:27 run) and
+  dropped the start's pair (start + 15 min). The same for any arming in a new process (boot, a
+  page open) after `kill -9`, the low-memory killer or a Recents swipe. Android re-ran job 1 by
+  itself that time; a killed id 2 it doesn't. Fix: a run that started and never ended counts
+  as going for `Store.nextAlarm` in every process, so B16f1's rule keeps its retry (the earlier
+  of the clock's next check and `lastRunAt` + 15 min, at the earliest now). E.g. a pref noted
+  in `runStarts` and removed in `ranJob` and `switchDaily`; `nextAlarm`'s `running` is true while
+  it's there. Whether such a run also counts as failed (`failedRuns`), decide by what keeps the
+  rules simplest; say which in the report.
+- **The switch off mid-run** logs "Daily job failed: java.io.InterruptedIOException" with a
+  stack (`DailyJob.onStartJob`): a run dropped by the switch (`runs.counts(generation)` false)
+  logs one info line, "Daily job: stopped (the switch off)", no stack. A stop by Android stays a
+  failure (it counts and is retried).
+- **Files:** `DailyJob.kt`, `Store.kt`; `CLAUDE.md` (Background update: Retries by the alarms;
+  e8709b1's note that a killed run loses its retry goes).
+- **Tablet:** a run made long (V11a's way: a source's date faked back), then `install -r` of
+  the same build 1–2 s in: `dumpsys alarm` shows the pair at the run's start + 15 min (or at
+  once), not the clock's next check; the same with `run-as … kill -9` and a page open after it.
+  The daily switch off 2 s into a run: the info line, no "failed". Then the smoke list.
+- **Done when:** a `:core` or `Store`-level test where one fits, the tablet passes.
+
+### [ ] B20. Set says when its setup couldn't be saved (Opus, medium)
+
+(User, 2026-10-25, from V11a's finding 3; the text approved by the user the same day.) On a
+full disk Android's prefs write failed too: only `apodroid.xml.bak` was left, and Set's setup
+lived only in the process's memory (lost if it died first), while the toast said "Wallpaper
+set". `prefs.edit(commit = true) { }` (core-ktx) drops `commit()`'s result.
+- Fix: `Store.saveSetup` returns whether its commit was written (`edit()…commit()`). When it
+  wasn't, Set's toast is **"Couldn't save the setup. Check the free space."** instead of the
+  others, and Setup stays open (as after a failed set). The sets still run (the setup is in
+  memory; V11a: they came from the stored pictures).
+- **Files:** `Store.kt`, `MainActivity.kt` (Set's toast); `CLAUDE.md` (Settings, Set as
+  wallpaper: the toasts).
+- **Tablet:** V11a's way (`fallocate` to 0 bytes free, the checks aged 1 h): Set shows the new
+  toast and Setup stays open; space freed, another Set says "Wallpaper set" and closes it. Then
+  the smoke list. `/data/local/tmp/fill*` removed at the end.
+- **Done when:** built, the tablet passes.
+
+### [ ] B21. One source after a day offline: the newest goes on (Opus, high)
+
+(User, 2026-10-25, from CR2's finding 3; a change to rule 2.) With one source, the post due at a
+change time never shows when a newer one, published after the window, is stored first: Los
+Angeles, APOD alone, 06:00, the phone off or offline from 20:00 on day D−1 to 22:00 on day D;
+the 22:00 fetch stores D's 21:05 post (after D's 09:00), nothing is set, and D−2's picture stays
+until 06:00 on D+1 (also NASA alone in Europe, Earth in the Americas). Only the newest post per
+source is stored, so D−1's is gone.
+- Fix (`:core`, `dueWallpapers`, the one-source path): when the screen's last shown post of
+  the source (its `shown` note) is **two or more days older, by date, than the source's newest
+  stored post**, the newest goes on whenever a run sees it, as a pull would; the change time
+  kept. A normal evening (the screen on D−1, D's post out after the window) is one day: it
+  waits, as now. Never back still holds. Turns aren't changed (their next change time moves on
+  anyway).
+- **Files:** `Screens.kt`, `ScreensTest`; `CLAUDE.md` (Turns and the picture time, rule 2; Next
+  features, 0.6.0: the picture time, rule 2's line).
+- **Tablet:** none of its own; V12b checks it on a faked clock.
+- **Done when:** a test that fails on the old code (CR2's Los Angeles steps) and one for the
+  normal evening, all `:core` tests pass.
+
+### [ ] V12. The final pass again, on the tree with B19–B21 (Opus, high)
+
+(User, 2026-10-25: fix A–D, then V11a–d again in full, before V7 and P.) V12a–d each run their
+V11 section (V11a, V11d, V11b, V11c) on dev's tree after B19–B21 (say which of them are
+merged), with these changes:
+- **V12a (V11a):** Doze, Optimized with `working_set` at once (RARE's quota, about one alarm an
+  hour, was seen and accepted). Instead of tonight's DST change (V11a's night is past):
+  **the safety alarm after `kill -9` alone**: 15 real minutes with nothing re-arming (no page
+  open, no clock step, no `run -f`), then a run from the start's pair. `install -r` and
+  `kill -9` during a run: the retry kept (B19). The switch off mid-run: B19's info line. Low
+  storage during Set: B20's toast, Setup open.
+- **V12d (V11d):** as written, on the new tree.
+- **V12b (V11b):** add B21: APOD alone (or NASA alone), the network off (airplane mode) from a
+  day's evening to the next day's evening on the faked clock (posts' dates faked as V11b did),
+  then on: the newest goes on at the next run; and the normal evening (the screen on yesterday's,
+  today's post out after the window): not set until the next change time. "A Set while a run
+  goes": try again with a big rendition or the proxy (works only with Tailscale's VPN off on
+  the tablet), else Not tested.
+- **V12c (V11c):** as written.
 - **Done when:** each item ran or is under Not tested; the tablet set back.
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)

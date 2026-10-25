@@ -47,7 +47,8 @@ hm() { date -d "@$(now)" +%H:%M; }
 deadline=""
 if [[ -n "$until_hm" ]]; then
   deadline="$(date -d "$(date -d "@$(now)" +%F) $until_hm" +%s)"
-  (( deadline > $(now) )) || deadline=$((deadline + 86400))  # the next HH:MM after the start
+  # The next HH:MM after the start: a calendar day on, not 86400 s (a DST day has 23 or 25 hours).
+  (( deadline > $(now) )) || deadline="$(date -d "$(date -d "@$(now)" +%F) + 1 day $until_hm" +%s)"
 fi
 until_text="${deadline:+, until $(date -d "@$deadline" '+%F %H:%M')}"
 

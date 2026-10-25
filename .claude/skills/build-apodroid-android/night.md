@@ -160,6 +160,13 @@ first: **V11a** (the system against the new job), **V11d** (R8 and the update fr
 rows have no After: they run after B18 also when it stays unmerged (they say which tree they tested). What doesn't fit
 runs on Sunday by day. V7 follows on the night of 25 Oct, by hand.
 
+Tonight (user, 2026-10-25 morning, from that night's report: "fix all bugs and retest"; the plan, Remaining 4h): **B19**
+(a killed run keeps its retry, the switch's stop logged as such), **B20** (Set's toast when its setup couldn't be saved;
+after B19, both change `Store.kt`), **B21** (`:core`: one source after a day offline), then the final pass again in full,
+**V12a → V12d → V12b → V12c** (each its V11 section plus the plan's V12), rosie as each row's worker, then the regression.
+The V12 rows have no After: they run also when a B row stays unmerged (they say which tree they tested). V7 moves to
+the night of 26 Oct, by hand, beside P's real night on the FP6.
+
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
 | 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
@@ -214,6 +221,13 @@ runs on Sunday by day. V7 follows on the night of 25 Oct, by hand.
 | 50 | V11d | Final pass 2: R8 and the update from 0.5.0 without opening the page | rosie | opus, high | no | — | plan V + plan V11d |
 | 51 | V11b | Final pass 3: the rules on a faked clock | rosie | opus, high | no | — | plan V + plan V11b |
 | 52 | V11c | Final pass 4: what a user does to the new UI | rosie | opus, high | no | — | plan V + plan V11c |
+| 53 | B19 | The job: a killed run keeps its retry; the switch's stop isn't a failure | winston | opus, high | yes | — | plan B19 |
+| 54 | B20 | Set says when its setup couldn't be saved | winston | opus, medium | yes | B19 | plan B20 |
+| 55 | B21 | One source after a day offline: the newest goes on | winston | opus, high | no | — | plan B21 |
+| 56 | V12a | Final pass again 1: what the system does to the job | rosie | opus, high | no | — | plan V + plan V11a + plan V12 |
+| 57 | V12d | Final pass again 2: R8 and the update from 0.5.0 | rosie | opus, high | no | — | plan V + plan V11d + plan V12 |
+| 58 | V12b | Final pass again 3: the rules on a faked clock | rosie | opus, high | no | — | plan V + plan V11b + plan V12 |
+| 59 | V12c | Final pass again 4: what a user does to the new UI | rosie | opus, high | no | — | plan V + plan V11c + plan V12 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

@@ -33,7 +33,7 @@ packages unattended): `night.md`.
   tests in `TurnTest`; the Set clock, `isTurnOver` and `turnSlack`, went in J1).
   `core/.../PictureTime.kt` (0.6.0, J1): `PictureTime(pictureAt, everyHours)` with `hours`,
   `last`, `next`, `isChangeTime` (the change times in a zone, on the clock's hours through DST),
-  `pictureWindow` (3 h), `firstCheck` (15 min), `nextRun(now, zone, failures, time, turns,
+  `pictureWindow` (3 h), `checkGap` (24 h) and `afterGap(lastCheck, now)` (a new post stored after more than a day without a successful check, B21), `firstCheck` (15 min), `nextRun(now, zone, failures, time, turns,
   offset, waiting, lastRun)` (when the alarms should run next; at `now` for a check passed since
   `lastRun`, B16), `nextAlarm(now, zone, failures, failedAt, …, lastRun, running)` (while a run goes no later than `lastRun` + `runRetry(failures)`, B16f1, B19), `runRetry(failures)` (a run's own retry should it never end: 15 min, an hour after one or more failures, B19)
   (J2: the same, armed at any time, keeping a failed run's retry), `randomOffset` and `maxOffset`
@@ -41,8 +41,8 @@ packages unattended): `night.md`.
   New York and UTC with a run at each `nextRun`, offline spells and pulls, B15).
   `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
   `screensOf` and `placing` (S2: the list's change, a source on exactly its screens),
-  `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in:
-  `picture(source)`, `isNew(source, shown)`, `publishedBefore(source, limit)`, B15), `Record` (owner, picture, stamp: the change time,
+  `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in, the posts after a gap:
+  `picture(source)`, `isNew(source, shown)`, `publishedBefore(source, limit, orAfterGap)`, B15, B21), `Record` (owner, picture, stamp: the change time,
   `shown`: the last post shown per source; `forget()`), and the pure functions returning a
   `Plan` (records, `sets` grouped by picture): `dueWallpapers(columns, records, stored, time,
   zone, now, pull)` (each run, J1's three rules; equal columns: the lock screen follows home's
@@ -56,7 +56,7 @@ packages unattended): `night.md`.
   `core/.../Migration.kt` (0.6.0, M2): `migrate`, 0.5.0's prefs → 0.6.0's keys, run once by
   `Store.migrateOnce` (tests in `MigrationTest`).
 - `app/.../Store.kt`: per source (`post(source)`, `imageFile(source)`; APOD's keys unprefixed
-  and `apod.jpg`, the others `nasa.<key>` / `earth.<key>` and `nasa.jpg` / `earth.jpg`) prefs (also `daily`, `pauseHintHidden`; `checkedAt`, `problem`, `httpCode`,
+  and `apod.jpg`, the others `nasa.<key>` / `earth.<key>` and `nasa.jpg` / `earth.jpg`) prefs (also `daily`, `pauseHintHidden`; `checkedAt`, `problem`, `httpCode`, `afterGap` (B21, written by `refresh` with a new post),
   `wallpaperSetAt` for the problem and status lines), `update(force, page, show, set)` (what the
   page, the pull, Set and the job run: refresh the sources in use and `show`, noting how the
   check went, then set while `daily` is on or with `set`; returns `Updated`: what it set,

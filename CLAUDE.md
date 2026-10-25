@@ -825,8 +825,23 @@ page or job):
    time kept. With one source this is the whole rule: from each change time T (the last one ≤
    now, taken by every run) the screen shows the newest stored picture published before T + 3 h,
    whenever a run sees it, a function of the clock and the posts (a failed or offline check
-   moves nothing). A pull, Set, a forgotten picture and a new screen put the newest on at once,
-   whenever it was published; the next change time's target then decides. **Never back:** a
+   moves nothing). **After a day offline** (B21, 2026-10-25, CR2's finding 3): with one source
+   a new post stored when the source's last successful check (`checkedAt`, read before this
+   check notes it) is more than 24 h old (`:core`'s `afterGap`) is marked (`<source>.afterGap`,
+   written with the post by `Store.refresh`; the same post again keeps it, the next post
+   replaces it; a post stored before B21 has none, no migration) and goes on whenever a run
+   sees it, as a pull would, the change time kept (`Stored.gaps`, `publishedBefore`'s
+   `orAfterGap`): else a phone offline from 20:00 on D−1 to 22:00 on D in Los Angeles stored
+   D+1's 21:05 post, set nothing, and kept D−2's picture until 06:00 on D+1 (only the newest
+   post is stored, so D's was gone). No `checkedAt` yet is no gap. Weekends aren't gaps: the
+   change time's checks succeed with nothing new and note `checkedAt` (also when `isCurrent`
+   skips the fetch); not by post dates, which NASA's and Earth's weekends would trigger every
+   Monday. On APOD's video day APOD's post and the stand-in's each have to be in the window or
+   marked (as the publish time counts for both), so the stand-in's first fetch of a video day,
+   usually marked, doesn't put it on in Los Angeles' normal evening. Turns ignore the mark. A
+   phone in the RESTRICTED bucket (one alarm a day) can have such gaps daily: its newest goes on
+   whenever that run comes (accepted). A pull, Set, a forgotten picture and a new screen put the
+   newest on at once, whenever it was published; the next change time's target then decides. **Never back:** a
    picture of the same source older (by date) than the one on the screen isn't set.
 3. **Nothing new** (several sources only): the picture and the stamp stay, so every check tries
    again (the screen **waits**, `waiting`): the first new picture of a ticked source goes on as
@@ -971,6 +986,10 @@ decided by the clock, not by what's on the screen):
   day for a post first seen after 09:00 (an Optimized phone in Doze, a 503 until then, a slow
   download), and with one source a failed check moved the stamp so a later one set nothing. By
   the publish time a screen with one source has no history.
+- **After a day without a check the newest goes on** (user, 2026-10-25, B21): with one source a
+  post stored more than 24 h after the source's last successful check goes on whenever a run
+  sees it, as a pull would; else a day offline lost the day's picture to the next one, stored
+  after the window. By the check gap, not by post dates (NASA's and Earth's weekends).
 - **Los Angeles with turns, accepted** (user, 2026-10-24): an evening Set or pull there puts the
   new 21:05 APOD on; on a weekend the next morning then has nothing new, so the screen waits and
   changes the next evening (rule 3 as written), back on the change times within a day or two.

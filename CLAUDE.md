@@ -967,7 +967,18 @@ the drawing is new (A3) and Setup changed (J3, A4), and no R8 build or update fr
 the new job. Decided the same evening (Opus pass 18's questions): the APOD-mode video notice
 follows `standInReady` as "More NASA pictures" mode does (B17); a stand-in's own publish time
 counts for the window (a newer post of the standing-in source within 3 h replaces it); B15's
-notice texts approved.
+notice texts approved. V11a–d done on dev 27c598e (the night of 2026-10-24/25; V11a's STOP was
+Android, no app bug). **Accepted for 0.6.0** (user, 2026-10-25, from the night's report; no
+change): the RARE bucket's about one alarm an hour (the pause hint covers Optimized); an
+update (`install -r`) that kills a run loses its 15-min retry (Android re-ran the job; 0.7.0
+may count `failedRuns` at a run's start); a full disk fails the prefs write too, so Set's setup
+lives only in memory until a later write (0.7.0 may toast when `saveSetup`'s commit fails); the
+"Daily job failed: InterruptedIOException" log line when the switch goes off mid-run; CR2's
+finding 3 (one source, a phone off or offline over a day: the post due at a change time is
+skipped when a newer one, published after the window, is stored first; look again in 0.7.0)
+and finding 4 (a Set that changes the picture time or "Change every" costs one spare check); a
+Set tap in the same input burst as the time menu's closing goes to the menu (Compose's popup);
+`edgesBlack`'s 97% kept (Earth's El Niño globe, 96.5%, gets the blur; revisit with Live, 0.7.0).
 
 **0.6.0: the picture time** (user, 2026-10-22, after the FP6 showed the job's 6 h rhythm;
 packages J0–J3 in `plan-0.6.0.md`, before V7 and P). **Seen on the FP6** (0.5.0, battery

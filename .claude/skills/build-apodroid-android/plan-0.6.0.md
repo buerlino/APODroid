@@ -2124,7 +2124,7 @@ After A3 (user, 2026-10-23 night; J3 comes after it).
   the toggle).
 - **Done when:** built, the tablet passes, the texts listed for the user.
 
-### [ ] B17. The APOD-mode video notice follows `standInReady` (Opus, medium)
+### [x] B17. The APOD-mode video notice follows `standInReady` (Opus, medium)
 
 (User, 2026-10-24 evening, from Opus pass 18's question.) In APOD mode `VideoNotice` says "…
 takes its place once it has loaded." whenever the stand-in isn't the picture's source yet, also
@@ -2140,7 +2140,7 @@ while it is loaded and only waits for the change time.
   smoke list.
 - **Done when:** built, the tablet passes.
 
-### [ ] CR2. Code review of what changed since 910bfeb, read as a whole (Opus, high)
+### [x] CR2. Code review of what changed since 910bfeb, read as a whole (Opus, high)
 
 (User, 2026-10-24 evening: before the final tablet pass, V11; CR's form.) By reading, no
 device, no code changes. `git diff 910bfeb..HEAD -- core/src/main app/src/main` and the whole of
@@ -2173,7 +2173,7 @@ say how sure. Commit it, then the report commit.
   not a FIX: B18 checks each again.
 - **Done when:** every file read (listed in the report), the findings committed.
 
-### [ ] B18. CR2's bugs (Opus, high)
+### [x] B18. CR2's bugs (Opus, high)
 
 After CR2. Its findings in `review-0.6.0-cr2.md` on `dev`. For each, check it again in the code
 first. Then:
@@ -2193,7 +2193,7 @@ report only.
 - **Done when:** each finding fixed, a QUESTION, or argued wrong; the checks pass; the tablet
   passes.
 
-### [ ] V11a. Final pass 1: what the system does to the new job (Opus, high)
+### [x] V11a. Final pass 1: what the system does to the new job (Opus, high)
 
 (User, 2026-10-24 evening: the final tablet pass, a release condition; V9 redone for the alarms.
 The rows' rules: V.) The tree with B17 and B18 (or without B18 when it stayed unmerged: say
@@ -2237,7 +2237,7 @@ at the end (J2). "More NASA pictures" on with turns on one screen, unless an ite
   history from tonight is still there, what it shows; else Not tested.
 - **Done when:** each item ran or is under Not tested with the reason; every setting set back.
 
-### [ ] V11d. Final pass 2: R8 and the update from 0.5.0 without opening the page (Opus, high)
+### [x] V11d. Final pass 2: R8 and the update from 0.5.0 without opening the page (Opus, high)
 
 (V5 and V6 redone on the new job; the rows' rules: V.) R8 builds signed with the debug key (the
 skill): `v0.5.0` (a worktree of the tag) and the current tree.
@@ -2261,7 +2261,7 @@ skill): `v0.5.0` (a worktree of the tag) and the current tree.
 - **Done when:** each item ran or is under Not tested; the tablet set back (the original app
   data restored).
 
-### [ ] V11b. Final pass 3: the rules on a faked clock (Opus, high)
+### [x] V11b. Final pass 3: the rules on a faked clock (Opus, high)
 
 (The rules' cases no device has seen; the rows' rules: V.) Debug build, `auto_time` off. Real
 posts with chosen picture times and the network cut stand in for a made-up feed.
@@ -2285,7 +2285,7 @@ posts with chosen picture times and the network cut stand in for a made-up feed.
 - A failed set retried after 09:00: Not tested unless a way to fail a set exists (V3).
 - **Done when:** each item ran or is under Not tested.
 
-### [ ] V11c. Final pass 4: what a user does to the new UI (Opus, high)
+### [x] V11c. Final pass 4: what a user does to the new UI (Opus, high)
 
 (V10 redone where J3, A3 and A4 changed the page; the rows' rules: V.)
 - **Fast taps** (one `input` line): Set three times; the daily switch five times; "New picture

@@ -2327,8 +2327,11 @@ posts with chosen picture times and the network cut stand in for a made-up feed.
   as going for `Store.nextAlarm` in every process, so B16f1's rule keeps its retry (the earlier
   of the clock's next check and `lastRunAt` + 15 min, at the earliest now). E.g. a pref noted
   in `runStarts` and removed in `ranJob` and `switchDaily`; `nextAlarm`'s `running` is true while
-  it's there. Whether such a run also counts as failed (`failedRuns`), decide by what keeps the
-  rules simplest; say which in the report.
+  it's there. **Such a run counts as failed** (user, 2026-10-25, from the day's review), like a
+  stop by Android: a run that starts and finds the previous run's note still there counts that
+  one in `failedRuns` (and `failedAt`) before its own work, so a crash on every run (e.g. out of
+  memory decoding a huge picture, never stored, downloaded again each time) is retried 15 min
+  later, then hourly, not every 15 min all day.
 - **The switch off mid-run** logs "Daily job failed: java.io.InterruptedIOException" with a
   stack (`DailyJob.onStartJob`): a run dropped by the switch (`runs.counts(generation)` false)
   logs one info line, "Daily job: stopped (the switch off)", no stack. A stop by Android stays a
@@ -2338,6 +2341,7 @@ posts with chosen picture times and the network cut stand in for a made-up feed.
 - **Tablet:** a run made long (V11a's way: a source's date faked back), then `install -r` of
   the same build 1–2 s in: `dumpsys alarm` shows the pair at the run's start + 15 min (or at
   once), not the clock's next check; the same with `run-as … kill -9` and a page open after it.
+  The next run's start counts the killed one: `failedRuns` 1 in the prefs.
   The daily switch off 2 s into a run: the info line, no "failed". Then the smoke list.
 - **Done when:** a `:core` or `Store`-level test where one fits, the tablet passes.
 
@@ -2366,17 +2370,30 @@ Angeles, APOD alone, 06:00, the phone off or offline from 20:00 on day D−1 to 
 the 22:00 fetch stores D's 21:05 post (after D's 09:00), nothing is set, and D−2's picture stays
 until 06:00 on D+1 (also NASA alone in Europe, Earth in the Americas). Only the newest post per
 source is stored, so D−1's is gone.
-- Fix (`:core`, `dueWallpapers`, the one-source path): when the screen's last shown post of
-  the source (its `shown` note) is **two or more days older, by date, than the source's newest
-  stored post**, the newest goes on whenever a run sees it, as a pull would; the change time
-  kept. A normal evening (the screen on D−1, D's post out after the window) is one day: it
-  waits, as now. Never back still holds. Turns aren't changed (their next change time moves on
-  anyway).
-- **Files:** `Screens.kt`, `ScreensTest`; `CLAUDE.md` (Turns and the picture time, rule 2; Next
-  features, 0.6.0: the picture time, rule 2's line).
+- **Not by post dates** (the day's review, 2026-10-25): NASA and Earth post Monday to Friday
+  only, so a date rule ("the screen's post two or more days older than the newest") would put
+  Monday's NASA on Monday afternoon in Europe, and Monday's Earth on Monday afternoon in Sydney
+  or on Sunday evening in the Americas, every week, instead of at the next change time.
+- Fix (`Store.refresh`, `:core`'s one-source path): a new post stored when the source's last
+  successful check (`<source>.checkedAt`, read before this check writes it: `refresh` runs
+  before `checkSite` notes it) is **more than 24 h old** is marked (`<source>.afterGap`,
+  written with the post; a post stored before B21 has none, no migration). `Stored` carries
+  the mark, so `dueWallpapers` takes no new argument. With one source, a marked newest post
+  goes on whenever a run sees it, as a pull would; the change time kept. The mark lives with
+  the post, so a set that fails or a run stopped between the fetch and the set doesn't lose it;
+  once the post is on, `show()` doesn't set it again, and the next post replaces the mark (a
+  same-date rewrite of the same post, a changed title or explanation, keeps it).
+  Weekends and weekdays without a post aren't gaps: the checks at each change time succeed with
+  nothing new and still note `checkedAt` (also when `isCurrent` skips the fetch). Never back
+  holds. Turns aren't changed (their next change time moves on anyway).
+- **A side effect, accepted:** a phone in the RESTRICTED standby bucket (one alarm a day) can
+  have gaps over 24 h every day, so its newest goes on whenever that one run comes; its timing
+  is off anyway. `CLAUDE.md` says so.
+- **Files:** `Store.kt` (`refresh`, `stored()`), `Screens.kt`, `ScreensTest`; `CLAUDE.md` (Turns
+  and the picture time, rule 2; Next features, 0.6.0: the picture time, rule 2's line).
 - **Tablet:** none of its own; V12b checks it on a faked clock.
-- **Done when:** a test that fails on the old code (CR2's Los Angeles steps) and one for the
-  normal evening, all `:core` tests pass.
+- **Done when:** a test that fails on the old code (CR2's Los Angeles steps); tests that NASA
+  Friday → Monday with daily checks and the normal evening stay unset; all `:core` tests pass.
 
 ### [ ] V12. The final pass again, on the tree with B19–B21 (Opus, high)
 
@@ -2390,10 +2407,10 @@ merged), with these changes:
   `kill -9` during a run: the retry kept (B19). The switch off mid-run: B19's info line. Low
   storage during Set: B20's toast, Setup open.
 - **V12d (V11d):** as written, on the new tree.
-- **V12b (V11b):** add B21: APOD alone (or NASA alone), the network off (airplane mode) from a
-  day's evening to the next day's evening on the faked clock (posts' dates faked as V11b did),
-  then on: the newest goes on at the next run; and the normal evening (the screen on yesterday's,
-  today's post out after the window): not set until the next change time. "A Set while a run
+- **V12b (V11b):** add B21, as V11a aged the checks: APOD alone, `apod.checkedAt` aged to 25 h,
+  the stored post's date faked back, and a "New picture at" whose window ends before today's
+  post: the next run fetches it, marks it (`apod.afterGap`) and sets it. The same with
+  `checkedAt` 1 h old: no mark, no set until the next change time. "A Set while a run
   goes": try again with a big rendition or the proxy (works only with Tailscale's VPN off on
   the tablet), else Not tested.
 - **V12c (V11c):** as written.

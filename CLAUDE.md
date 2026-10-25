@@ -959,8 +959,8 @@ wake and fail offline).
 ## Next features
 
 **0.6.0's release gate** (user, 2026-10-24 evening, from a review of the plan): a code freeze
-from 25 Oct: only bug fixes, no new texts or settings unless a bug needs one. Stable when V11a–d,
-V7 and P all pass on the same tree with no open `BUG:` line; a fix after V7 or P that touches the
+from 25 Oct: only bug fixes, no new texts or settings unless a bug needs one. Stable when V12a–d
+(V11a–d again on the tree with B19–B21; user, 2026-10-25), V7 and P all pass on the same tree with no open `BUG:` line; a fix after V7 or P that touches the
 job or the rules reruns that part; the skill's "Still untested" is updated; the release slips a
 day rather than ship a job change only a unit test has seen. Why: the last complete passes
 (V3–V10) ran on the tree of 21–22 Oct; since then the job was rebuilt (J1, J2, B15, B16, B16f1),
@@ -971,10 +971,15 @@ counts for the window (a newer post of the standing-in source within 3 h replace
 notice texts approved. V11a–d done on dev 27c598e (the night of 2026-10-24/25; V11a's STOP was
 Android, no app bug). From the night's report (user, 2026-10-25: "fix all bugs and retest",
 then V11a–d again in full as V12a–d before V7 and P): **to fix** (`plan-0.6.0.md`), a run killed
-by an update or the system keeps its 15-min retry and the switch's stop isn't logged as a
-failure (B19), Set's toast "Couldn't save the setup. Check the free space." when its prefs
+by an update or the system keeps its 15-min retry and counts as failed (a crash on every run is
+then retried hourly, not every 15 min), and the switch's stop isn't logged as a failure (B19),
+Set's toast "Couldn't save the setup. Check the free space." when its prefs
 commit fails on a full disk (B20; text approved), one source after a day offline takes the
-newest post (B21, CR2's finding 3). **Accepted, no change:** the RARE bucket's about one alarm
+newest post (B21, CR2's finding 3; by the check gap, not by post dates: the day's review found
+that NASA's and Earth's weekends would trigger a date rule every Monday; a post stored when the
+source's last good check is over 24 h old is marked and goes on whenever a run sees it. Accepted
+with it: on a phone in the RESTRICTED bucket, one alarm a day, gaps over 24 h can come daily, so
+its newest goes on whenever that run comes). **Accepted, no change:** the RARE bucket's about one alarm
 an hour (Android's quota; the pause hint covers Optimized); CR2's finding 4 (a Set that
 changes the picture time or "Change every" costs one spare check; noting `lastRunAt` at Set
 could drop an owed check); a Set tap in the same input burst as the time menu's closing goes to

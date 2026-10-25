@@ -37,6 +37,7 @@ import io.github.buerlino.apodroid.core.StorageFailed
 import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.Stored
 import io.github.buerlino.apodroid.core.TooLarge
+import io.github.buerlino.apodroid.core.afterGap
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.download
@@ -496,8 +497,14 @@ class Store(private val context: Context) {
         )
     }
 
-    private fun store(post: Post) = prefs.edit {
+    /**
+     * Writes [post]. [afterGap]: the mark of a post stored after a gap in the source's checks
+     * (`<source>.afterGap`, B21); null keeps the mark (the same post again, a changed title or
+     * explanation). A post stored before B21 has none.
+     */
+    private fun store(post: Post, afterGap: Boolean?) = prefs.edit {
         val source = post.source
+        afterGap?.let { putBoolean(source.key("afterGap"), it) }
         putString(source.key("date"), post.date.toString())
         putString(source.key("title"), post.title)
         putString(source.key("imageUrl"), post.imageUrl)
@@ -617,6 +624,8 @@ class Store(private val context: Context) {
      * refresh one at a time.
      */
     fun refresh(source: Source): Unit = synchronized(refreshLock) {
+        // B21: read before checkSite notes this check.
+        val gap = afterGap(checkedAt(source), Instant.now())
         val latest = fetchLatest(source, userAgent)
         val stored = post(source)
         if (stored != null && latest.date < stored.date && isComplete(stored)) return
@@ -640,7 +649,8 @@ class Store(private val context: Context) {
             }
             prefs.edit { remove(source.key("badUrl")) }
         }
-        store(latest)
+        // A new post (another date or picture) is marked as its check says; the same post keeps its mark.
+        store(latest, gap.takeIf { stored == null || latest.date != stored.date || latest.imageUrl != stored.imageUrl })
         // After storing: a page drawing meanwhile shows the video entry, never the old picture under it.
         if (url == null) file.delete()
     }
@@ -810,12 +820,13 @@ class Store(private val context: Context) {
 
     private fun SharedPreferences.Editor.putSetAt(screen: Screen) = putLong(screen.key("wallpaperSetAt"), System.currentTimeMillis())
 
-    /** What is stored for `:core`: the posts, which pictures are there, the user's own, the video-day choice. */
+    /** What is stored for `:core`: the posts, which pictures are there, the user's own, the video-day choice, the posts after a gap (B21). */
     private fun stored() = Stored(
         Source.entries.mapNotNull { s -> post(s)?.let { s to it } }.toMap(),
         Source.entries.filter { imageFile(it).exists() }.toSet(),
         fallbackFile.exists(),
         videoDays.standIn,
+        Source.entries.filter { prefs.getBoolean(it.key("afterGap"), false) }.toSet(),
     )
 
     /**

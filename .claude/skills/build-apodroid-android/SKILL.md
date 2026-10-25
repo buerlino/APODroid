@@ -499,6 +499,28 @@ packages unattended): `night.md`.
   time box). Left after the restore: one shared wallpaper (APOD, the picture the records
   name) instead of home and lock set apart; the three earlier test pictures in
   `Pictures/APODroid/` deleted. Evidence in the run's `tablet/`.
+  V12a (2026-10-25 evening, final pass 1 again; dev's debug build e702076 with B19, B20 and
+  B21 merged; "More NASA pictures" on, APOD and NASA on both screens, 3 h turns from 07:00,
+  offset 9:37; Tailscale's VPN on, so no proxy: runs made to fetch by APOD's date faked back,
+  killed 0.3–0.8 s in; PASS for what ran): **the safety alarm after `kill -9` alone**: an
+  alarm's run (id 2, the clock faked to 22:09:20 so the 22:09:37 check fired) killed 0.5 s
+  in; its start had armed the pair for start + 15 min and noted `runGoing`. Android didn't
+  re-run the killed id 2, and nothing else re-armed. The pair fired 9 min after its time (its
+  10-min window), 24 real minutes after the kill. That run logged "the run before never ended
+  (killed), counted as failed", armed +1 h at its start, set APOD on both screens and armed
+  the clock's next check (B19). `kill -9` of a forced job 1: Android restarted job 1 itself
+  4.5 min later, with the same B19 line, so job 1's pair can't be seen alone. `install -r`
+  0.8 s into job 1: `MY_PACKAGE_REPLACED` armed the start's pair (start + 15 min, not the
+  clock's next check as in V11a); Android re-ran job 1 at once, which counted the killed run
+  as failed, set, and armed the next check (B19). `auto_time` back on: `TIME_SET` armed the
+  clock's next check. No crash (`exit-info`). Still open (the 50-minute time box: the 15 real
+  minutes ran twice, because job 1's own restart spoiled the first try): V11a's other items on
+  this tree (reboot, time zones, the clock ±3 h, Doze Unrestricted, Doze Optimized with
+  `working_set`, battery saver, `force-stop` and airplane mode during a run, a page open
+  during a run (B16f1's retry kept)), the switch off
+  mid-run (B19's "Daily job: stopped (the switch off)"), and low storage during Set (B20's
+  toast, Setup open). Left after it: one shared wallpaper (APOD on both screens, which the
+  records name) instead of home and lock set apart. Evidence in the run's `tablet/`.
   V11d (2026-10-25 night, R8 builds signed with the debug key: `v0.5.0` (V6's APK, the same
   tag) and dev d1c1e2b, passed): **the update without opening the page**, from 0.5.0 seeded
   by `run-as` (daily on, APOD + NASA, Both, 3 h; its page opened once, which set NASA and

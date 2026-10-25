@@ -468,6 +468,37 @@ packages unattended): `night.md`.
   by one. Left after the restore: one shared wallpaper (APOD, the same picture the records
   name) instead of home and lock set apart; a WebLibre task in Recents (a tap opened NASA's
   page). Evidence in the run's `tablet/`.
+  V11a (2026-10-25 night, final pass 1, what the system does to the new job; dev's debug
+  build d1c1e2b, with B17 and B18; "More NASA pictures" on, APOD and NASA on both screens,
+  3 h turns from 07:00, offset 9:37; STOP, no app bug; its four findings accepted by the user, 2026-10-25): reboot (BOOT_COMPLETED armed the pair
+  for the next check, id 1 listed, no set, no PIN); `set-timezone` New York, Tehran, Zurich
+  (each armed for that zone's next check, the status line's time followed, no set); the clock
+  3 h forward across tonight's DST gap and back (TIME_SET: an owed check at once, then the next
+  one; back: nothing owed, the next check); Doze, Unrestricted (forced IDLE: the alarm fired
+  within 11 s of T, its run fetched and set NASA on both screens in one set); Doze,
+  Optimized (whitelist off): with bucket `rare` Android held the alarm 57 min (`app_standby`,
+  RARE's quota of about one alarm an hour, the alarm 15 min before had used it); with
+  `working_set` the alarm fired in IDLE and id 2 waited pending (CONNECTIVITY), arming
+  nothing; an alarm in the same process left it pending ("a run is pending"), one after
+  `am kill` replaced it (B16); `deviceidle step` to IDLE_MAINTENANCE ran it and set; battery
+  saver: the alarm's run set. During a run (Tailscale's VPN covers the app, so the proxy was
+  out: runs made to fetch by a faked date): `kill -9` left the start's pair (start + 15 min),
+  a run came but was not seen from that alarm alone (the clock jump also ran the fallback);
+  `force-stop` dropped both alarms and both jobs, and the next page open got BOOT_COMPLETED
+  (leaving the stopped state) and re-armed; `install -r` killed the run without a failed
+  count, MY_PACKAGE_REPLACED armed the clock's next check (the start's 15-min pair dropped),
+  and Android re-ran job 1 at once; airplane mode: failed, 15 min, then hourly (or the clock's
+  check, when sooner), the next run after airplane off fetched and cleared `failedRuns`; the
+  daily switch off 2 s into a run interrupted it (logged as "Daily job failed:
+  InterruptedIOException"), no set, alarms and jobs gone; a page open during a run kept the
+  15-min retry (B16f1). A full disk during Set: the sets from the stored pictures ("Despite
+  the failure"), no `.part`, the problem box "Couldn't store the picture. Check the free
+  space."; Android's prefs write failed too and left only `apodroid.xml.bak` (the setup
+  only in memory until the next write with space). Still open: tonight's real DST change
+  (03:00, after the session); the safety alarm after `kill -9` alone (15 real minutes, the
+  time box). Left after the restore: one shared wallpaper (APOD, the picture the records
+  name) instead of home and lock set apart; the three earlier test pictures in
+  `Pictures/APODroid/` deleted. Evidence in the run's `tablet/`.
   V11d (2026-10-25 night, R8 builds signed with the debug key: `v0.5.0` (V6's APK, the same
   tag) and dev d1c1e2b, passed): **the update without opening the page**, from 0.5.0 seeded
   by `run-as` (daily on, APOD + NASA, Both, 3 h; its page opened once, which set NASA and

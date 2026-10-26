@@ -42,7 +42,7 @@ packages unattended): `night.md`.
   `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
   `screensOf` and `placing` (S2: the list's change, a source on exactly its screens),
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in, the posts after a gap:
-  `picture(source)`, `isNew(source, shown)`, `publishedBefore(source, limit, orAfterGap)`, B15, B21), `Record` (owner, picture, stamp: the change time,
+  `picture(source)`, `isNew(source, shown)`, `standInShown(source, shown)` (B22), `publishedBefore(source, limit, orAfterGap)`, B15, B21), `Record` (owner, picture, stamp: the change time,
   `shown`: the last post shown per source; `forget()`), and the pure functions returning a
   `Plan` (records, `sets` grouped by picture): `dueWallpapers(columns, records, stored, time,
   zone, now, pull)` (each run, J1's three rules; equal columns: the lock screen follows home's
@@ -50,7 +50,7 @@ packages unattended): `night.md`.
   `restartAndForget(before, after, records, stored, time, zone, now)` (S4, Set: the pictures of
   the screens with a column forgotten, each stamped with the current change time; a `Restart`
   with the plan and the screens whose record to `drop`, a column that was empty), and
-  `videoDayKept` for the page's status line (tests in `ScreensTest`).
+  `videoDayKept` for the page's status line, `standInSkipped` for its video notice (B22; tests in `ScreensTest`).
   `core/.../Saving.kt` (0.6.0, F5): `sourcesInUse` (what the job fetches and saves) and
   `toSave` (Save every picture's choice; tests in `SavingTest`).
   `core/.../Migration.kt` (0.6.0, M2): `migrate`, 0.5.0's prefs → 0.6.0's keys, run once by
@@ -78,7 +78,7 @@ packages unattended): `night.md`.
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
   is APOD mode's screen), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
-  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `tabPicture(tab)`, `set(picture, screens)` (the flags per screen; a photo with
+  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `tabPicture(tab)`, `standInSkipped` (B22, the video notice), `set(picture, screens)` (the flags per screen; a photo with
   an EXIF orientation goes upright through `setBitmap`; with ⛶'s whole picture (`isWhole(post)`, A3) the `whole` bitmap: `hasBlackEdges` on black, else on `blurred`), `cropPosition(post)`, `save` (the original, else the stored picture; the job's `limit`; returns `Saved`; its temp file `cache/original.part`, leftovers dropped by `dropSaveLeftovers` at the page's first start and by each save, B13), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../MainActivity.kt`: the page, one instance (`launchMode="singleTop"` in `AndroidManifest.xml`, B4; `onNewIntent` does nothing) (`PictureSide`: `SourceTitle`, the shown source's name with its dropdown, and `PicturePage`, each source's picture, in a `HorizontalPager` whose settled page is `shown` (`tab`, `showTab`), then `Caption`, the boxes and the caption of the shown `post`; `show()` loads `posts` and `pictures` of every offered source (`sources`; `apod` decides them in APOD mode), `saved` per source;

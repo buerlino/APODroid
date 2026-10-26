@@ -56,6 +56,7 @@ import io.github.buerlino.apodroid.core.runRetry as coreRunRetry
 import io.github.buerlino.apodroid.core.originalUrl
 import io.github.buerlino.apodroid.core.restartAndForget
 import io.github.buerlino.apodroid.core.sourcesInUse
+import io.github.buerlino.apodroid.core.standInSkipped
 import io.github.buerlino.apodroid.core.toSave
 import io.github.buerlino.apodroid.core.videoDayKept
 import io.github.buerlino.apodroid.core.waiting
@@ -834,6 +835,19 @@ class Store(private val context: Context) {
      * Earth's, or the user's own; null with "Skip it" or nothing stored yet).
      */
     fun tabPicture(tab: Source): Picture? = stored().picture(tab)
+
+    /**
+     * Whether the video day's stand-in passed every screen where APOD is ticked by (B22,
+     * [standInSkipped]: shown there before and not on it now), so the video notice says it's
+     * skipped. False with APOD ticked nowhere.
+     */
+    val standInSkipped: Boolean
+        get() {
+            val columns = columns
+            val apod = Screen.entries.filter { Source.APOD in columns[it].orEmpty() }
+            val stored = stored()
+            return apod.isNotEmpty() && apod.all { standInSkipped(columns.getValue(it), record(it), stored) }
+        }
 
     /**
      * [refresh] unless [source]'s stored post is today's (always with [force]), noting how it

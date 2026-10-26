@@ -114,10 +114,19 @@ class Stored(
      * noted for its own source either, B15: else the turn passes on, as with "Skip it").
      */
     fun isNew(source: Source, shown: Map<Source, Picture.Of>): Boolean {
-        val picture = picture(source) ?: return false
+        if (picture(source) == null || standInShown(source, shown)) return false
         val newest = posts[source]?.picture() ?: return false
-        if (picture is Picture.Of && picture.source != source && shows(shown[picture.source], picture)) return false
         return !shows(shown[source], newest)
+    }
+
+    /**
+     * Whether what [source] shows now is a stand-in (on an APOD video day NASA's or Earth's
+     * picture) that a screen which showed [shown] has shown for its own source (B15, B22): then
+     * APOD has nothing new to show there, as with "Skip it". The user's own picture never is.
+     */
+    fun standInShown(source: Source, shown: Map<Source, Picture.Of>): Boolean {
+        val picture = picture(source) as? Picture.Of ?: return false
+        return picture.source != source && shows(shown[picture.source], picture)
     }
 
     /**
@@ -205,6 +214,11 @@ data class Plan(val screens: Map<Screen, Due>) {
  *   changed since) or one after [now] (the clock set back) counts as the current change time: it
  *   takes it; with several sources nothing is set until the next one (but with [pull]), with
  *   one the publish time decides as above.
+ * - **The stand-in not twice** (B22): on an APOD video day the stand-in (NASA's or Earth's
+ *   picture) that this screen has shown for its own source ([Stored.standInShown]) doesn't go on
+ *   by the window, with one source too: APOD has nothing new, as with "Skip it", and the screen
+ *   keeps its picture (once the stand-in is on, that keeps it there). A forgotten picture (Set),
+ *   a new screen and [pull] put it on as above; the user's own picture always stands in.
  * - **Never back:** a picture of the same source with an older date than the one on the screen
  *   isn't set (only a stored post older than the shown one could ask for it).
  * - **A screen with no record** starts on the other screen's owner if that's in its column,
@@ -292,7 +306,9 @@ private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId,
             val source = column.single()
             val r = record.copy(owner = source)
             // B21: a post stored after a gap in the checks goes on whenever a run sees it.
-            val due = record.owner != source || record.picture == null || pull || inWindow(record, orAfterGap = true)
+            // B22: not a stand-in this screen has shown (but a forgotten picture, a new screen or a pull).
+            val due = record.owner != source || record.picture == null || pull ||
+                inWindow(record, orAfterGap = true) && !stored.standInShown(source, record.shown)
             return show(r, if (due) stored.picture(source) else null)
         }
         if (record.owner !in column || record.picture == null && stored.picture(record.owner) == null) {
@@ -300,7 +316,8 @@ private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId,
             val owner = pick(column, record) ?: return show(record.copy(owner = record.owner.takeIf { it in column } ?: column.first()), null)
             return show(record.copy(owner = owner), stored.picture(owner))
         }
-        return if (record.picture == null || pull || inWindow(record)) show(record, stored.picture(record.owner)) else show(record, null)
+        val due = record.picture == null || pull || inWindow(record) && !stored.standInShown(record.owner, record.shown)
+        return show(record, if (due) stored.picture(record.owner) else null)
     }
 
     /** Rule 2 by the publish time (B15): the owner's picture came out before the record's change time + the window. */
@@ -345,6 +362,22 @@ fun videoDayKept(column: List<Source>, record: Record?, stored: Stored, everSet:
     return !shows(picture, standIn)
 }
 
+/**
+ * Whether an APOD video day's stand-in passed a screen with [column] and [record] by (B22, the
+ * page's video notice): APOD is ticked there, the stand-in (NASA's or Earth's picture) was shown
+ * there before ([Stored.standInShown], the check the rules make), it isn't on it now, and it
+ * didn't fill APOD's turn there this video day (APOD's video post isn't noted). So the screen
+ * kept its picture (APOD alone) or the turn passed on (turns), as with "Skip it". A record
+ * without a picture (forgotten by Set) or none: the next run puts the stand-in on.
+ */
+fun standInSkipped(column: List<Source>, record: Record?, stored: Stored): Boolean {
+    val video = stored.post(Source.APOD)?.takeIf { it.isVideo } ?: return false
+    val picture = record?.picture ?: return false
+    if (Source.APOD !in column) return false
+    val standIn = stored.picture(Source.APOD) ?: return false
+    return stored.standInShown(Source.APOD, record.shown) && !shows(picture, standIn) &&
+        !shows(record.shown[Source.APOD], video.picture())
+}
 
 private fun shows(noted: Picture?, due: Picture): Boolean =
     noted == due || noted is Picture.Of && due is Picture.Of && noted.url == null &&

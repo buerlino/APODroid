@@ -417,7 +417,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
   once the stand-in's picture is stored, `standInReady`, "… takes its place once it has
   loaded." while it isn't; with "Skip it" "… so it's skipped." with the switch on, "… so your
   wallpaper stays as it was." in APOD mode; approved by the user, 2026-10-20 and 24), and with
-  APOD ticked nowhere only "This APOD is a video.". "Takes its place", not "is the wallpaper"
+  APOD ticked nowhere only "This APOD is a video.". A stand-in that every screen with APOD ticked
+  has shown before and doesn't show now (B22, `:core`'s `standInSkipped`, `Store.standInSkipped`;
+  not when it filled APOD's turn there this video day and the turn moved on) gets "Skip it"'s
+  first sentence, without its second: "This APOD is a video, so your wallpaper stays as it
+  was." in APOD mode, "… so it's skipped." with the switch on (user, 2026-10-26: no new text). "Takes its place", not "is the wallpaper"
   (user, 2026-10-24): the wallpaper changes at the next check or change time, e.g. all evening
   after a 21:05 video in Los Angeles. "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
   (`videoNoticeHidden`, no confirmation). The second help text besides the pause hint (the problem box is a status, not help). `refresh()` stores the
@@ -842,7 +846,12 @@ the user's own picture; with "Skip it" APOD has nothing new, so a screen with AP
 its picture and one with turns goes to the next new source or waits); "new" is APOD's post
 being new, and the record keeps APOD as the owner, and only while the stand-in's picture isn't
 noted for its own source on that screen (else APOD's turn passes on, as with "Skip it"; B15).
-A stand-in shown counts as shown for its own
+With one source too (B22, 2026-10-26, from V12b), and within a turn: a stand-in noted shown on
+that screen doesn't go on by the window, so APOD has nothing new and the screen keeps its
+picture (once on, it stays: the day it went on doesn't change); Set, a pull, a forgotten picture
+and a new screen put it on as before, the user's own picture always stands in, a newer post of
+the standing-in source goes on by the usual rules (`Stored.standInShown`, the check `isNew`
+makes). A stand-in shown counts as shown for its own
 source too (and APOD's video post for APOD), so NASA isn't put on twice. When an owner is no
 longer ticked, or a forgotten picture's owner has nothing to show, it gives way to the next new
 source, else the next with any picture; with none the screen keeps its picture (an unticked

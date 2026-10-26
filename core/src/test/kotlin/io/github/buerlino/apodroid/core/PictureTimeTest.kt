@@ -3,16 +3,12 @@ package io.github.buerlino.apodroid.core
 import io.github.buerlino.apodroid.core.Screen.HOME
 import io.github.buerlino.apodroid.core.Screen.LOCK
 import io.github.buerlino.apodroid.core.Source.APOD
-import io.github.buerlino.apodroid.core.Source.EARTH
 import io.github.buerlino.apodroid.core.Source.NASA
-import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -23,7 +19,7 @@ import kotlin.test.assertTrue
  * The picture time (J1): the change times through the DST days, [nextRun], and the three rules
  * over whole days in real time zones, with the posts coming out when the sites post them (APOD
  * at 00:05 US Eastern, Earth Observatory at 00:00 US Eastern on weekdays, NASA at 16:30 UTC on
- * weekdays) and a run at each [nextRun], as J2's alarms will.
+ * weekdays) and a run at each [nextRun], as J2's alarms will (the [Phone] in Phone.kt).
  */
 class PictureTimeTest {
     private val zurich = ZoneId.of("Europe/Zurich")
@@ -32,10 +28,6 @@ class PictureTimeTest {
     private val helsinki = ZoneId.of("Europe/Helsinki")
     private val newYork = ZoneId.of("America/New_York")
     private val utc = ZoneOffset.UTC
-
-    private fun at(zone: ZoneId, local: String): Instant = LocalDateTime.parse(local).atZone(zone).toInstant()
-
-    private fun local(zone: ZoneId, t: Instant): String = t.atZone(zone).format(DateTimeFormatter.ofPattern("dd HH:mm"))
 
     // The change times
 
@@ -404,112 +396,6 @@ class PictureTimeTest {
     }
 
     // The rules over whole days
-
-    private data class Out(val at: Instant, val post: Post)
-
-    /** A post published at [at] (B15), as the sites say. */
-    private fun post(source: Source, date: LocalDate, at: Instant, video: Boolean = false) =
-        Post(source, date, "$source $date", if (video) null else "https://x/$source-$date.jpg", "https://p/$source-$date", video, published = at)
-
-    private fun out(source: Source, date: LocalDate, at: Instant, video: Boolean = false) = Out(at, post(source, date, at, video))
-
-    private fun apod(day: String, video: Boolean = false): Out {
-        val date = LocalDate.parse(day)
-        return out(APOD, date, date.atTime(0, 5).atZone(newYork).toInstant(), video)
-    }
-
-    private fun earth(day: String): Out {
-        val date = LocalDate.parse(day)
-        return out(EARTH, date, date.atTime(0, 0, 30).atZone(newYork).toInstant())
-    }
-
-    private fun nasa(day: String): Out {
-        val date = LocalDate.parse(day)
-        return out(NASA, date, date.atTime(16, 30).atZone(utc).toInstant())
-    }
-
-    /** Every source's posts from [from] to [to]: APOD daily, NASA and Earth on weekdays. */
-    private fun week(from: String, to: String, sources: List<Source> = Source.entries): List<Out> {
-        val days = generateSequence(LocalDate.parse(from)) { it.plusDays(1) }.takeWhile { it <= LocalDate.parse(to) }
-        return days.flatMap { day ->
-            val weekday = day.dayOfWeek != DayOfWeek.SATURDAY && day.dayOfWeek != DayOfWeek.SUNDAY
-            sources.mapNotNull { s ->
-                when {
-                    s == APOD -> apod(day.toString())
-                    !weekday -> null
-                    s == NASA -> nasa(day.toString())
-                    else -> earth(day.toString())
-                }
-            }
-        }.toList()
-    }
-
-    private fun pic(out: Out) = out.post.picture()
-
-    private fun notes(vararg outs: Out) = outs.associate { it.post.source to it.post.picture() }
-
-    /**
-     * A phone: [records] stored, [posts] coming out, a run at each [nextRun] (the alarms, offset
-     * 0) and at each [pages] time (a page open), [sets] logged as "dd HH:mm SOURCE MM-dd".
-     */
-    private inner class Phone(
-        val zone: ZoneId,
-        val columns: Map<Screen, List<Source>>,
-        val time: PictureTime,
-        val posts: List<Out>,
-        var records: Map<Screen, Record>,
-        val standIn: StandIn = StandIn.SKIP,
-        /** While offline every check fails and the stored posts are those out at its start (B15). */
-        val offline: ClosedRange<Instant>? = null,
-    ) {
-        val sets = mutableListOf<String>()
-        val runs = mutableListOf<String>()
-        private val turns = columns.values.any { it.size >= 2 }
-
-        fun isOffline(now: Instant) = offline?.contains(now) == true
-
-        fun stored(now: Instant): Stored {
-            val known = if (isOffline(now)) offline!!.start else now
-            val newest = posts.filter { it.at <= known }.groupBy { it.post.source }.mapValues { (_, outs) -> outs.maxBy { it.at }.post }
-            return Stored(newest, newest.filterValues { !it.isVideo }.keys, true, standIn)
-        }
-
-        fun check(now: Instant, failSets: Boolean = false, pull: Boolean = false) {
-            val plan = dueWallpapers(columns, records, stored(now), time, zone, now, pull)
-            if (failSets) {
-                records = records + plan.screens.filterValues { !it.set }.mapValues { it.value.record }
-                return
-            }
-            records = records + plan.screens.mapValues { it.value.record }
-            for ((picture, screens) in plan.sets) {
-                val what = if (picture is Picture.Of) "${picture.source} ${picture.date.toString().substring(5)}" else "own"
-                sets += local(zone, now) + " " + what + if (screens.size == 1) " ${screens.single()}" else ""
-            }
-        }
-
-        /** "Set as wallpaper" at [now], the setup unchanged. */
-        fun set(now: Instant) {
-            val restart = restartAndForget(columns, columns, records, stored(now), time, zone, now)
-            records = records + restart.plan.screens.mapValues { it.value.record }
-            check(now)
-        }
-
-        fun run(from: Instant, until: Instant, pages: List<Instant> = emptyList(), setAt: Instant? = null) {
-            val opens = pages.sorted().toMutableList()
-            var set = setAt
-            var now = from
-            var failures = 0
-            while (now < until) {
-                while (opens.isNotEmpty() && opens.first() < now) check(opens.removeAt(0))
-                if (set != null && set < now) set(set).also { set = null }
-                runs += local(zone, now)
-                check(now)
-                // An offline run fails: the alarms retry it (Background update).
-                failures = if (isOffline(now)) failures + 1 else 0
-                now = nextRun(now, zone, failures, time, turns, Duration.ZERO, waiting(columns, records, time, zone, now))
-            }
-        }
-    }
 
     private val both = apodColumns(setOf(HOME, LOCK))
 

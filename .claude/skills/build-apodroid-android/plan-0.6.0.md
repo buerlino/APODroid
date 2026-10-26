@@ -1,6 +1,7 @@
 # Plan for 0.6.0 (APOD first; all NASA pictures; the features from 0.1.1's review)
 
-Planned 2026-10-19. Release target: 0.6.0 (versionCode 10), no date set. Work through the
+Planned 2026-10-19. Release target: 0.6.0 (versionCode 10), not before Tue 3 Nov (W, user
+2026-10-26). Work through the
 packages in order, one at a time: build, show it on the device, wait for the user. Tick them off
 and note where the work differed from the plan. Each package writes its decisions into
 `CLAUDE.md` (the source of truth) when it lands; this file is the how. Finished packages become
@@ -289,8 +290,11 @@ Advanced settings ▸                                closed by default
 | B24 | A run's bookkeeping before `jobFinished` | Opus, medium |
 | V12e | V12a's rest 1: Doze and battery saver | Opus, high |
 | V12f | V12a's rest 2: reboot, the clock, what happens during a run | Opus, high |
+| SIM | `:core`: the rules over random months (test code only) | Opus, high |
 | V7 | Turns over hours, by hand: rosie's default (Sonnet, medium), as its commands below | Sonnet, medium |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
+| W  | A week on the FP6 before the tag: real mornings, a weekend, the US DST end, the Zurich case | Opus, medium |
+| E  | Android 10, 12 and 13 in the emulator (optional: only on the user's yes) | Opus, medium |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
 
@@ -321,10 +325,15 @@ scripts/night.sh --until <HH:MM>    # J1, A1, J2, A3, A4, J3, then the regressio
 scripts/night.sh --until <HH:MM>    # B15, B16, then the regression (2026-10-24)
 scripts/night.sh --until <HH:MM>    # B17, CR2, B18, V11a, V11d, V11b, V11c, then the regression (2026-10-25)
 scripts/night.sh --until 07:30      # B19, B20, B21, V12a, V12d, V12b, V12c, then the regression (the night of 2026-10-25)
-scripts/pipeline.sh B22    # by day, 2026-10-26, one at a time: then B23, B24, V12e, V12f
+scripts/pipeline.sh B22    # by day, 2026-10-26, one at a time: then B23, B24 (V12e, V12f: Remaining 4j)
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
+scripts/pipeline.sh V12e; scripts/pipeline.sh V12f    # after V7's second session, if not run before it
+scripts/pipeline.sh SIM    # after B23, by day or night (no tablet)
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
+claude --model opus --effort medium "Do W's start in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # with P's install
+claude --model opus --effort medium "Do W's morning read in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # each morning, Tue 27 to Mon 2 Nov
+claude --model opus --effort medium "Do E in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # only after the user's yes
 claude --model opus --effort medium "Do R in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model sonnet --effort low "Do T in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 ```
@@ -537,8 +546,22 @@ reading; their build check passed, 108 tests with `private/`):
    `on-time-0.7.0.md`). **Today (Mon 26), by day, one at a time:** B22 → B23 → B24, then V12a's
    rest as **V12e** and **V12f** (rosie, the tablet), so V7 and P's real night test the final
    tree. **Mon 26 to Tue 27:** V7 and P's real night, as 4h. Then the rest of P, R and T.
+4j. **More testing before the tag** (user, 2026-10-26 afternoon, from a report on the repo's
+   state: the tested surface converges, V12 found no `BUG:` line, but no real night has run the
+   new job, the job and the rules gave 13 of the 24 fix packages B2–B24, and the case most
+   European users meet each morning starts only on 1 Nov). **W**, a week on the FP6 from P's
+   install to the morning of Mon 2 Nov; the tag not before its read-out. **SIM**, a seeded
+   random test of the rules over months in `:core` (test code only; a finding becomes a
+   `B<n>`). **E**, Android 10, 12 and 13 in the emulator: only on the user's yes (`CLAUDE.md`
+   says no emulator); without it Android 10–14 ships untested, an accepted risk. The order:
+   **Mon 26 by day** B22 → B23 → B24; **Mon 26 evening** V7's session 1 and P's install
+   (versionCode 10), which starts W, on the tree with B22–B24, also when V12e and V12f haven't
+   run: they change no code, so they run on **Tue 27 by day** after V7's second session (the
+   tablet is V7's overnight). **Tue 27 to Thu 29** SIM; the rest of P by day. **Tue 27 to Mon
+   2 Nov** W's morning reads; a `B<n>` from any of them as the gate says (a fix to the job or
+   the rules restarts W's count, W). **Tue 3 Nov** R, then T.
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
-   R8 and the update on the final tree), then R and T.
+   R8 and the update on the final tree), then W, R and T.
 
 ### [x] F1. Fill / Fit (Opus, medium)
 
@@ -1541,7 +1564,7 @@ night's own expectations from the stored posts.
 Expect, Zurich time (EU on winter time, the US not until 1 Nov: APOD at 05:05, Earth at 05:00):
 - Home: Tuesday's APOD on at 06:00 plus the offset and the alarm's window (about 06:00–06:20).
   The Zurich case (yesterday's still on at 06:00) can't happen before 1 Nov; J2's faked clock
-  covers it.
+  covers it, and W's Mon 2 Nov morning on the FP6 on a real clock.
 - Lock: at Set its source stays (or Monday's other picture); at 00:00 Monday's picture not yet
   shown goes on (rule 1), if any; then nothing new, so it waits and nothing is set at 03:00;
   Tuesday's Earth goes on at the first check after 05:00 (rule 3, a waiting screen's hourly
@@ -2552,7 +2575,8 @@ Los Angeles).
 ### [ ] V12e. V12a's rest 1: Doze and battery saver (Opus, high)
 
 (User, 2026-10-26: V12a ran 3 of its items in its time box; the rest on the tree with B22–B24,
-as two rows, the Doze items apart. The rows' rules: V.) Of V11a's list only these, with V12's
+as two rows, the Doze items apart. The rows' rules: V. Before V7's session 1, or on Tue 27 by
+day after V7's second session: Remaining 4j.) Of V11a's list only these, with V12's
 change: **Doze, Unrestricted**; **Doze, Optimized** with `am set-standby-bucket … working_set`
 at once (RARE's quota of about one alarm an hour was seen and accepted); **battery saver**
 (`cmd battery unplug` first on the charging tablet). The tree: dev with B22–B24 (say which are
@@ -2571,6 +2595,53 @@ stopped (the switch off)", no "failed", both alarms and both jobs gone), a page 
 retry kept, B16f1). `kill -9` and `install -r` during a run ran in V12a and again in B24's check.
 - **Done when:** each item ran or is under Not tested; the tablet set back (`auto_time` 1,
   Europe/Zurich, Wi-Fi on, airplane mode off).
+
+### [ ] SIM. `:core`: the rules over random months (Opus, high)
+
+(User, 2026-10-26 afternoon, Remaining 4j: the job and the rules gave 13 of the 24 fix packages
+B2–B24, and every check of the rules since J1 is a hand-written case or a faked clock. Under the
+freeze: test code only, no `main` code.) A seeded random test on `PictureTimeTest`'s `Phone`
+(moved to a test helper both files use; `kotlin.random.Random` with fixed seeds, no new
+dependency). The invariants come from `CLAUDE.md`'s rules (Turns and the picture time; Next
+features, 0.6.0: the picture time), not from the code.
+- **What each seed draws**, over 60 days from 20 Oct 2026 (both 2026 DST ends) or from 20 Mar
+  2027 (the EU's spring change): a zone (Zurich, Los Angeles, Sydney, Helsinki, New York, Tehran,
+  Kolkata); the columns (APOD alone on one or both screens, equal columns, columns that differ,
+  turns of two and three); "New picture at" and "Change every"; the video-day choice (Skip it,
+  NASA, Earth, my picture). Posts as the sites post them (`week()`'s times), with APOD late by
+  up to 12 h on about 1 day in 10 (as in July), video days about 1 in 9, now and then a post
+  without `published` and a second picture on the same date. Runs at `nextRun` with a random
+  offset, plus random page opens, pulls and Sets; failed checks (offline spans from minutes to
+  two days, so B21's `afterGap` mark comes into play: `Phone` stores it as `Store.refresh`
+  does, from the last good check); a failed set on one screen (`failSets`); killed runs (no
+  records written, the next alarm by `nextAlarm`'s `running` and `lastRun`).
+- **What must hold** (a failure names the seed, the invariant and the day's runs and sets):
+  1. Never back: no set of a picture of the same source older by date than the one on that
+     screen.
+  2. No job or page run sets the picture the screen already shows (Set, the daily switch on,
+     a pull and a forgotten picture may).
+  3. With turns, no post set twice on one screen (the `shown` notes), except by Set, a pull or
+     a forgotten picture; a stand-in counts for its own source (B15, B22).
+  4. With one source, rule 2 as `CLAUDE.md` states it: after each run that checked, the screen
+     shows the newest stored post published before the last change time + 3 h, or a newer one
+     marked `afterGap`, or one a pull or Set put on; a failed check moves nothing.
+  5. Rule 3: a waiting screen takes the first new post of a ticked source at the first run
+     that stores it.
+  6. An unticked source's picture never goes on; "Skip it" never puts a stand-in on; with one
+     source the stand-in not twice (B22).
+  7. `nextRun` and `nextAlarm` never in the past (at once when a check is owed), never later
+     than the next change time + the offset; after failed runs 15 min, then hourly.
+  8. `videoDayKept` (B23) is true only on a screen whose APOD turn has nothing to put on.
+- **A finding:** a failing seed that the rules as written allow is a QUESTION (the report says
+  why); one they don't allow is a bug: the report gives the seed and the steps, and the test
+  keeps that seed under `@Ignore("<what>, found by SIM")` so `:core:test` stays green until the
+  morning's `B<n>` fixes it. Don't fix `main` code here.
+- **Files:** `core/src/test/.../RulesSimulationTest.kt`, the `Phone` helper out of
+  `PictureTimeTest.kt`; the skill's Where things are (a line for the new test).
+- **Tablet:** none.
+- **Done when:** after B23 (it tests B22's and B23's rules); at least 200 seeds in under 30 s of
+  `:core:test`; each invariant shown able to fail (a deliberately broken copy of its rule in a
+  throwaway run, said in the report, not committed); all `:core` tests pass.
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 
@@ -2607,11 +2678,65 @@ pictures" in Setup, and the pause hint's new "Unrestricted" text on the phone. A
 alarm armed until the first unlock (`BOOT_COMPLETED` waits for it), armed right after; a time
 zone change in Settings: armed again for the new zone's 06:00. After V12a–d and V7 and their
 `B<n>` fixes. Report what was tested; a bug becomes a
-`B<n>` package (night.md, The morning, step 6) before R.
+`B<n>` package (night.md, The morning, step 6) before R. P's install starts W: after P's
+checks the phone keeps the candidate, set up as the user uses it.
+
+### [ ] W. A week on the FP6 before the tag (Opus, medium)
+
+(User, 2026-10-26 afternoon, Remaining 4j: no real night has run the new job yet, and the case
+most European users meet every morning starts only on 1 Nov.) From P's install (Mon 26 evening)
+to the morning of **Mon 2 Nov**, the FP6 runs the 0.6.0 candidate (P's release-signed build) as
+the user's phone: no clock steps, no forced runs, no `pm clear`; the battery and the setup as the
+user leaves them, "New picture at" 06:00. What it covers that no row did:
+- **Real weekday mornings** (Tue 27 to Fri 30): the set at about 06:00–06:20 Zurich (APOD out
+  at 05:05 until 1 Nov).
+- **A weekend** (Sat 31, Sun 1): NASA and Earth post nothing. With turns the screen waits (rule
+  3) and no picture comes back; with APOD alone the daily set.
+- **The US DST end** (Sun 1 Nov, 02:00 Eastern): APOD moves to 06:05 Zurich, and `published`
+  is read as US Eastern across the change (B15). The phone's own clock changed on 25 Oct, before
+  the install: a DST change of the phone itself stays faked-only (Still untested).
+- **Mon 2 Nov, the Zurich case** on a real clock for the first time (`CLAUDE.md`, the picture
+  time): 06:00 finds yesterday's APOD on and sets nothing new, the 06:15 check sets the 06:05
+  post (rule 2's window).
+- Daily use as it comes: page opens at any time (they set only what's due), pulls, a reboot.
+- **W's start** (with P's install): `.coord/runs/w/start.md`: the build's sha256, the setup
+  (Setup's summary, the list or "Where", the video-day choice), the battery setting and the
+  standby bucket (`am get-standby-bucket`), the expected sets for each morning to 2 Nov.
+- **W's morning read** (each morning, about 10 min, the phone on USB): `logcat -d -s APODroid`
+  (the "Daily job" lines; a release build can't be read with `run-as`, so the log, `dumpsys
+  wallpaper`'s ids, `dumpsys alarm`'s history and the page's status lines are the evidence),
+  `dumpsys jobscheduler` for id 1, `dumpsys usagestats` (was the set before the screen first
+  went on?). Append to `.coord/runs/w/report.md`: each set's time against the expected, the
+  day's verdict (PASS, FIX, STOP), anything odd. A missed day's log may have rolled over: say so.
+- **The tablet**, if no package needs it: after V12e and V12f, V7's setup (turns) left running
+  to 2 Nov, read with the same morning read (`run-as` works there, a debug build). A package's
+  tablet check ends it (say when in the report).
+- **A bug** becomes a `B<n>` as the gate says; its build replaces the candidate. A fix to the
+  job or the rules restarts the count: at least two weekday mornings after the fix (from 2 Nov
+  each one has APOD after 06:00), and the tag waits for them.
+- **Done when:** every morning Tue 27 to Mon 2 Nov read (Mon 2 the Zurich case) with no open
+  `BUG:`; the skill's Still untested updated (the real mornings, the weekend, the US DST end,
+  the Zurich case out; what W couldn't see in).
+
+### [ ] E. Android 10, 12 and 13 in the emulator (optional: only on the user's yes; Opus, medium)
+
+(Remaining 4j: no device has run Android 10–14; the tablet is 15, the FP6 16. `CLAUDE.md` says
+the user tests on real devices, no emulator, so this row waits for the user's yes; without it
+Android 10–14 ships untested, an accepted risk named in Still untested.) An emulator per API 29,
+31 and 33 (AOSP images without Play Services; the SDK manager downloads a few GB: say so before),
+the release build signed with the debug key. Per version: install and the page; Set in APOD mode
+(Fill, a moved part: the system crops the stored file to the hint itself there); "Where" Home,
+then Lock (home and lock set apart, `dumpsys wallpaper`; M0 saw only Android 15); the whole
+picture on blur and on black; "my picture" from the picker; the alarms armed (`dumpsys alarm`)
+and one forced run (`cmd jobscheduler run -f`); the pause hint's lines (31: the pause line; 33:
+both); the colours (29: `darkColorScheme()`, 31+: dynamic). Not: the alarms' real timing (an
+emulator's Doze isn't a phone's), keep running on 10–12.
+- **Done when:** each version's list ran or is under Not tested; each bug a `BUG:` line; Still
+  untested's Android 10–14 line updated.
 
 ### [ ] R. Docs, changelog, store texts, screenshots (Opus, medium)
 
-After P, on the build that passed. `changelogs/10.txt` (max 500 characters; say that a
+After P and W, on the build that passed. `changelogs/10.txt` (max 500 characters; say that a
 video-day choice saved while it was greyed out in 0.5.0, e.g. "Use my picture" with turns, now
 works with turns, second review); `README.md`, `full_description.txt` (APOD first, the
 switch); the changelog also names Set, the daily switch, swiping and "Largest original",

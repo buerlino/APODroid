@@ -910,7 +910,7 @@ wake and fail offline).
 
 **0.6.0's release gate** (user, 2026-10-24 evening, from a review of the plan): a code freeze
 from 25 Oct: only bug fixes, no new texts or settings unless a bug needs one. Stable when V12a–d
-(V11a–d again on the tree with B19–B21; user, 2026-10-25), V7 and P all pass on the same tree with no open `BUG:` line; a fix after V7 or P that touches the
+(V11a–d again on the tree with B19–B21; user, 2026-10-25), V7, P, SIM and W (user, 2026-10-26) all pass on the same tree with no open `BUG:` line; a fix after V7 or P that touches the
 job or the rules reruns that part; the skill's "Still untested" is updated; the release slips a
 day rather than ship a job change only a unit test has seen. Why: the last complete passes
 (V3–V10) ran on the tree of 21–22 Oct; since then the job was rebuilt (J1, J2, B15, B16, B16f1),
@@ -924,7 +924,15 @@ B22–B24): the stand-in not twice with APOD alone too, and the video notice say
 "Video day, wallpaper kept" while something takes APOD's place (B23); a run's bookkeeping before
 `jobFinished`, so a death between them doesn't count a good run as killed (B24); then V12a's rest
 as V12e and V12f. Lenovo's ZuiMemoryCleaner force-stopping the app (seen once, V12d): no 0.6.0
-change (`on-time-0.7.0.md`). **Accepted, no change:** the RARE bucket's about one alarm
+change (`on-time-0.7.0.md`). **More testing before the tag** (user, 2026-10-26 afternoon, from a
+report on the repo's state; the plan, Remaining 4j): **W**, a week on the FP6 from P's install
+to the morning of Mon 2 Nov, the tag not before Tue 3 Nov. Why: no real night has run the new
+job (every check since J1 used a faked or stepped clock), and the case most European users meet
+each morning, APOD out after the picture time (06:05 Zurich from the US DST end on 1 Nov), only
+starts then; W also sees real weekday mornings and a weekend. **SIM**, a seeded random test of
+the rules over months in `:core` (test code only): the job and the rules gave 13 of the 24 fix
+packages B2–B24. **Open, the user's call:** Android 10, 12 and 13 in the emulator (**E**; this
+file says no emulator); without it Android 10–14 ships untested, an accepted risk. **Accepted, no change:** the RARE bucket's about one alarm
 an hour (Android's quota; the pause hint covers Optimized); CR2's finding 4 (a Set that
 changes the picture time or "Change every" costs one spare check; noting `lastRunAt` at Set
 could drop an owed check); a Set tap in the same input burst as the time menu's closing goes to

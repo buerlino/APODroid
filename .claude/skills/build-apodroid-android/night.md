@@ -97,8 +97,9 @@ What each night queued and why: the plan's Remaining (git has this file's old pa
 
 **Rows 1–59 are done:** each has a MERGED line in the log, most of them out of josh's view (night.sh shows only the
 last 80 of the log's night headers and RESULT lines). Pass over them (`pipeline.sh` doesn't refuse a merged ID).
-Rows 60–64 (user, 2026-10-26; the plan, Remaining 4i) run by day, one at a time with `scripts/pipeline.sh <ID>`: B22 →
-B23 → B24, then V12e → V12f on that tree, before V7 and P's real night.
+Rows 60–65 (user, 2026-10-26; the plan, Remaining 4i and 4j) run by day, one at a time with `scripts/pipeline.sh <ID>`:
+B22 → B23 → B24 before V7 and P's real night; V12e → V12f on that tree, before V7's session 1 or on Tue 27 after its
+second; SIM (test code, no tablet) after B23, by day or by night. V7, P, W and E run by hand (the plan's commands).
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -166,6 +167,7 @@ B23 → B24, then V12e → V12f on that tree, before V7 and P's real night.
 | 62 | B24 | A run's bookkeeping before `jobFinished` | winston | opus, medium | yes | — | plan B24 |
 | 63 | V12e | V12a's rest 1: Doze and battery saver | rosie | opus, high | no | — | plan V + plan V11a + plan V12e |
 | 64 | V12f | V12a's rest 2: reboot, the clock, what happens during a run | rosie | opus, high | no | — | plan V + plan V11a + plan V12f |
+| 65 | SIM | `:core`: the rules over random months (test code only) | winston | opus, high | no | B23 | plan SIM |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

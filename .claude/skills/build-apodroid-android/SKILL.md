@@ -290,7 +290,10 @@ what it leaves open.
   during a run; a stop timed into a rendition download (WP8b's fix, found by reading).
 - A connection cut during a Set's download (V9).
 - After a reboot, the armed pair firing (V9, V11a: armed at `BOOT_COMPLETED`, not waited for).
-- A real DST change (only faked clocks: V11a, V11b, V11d).
+- A real DST change (only faked clocks: V11a, V11b, V11d). W sees the US's on 1 Nov as the
+  sites' zone and the Zurich case after it, not a change of the phone's own clock.
+- Real mornings, a weekend and the Zurich case on a real clock: W (FP6, to Mon 2 Nov).
+- The rules under random failures, gaps and Sets over months: SIM (`:core`).
 - A download that isn't a picture (`badUrl`, WP7c's made-up feed): not rerun since 0.5.0.
 
 **The update from 0.5.0:**
@@ -308,7 +311,7 @@ what it leaves open.
   2026-10-22); dragging the frame with TalkBack (it has no screen-reader action).
 
 **Android:**
-- Android 10–14 on any device (the tablet is 15, the FP6 16): there the system crops the stored
+- Android 10–14 on any device (the tablet is 15, the FP6 16; E, the emulator, only on the user's yes): there the system crops the stored
   file to the hint itself; 10–11's stock palette; keep running on 10–12 (`keep-running.md`).
 - Dynamic colour following a set wallpaper (U1: the tablet's ZUI and the FP6's LineageOS have
   wallpaper colours off).

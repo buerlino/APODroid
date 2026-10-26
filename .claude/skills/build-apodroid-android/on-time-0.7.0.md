@@ -57,6 +57,18 @@ keeps alive (a running foreground service, the current live wallpaper).
 
 ## The plan
 
+### First, before the job changes again (2026-10-26)
+
+From the report on 0.6.0's state (user, 2026-10-26): the job and the rules gave 13 of 0.6.0's
+24 fix packages, and B16, B18, B19 and B24 all patched the run's bookkeeping (`runGoing`,
+`lastRunAt`, `failedRuns`, the safety alarm). Before B adds a foreground service on top:
+1. `declutter.md`'s code package C1–C12 (after 0.6.0 ships).
+2. A design review of the run's bookkeeping by reading, CR's form: is there a simpler model
+   that keeps every case B16–B24 fixed? A finding is a package, not a change in passing.
+3. SIM (0.6.0's random test of the rules) stays the guard: every package that touches
+   `Screens.kt`, `PictureTime.kt` or the run's bookkeeping runs it, and adds to its invariants
+   what it changes.
+
 ### B. "Exact timing" (Advanced settings)
 
 A switch in "Advanced settings" (acts at once, as "Save every picture"), default off. One

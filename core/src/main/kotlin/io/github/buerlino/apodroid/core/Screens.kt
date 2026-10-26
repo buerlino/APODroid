@@ -93,6 +93,12 @@ class Stored(
     fun post(source: Source): Post? = posts[source]
 
     /**
+     * Whether something will take APOD's place on its video day (B23): NASA's or Earth's
+     * picture, stored or still to load, or the user's own when it's there; not "Skip it".
+     */
+    val standsIn: Boolean get() = standIn != StandIn.SKIP && (standIn != StandIn.OWN || own)
+
+    /**
      * What [source] shows now: its stored picture; on an APOD video day APOD's is the stand-in's
      * (NASA's or Earth's stored picture, or the user's own; null with "Skip it" or nothing stored
      * yet). Null: nothing to show, so a turn passes it by.
@@ -349,17 +355,18 @@ private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId,
 /**
  * Whether an APOD video day kept the picture of a screen with [column] and [record] (the page's
  * "video day, wallpaper kept"): APOD is ticked there and it's APOD's turn (APOD alone, or no
- * other source had a picture), and nothing stands in on it ("Skip it", the stand-in not stored
- * or not set yet). With turns "Skip it" passes the turn on, so that screen kept nothing. A record
- * without a picture (forgotten by Set, or written by a first video day) counts only when the
- * screen was [everSet] (`wallpaperSetAt`): then a picture is still on it.
+ * other source had a picture), and nothing will take APOD's place on it (B23): "Skip it", "Use my
+ * picture" without one, or the stand-in shown there before and not on it now ([standInSkipped]).
+ * A stand-in that will go on (stored and not set yet, or still loading) isn't kept: the line
+ * stays the screen's last change. With turns "Skip it" passes the turn on, so that screen kept
+ * nothing. A record without a picture (forgotten by Set, or written by a first video day) counts
+ * only when the screen was [everSet] (`wallpaperSetAt`): then a picture is still on it.
  */
 fun videoDayKept(column: List<Source>, record: Record?, stored: Stored, everSet: Boolean = true): Boolean {
     if (Source.APOD !in column || stored.post(Source.APOD)?.isVideo != true) return false
     if (record == null || record.owner != Source.APOD) return false
-    val picture = record.picture ?: return everSet
-    val standIn = stored.picture(Source.APOD) ?: return true
-    return !shows(picture, standIn)
+    if (!stored.standsIn) return record.picture != null || everSet
+    return standInSkipped(column, record, stored)
 }
 
 /**

@@ -857,9 +857,20 @@ class ScreensTest {
         assertTrue(videoDayKept(listOf(APOD), kept, stored(videoDay, StandIn.SKIP)))
         // "Use my picture" with none picked, NASA not stored yet.
         assertTrue(videoDayKept(listOf(APOD), kept, stored(videoDay, StandIn.OWN, own = false)))
-        assertTrue(videoDayKept(listOf(APOD), kept, stored(videoDay - NASA, StandIn.NASA)))
-        // The stand-in is stored but not set yet.
-        assertTrue(videoDayKept(listOf(APOD), kept, stored(videoDay, StandIn.NASA)))
+        // B23's already-shown case (B22): NASA was on before and isn't now.
+        assertTrue(videoDayKept(listOf(APOD), Record(APOD, pic(APOD), t0, shown(pic(APOD), pic(NASA))), stored(videoDay, StandIn.NASA)))
+    }
+
+    @Test
+    fun aStandInThatWillGoOnIsNoKeptPicture() {
+        // B23: the stand-in stored but not on yet (the next check or change time puts it on).
+        val kept = Record(APOD, pic(APOD), t0, shown(pic(APOD)))
+        assertFalse(videoDayKept(listOf(APOD), kept, stored(videoDay, StandIn.NASA)))
+        assertFalse(videoDayKept(listOf(APOD), kept, stored(videoDay, StandIn.OWN)))
+        // Still loading ("… takes its place once it has loaded.").
+        assertFalse(videoDayKept(listOf(APOD), kept, stored(videoDay - NASA, StandIn.NASA)))
+        // Forgotten by Set: the stand-in goes on.
+        assertFalse(videoDayKept(listOf(APOD), Record(APOD), stored(videoDay, StandIn.OWN), everSet = true))
     }
 
     @Test

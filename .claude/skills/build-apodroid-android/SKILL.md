@@ -50,7 +50,7 @@ packages unattended): `night.md`.
   `restartAndForget(before, after, records, stored, time, zone, now)` (S4, Set: the pictures of
   the screens with a column forgotten, each stamped with the current change time; a `Restart`
   with the plan and the screens whose record to `drop`, a column that was empty), and
-  `videoDayKept` for the page's status line, `standInSkipped` for its video notice (B22; tests in `ScreensTest`).
+  `videoDayKept` for the page's status line (B23: not while a stand-in will go on; `Stored.standsIn`), `standInSkipped` for its video notice (B22; tests in `ScreensTest`).
   `core/.../Saving.kt` (0.6.0, F5): `sourcesInUse` (what the job fetches and saves) and
   `toSave` (Save every picture's choice; tests in `SavingTest`).
   `core/.../Migration.kt` (0.6.0, M2): `migrate`, 0.5.0's prefs → 0.6.0's keys, run once by

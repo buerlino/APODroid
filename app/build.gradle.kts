@@ -21,8 +21,8 @@ android {
         applicationId = "io.github.buerlino.apodroid"
         minSdk = 29
         targetSdk = 37
-        versionCode = 9
-        versionName = "0.5.0"
+        versionCode = 10
+        versionName = "0.6.0"
     }
 
     val releaseKeystore = signingValue("storeFile", "APODROID_KEYSTORE_FILE")

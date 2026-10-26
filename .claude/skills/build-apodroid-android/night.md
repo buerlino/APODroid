@@ -9,8 +9,8 @@ this file's sections (the queue, josh's commands, each agent's rules), so each r
 
 - `scripts/night.sh` loops: it asks **josh** for the next command and runs it. josh is one Sonnet call per
   decision, with no tools, run outside the repo so `CLAUDE.md` isn't loaded; the queue, the results so far and the
-  log's tail come on stdin. That's about 1 k tokens of overhead per decision instead of about 25 k for a session in
-  the repo (measured 2026-10-19; pascaline's henri reads the brief himself).
+  log's tail come on stdin. That's about 5 k tokens per decision (about 1 k when measured on 2026-10-19, with a
+  short queue) instead of about 25 k for a session in the repo (pascaline's henri reads the brief himself).
 - `scripts/pipeline.sh <ID>` runs one package end to end:
   1. **Bundle:** the package's sections of the plan (and of `features.md`), the plan's decisions and layout, and
      this file's rules for winston, the report and the definition of done (`.coord/runs/<n>-<id>/spec.md`).
@@ -55,8 +55,9 @@ starts agents. By day each can be started by hand (`claude --agent <name>`). Eve
 `scripts/agent-settings.json` (`./gradlew` and `adb -s HA24BZ2Y` allowed, `git push` and adb to the FP6 denied)
 and no MCP servers.
 
-Why these four (user, 2026-10-19): one worker, because the code is small (2.7 k lines) and the packages build on
-each other; a reviewer who didn't write the code; the tablet at night, so fewer checks are left for the morning.
+Why these four (user, 2026-10-19): one worker, because the code is small (2.7 k lines then, 4.8 k on 2026-10-26)
+and the packages build on each other; a reviewer who didn't write the code; the tablet at night, so fewer checks are
+left for the morning.
 pascaline's six agents (three workers by area, an advisor, a verifier, the coordinator) weren't copied.
 
 ## Rules for a night
@@ -85,91 +86,18 @@ pascaline's six agents (three workers by area, an advisor, a verifier, the coord
 
 ## The queue
 
-Tonight's (user, 2026-10-19): M1 to M4 and F2 of `plan-0.6.0.md`, with code, tests and the tablet checks, after
-M0, the Android check the plan's second review put first (M1's grouping rests on it). The texts wait for the
-user. F1, F3, F4 and F5 each start with a question for the user, so they stay for the day (answered 2026-10-20 and
-built by day; every row below ran in the night of 2026-10-20 and is merged). "Model, effort" is the
-plan's. Spec names the sections the bundle takes: `plan <key>` is the plan's `### [ ] <key>.`, `features <key>`
-is `features.md`'s. Without the tablet M0 can't run, so M1 to M4 wait and only F2 runs.
+The packages of `plan-0.6.0.md` a night runs, in the table's order unless the last Opus pass's QUEUE line reorders
+them. "Model, effort" is the plan's. Spec names the sections the bundle takes: `plan <key>` is the plan's
+`### [ ] <key>.`, `features <key>` is `features.md`'s. A device package (Agent rosie: M0, the V rows) has rosie as its
+worker, Tablet no since she is the check; one that isn't PASS stays unmerged with its results on its branch, and the
+rows after it still run unless their After names it. The regression after the last row reruns dev's debug build; let
+it run. Only APODroid's nights use the tablet (pascaline's leave HA24BZ2Y alone). Done rows stay in the table:
+`scripts/pipeline.test.sh` resolves every row, with M1, M2, F2 (and `features.md`'s item 4), M0 and S4f2 by name.
+What each night queued and why: the plan's Remaining (git has this file's old paragraphs).
 
-The next night (user, 2026-10-20): **V1–V6**, the plan's tablet pass, rosie as each row's worker
-(a device package, as M0; Tablet no, since she is the check). They need master's final tree: F3,
-F1f1, F5f1 and C's text changes committed by day first (night.sh refuses an uncommitted plan and
-brings `dev` up to master). The rows before them have MERGED lines in the log, so josh passes
-them over; they stay because `scripts/pipeline.test.sh` resolves M0, M1 and F2. A V row that
-isn't PASS stays unmerged with its results on its branch, and the rows after it still run (none
-rests on another). The regression after them reruns dev's debug build; let it run.
-
-Then (user, 2026-10-20 afternoon): **S1–S2**, a set by hand that changes the settings (the
-plan's decisions). S3 dropped the same evening: **S4–S6**, settings as a draft that Set applies,
-the setup and advanced areas, the title dropdown and swipe (the plan's "Set applies the
-setup"). S2 was stopped by hand during its tablet check: its review run (`scripts/pipeline.sh
-S2 --no-worker --tablet no`, as S4 and S5 replace what that check tests) merges it before S4
-can start. S4, S4f1, V4 and the night's rows before them are merged (the night of 2026-10-20).
-
-The next night (user, 2026-10-20 evening; the plan, Remaining 3b): **B1, S4f2, S4f3, S5, F6**; the tablet is free by
-night (pascaline has it by day). **S6** waits for the user's look at S5 (its After names `the user`); V3, V5 and
-V6 wait for S6, as they test the final tree. **Only APODroid's nights use the tablet** (user, 2026-10-20
-evening; pascaline's nights leave HA24BZ2Y alone, the user tells them).
-
-The night after (user, 2026-10-20 night, from that night's report; the plan, Remaining 3c): **B2, B4, B5, B6**, the
-fixes the user decided after it (B3 was done by day), then **S6** (S5 approved, so it no longer waits for the user),
-then the complete test on the final tree: **V3, V5, V6, V8**, and the regression. V1, V2 and V4 are merged and pass
-over. V5 (the update from 0.5.0) has no After: it doesn't rest on S6, so it runs even if S6 stays unmerged.
-
-The next night (user, 2026-10-21 morning, from that night's report; the plan, Remaining 3d): every row above is
-merged except V4 (merged the night before; V8 repeated it) and V7 (by hand, not a queue row). **B10, B7, B8, B9**,
-the fixes the user decided after it (B10: "Wi-Fi only" removed; B7 after it, as both change `DailyJob.kt`), then
-the regression. B10's tablet check tidies the tablet first (the old test pictures, one Set). V7 waits for a night
-of its own after them (the plan, V7).
-
-By day (user, 2026-10-22, from that night's report; the plan, Remaining 3e): **B12, B11** with `scripts/pipeline.sh`,
-one at a time. The night after: V7 alone, by hand (not a queue row).
-Changed (user, 2026-10-22 evening; the plan, Remaining 4c): that night is **J0** by hand instead (the Android check for
-the picture time, rosie, two sessions as V7's, the tablet on battery); V7 waits for J1–J3.
-
-The same evening (user, 2026-10-21, 22:45: "the app brute test now, then V7"; the plan, Remaining 4a): **V9, V10**, the
-brute test (rosie as each row's worker, as V3–V8), then **CR** (the code review, winston, no device), **B13** and
-**B14** (their bugs fixed: clear bugs only, decisions as questions), then the regression (user, 22:50: as much as
-fits in about 8 hours). B13 has no After, so it runs even when V9 or V10 stays unmerged (a FIX keeps a V row
-unmerged; B13 reads its `BUG:` lines from the V rows' commit messages, its section says how). B14 waits for the user (22:55: the
-tablet must be free by 08:00; B14 by day with `scripts/pipeline.sh B14`, after the user has read CR's findings). V7 moves to the next night.
-The user read CR's findings and set B14's scope (2026-10-22 morning; the plan, B14 and Remaining 4b): B14 by day, then V7
-alone the night after, by hand.
-
-Tonight (user, 2026-10-23 night; the plan, Remaining 4e): **J1, A1, J2, A3, A4, J3**, the picture time (three rules
-by the clock, one clock, the alarms retrying) and the whole picture, then the regression. J1 and A1 are `:core` only
-(no tablet). J2 waits for J1; A3 for A1 only and A4 for A3 only, so the picture work lands even if J2 needs another
-night (whichever of J2 and A3 comes second rebases on the other's `Store`); J3 waits for J2 and runs last (it and A4
-both change the settings in `MainActivity.kt`). J2 also removes the job's note and retry rules (S4f3, B5, B7, B12);
-its tablet check turns `auto_time` off for its faked clock and back on at the end (the plan, J2). J3's and A4's
-texts are placeholders the user approves from the screenshots in the morning. The night is tight: J3 and the
-regression may slip to Saturday. V7 follows on the night of 25 Oct, by hand.
-
-The next night (user, 2026-10-24; the plan, Remaining 4f): every row above is merged. **B15, B16**, from two reviews of
-`dev` by reading (the window by publish time, the stand-in, the video notice; the job's re-arming, one run at a time,
-a stale pending run), then the regression. B16 waits for B15 (both change `PictureTime.kt` and `Store.kt`). Both
-tablet checks fake the clock with `auto_time` off and back on at the end (the plan, J2). V7 follows on the night of
-25 Oct, by hand.
-
-The night after (user, 2026-10-24 evening; the plan, Remaining 4g, the release gate): right after the shift of 24 Oct,
-a second one. **B17** (the APOD-mode video notice), **CR2** (a code review by reading of everything since 910bfeb),
-**B18** (CR2's clear bugs, at most six; decisions are QUESTION lines: code freeze), then the final tablet pass, riskiest
-first: **V11a** (the system against the new job), **V11d** (R8 and the update from 0.5.0 without opening the page),
-**V11b** (the rules on a faked clock), **V11c** (the new UI), rosie as each row's worker, then the regression. The V11
-rows have no After: they run after B18 also when it stays unmerged (they say which tree they tested). What doesn't fit
-runs on Sunday by day. V7 follows on the night of 25 Oct, by hand.
-
-Tonight (user, 2026-10-25 morning, from that night's report: "fix all bugs and retest"; the plan, Remaining 4h): **B19**
-(a killed run keeps its retry, the switch's stop logged as such), **B20** (Set's toast when its setup couldn't be saved;
-after B19, both change `Store.kt`), **B21** (`:core`: one source after a day offline), then the final pass again in full,
-**V12a → V12d → V12b → V12c** (each its V11 section plus the plan's V12), rosie as each row's worker, then the regression.
-The V12 rows have no After: they run also when a B row stays unmerged (they say which tree they tested). V7 moves to
-the night of 26 Oct, by hand, beside P's real night on the FP6.
-
-**Rows 1–52 are done:** each has a MERGED line in the log, most of them out of josh's view (night.sh shows only the
-last 80 of the log's night headers and RESULT lines). Pass over them; tonight's rows are 53–59 (2026-10-25:
-`pipeline.sh` doesn't refuse a merged ID).
+**Rows 1–59 are done:** each has a MERGED line in the log, most of them out of josh's view (night.sh shows only the
+last 80 of the log's night headers and RESULT lines). Pass over them (`pipeline.sh` doesn't refuse a merged ID). No
+row is queued for a night yet (2026-10-26): the user names the next night's rows here and adds them to the table.
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -506,23 +434,8 @@ An unmerged branch stays as `wp/<id>`, with its worktree, until the next run of 
   `night-<date>.log`, `josh-last-input.md`) and `.claude/worktrees/` (`dev` and the packages'). Each worktree gets a
   link to `private/` (gitignored as `/private`), so `SourcesTest`'s real posts and rosie's scripts are there.
 
-## Tested (2026-10-19)
+## Tested
 
-In a scratch clone, every agent on Haiku, the tablet attached:
-- A package end to end: winston, the check (2 min 46 s), the audit, the merge into `dev`, the worktree and branch
-  removed (3 min).
-- A device package: rosie with the tablet lock and adb, her commits, PASS read, merged. rosie's check after winston:
-  the debug APK built and installed with `install -r` over 0.5.0, the app opened, no crash, the settings and app
-  data backed up first, PASS, merged. M0 without the tablet: NOT STARTED, nothing made.
-- The Opus pass (the check on dev, its reply logged from `OPUS PASS` on) and the report (a file in `.coord/reports/`).
-- josh on Sonnet, on five logs: the first step, a pass after three packages, a FIX line copied verbatim, F2 after M0
-  stopped, the report at the end. All right, about 4 s each.
-- The rules in `agent-settings.json`: `git push` and `git -C <dir> push` denied (the first form of the second rule
-  never matched: susanna's pass flagged it, fixed), adb to the FP6 denied, adb to the tablet allowed.
-- `scripts/pipeline.test.sh`: every queue row's bundle, the log helpers, the merge guard, night.sh's closing.
-- night.sh itself: refused to start with an uncommitted `CLAUDE.md`; then with `--max-steps 2` the preflight, dev
-  brought up to master, the last pass and the report run and their RESULT lines read, SHIFT DONE (2 min).
-
-Not tested: the real models on real packages, a fix round, a usage limit, a merge conflict, a STOP, and a night
-where josh's commands drive the loop (josh only with `--next`). The regression (added 2026-10-19 after pass 5): only
-its dry run, its helpers and night.sh's closing in `pipeline.test.sh`; rosie hasn't run it.
+In a scratch clone on 2026-10-19 (every agent on Haiku), then on real nights since: packages end to end, fix rounds,
+STOPs, device packages, Opus passes, regressions and reports, josh driving the loop. Never seen yet: a usage limit
+(night.sh's 30-minute waits) and a merge conflict inside the pipeline.

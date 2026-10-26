@@ -22,9 +22,8 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - Declutter passes: [.claude/skills/build-apodroid-android/declutter.md](.claude/skills/build-apodroid-android/declutter.md).
 - Planned features, how and checklist: [.claude/skills/build-apodroid-android/features.md](.claude/skills/build-apodroid-android/features.md)
   (decisions in [Next features](#next-features)).
-- Work for 0.5.0 (more NASA pictures of the day, from the first GitHub issue; 2026-10-16),
-  packages with model and effort: [.claude/skills/build-apodroid-android/plan-0.5.0.md](.claude/skills/build-apodroid-android/plan-0.5.0.md)
-  (custom hours dropped, 2026-10-17: [Next features](#next-features)).
+- 0.4.0's and 0.5.0's plans (done) and the code reviews CR and CR2 (fixed): in git, deleted
+  2026-10-26 (`git log --diff-filter=D -- .claude/skills/build-apodroid-android/`).
 - Work for 0.6.0 (APOD first, the "More NASA pictures" switch, and the features from 0.1.1's
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
 - 0.7.0, on time on any phone ("Exact timing", the detector; 2026-10-25): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
@@ -331,31 +330,27 @@ set it as wallpaper, and on video days kept the old wallpaper.
     switch on or off, no Home / Lock / Both menu, enabled unless a Set or the daily switch's run goes. It saves the whole
     draft in one commit (`Store.saveSetup`: the settings, the list with its `lastScreens`, the
     parts, "my picture" renamed from `fallback-draft.jpg` to `fallback.jpg`), forgets the
-    records' pictures, the change times kept (`:core`'s `restartAndForget`; Turns and the picture time), then
-    `update(page = true, show, set = true)` fetches what a newly offered source needs and sets
-    each screen afresh (a changed whole picture or "my picture" too, the same picture again), also with
-    the daily switch off (a one-off set of the same setup), then arms
-    the alarms and the fallback job or cancels them as the stored daily switch says (not part of
-    the draft; after the set: a freshly scheduled fallback runs at once and would set first;
-    `DailyJob.ensure`, which leaves a fallback with the same timing alone and stops no running
-    run; the change times don't move with a Set; Background update). The shown picture decides nothing: to put Earth on a screen,
-    tick Earth (0.5.0's "set the shown picture" dropped). A source whose fetch fails: the setup
-    is saved anyway and each screen gets what has a picture (Turns). Toasts: "Wallpaper set"
-    when a screen was set, also by a page load or the job that set the saved setup before Set's
-    own update got there (B14, CR 5: Set said "Nothing to set yet"; `Store.setsSinceSetup`, each
-    screen's last set since `saveSetup`); "Setup saved. Nothing to set yet." when none was (an APOD video with
-    "Skip it" alone, or nothing stored and the fetch failed: the problem box says why);
-    "Couldn't set the wallpaper" when a set failed (also when another worked); "Couldn't save the
-    setup. Check the free space." instead of all of them when `saveSetup`'s commit wasn't written
-    (B20, a full disk: the setup lives only in memory until the process dies; the sets still run,
-    Setup stays open). With the daily
-    switch on the job sets the rest later. A rotation or Back during Set's run or the daily
-    switch's keeps its end (B13, 2026-10-22: the brute test's V10 found the job not scheduled
-    afresh, no toast, no log line after a rotation): the runs live in the process, not the page;
-    the job and the log need no page, the redraw and Setup closing go to the page that started
-    the run or the one a rotation made of it, and Set stays disabled in every page while either
-    runs. The toast needs no page either, but after Back Android suppresses it (the app is in the
-    background and has no notification permission; tablet, B13).
+    records' pictures, the change times kept (`:core`'s `restartAndForget`; Turns and the
+    picture time), then `update(page = true, show, set = true)` fetches what a newly offered
+    source needs and sets each screen afresh (a changed whole picture or "my picture" too, the
+    same picture again), also with the daily switch off (a one-off set of the same setup), then
+    arms the alarms and the fallback job or cancels them as the stored daily switch says (after
+    the set: a freshly scheduled fallback runs at once and would set first; `DailyJob.ensure`
+    leaves a fallback with the same timing alone and stops no running run). The shown picture
+    decides nothing: to put Earth on a screen, tick Earth. A source whose fetch fails: the setup
+    is saved anyway and each screen gets what has a picture (Turns). Toasts, the first that
+    applies: "Couldn't save the setup. Check the free space." when `saveSetup`'s commit wasn't
+    written (a full disk: the setup lives only in memory until the process dies; the sets still
+    run, Setup stays open); "Couldn't set the wallpaper" when a set failed (also when another
+    worked); "Wallpaper set" when a screen was set since `saveSetup` (`Store.setsSinceSetup`),
+    also by a page load or the job that got there before Set's own update; else "Setup saved.
+    Nothing to set yet." (an APOD video with "Skip it" alone, or nothing stored and the fetch
+    failed: the problem box says why). With the daily switch on the job sets the rest later. A
+    rotation or Back during Set's run or the daily switch's keeps its end (B13): the runs live in
+    the process, not the page; the job and the log need no page, the redraw and Setup closing go
+    to the page that started the run or the one a rotation made of it, and Set stays disabled in
+    every page while either runs. After Back Android suppresses the toast (the app is in the
+    background and has no notification permission).
   - **More NASA pictures** (the pref `allSources`, default off: APOD mode; the name the user's,
     2026-10-20: the mockup's "Extended API mode" is a developer's word). Part of the draft:
     "Where" and the list swap at once and the page offers the new mode's sources; Set saves it
@@ -712,43 +707,34 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
 - **Retries by the alarms** (user, 2026-10-23 night): every run ends with
   `jobFinished(params, false)` and `onStopJob` returns false, for both ids, so Android keeps no
   backoff retry (in Doze it waits for a maintenance window and, pending, blocks the alarms). A
-  failed run (a fetch's or a set's failure in `Updated`) or one `onStopJob` stopped
-  (`stoppedBySystem`) counts: `Store.ranJob` keeps `failedRuns` (in a row) and `failedAt`; a
-  good run clears them, the daily switch either way too. The alarms then come 15 min after the
-  run, then hourly (`nextAlarm` keeps that retry when armed again before it, by a Set or a page
-  open; a retry whose time passed without a run, after a boot or the process dying, comes at
-  once). A run that waits for the network (id 2 pending) arms nothing until it runs. Each run's
-  start arms the alarms 15 min ahead (B16), an hour after one or more failed runs in a row
-  (`runRetry`, B19), so a run that never reaches its end (a frozen or killed process) is
-  retried by them; its end arms them again as above. **A killed run** (B19, 2026-10-25, from
-  V11a: `install -r` during a run, `kill -9`, the low-memory killer, a Recents swipe) **keeps
-  its retry and counts as failed:** the start notes `runGoing` (removed by `ranJob` and the
-  daily switch either way), and `nextAlarm` counts it as a run going in every process, so an
-  arming after the process died (an update's `MY_PACKAGE_REPLACED`, a boot, a page open) keeps
-  the start's retry, not the clock's next check (before B19 it took that, V11a: 05:24 for a
-  04:27 run; Android re-runs a killed job 1 itself, a killed id 2 not). The next run's start
-  finds the note and counts that run in `failedRuns` and `failedAt` before its own work, as a
-  stop by Android, so a crash on every run (out of memory decoding a huge picture, downloaded
-  again each time) is retried 15 min later, then hourly. An arming during a run
-  (a page open, a Set, the daily switch on, `TIME_SET`/`TIMEZONE_CHANGED`) keeps that retry:
-  the earlier of the clock's next check and `lastRunAt` + `runRetry` (15 min, an hour after a
-  failure), at the earliest now; the last failure's retry doesn't count then, the run going is
-  it (B16f1, 2026-10-24: it armed the next change time, so a run killed mid-run, e.g. swiped
-  from Recents, waited up to a day; a run left from before an off and on costs one spare
-  check). An alarm that lands in a going run (such an arming's earlier check, or the run
-  outlasting its own retry) arms the pair `runRetry` ahead again, as the run's start did (B18,
-  2026-10-24, CR2's finding 1: `runNow` dropped it and armed nothing, so a process killed before
-  the run's end had no alarm left). A run the daily switch off dropped logs "Daily job: stopped
-  (the switch off)", not a failure (B19: it logged `InterruptedIOException` with a stack); a
-  stop by Android stays a failure. A stop leaves the
-  thread interrupted (`Store.update`), and an interrupted thread's `commit()` skips the prefs
+  failed run (a fetch's or a set's failure in `Updated`), one `onStopJob` stopped
+  (`stoppedBySystem`) and one killed before its end count: `Store.ranJob` keeps `failedRuns`
+  (in a row) and `failedAt`; a good run clears them, the daily switch either way too. The
+  alarms then come 15 min after the run, then hourly (`nextAlarm` keeps that retry when armed
+  again before it, by a Set or a page open; a retry whose time passed without a run, after a
+  boot or the process dying, comes at once). A run that waits for the network (id 2 pending)
+  arms nothing until it runs. **A run that never ends** (a frozen or killed process:
+  `install -r`, `kill -9`, the low-memory killer, a Recents swipe; B16, B19): its start notes
+  `lastRunAt` and `runGoing` (removed by `ranJob` and by the daily switch either way) and arms
+  the alarms `runRetry` ahead (15 min, an hour after one or more failed runs in a row).
+  `nextAlarm` counts `runGoing` as a run going in every process, so an arming during the run or
+  after its process died (a page open, a Set, the daily switch on, `TIME_SET`,
+  `TIMEZONE_CHANGED`, an update's `MY_PACKAGE_REPLACED`, a boot) keeps that retry: the earlier
+  of the clock's next check and `lastRunAt` + `runRetry`, at the earliest now (the last
+  failure's retry doesn't count then, the run going is it; a run left from before an off and on
+  costs one spare check). Android re-runs a killed job 1 itself, a killed id 2 not. The next
+  run's start finds the note and counts the killed run in `failedRuns` and `failedAt` before its
+  own work, so a crash on every run (out of memory decoding a huge picture, downloaded again
+  each time) is retried 15 min later, then hourly. An alarm that lands in a going run arms the
+  pair `runRetry` ahead again, as the run's start did (B18: else a process killed before the
+  run's end had no alarm left). A run the daily switch off dropped logs "Daily job: stopped
+  (the switch off)", not a failure; a stop by Android stays a failure. A stop leaves the thread
+  interrupted (`Store.update`), and an interrupted thread's `commit()` skips the prefs
   listeners, so the run clears the flag (`Thread.interrupted()`) before `ranJob` (B16). Such a
-  `commit()` also clears the flag, so a stop doesn't rest on it alone (B18, CR2's finding 2: a
-  stop during a set went on with the other screen's set and "Save every picture"'s downloads):
-  `update` and `saveInUse` also read the job's `stoppedBySystem` before each source, each set
-  and each save, a commit on the job's thread clears the flag first and then ends the run
-  (the record of a set done is written, the page hears it), and a run `onStopJob` stopped
-  saves nothing.
+  `commit()` also clears the flag, so a stop doesn't rest on it alone (B18): `update` and
+  `saveInUse` also read the job's `stoppedBySystem` before each source, each set and each save,
+  a commit on the job's thread clears the flag first and then ends the run (the record of a set
+  done is written, the page hears it), and a run `onStopJob` stopped saves nothing.
 - **Off is off** (`DailyJob.cancel`): both jobs and both alarms cancelled, a running run too;
   `JobRuns.drop` bumps a generation each run takes at its start, so a run from before an off
   ends without effect (it arms and notes nothing; a lock keeps its end and the cancel apart;
@@ -929,17 +915,11 @@ job or the rules reruns that part; the skill's "Still untested" is updated; the 
 day rather than ship a job change only a unit test has seen. Why: the last complete passes
 (V3–V10) ran on the tree of 21–22 Oct; since then the job was rebuilt (J1, J2, B15, B16, B16f1),
 the drawing is new (A3) and Setup changed (J3, A4), and no R8 build or update from 0.5.0 ran on
-the new job. From V11a–d's night (user, 2026-10-25: "fix all bugs and retest",
-then V11a–d again in full as V12a–d before V7 and P): **to fix** (`plan-0.6.0.md`), a run killed
-by an update or the system keeps its 15-min retry and counts as failed (a crash on every run is
-then retried hourly, not every 15 min), and the switch's stop isn't logged as a failure (B19),
-Set's toast "Couldn't save the setup. Check the free space." when its prefs
-commit fails on a full disk (B20; text approved), one source after a day offline takes the
-newest post (B21, CR2's finding 3; by the check gap, not by post dates: the day's review found
-that NASA's and Earth's weekends would trigger a date rule every Monday; a post stored when the
-source's last good check is over 24 h old is marked and goes on whenever a run sees it. Accepted
-with it: on a phone in the RESTRICTED bucket, one alarm a day, gaps over 24 h can come daily, so
-its newest goes on whenever that run comes). **Accepted, no change:** the RARE bucket's about one alarm
+the new job. **Where it stands** (2026-10-26): V11a–d's findings fixed (user, 2026-10-25: "fix
+all bugs and retest"): a killed run keeps its retry and counts as failed (B19, Retries by the
+alarms), Set says when its setup couldn't be saved (B20, Set as wallpaper), one source after a
+day offline takes the newest post (B21, Turns, rule 2); V12b–d pass on master 654848c, V12a ran
+3 of its items (the rest: the skill's Still untested); V7 and P to come. **Accepted, no change:** the RARE bucket's about one alarm
 an hour (Android's quota; the pause hint covers Optimized); CR2's finding 4 (a Set that
 changes the picture time or "Change every" costs one spare check; noting `lastRunAt` at Set
 could drop an owed check); a Set tap in the same input burst as the time menu's closing goes to

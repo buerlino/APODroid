@@ -98,7 +98,7 @@ fi
 export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0
 
 # josh: his agent file's text is the whole system prompt; one call, no tools, run outside the repo so no CLAUDE.md
-# (46 KB) is loaded: about 1 k tokens of overhead instead of 25 k (measured 2026-10-19).
+# (46 KB) is loaded: about 5 k tokens a decision instead of 25 k (1 k when measured on 2026-10-19).
 josh_prompt="$(awk '/^---$/ { n++; next } n >= 2' "$integ/.claude/agents/josh.md" 2>/dev/null || true)"
 [[ -n "$josh_prompt" || $dry -eq 1 ]] || { echo "night.sh: no $integ/.claude/agents/josh.md" >&2; exit 2; }
 josh_dir="$(mktemp -d)"

@@ -520,6 +520,13 @@ reading; their build check passed, 108 tests with `private/`):
    V12d → V12b → V12c → the regression. **Mon 26 to Tue 27:** V7 (tablet, by hand) and P's real
    night (FP6: the release build installed in the evening without opening the page), side by
    side. Then the rest of P by day, R and T.
+4i. **The night of 2026-10-25** (2026-10-26 morning, after the report
+   `.coord/reports/2026-10-25-night.md`): B19, B20, B21 merged (B19 and B20 tablet PASS; B21
+   by V12b), V12b, V12c and V12d PASS, regression 10 PASS, no bug; master fast-forwarded to
+   654848c, the shift's tree. V12a ran 3 of its items in its 50 minutes (the 15 real minutes
+   twice), so the gate waits for the rest (V12, Status). Open for the user: when the rest runs
+   against V7's and P's night; the stand-in with APOD alone on a screen that showed it;
+   ZuiMemoryCleaner; the status line beside "takes its place" (`CLAUDE.md`, the release gate).
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then R and T.
 
@@ -1425,8 +1432,9 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
 - Your verdict: PASS when everything you ran works; FIX for a bug in our app (the steps, what
   happened, the logcat line); STOP for Android doing what the plan didn't expect. The morning
   makes each bug a `B<n>` package.
-- Results: in your results commit, the skill's "Still untested" (its 0.6.0 bullet) says what
-  this row checked and what is still open; then the report commit ("Your report": Tests, what
+- Results: in your results commit, the skill's "Still untested" loses the gaps this row closed
+  and gets one line, naming the row, for each it leaves open (gaps only since 2026-10-26: what
+  it checked goes in the report commit); then the report commit ("Your report": Tests, what
   ran on the tablet; Not tested, what didn't and why). The plan's checkboxes stay `[ ]`.
 - Done when: each of the row's bullets ran or is under Not tested with the reason, and the
   results are committed.
@@ -1558,8 +1566,9 @@ least 6 hours apart, the tablet left alone between them. Real timing, so no `tur
   standby bucket), the alarms' times (`dumpsys alarm`) against the runs, each change on its
   change time or at the check that saw a new post, no screen set twice for one change time, no
   set of a picture the screen had shown, each change to the next source with a new picture. Results and verdict
-  (PASS, FIX, STOP) in `.coord/runs/v7/report.md` (Tests, Not tested); the morning copies them
-  into the skill's "Still untested". **Then** set the tablet back from `backup/`.
+  (PASS, FIX, STOP) in `.coord/runs/v7/report.md` (Tests, Not tested); the morning updates the
+  skill's "Still untested" (V7's line out, a line per gap left). **Then** set the tablet back
+  from `backup/`.
 
 ### [x] V8. V1, V2 and V4 again where S4–S6 changed them
 
@@ -2325,7 +2334,7 @@ posts with chosen picture times and the network cut stand in for a made-up feed.
   the top, "New picture at", the list.
 - **Done when:** each item ran or is under Not tested; the tablet set back.
 
-### [ ] B19. The job: a killed run keeps its retry; the switch's stop isn't logged as a failure (Opus, high)
+### [x] B19. The job: a killed run keeps its retry; the switch's stop isn't logged as a failure (Opus, high)
 
 (User, 2026-10-25, from V11a's findings 2 and 4; a bug fix under the freeze.)
 - **A killed run keeps its retry.** V11a: `install -r` during a run killed it before its end;
@@ -2360,7 +2369,7 @@ posts with chosen picture times and the network cut stand in for a made-up feed.
 - **Done when:** `PictureTimeTest` cases for `nextAlarm(running = true)`: no failure before, the
   cap `lastRun` + 15 min; one or more, `lastRun` + 1 h. The tablet passes.
 
-### [ ] B20. Set says when its setup couldn't be saved (Opus, medium)
+### [x] B20. Set says when its setup couldn't be saved (Opus, medium)
 
 (User, 2026-10-25, from V11a's finding 3; the text approved by the user the same day.) On a
 full disk Android's prefs write failed too: only `apodroid.xml.bak` was left, and Set's setup
@@ -2377,7 +2386,7 @@ set". `prefs.edit(commit = true) { }` (core-ktx) drops `commit()`'s result.
   the smoke list. `/data/local/tmp/fill*` removed at the end.
 - **Done when:** built, the tablet passes.
 
-### [ ] B21. One source after a day offline: the newest goes on (Opus, high)
+### [x] B21. One source after a day offline: the newest goes on (Opus, high)
 
 (User, 2026-10-25, from CR2's finding 3; a change to rule 2.) With one source, the post due at a
 change time never shows when a newer one, published after the window, is stored first: Los
@@ -2421,6 +2430,11 @@ source is stored, so D−1's is gone.
   all `:core` tests pass.
 
 ### [ ] V12. The final pass again, on the tree with B19–B21 (Opus, high)
+
+**Status (2026-10-26):** V12b, V12c and V12d passed on the tree with B19–B21 (the night of
+2026-10-25; master 654848c). V12a passed the 3 items it ran (the safety alarm after `kill -9`
+alone, `kill -9` of job 1, `install -r` during a run) and ran out of time for the rest: the
+skill's Still untested lists them. Low storage during Set ran in B20's check and regression 10.
 
 (User, 2026-10-25: fix A–D, then V11a–d again in full, before V7 and P.) V12a–d each run their
 V11 section (V11a, V11d, V11b, V11c) on dev's tree after B19–B21 (say which of them are

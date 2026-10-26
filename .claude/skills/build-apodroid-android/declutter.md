@@ -529,28 +529,27 @@ findings were spot-checked.
   where the fact alone does. 1321 → 1142 lines, 115 → 97 KB. Also: the pref `interval` (not
   `DAY`), "choosing the check time" out of Left out ("New picture at" sets it), the Clear-storage
   `(1).jpg` fact moved into Save, the migration's "not a read fallback" into Stack.
-- [ ] D-rest, after the night's merge: Set as wallpaper (B20's), Retries by the alarms (B19's)
-  and the release gate's B19–B21 lines, as B19–B21 left them; Fetch's pointer to this file's
-  "Review of 0.1.2, 2.2" once D26 moves it.
-- [ ] D20 `SKILL.md` Still untested: open gaps only, one line each with the row that found them
-  (17 tested since, 14 obsolete); the V rule (`plan-0.6.0.md`, V: every row appends its
-  results there) changed to match.
+- [x] D-rest (2026-10-26, after the night's merge): Set as wallpaper (B20's toasts in order),
+  Retries by the alarms (B19's killed run in one place) and the release gate (where it stands).
+  Left for D26: Fetch's pointer to this file's "Review of 0.1.2, 2.2".
+- [x] D20 (2026-10-26) `SKILL.md` Still untested: open gaps only, one line each with the row that
+  left them (V12a's rest, V7 and P first); the V rows' how-to lessons moved to Working on the
+  phone; the V rule and V7's morning step changed to match. `SKILL.md` 815 → 389 lines.
 - [ ] D21 `plan-0.6.0.md` after 0.6.0 ships: finished packages to one line each, headings kept;
   the old Decisions rewritten.
-- [ ] D22 `SKILL.md`'s 10 stale points (the job's log lines, `swap.sh r8` installing 0.5.0's APK,
-  force-stop and the alarms, `onNewIntent`, the Store listing note, …) and 9 repeats of
-  `CLAUDE.md`.
+- [ ] D22 `SKILL.md`'s 10 stale points (`swap.sh r8` installing 0.5.0's APK, `onNewIntent`, the
+  Store listing note, …) and 9 repeats of `CLAUDE.md`. Done 2026-10-26: the job's log lines,
+  force-stop and the alarms.
 - [ ] D23 `features.md` ticked and trimmed (R); deleted when 0.7.0's queue starts, with
   `pipeline.test.sh`'s F2 check.
 - [ ] D24 `keep-running.md`: a header line (before the alarms), the dead `features.md` reference,
   0.7.0's Live and foreground service.
-- [ ] D25 night.md: the queue's history prose cut (keeping Q12's line, the table format, the rows
-  the test needs: M1, M2, F2), "about 1 k tokens" → about 6 k, "Tested (2026-10-19)" to its two
-  unseen cases.
+- [x] D25 (2026-10-26) night.md: the queue's history prose cut to its rules and "Rows 1–59 are
+  done"; about 5 k tokens a decision (also in `night.sh`); "Tested" to its two unseen cases.
 - [ ] D26 This file: the passes of 4–7 Oct to a short "left on purpose" list.
-- [ ] D27 Delete `plan-0.4.0.md`, `plan-0.5.0.md` (with `CLAUDE.md`'s pointer), `review-0.6.0.md`;
-  `review-0.6.0-cr2.md` once B21 is merged. Keep `on-time-0.7.0.md`; a `plan-0.7.0.md` would
-  become the pipeline's plan at once.
+- [x] D27 (2026-10-26) Deleted `plan-0.4.0.md`, `plan-0.5.0.md`, `review-0.6.0.md` and
+  `review-0.6.0-cr2.md`, with the pointers in `CLAUDE.md`, the skill and `features.md`. Kept
+  `on-time-0.7.0.md`: a `plan-0.7.0.md` would become the pipeline's plan at once.
 
 ### Code (after 0.6.0 ships, one package)
 - [ ] C1–C12 The 3 compiler warnings (`: Unit` on `started`/`ended`, errors from Kotlin 2.5) and

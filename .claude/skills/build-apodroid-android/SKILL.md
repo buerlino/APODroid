@@ -8,8 +8,8 @@ description: Execution brief for building APODroid (io.github.buerlino.apodroid)
 How-tos and what's still untested. `CLAUDE.md` at the repo root is the source of truth for the
 stack, the data source and the decisions. Read it first. If this skill and `CLAUDE.md` disagree,
 `CLAUDE.md` wins; update this skill to match. The history is in git. The next features to build,
-with a checklist: `features.md` next to this file. The work for 0.6.0: `plan-0.6.0.md` (0.5.0's
-and 0.4.0's, done: `plan-0.5.0.md`, `plan-0.4.0.md`). Night shifts (agents working through the
+with a checklist: `features.md` next to this file. The work for 0.6.0: `plan-0.6.0.md` (0.4.0's and
+0.5.0's, done, are in git). Night shifts (agents working through the
 packages unattended): `night.md`.
 
 ## Where things are
@@ -116,9 +116,10 @@ packages unattended): `night.md`.
   pair (two `PendingIntent`s, request codes 1 and 2, the same time; `RTC_WAKEUP`); the job logs
   `Daily job: alarms for <UTC time>` each time it arms them, `Daily job: alarm, run scheduled`
   when one fires, `Daily job: jobFinished (job <id>)` at a run's end. Since J2 no run asks
-  Android for a retry: after a failed run no backoff job is pending, the alarms come 15 min later. The job logs `Daily job: <SOURCE> <date>, wallpaper set` (or `video, wallpaper
-  kept`; SOURCE is APOD also for "my picture") and `Daily job failed` under `adb logcat -d -s APODroid`; the page the same as `Page:
-  …` and `Update failed`. Nothing is logged when there was nothing to set. Pull to refresh:
+  Android for a retry: after a failed run no backoff job is pending, the alarms come 15 min later. The job logs `Daily job: wallpaper set: Of(source=APOD, date=…, url=…) on HOME+LOCK`
+  (`Own` for "my picture"; one entry per set), `Daily job failed: …`, `Daily job: the run before never ended
+  (killed), counted as failed` and `Daily job: stopped (the switch off)` (B19) under `adb logcat -d -s APODroid`; the page the same as `Page:
+  …` and `Update failed`, Set as `Set: …`, the switch as `Switch on: …`. Nothing is logged when there was nothing to set (a kept video day neither). Pull to refresh:
   `adb shell input swipe 400 300 400 1100 600` (tablet coordinates). Crashes:
   `adb logcat -d | grep 'E AndroidRuntime'` (the `I AndroidRuntime` lines are adb's `content`
   and `am` tools starting); after `logcat -c`,
@@ -129,8 +130,10 @@ packages unattended): `night.md`.
   `am start -n io.github.buerlino.apodroid/.MainActivity` works too; since B4 (`singleTop`)
   either start reuses the page on top (before, mixing the two stacked a second page without the
   draft). One page: `adb shell dumpsys activity activities | grep 'Hist #.*apodroid'` shows one line.
-- `am force-stop` cancels the app's jobs; opening the page schedules it again (pref `daily`).
-  Use `am kill` to restart the app and keep the job. `pm clear` cancels it and the pref.
+- `am force-stop` cancels the app's jobs and both alarms; the next start (the page, or Android 15
+  delivering `BOOT_COMPLETED` as the app leaves the stopped state) arms them again (pref `daily`).
+  Use `am kill` to restart the app and keep them (it doesn't kill while a Set runs: `run-as
+  io.github.buerlino.apodroid kill -9 <pid>`). `pm clear` cancels them and the pref.
 - The hint about Android pausing the app: undo "Don't show again" with
   `adb shell run-as io.github.buerlino.apodroid sed -i '/pauseHintHidden/d' shared_prefs/apodroid.xml`
   (after `am kill`). The two settings by adb: `keep-running.md`, How to test.
@@ -235,512 +238,83 @@ packages unattended): `night.md`.
   the proxy): while it's active the test proxy and the firewall chain miss the app. Check the
   status bar's VPN icon or `dumpsys connectivity | grep -i vpn` first. Failed runs then come
   from Wi-Fi off with `run -f` (they fail within a second); leave the VPN as it is (not ours).
+- Learned in the V rows (2026-10-21 to 25, the tablet):
+  - A clock faked into the past breaks TLS after a while (the stapled OCSP: "Response is
+    unreliable: its validity interval is out-of-date"): fetch only with the clock at or after
+    the real time, so step it forward only (V11b).
+  - A run long enough to act during it (the runs take 0.2–1.3 s on the tablet's Wi-Fi): "Save
+    every picture" at No limit with the posts faked back (V12b: 3 s), and the second action sent
+    from the tablet's shell in the same command, e.g. `adb shell "cmd jobscheduler run -f
+    io.github.buerlino.apodroid 1; sleep 0.8; input tap X Y"`, not two adb calls.
+  - `kill -9` of job 1's run: Android restarts job 1 itself within minutes (V12a: 4.5 min), so
+    the alarms' own retry shows only for a killed alarm's run (id 2: fake the clock just before
+    a check).
+  - Battery saver on the charging tablet needs `cmd battery unplug` first (`dumpsys battery
+    reset` after). A reboot: no PIN on the tablet, `wm dismiss-keyguard`, then wait for
+    `sys.boot_completed`.
+  - Tailscale's VPN stays VALIDATED with no network under it (airplane mode), so JobScheduler
+    sees connectivity (V9).
+  - Lenovo's ZuiMemoryCleaner force-stopped the cached app once after a clock step (V12d), which
+    deletes the alarms and job 1 until the next start: check `dumpsys alarm` after each step.
+  - `am kill` keeps the page's saved draft, so a Set after reopening saves that draft, not prefs
+    pushed meanwhile. A Compose popup takes the tap that closes it: in one `input` line, a Set
+    tap right after a menu choice goes to the menu.
+  - Real split screen needs a second app picked in Recents (another app's screen): use `wm size
+    600x1340` and back instead (V9).
 
 ## Still untested
 
-- 0.6.0 (the night of 2026-10-20 on the tablet, debug builds; the morning's short names not on a
-  device yet; F1, F3 and F1f1 in V1, F4, F5 and F5f1 in V2): what V1–V7 and P still have to check is
-  listed in `plan-0.6.0.md`, V and P. Each V row updates this bullet with what it checked.
-  V1 (2026-10-20, debug build of dev, passed): Fit with a wide picture (APOD's real
-  1787×1340, Earth's real map 1942×1340, a made-up star field 3726×2484) and a tall one (a
-  made-up 600×2000 in `files/apod.jpg`), with the grid (Both columns one set, `mWhich=3`;
-  home APOD and lock Earth set separately) and in APOD mode ("Where" Both one set, Lock and
-  Home only their screen); Fit's hint is the whole 800×1340 bitmap, Fill's the centred crop
-  again; each Fill/Fit change and the mode switch with the daily switch on set at once and
-  `turnStartedAt` stayed; no ⛶ with Fit, and Fit closes an open crop mode. A made-up JPEG with
-  EXIF orientation 6 as "my picture" (a faked APOD video day) with Fit: upright, the circle
-  round. Share: "<title>\n<page link>" in the share sheet's preview from APOD's and NASA's
-  tabs and from the ▶ tile (NASA has no video posts, so the tile is APOD's only). Seen only
-  for the user's eyes: the star field with Fit shows faint dots where Fill shows crisp stars
-  (a 4.7× shrink of 1–3 px stars; a made-up field, not a real APOD), and the lock screen only
-  in grid mode (APOD mode's by `dumpsys wallpaper`). Screenshots in the run's `tablet/`.
-  V2 (2026-10-20, debug build of dev, passed): the credit, today's real one ("Credit &
-  Copyright: Aurelia Degli Esposti", stored by a pull) and the longest of the 100 (2026-09-04's,
-  faked by prefs), in APOD mode and on APOD's tab, the explanation closed (one line, an
-  ellipsis) and open (all of it); none on NASA's tab. Save every picture with `run -f`: a stop
-  (`cmd jobscheduler timeout`) during APOD's original (1.1 MB, throttled to 2000 B/s by the
-  proxy) left no `.part` in `cache/` and no gallery row, `saveTried` held the URL, the retry
-  30 s later saved the stored picture (170775 bytes, "rendition"; no new connection to the
-  host) and cleared the note; a second run saved nothing; the file deleted in the gallery
-  wasn't saved again; a faked APOD video day with NASA standing in saved NASA's original
-  (a `nasa.saveTried` of another URL didn't stop it) and not APOD's (its saved note cleared
-  first); the grid with APOD, NASA and Earth ticked saved APOD's and Earth's originals (a
-  `saveTried` of another URL again), NASA's already saved. The ⓘ dialog's text as approved.
-  Not checked: a stop during NASA's or Earth's original (the same code path), the job's
-  real ~10 min deadline (only `timeout`). Screenshots in the run's `tablet/`.
-  V4 (2026-10-20, debug build of dev, passed): only NASA failing (the proxy stalling
-  `www.nasa.gov`, a pull with "All NASA pictures" on): `nasa.problem` network, the box "NASA
-  Image of the Day: Couldn't reach NASA's site. Check the connection." on APOD's, NASA's and
-  Earth's (unticked) tabs. The job's sources (the proxy's log, hosts with a rule): Home APOD +
-  Earth, Lock Earth connected only to science.nasa.gov and its assets, `nasa.checkedAt` untouched;
-  the stand-in on home's turning column (APOD's turn, a faked APOD video day, NASA standing in):
-  only `www.nasa.gov`, NASA's picture set on home alone (owner APOD, stamp and `turnStartedAt`
-  kept, the lock screen untouched), the notice "… so NASA's Image of the Day takes its place.".
-  The migration race: a 0.5.0 state by `run-as` (APOD, "Where" = Lock), `run -f` and `am start`
-  in one shell line: one "Migrated from 0.5.0" (on the page's thread; the job's run succeeded
-  2 s later), home's record moved to `lock.*`, every other key and value the same. The open page
-  followed a job run that set only the lock screen (NASA's newer post; the page skipped it by
-  the hour rule): "Lock screen changed …" and NASA's title and chip "On lock screen" updated,
-  home's id unchanged. The picker in grid mode on a faked video day with no `fallback.jpg`:
-  "Use my picture" opened it at once; Back kept NASA and set nothing; reopened, rotated to
-  landscape while open, then a pick: `MINE`, the file copied, home set at once (`mWhich=1`, the
-  record "own", no hold, the clock kept), "Change picture" beside the dropdown; "Change picture"
-  replaced the file and set home again. The chip in APOD mode with "Where" = Lock shows only with
-  tabs (as built): on a faked video day with NASA standing in, "On wallpaper" on NASA's tab, the
-  page opening there, only the lock screen set; on a plain day no chip and the status line from
-  the lock screen's record. Not checked: a rotation during "Change picture"'s picker, backing out
-  of it, the picker in APOD mode, the race for "Where" Home or Both (Lock is the case that
-  copies), an upgrade from a real 0.5.0 APK (the state was made by `run-as`). Evidence in the
-  run's `tablet/`.
-  V3 (2026-10-21 night, debug build of dev d2bf03c, after S6 and B1–B6, passed): Set in both
-  modes with the daily switch on and off: a draft (Earth ticked, Fit, "Where", the mode) wrote
-  no pref and set nothing; Set saved it, restarted `turnStartedAt` and set each screen afresh
-  (grid: APOD on both, one set `mWhich=3`; APOD mode "Where" Home only home, Both one set; with
-  the switch off a one-off set with Fit, no job); the job's next run in the same turn set
-  nothing, a turn later home Earth and lock NASA, each by itself. The daily switch: off with a
-  Fit draft cancelled the job and kept the draft; on with a Fill draft set the stored Fit
-  (`mCropHint` the whole 800×1340) and scheduled the job, Fill still the draft. The title
-  dropdown (✓ before the shown one) and the swipe with each source's own post, stopping at the
-  ends: grid mode three sources, APOD mode on a NASA stand-in day APOD and NASA, a plain day the
-  name alone. A faked APOD video day (`isVideo`), home APOD + NASA taking turns, lock APOD alone:
-  NASA, Earth and "my picture" on both screens with owner APOD (stamps kept), "Skip it" passed
-  home's turn to NASA (owner NASA, stamp kept) and kept the lock screen ("Lock screen: video
-  day, wallpaper kept"); APOD mode "Where" Both: each stand-in set, "Skip it" set nothing. The
-  page opened on the stand-in's page, the notices as approved. B1: APOD mode, "Skip it", switch
-  off and on: the records forgotten, "Video day, wallpaper kept" shows; with turns on home: home
-  NASA, "Home screen changed … · NASA" and the lock screen's kept line. Set and a Fit tap in
-  one `input` line: Set saved "Where" only, Setup closed with its header in `tertiary`, Fit
-  still the draft. Pull to refresh with APOD's `date` faked a day back (the page open skipped
-  it by the hour rule): fetched, `date` back to today, the picture set (`Page: wallpaper
-  set`). Landscape: two panes, the grid draft kept. Font scale 2.0 at `wm density 344`: the
-  list (dropdowns wrap under the names), "Change every", Fill/Fit, the status lines with the
-  short names, the credit with its ellipsis; the video dropdown's "▾" wraps to a second line
-  under "NASA Image of the Day" (for the user's eyes). No crash (`exit-info`: force stops and
-  kills only). Not checked: a set failing on one screen and its retry (nothing on the tablet
-  makes a set fail; `ScreensTest` covers the rule). Screenshots in the run's `tablet/`.
-  V5 (2026-10-21 night, the update from a real 0.5.0: a debug build of `v0.5.0` under the dev
-  debug build 752ae8e, passed): nine states, `where` Home, Lock, Both × `sources` APOD, NASA,
-  APOD+NASA, each from `pm clear` with only `daily`, `sources` and `where` seeded, 0.5.0's page
-  setting the wallpaper itself (its own record), then 0.6.0 by `install -r` (`tablet/v5.sh`).
-  Each logged one "Migrated from 0.5.0" and wrote what `CLAUDE.md` says: `allSources` false for
-  APOD alone, else true with `home`/`lock` = `sources` in the columns `where` names (the other
-  `""`); Both copied the record to `lock.*`, Home left `lock.*` unwritten, Lock moved it there and
-  removed home's keys; `wallpaperPicture` the noted source, `wallpaperStamp` = `turnStartedAt`
-  (APOD alone has none in 0.5.0, so none); APOD mode's owner APOD, the others 0.5.0's (NASA, its
-  first turn's). Nothing else changed. The first page open and a `run -f` after it set nothing
-  (`dumpsys wallpaper` ids the same, no set logged, the job's run successful, no pref changed by
-  the job). The page: APOD mode with the name alone and the summary "APOD on <home screen | lock
-  screen | both screens>"; switch on with the title dropdown, opening on NASA (the picture's
-  source) with the chip "On home screen", "On lock screen" or "On wallpaper" as `where` said,
-  the summary "APOD on …, NASA on … · turns every 24 h" for two, the status line per screen.
-  A tenth: APOD alone, Both, `MINE` with `fallback.jpg`, the record faked to 0.5.0's own
-  picture (APOD video date, no URL): `wallpaperPicture` and `lock.wallpaperPicture` "own",
-  nothing set, the notice "… so your own picture is the wallpaper.", "· My picture". Not
-  checked: Earth (0.5.0's handling is NASA's), a 0.5.0 state whose `wallpaperSource` is a
-  stand-in in APOD mode (rule unit-tested in `MigrationTest`), a release build (`run-as`).
-  V6 (2026-10-21 night, R8 builds signed with the debug key: `v0.5.0` and dev c9c5a28, passed):
-  the update, once: 0.5.0's state seeded by `run-as` (`daily`, APOD+NASA, Both), the 0.5.0 R8
-  page set NASA on both, then 0.6.0 R8 by `install -r`: one "Migrated from 0.5.0", the page on
-  NASA with "On wallpaper", the summary "APOD on both screens, NASA on both screens · turns every
-  24 h · Fill", the status line "… · NASA"; a `run -f` succeeded and set nothing. On the 0.6.0
-  R8 build: "More NASA pictures" off in the draft and Set put APOD on both (one set, `mWhich=3`;
-  "APOD on both screens · Fill"); a pull stored the credit ("Credit & Copyright: Aurelia Degli
-  Esposti" under the date); Fit and Set: the hint the whole 800×1340, no ⛶, "· Fit"; the switch
-  on with Fill and Set: APOD on both, "· APOD"; the swipe APOD → NASA → Earth, stopping at Earth,
-  and back; the title dropdown with ✓ before the shown one. "Save every picture" with the default
-  20 MB and a `run -f`: APOD's original saved (1100460 bytes), NASA's 208 MB PNG refused by its
-  `Content-Length` and the stored picture saved ("Original over the limit, saving the stored
-  picture", "NASA 2026-10-20 rendition", 826248 bytes); the run successful. ★ on NASA's page
-  with "Largest original" 10 MB and a 27 MB original faked into `nasa.imageUrl` (2026-08's
-  `55457472091-12a8c7edb0-o.jpg`, by the debug build, then the R8 build over it): "Saving",
-  then "Saved", the gallery row 27060691 bytes (the original). The test's gallery files deleted.
-  No crash (`logcat`, `exit-info`: kills and updates only). Seen: R8 renames the exception class
-  in that log line (`m91: Larger than 20000000 bytes: 208563652`; logcat only, the page shows
-  nothing of it). Not checked on R8: "my picture", video days, the lock-only and split columns
-  (V3 on debug), Wi-Fi only (V/F2 on debug), the ⓘ dialog; ★ with an original between 10 and
-  20 MB (only 27 MB, over both limits). Evidence in the run's `tablet/`.
-  V8 (2026-10-21 night, debug build of dev a06ea0b, V1, V2 and V4 again after S4–S6, passed):
-  Fit by Set only: APOD mode "Where" Both with APOD's wide 1787×1340 (one set, `mWhich=3`, the
-  hint the whole 800×1340, black above and below on home and lock); a made-up JPEG stored
-  1600×900 with EXIF orientation 6 as "my picture" on a faked APOD video day: upright and tall
-  (900×1600) on both screens, thin black bars at the sides; "More NASA pictures" with home APOD
-  (the video day, my picture) and lock Earth (wide): two sets (`mWhich=1` and `2`), each Fit.
-  No ⛶ with Fit, no ⤴ anywhere. The credit with S6's title and swipe: today's real one and a
-  made-up 254 characters (the longest's length) by prefs, in APOD mode (under the date) and with
-  "More NASA pictures" (under the title on APOD's page), one line with an ellipsis while the
-  explanation is closed, all of it while open; none on NASA's page. Save every picture with
-  `run -f`: home APOD, lock NASA + Earth saved APOD's original (1100460 bytes), NASA's stored
-  copy (its 208 MB PNG over the default 20 MB: "Original over the limit…") and Earth's original
-  (799397); "No limit" and a 27 MB original faked into `nasa.imageUrl`, the proxy at 100 KB/s, a
-  `timeout` 8 s in: no `.part`, no gallery row, `nasa.saveTried` the URL; the next run saved the
-  stored copy (826248, "rendition") and cleared the note; 10 MB: "Larger than 10000000 bytes:
-  27060691", the stored copy; "No limit": the original (27060691). The ⓘ dialog: B3's text word
-  for word. The test files deleted from the gallery. The picker in the draft (APOD mode, a faked
-  video day, no `fallback.jpg`): "Use my picture" opened it at once; Back kept "Skip it"; opened
-  again, rotated to landscape and back while open, a pick: `fallback-draft.jpg` (the picked
-  file's bytes), `videoDays` still `KEEP`, the notice still Skip's, "Change picture" beside the
-  dropdown; "Change picture" opened the picker, Back kept the draft; Set: `fallback.jpg`, the
-  draft file gone, `MINE`, "own" on both; another pick then Back (the app closed) and a start:
-  the draft file deleted, `fallback.jpg` kept. Only NASA failing (the proxy stalling
-  `www.nasa.gov`, a pull, "More NASA pictures" on): "NASA Image of the Day: Couldn't reach NASA's
-  site. Check the connection." on APOD's, NASA's and Earth's pages after a swipe. The chip in
-  APOD mode with "Where" = Lock: a plain day has one source, so no chip (as built); a faked video
-  day with NASA standing in: the page opened on NASA's page with "On wallpaper", only the lock
-  screen set, "Wallpaper changed … · NASA". The open page followed a job run that changed only
-  the lock screen (the turn clock faked to end 100 s after the page opened, nothing set at the
-  open; `run -f`: NASA on lock, home's id unchanged): "Lock screen changed 21 Oct, 02:53 · NASA"
-  and the chip "On lock screen" on NASA's page, Earth's gone. The smoke list: both modes load,
-  draft changes and Set set (`dumpsys wallpaper`), the forced runs ended with `jobFinished`, no
-  crash (`exit-info`: force stops and kills only). Not checked: Fit in APOD mode with "Where"
-  Home or Lock alone, a rotation during "Change picture"'s picker, the screen readers' "not set
-  yet", a real tall post with Fit (only "my picture" is tall). Left after the restore: the
-  tablet's wallpaper is APOD with Fit on home and NASA with Fit on lock, not APOD with Fill on
-  both (the prefs and files are as before, so their records name APOD; the next Set puts it
-  right). Evidence in the run's `tablet/`.
-  V9 (2026-10-21 night, debug build of dev 0d17080, brute test 1, what the system does; FIX,
-  two bugs, B13): "More NASA pictures" with home APOD, lock APOD + NASA (turns). **Reboot**
-  (no PIN: the keyguard is a swipe, `wm dismiss-keyguard`), with turns and in APOD mode: the
-  job listed, `PERSISTED`, the same period and flex (6 h/18 min, 6 h/6 h); with turns Android
-  clamped a window that `run -f` had pushed to +11 h 38 m to one period after boot. The page
-  opened on the stored setup, the draft (12 h, "Both") dropped, the wallpapers unchanged. That
-  the job then runs at its window: not waited for (hours). **Airplane mode** (`cmd
-  connectivity airplane-mode`, cut by a loop on the tablet as soon as `files/nasa.part`
-  appeared, NASA's date faked back): a pull: `SocketException: Software caused connection
-  abort`, no `.part`, the old `nasa.jpg`, `nasa.problem` network, the box; off and a pull: the
-  picture, the problem cleared. `run -f` the same, then the backoff retries: the first ran with
-  airplane mode still on (Tailscale's VPN stayed VALIDATED with no network under it, so
-  JobScheduler saw connectivity; Android, not us) and failed, the next after airplane off
-  succeeded. A Set never downloads while every source is current (the page open fetched
-  first), so a Set fully offline instead: "Wallpaper set", both screens. **Time zone**
-  (Auckland, New York, with the page open and `run -f`): "today" and the source line stayed
-  21 October, nothing set twice (wallpaper ids unchanged), but the status line kept the old
-  zone's time until a new process (BUG 1). **Clock** (`cmd alarm set-time` 3 h back, auto time
-  off): the turn's start in the future counted as over, the lock screen moved to NASA, a fresh
-  turn; auto time on again (+3 h): nothing set, the run successful. **Battery saver** (needs
-  `cmd battery unplug` on the charging tablet) and **Doze** (`force-idle`): Set worked with
-  saver on; a failed run's retry waited, overdue, in deep idle and ran (and set) at
-  `step` → IDLE_MAINTENANCE. **Resize**: real split screen needs a second app picked in Recents
-  (another app's screen), and `am start --windowingMode 6` only fronts the task, so `wm size
-  600x1340` (533 dp, one column) and back: the draft (12 h), Setup open and the shown source
-  kept; crop mode (a dragged frame) and the open title dropdown closed (the page is recreated;
-  the dragged part dropped, as Back does); Set at 533 dp worked. **Night mode and font scale
-  1.3** while open: the draft (3 h), Setup open and NASA's page kept, no crash. **Process
-  death** (`am kill` doesn't kill while a Set runs, so `run-as … kill -9`): mid-Set the setup
-  was saved, both records forgotten, home set without its record, lock not set, the job on the
-  old timing; the next open set both and wrote both records, `ensure` fixed the timing. Killed
-  at the page's `.part`: none left (the rename had won; `nasa.date` still the old one, the
-  accepted gap; the next refresh fixed it). Killed during ★'s original: ★ not stuck, but
-  `cache/original….part` stayed (BUG 2). `am force-stop` during `run -f`: `files/nasa.part`
-  left until the next download replaced it; the job back on the next open (pref `daily`).
-  **`install -r` during `run -f`**: exit PACKAGE UPDATED, the run counted failed, the job
-  listed; its retry ran at the next start and set; records match `dumpsys wallpaper`. **Low
-  storage** (about 200 KB, refilled as Android trimmed caches): an open and a pull "NASA Image
-  of the Day: Couldn't store the picture. Check the free space.", no `.part`; Set saved the
-  setup and set from the stored pictures; ★ "Couldn't save the picture", ☆ again, `cache/`
-  empty; Save every picture with `run -f`: "Couldn't save NASA 2026-10-21", the run successful,
-  `nasa.saveTried` kept (F5f1). Seen, not bugs: during a Set the lock line showed "Lock screen
-  changed 21 Oct, 23:10" without " · NASA" for about a second (the record forgotten, then
-  written); a Set in APOD mode scheduled the no-turns job with earliest +6 h, not at once
-  (a run had ended 2 min before). Not checked: real split screen, the job at its window after
-  a reboot, a cut during a Set's download. The tablet's settings, prefs and files set back;
-  its wallpaper is APOD on home and NASA on lock, the restored records name APOD on both.
-  Evidence in the run's `tablet/`.
-  Regression 2 (2026-10-20 night, dev 0d6df20, after S4f1, passed) didn't check: the open page
-  following a job that changes only the lock screen (job and page share one process), a set
-  that fails on one screen and its retry (nothing makes a set fail), the "Skip it" toast (rosie
-  can't catch toasts), "Wi-Fi only" with the daily switch off (hidden). Share on the ▶ tile
-  wasn't opened (S6 removes Share). Found: B1.
-  V10 (2026-10-21 night, the brute test of what a user does, dev's debug build, tablet): Set ×3
-  fast, Set + the daily switch + a pull in one line, the switch tapped 9 times, ★ twice and ★
-  with a swipe or a rotation, swipes during a pull, the title dropdown during a swipe, ⛶ with a
-  swipe (the pager stays), a rotation (crop mode closes) and Set (the dragged part stored): one
-  set each, no crash. A rotation during a pull, the photo picker, the weekday dialog and ⓘ:
-  fine. **Found:** a rotation during Set or the daily switch's run sets the wallpaper but drops
-  the rest (no job scheduled afresh, no toast; `lifecycleScope` ends with the page). All 24 of
-  APOD mode's "Where" × Size × video choices on a faked video day with Set ("Skip it" sets
-  nothing; the rest the named screen); "Change every" each value with Set (periods 6, 6, 3, 6 h,
-  enqueued afresh); the list moved and unticked to the last tick; the mode off and on between
-  Sets; a fresh install both ways; "Try again" offline then online; 50 swipes and 40 Sets (no
-  memory climb, no OOM, no ANR). Not checked (the time box): the picker's odd pictures (huge,
-  tiny, panorama, tall, WebP, GIF, EXIF 8), the video notice's and the battery hint's buttons
-  and App info (the hint doesn't show: the tablet's settings are already right), the problem
-  box's Dismiss across a faked day, the long presses' clipboard, each source on each screen one
-  by one. Left after the restore: one shared wallpaper (APOD, the same picture the records
-  name) instead of home and lock set apart; a WebLibre task in Recents (a tap opened NASA's
-  page). Evidence in the run's `tablet/`.
-  V11a (2026-10-25 night, final pass 1, what the system does to the new job; dev's debug
-  build d1c1e2b, with B17 and B18; "More NASA pictures" on, APOD and NASA on both screens,
-  3 h turns from 07:00, offset 9:37; STOP, no app bug; its four findings accepted by the user, 2026-10-25): reboot (BOOT_COMPLETED armed the pair
-  for the next check, id 1 listed, no set, no PIN); `set-timezone` New York, Tehran, Zurich
-  (each armed for that zone's next check, the status line's time followed, no set); the clock
-  3 h forward across tonight's DST gap and back (TIME_SET: an owed check at once, then the next
-  one; back: nothing owed, the next check); Doze, Unrestricted (forced IDLE: the alarm fired
-  within 11 s of T, its run fetched and set NASA on both screens in one set); Doze,
-  Optimized (whitelist off): with bucket `rare` Android held the alarm 57 min (`app_standby`,
-  RARE's quota of about one alarm an hour, the alarm 15 min before had used it); with
-  `working_set` the alarm fired in IDLE and id 2 waited pending (CONNECTIVITY), arming
-  nothing; an alarm in the same process left it pending ("a run is pending"), one after
-  `am kill` replaced it (B16); `deviceidle step` to IDLE_MAINTENANCE ran it and set; battery
-  saver: the alarm's run set. During a run (Tailscale's VPN covers the app, so the proxy was
-  out: runs made to fetch by a faked date): `kill -9` left the start's pair (start + 15 min),
-  a run came but was not seen from that alarm alone (the clock jump also ran the fallback);
-  `force-stop` dropped both alarms and both jobs, and the next page open got BOOT_COMPLETED
-  (leaving the stopped state) and re-armed; `install -r` killed the run without a failed
-  count, MY_PACKAGE_REPLACED armed the clock's next check (the start's 15-min pair dropped),
-  and Android re-ran job 1 at once; airplane mode: failed, 15 min, then hourly (or the clock's
-  check, when sooner), the next run after airplane off fetched and cleared `failedRuns`; the
-  daily switch off 2 s into a run interrupted it (logged as "Daily job failed:
-  InterruptedIOException"), no set, alarms and jobs gone; a page open during a run kept the
-  15-min retry (B16f1). A full disk during Set: the sets from the stored pictures ("Despite
-  the failure"), no `.part`, the problem box "Couldn't store the picture. Check the free
-  space."; Android's prefs write failed too and left only `apodroid.xml.bak` (the setup
-  only in memory until the next write with space). Still open: tonight's real DST change
-  (03:00, after the session); the safety alarm after `kill -9` alone (15 real minutes, the
-  time box). Left after the restore: one shared wallpaper (APOD, the picture the records
-  name) instead of home and lock set apart; the three earlier test pictures in
-  `Pictures/APODroid/` deleted. Evidence in the run's `tablet/`.
-  V12a (2026-10-25 evening, final pass 1 again; dev's debug build e702076 with B19, B20 and
-  B21 merged; "More NASA pictures" on, APOD and NASA on both screens, 3 h turns from 07:00,
-  offset 9:37; Tailscale's VPN on, so no proxy: runs made to fetch by APOD's date faked back,
-  killed 0.3–0.8 s in; PASS for what ran): **the safety alarm after `kill -9` alone**: an
-  alarm's run (id 2, the clock faked to 22:09:20 so the 22:09:37 check fired) killed 0.5 s
-  in; its start had armed the pair for start + 15 min and noted `runGoing`. Android didn't
-  re-run the killed id 2, and nothing else re-armed. The pair fired 9 min after its time (its
-  10-min window), 24 real minutes after the kill. That run logged "the run before never ended
-  (killed), counted as failed", armed +1 h at its start, set APOD on both screens and armed
-  the clock's next check (B19). `kill -9` of a forced job 1: Android restarted job 1 itself
-  4.5 min later, with the same B19 line, so job 1's pair can't be seen alone. `install -r`
-  0.8 s into job 1: `MY_PACKAGE_REPLACED` armed the start's pair (start + 15 min, not the
-  clock's next check as in V11a); Android re-ran job 1 at once, which counted the killed run
-  as failed, set, and armed the next check (B19). `auto_time` back on: `TIME_SET` armed the
-  clock's next check. No crash (`exit-info`). Still open (the 50-minute time box: the 15 real
-  minutes ran twice, because job 1's own restart spoiled the first try): V11a's other items on
-  this tree (reboot, time zones, the clock ±3 h, Doze Unrestricted, Doze Optimized with
-  `working_set`, battery saver, `force-stop` and airplane mode during a run, a page open
-  during a run (B16f1's retry kept)), the switch off
-  mid-run (B19's "Daily job: stopped (the switch off)"), and low storage during Set (B20's
-  toast, Setup open). Left after it: one shared wallpaper (APOD on both screens, which the
-  records name) instead of home and lock set apart. Evidence in the run's `tablet/`.
-  V12d (2026-10-25 evening, V11d again on dev c3aae6f with B19, B20 and B21 merged; R8 builds
-  signed with the debug key: `v0.5.0` (V6's APK) and this tree; passed): **the update without
-  opening the page** (0.5.0 seeded by `run-as`: daily on, APOD + NASA, Both, 3 h; its page
-  opened once: NASA set, a 3 h / 15 min job): `install -r` of 0.6.0's R8 logged one "Migrated
-  from 0.5.0" (`allSources=true`, the record copied to `lock.*`), `MY_PACKAGE_REPLACED, arming
-  again`, the pair at 22:20:06 (21:15 + the offset, hourly in the 21:00 window), id 1 now 6 h /
-  6 h (it ran at once and set nothing), the wallpaper id unchanged. **Seen once: Lenovo's
-  ZuiMemoryCleaner** (`Force stopping io.github.buerlino.apodroid … ZuiMemoryCleaner[Aggressive-
-  MemFreeCritical]`) force-stopped the cached app 2 s after the clock step to 22:20:08 (its
-  `TIME_SET` had armed the pair at once), with F-Droid, the permission controller and others;
-  the force stop deleted both alarms and job 1, so nothing ran until the page was opened (the
-  maker layer of on-time-0.7.0.md; not seen in V11d's identical step). The page then (step 6
-  before step 5): "APOD on both screens, NASA on both screens · every 3 h from 06:00",
-  "Wallpaper changed 25 Oct, 22:02 · NASA", the chip "On wallpaper", no set; it armed the owed
-  check at once and scheduled id 1 (6 h / 6 h). The clock stepped to 00:05:08 (the 00:00 change
-  time + the offset) with the page in the background: `TIME_SET`, the alarm, run (id 2), APOD
-  on HOME+LOCK in one set, the next pair 00:20:06. **APOD mode** (APOD alone, Both): migrated
-  once (`allSources=false`), armed for 06:01:37, id 1 kept 6 h / 6 h, no set; the page "APOD on
-  both screens · at 06:00", "Wallpaper changed 25 Oct, 22:08", no chip (one source). **0.6.0's
-  R8 build:** the smoke list (APOD mode, "More NASA pictures" on with the weekday dialog, a
-  draft APOD on the lock screen and NASA on the home screen and Set: home and lock set apart,
-  the toast, a status line per screen, `run -f 1` successful, no crash in logcat or
-  `exit-info`); "Save every picture" with `run -f 1`: one log line "saved: APOD 2026-10-25
-  original, NASA 2026-10-23 original" (two files), a second run saved nothing; "Whole picture":
-  NASA's RS-25 photo on the home screen on the blur; on black only with V11d's Rosetta PNG put
-  in as `files/apod.jpg` by the debug build and the R8 build installed over it (none of the
-  day's posts has black edges): the lock screen on black; after a pull `published` 08:19:48Z
-  (the day's APOD came out late, 04:19 US Eastern), `nasa.published` 18:59Z, `earth.published`
-  04:00Z, read with the debug build over the R8 data. Not checked: `pictureAt`'s absence in the
-  prefs (no `run-as` on R8; the summary and the alarm say 06:00); whether ZuiMemoryCleaner
-  force-stops the app on a real morning without a clock step. Left after the restore: one
-  shared wallpaper (APOD, as the records name). Evidence in the run's `tablet/`.
-  V12b (2026-10-25 evening, V11b again on dev e59cd62 with B19, B20 and B21 merged; the debug
-  build, prefs pushed after `am kill`, `run -f 1`; the day's APOD came out late, 09:19 CET, so
-  the real clock served the window (a past clock breaks TLS, V11b) and `auto_time` was off only
-  to step forward; passed): **B21, the gap mark** (APOD mode, Both, "New picture at" 06:00, its
-  window ending 09:00 before the post, the stored post and both records faked back to 24 Oct):
-  with `checkedAt` 1 h old the run stored 25 Oct with `afterGap` false and set nothing (alarm 26
-  Oct 06:09:37); with `checkedAt` 25 h old it stored 25 Oct with `afterGap` true and set it on
-  HOME+LOCK in one set, the stamp kept at 06:00. **The window by publish time:** 21:00 (in the
-  window now), an airplane-mode run failed (alarm at the clock's 22:24:37 check, before the
-  retry), the next run online set 25 Oct; 09:00 (window to 12:00, the post inside it), the run
-  at 22:24 set it, no mark, stamp kept. **The checks** (APOD alone, 23:00, offset 9:37):
-  23:09:37, 23:24:37, 00:24:37, 01:24:37, 02:09:37 (the window's end), then 26 Oct 23:09:37;
-  each run's start armed the pair 15 min ahead. **A waiting screen** (NASA + Earth on home, 3 h
-  from 23:00, Sunday, both noted shown): no set at the 23:00 and 02:00 change times, the stamp
-  kept at 20:00, hourly alarms. **No `published`:** with it (09:19, window to 09:00) no set;
-  without it (00:00 US Eastern) set, no crash. **A stopped run** (`timeout` 1.5 s into a fetch,
-  sent from the tablet's shell): "Daily job failed: InterruptedIOException", `failedRuns` 1, no
-  problem stored, the alarms 15 min later; the page then "Wallpaper changed 25 Oct, 22:29", no
-  problem box, no set (checked within the hour), the retry kept. **A Set while a run goes,
-  decisive this time** (job 1 with "Save every picture" at no limit and three posts faked back,
-  Set tapped 0.8 s after `run -f`, from the tablet's shell): the run 22:32:48.3–51.3, Set armed
-  and set at 22:32:50.1 inside it; the run went on, set, saved APOD's and NASA's originals and
-  ended with `jobFinished`, no stop, no failure. **The stand-in** (APOD + NASA on both, 3 h
-  from 07:00, NASA for video days, APOD 25 Oct faked a video, the screens on APOD 24 Oct, NASA
-  23 Oct noted shown): after the 22:00 change nothing set, the stamp kept (waiting); without
-  the notes NASA set. **Open for the user:** with APOD alone (no turns) the stand-in NASA went
-  on although NASA 23 Oct was noted shown on that screen (the screen showed APOD 24 Oct before):
-  `Screens.kt`'s one-source rule ("due its newest picture, on an APOD video day the stand-in"),
-  so as built; whether B15's "not twice" should cover one source too is the user's call. Not
-  tested: a failed set retried after 09:00 (no way to fail a set, V3); the smoke list (a device
-  package). Left after the restore: one shared wallpaper (APOD, as the records name); the two
-  test pictures deleted. Evidence in the run's `tablet/`.
-  V12c (2026-10-25 night, V11c again on the debug build of dev 1b602e0 with B19, B20 and B21
-  merged, tablet; passed, the same results as V11c): **fast taps**, each in one `input` line:
-  Set ×3: one set, one arming; the daily switch ×5 (off → on): one set, the switch's arming
-  plus the fallback's at-once run (15 min ahead at its start, the clock at its end); "New
-  picture at" 08:00 and Set in one line: the Set tap went to the closing menu again (accepted),
-  Set right after: one set, the stamp 20:00, the pair at 23:00 + the offset; the mode switch
-  off + Set: home only, the lock screen kept its own; on + Set (Setup opened, switch, Set in one
-  line): one set with both flags. **A rotation during Set** (Earth ticked in the draft,
-  `user_rotation` 1 in the same line): rotated at 00.75 s, the recreated page resumed at 00.96,
-  Set ended at 01.26 with its log line, its arming, its toast (`ToastUI`) and Setup closed with
-  the new summary. **⛶'s "Whole picture"** (V11c's made-up pictures as `files/apod.jpg`:
-  8000×6000 PNG, 600×3000, 8000×1000, 2000×1500 with black edges): each Set within a second,
-  no crash; the launcher shows the first three on the blur, the black-edged one on black.
-  **Memory:** 20 whole Sets of the 8000×6000 PNG: TOTAL PSS 118 → 121 → 129 MB (sets 1, 10, 20;
-  native heap 24 → 29 → 34 MB), after a forced GC (SIGUSR1) 108 MB (native 21): no leak, no
-  OOM. **A fresh install** (`pm clear`): APOD mode, "APOD on both screens", Where Both; daily
-  off: no "New picture at", no "If APOD is a video", no Advanced; on: "New picture at: 06:00",
-  "Skip it", Advanced, the pair for 06:00 + a fresh offset. **Setup at font scale 2.0, `wm
-  density 344`:** APOD mode's "Where" (two-line segments, one height), the mode switch at the
-  top turned on in the draft (highlighted) with the list, the time menu with ✓ before 06:00:
-  nothing cut off. `run -f 1` after it: silent, armed again. The draft of that step survived
-  `am kill` (the saved state, by design) and was dropped by swiping APODroid's task away in
-  Recents. Not checked: the photo picker's odd pictures as "my picture" (V10's gap), a whole
-  picture on one screen alone (V11d did). Left after the restore: one shared wallpaper (APOD,
-  as the records name). Evidence in the run's `tablet/`.
-  V11d (2026-10-25 night, R8 builds signed with the debug key: `v0.5.0` (V6's APK, the same
-  tag) and dev d1c1e2b, passed): **the update without opening the page**, from 0.5.0 seeded
-  by `run-as` (daily on, APOD + NASA, Both, 3 h; its page opened once, which set NASA and
-  scheduled a 3 h / 15 min job): `install -r` of 0.6.0's R8 build logged one "Migrated from
-  0.5.0" (`allSources=true`, `home`/`lock` APOD,NASA, the record copied to `lock.*`), the
-  receiver's `MY_PACKAGE_REPLACED, arming again`, the pair at 01:20:06 (01:15 + the offset:
-  06:00 with 3 h turns), id 1 now 6 h / 6 h, which ran at once and set nothing (wallpaper id
-  unchanged). The clock stepped to 01:20:06: the alarm's run set nothing (NASA's turn, nothing
-  newer); to 03:05 CET (the first change time after the DST change): APOD on HOME+LOCK in one
-  set, the next pair 03:20:06. The page then: "APOD on both screens, NASA on both screens ·
-  every 3 h from 06:00" (so `pictureAt` read as 06:00), "Wallpaper changed 25 Oct, 03:05 ·
-  APOD", no set, no crash. **APOD mode** (APOD alone, Both): migrated once (`allSources=false`),
-  armed for 06:08:38 CET, id 1 kept (0.5.0's was already 6 h / 6 h), no set; the page "APOD on
-  both screens · at 06:00". **0.6.0's R8 build:** the smoke list (both modes, a draft list and
-  Set, `run -f 1` twice, no crash); "Save every picture" with `run -f 1`: one save each ("saved:
-  APOD 2026-10-24 original", then NASA's); ⛶'s "Whole picture": NASA's RS-25 photo on the home
-  screen on the blur, APOD's Rosetta (edge strip 99.6% dark) on the lock screen on black;
-  Earth's El Niño globe on black got the blur, rightly by the rule: its strip is 96.5% dark (the
-  globe and the legend touch it), under the 97%; after a pull `published`, `nasa.published` and
-  `earth.published` in the prefs (read with the debug build installed over the R8 data): 04:05Z,
-  18:59Z, 04:00Z. Not checked: `pictureAt`'s absence by reading the prefs (an R8 build has no
-  `run-as`; read from the summary and the alarm instead). Evidence in the run's `tablet/`.
-  V11b (2026-10-25 night, the debug build of dev 88b2872, `auto_time` off, the clock stepped
-  with `cmd alarm set-time`, prefs pushed after `am kill`; passed): **the window by publish
-  time** with APOD 24 Oct (published 04:05Z), APOD mode, Both, the record on 23 Oct: "New
-  picture at" 04:00, airplane mode from 04:10 (the run there found 23 Oct current in US
-  Eastern, stamp 04:00, no set), at 06:30 a failed run (retry 06:45), the network on, at 06:45
-  APOD 24 Oct set HOME+LOCK, next alarm 07:09:37 (T + 3 h + the offset); offline through 07:30
-  (failed runs 2 and 3: 15 min, then hourly) and on only after the window: set all the same at
-  the next run; 02:00 (window to 05:00, before the post): fetched, not set, set at the next
-  change time 25 Oct 02:09:37. **The checks** from T = 25 Oct 02:00 CEST, the real DST night:
-  02:24:37 CEST, 02:24:37 CET, 03:24:37 CET, 04:09:37 CET (three real hours), then 26 Oct
-  02:09:37 CET. **A waiting screen** (NASA + Earth on both, 3 h from 06:00, a Sunday, both
-  shown): runs at 09:09:37 and 12:09:37 and the hourly ones between set nothing, the stamp stays
-  06:00. **No `published`** (NASA alone, 08:00, faked 23 Oct 08:30): with `nasa.published`
-  (18:59Z) not set; without it set (counted as 04:00Z), no crash. **A stopped run** (`timeout`
-  during the fetch): "Daily job failed: InterruptedException", `failedRuns` 1, no problem
-  stored, the alarms 15 min after the run; the page's status line then "Wallpaper changed 25
-  Oct, 01:14", no problem box (the page set the due picture itself within 3 s, so the line
-  before that set wasn't caught). **The stand-in** (APOD + NASA on both, 3 h, NASA for video
-  days, APOD 24 Oct faked a video, NASA 23 Oct noted shown on both): at the 04:00 CET change
-  NASA fetched, nothing set, the record and stamp kept (waiting). Not decisive: **a Set while a
-  run goes** (three tries: the runs took 0.2–1.3 s on this Wi-Fi, so Set's arming always came
-  after `jobFinished`; every run ended normally; the test proxy can't slow the app with the
-  Tailscale VPN up). Not tested: a failed set retried after 09:00 (no way to fail a set, V3).
-  Learned: a clock faked into the past breaks TLS after a while ("Response is unreliable: its
-  validity interval is out-of-date", the stapled OCSP), so fetches need a clock at or after the
-  real time; and `am kill` keeps the page's saved draft, so a Set after reopening saves that
-  draft, not prefs pushed meanwhile (as designed). Evidence in the run's `tablet/`.
-  V11c (2026-10-25 night, the debug build of dev e8709b1, tablet; passed): **fast taps**, each
-  in one `input` line: Set ×3: one set, one arming, one toast; the daily switch ×5 (off → on):
-  one set, one toast, the switch's arming plus the fallback's at-once run (15 min ahead at its
-  start, the clock at its end); "New picture at" 08:00 and Set: a Set tap while the menu still
-  closes goes to the menu (a Compose popup takes the tap that dismisses it), so Set came
-  right after it: one set, the stamp 23:00, the pair at 02:00 + the offset; the mode switch
-  off + Set: home only (lock kept its picture), the pair at 08:00 CET (tonight's DST change
-  right); on + Set: one set with both flags. **A rotation during Set** (Earth ticked in the
-  draft, `user_rotation` 1 in the same line): Set's end after the recreated page's resume, with
-  its log line, toast, alarms, and Setup closed with the new summary. **⛶'s "Whole picture"**
-  (made-up pictures as `files/apod.jpg`: 8000×6000 PNG, 600×3000, 8000×1000, 2000×1500 with
-  black edges): each Set in 2–3 s, no crash; the launcher shows the first three on the blur,
-  the black-edged one on black. **Memory:** 20 whole Sets of the 8000×6000 PNG: TOTAL PSS
-  113 → 167 → 174 MB (sets 1, 10, 20; native heap 22 → 64 MB), after a forced GC (SIGUSR1)
-  108 MB (native 19): garbage, no leak; no OOM. **A fresh install** (`pm clear`): APOD mode,
-  "APOD on both screens", daily off with no "New picture at", no "If APOD is a video", no
-  Advanced; on: "New picture at: 06:00", "Skip it", Advanced shown, the pair for 06:00 CET +
-  the offset (one with a 10 min window, one allow-while-idle). **Setup at font scale 2.0,
-  `wm density 344`:** the mode switch at the top, the list (Earth's dropdown wrapped under its
-  name), "New picture at" and its menu, APOD mode's "Where" (two-line segments, one height):
-  nothing cut off. `run -f 1` after it: silent, armed again. Not checked: the photo picker's
-  odd pictures as "my picture" (Fill, centred; V10's gap), a whole picture on a screen alone
-  (lock or home apart; V11d did). Evidence in the run's `tablet/`.
-- 0.5.0 on the tablet (U7, 2026-10-18, debug and R8 builds of the tree before WP8a/8b): the
-  device checks of WP7e–7g and the page of U1–U6 pass, after one fix (a read timeout was taken
-  for a stopped job: `CLAUDE.md`, Problems; the chip hidden in crop mode added and checked
-  after). Not rerun since their packages: the bad picture (WP7c, a made-up feed) and WP7a–7d's
-  own checks (debug builds only; the 1 h rule seen in passing). Not on any device: TalkBack on
-  the chips, the greyed radios and the explanation. WP8b's stop fix (a stop during a rendition
-  download) found by reading only: on a device a stop can't be timed into the download.
-- The FP6 (WP8, 2026-10-18, the release-signed final build): the update over 0.4.0 kept the
-  settings; `Num Required Flexible constraints: 0` (Android 16); two panes in landscape (828 dp);
-  the video day with each choice; the own picture centred; tabs, chip, ⛶ with ✓ and Back, long
-  presses, "more", pull, ★ (the original), the chips with the weekday dialog across a rotation,
-  the job's periods, offline with the box, font scale 1.5 and 2.0 (the chips two per line,
-  WP8c), "Where" one height in landscape; no crash. Not there: turns over hours (the tablet's
-  only), a tab switch or rotation during a save (too quick), the empty state, the home screen
-  in landscape (Niagara stays portrait).
-- Dynamic colour (U1) changing with a set wallpaper: the tablet's ZUI keeps a fixed palette
-  (wallpaper colours off) and the FP6's LineageOS has Monet off (`mIsMonetEnabled=false`), so
-  whether a set recreates the page is unchecked;
-  Android 10–11 (the stock palette) not on any device.
-- 0.4.0 on the LineageOS phone beyond the update and a quick pass (2026-10-16: the release-signed
-  build over Obtainium's 0.3.1 on the real video day, the boxes offline; WP6's full pass ran on
-  the tablet).
-- Crop mode kept during a same-date pull. (A picture download failing, the box and the kept
-  picture: tested in 0.5.0's WP7.)
-- A day without an explanation (no preview).
-- Updating through Obtainium (0.2.0 was installed with it on the phone, 2026-10-04; `adb
-  install -r` over the old version keeps the job). That install blocks debug builds: switching
-  needs an uninstall, which loses the user's settings, so ask first.
-- The review fixes of 0.1.2 (`declutter.md`) on an R8 build or below API 36: the redraw path
-  and ☆ during a download were tested on 2026-10-07 on a debug build (through the throttling
-  proxy).
-- A job stopped by the system (`cmd jobscheduler timeout`): while the process lives the run
-  goes on and finishes (WP7, 2026-10-17); frozen, it holds the lock until its socket times out
-  and the retry downloads from zero (2026-10-07; `CLAUDE.md`, open question 1). Since WP7g a
-  stop interrupts the run (tablet, U7: ends within a second); a frozen process not checked.
-- The themed icon in a launcher that shows themed icons (Niagara doesn't, App info shows the
-  normal icon); only checked as a render and in the APK.
-- TalkBack itself (the labels are in the accessibility tree: `uiautomator dump`, 2026-10-04).
-- Keep running (`keep-running.md`) on Android 10–12 (no such phone; AOSP source only), the real
-  90-day hibernation (only `cmd app_hibernation` simulated), and archiving on Android 15+.
-- The crop (2026-10-05) on a real tall picture (only a made-up 400×1200 one swapped into
-  `files/apod.jpg`), on a picture the page down-samples, with a real camera photo as "my
-  picture" (only made-up JPEGs with EXIF orientation 6), with TalkBack (dragging has no
-  screen-reader action), and on Android 10–14 (there the system crops the stored file to the
-  hint itself). Tested on API 36, debug and R8 builds: `dumpsys wallpaper` shows the hint as
-  `mCropHint`, centred, dragged and through the daily job; the home screen matched the chosen
-  part; an EXIF-rotated "my picture" is upright and centred (`declutter.md`, crop pass). On a
-  tall picture the frame is taller than the page, so only one of its edges shows while
-  dragging; left as is, as such pictures are rare.
-- The `setWallpaper` race fixed in 0.2.0 (`declutter.md`, evening pass, 1.1): found by reading,
-  not reproduced.
+What no device has checked yet, one line each with the row that left it open. Each row's results
+are in its report commit and run folder (`.coord/runs/`, gitignored); git keeps the old, longer
+list (until 2026-10-26). A V row, the regression or a phone pass removes what it closed and adds
+what it leaves open.
 
-Tested 2026-10-04 (full phone pass): offline with and without a stored picture, the switch
-turned on offline (the job waits, then sets the wallpaper), faked video days with both settings
-and a picked picture, font scale 2.0 (usable), landscape (the picture fills the width; scroll to
-the title). Saving after "Clear storage" (or a reinstall) adds a second copy `… (1).jpg`: the
-app can't see the old, now unowned file without a permission; left. The app stopping when
-it isn't opened: `keep-running.md`; its hint, App info, the dialog, the real Settings screens,
-hibernation and force stop on the R8 build of 7d73bc2 (`declutter.md`, evening pass).
+**For 0.6.0's release gate** (`CLAUDE.md`, Next features):
+- V12a's rest on the tree with B19–B21 (V12a, 2026-10-25: 3 of its items ran in the time box):
+  reboot, time zones, the clock ±3 h, Doze Unrestricted and Optimized (`working_set`), battery
+  saver, `force-stop` and airplane mode during a run, a page open during a run (B16f1's retry),
+  the switch off mid-run (B19's info line). Low storage during Set ran in B20's check and
+  regression 10.
+- V7: turns over hours on a real night, the tablet on battery.
+- P on the FP6: the release build over Obtainium's 0.5.0, a real morning, a reboot with the PIN,
+  and what the tablet left: "my picture" from the picker as a huge, tiny, panorama, tall, WebP,
+  GIF and EXIF-8 picture (V10, V11c, V12c); the boxes' "Don't show again" with its dialog and
+  "App info"; TalkBack's "not set yet" and the headers' states (V8); home and lock set apart on
+  Android 16 (M0: the tablet only); "my picture" and video days on R8 (V6).
+- Whether ZuiMemoryCleaner force-stops the app on a real morning without a clock step (V12d).
+
+**The job and the rules:**
+- A set failing on one screen and its retry, also after 09:00 (V3, V11b, V12b: nothing on the
+  tablet makes a set fail; `ScreensTest` has the rule).
+- Android's real ~10 min job deadline (V2: only `cmd jobscheduler timeout`); a frozen process
+  during a run; a stop timed into a rendition download (WP8b's fix, found by reading).
+- A connection cut during a Set's download (V9).
+- After a reboot, the armed pair firing (V9, V11a: armed at `BOOT_COMPLETED`, not waited for).
+- A real DST change (only faked clocks: V11a, V11b, V11d).
+- A download that isn't a picture (`badUrl`, WP7c's made-up feed): not rerun since 0.5.0.
+
+**The update from 0.5.0:**
+- The migration race (the page and the job at once) with "Where" Home or Both (V4: Lock only).
+- 0.5.0 with Earth in its sources, or with a stand-in on the wallpaper in APOD mode (V5;
+  `MigrationTest` only).
+- Obtainium tracking the app after an `adb install -r` of the release-signed build (WP8).
+
+**The page:**
+- A rotation during "Change picture"'s picker (V4, V8).
+- The problem box's Dismiss across a faked day; each source on each screen one by one (V10).
+- The toast "Setup saved. Nothing to set yet." (regression 2: toasts weren't caught then).
+- Crop mode kept during a same-date pull. A day without an explanation.
+- The crop on a picture the page down-samples, and on a real tall picture (none posted by
+  2026-10-22); dragging the frame with TalkBack (it has no screen-reader action).
+
+**Android:**
+- Android 10–14 on any device (the tablet is 15, the FP6 16): there the system crops the stored
+  file to the hint itself; 10–11's stock palette; keep running on 10–12 (`keep-running.md`).
+- Dynamic colour following a set wallpaper (U1: the tablet's ZUI and the FP6's LineageOS have
+  wallpaper colours off).
+- TalkBack itself (the labels only by `uiautomator dump`); the themed icon in a launcher that
+  shows themed icons (only as a render and in the APK).
+- The real 90-day hibernation (only `cmd app_hibernation`) and archiving on Android 15+.
 
 ## Releasing (as in gridload)
 

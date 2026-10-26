@@ -8,7 +8,7 @@ Tick items off and note where the work differed from the plan.
 
 Suggested order: the `:core` items first (testable without the phone), then the job and its
 settings, then the small UI items. 0.4.0 shipped items 3 and 9 with the video-day work. 0.5.0 is
-about more NASA sources (`plan-0.5.0.md`) and takes item 1 (its WP2); 2, 4, 6, 7 and 8 move to
+about more NASA sources (0.5.0's plan, in git) and takes item 1 (its WP2); 2, 4, 6, 7 and 8 move to
 0.6.0 (user, 2026-10-16).
 
 ## Settings layout afterwards
@@ -41,9 +41,9 @@ checked before any hint, the version number) were proposed and confirmed by the 
 
 ### [x] 1. Sharper wallpaper (rendition), original for the gallery (0.5.0)
 
-Built 2026-10-16 (`plan-0.5.0.md` WP2; `CLAUDE.md`, The app, Fetch and Save).
+Built 2026-10-16 (0.5.0's WP2; `CLAUDE.md`, The app, Fetch and Save).
 
-In 0.5.0 as `plan-0.5.0.md` WP2, which also covers the new sources: NASA Image of the Day
+In 0.5.0 as its WP2, which also covers the new sources: NASA Image of the Day
 originals are 4.7 MB typically and up to 97 MB, so a rendition is needed there (hosts and sizes
 in `CLAUDE.md`, Other sources).
 

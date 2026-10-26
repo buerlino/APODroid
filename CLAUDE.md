@@ -742,7 +742,13 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   `commit()` also clears the flag, so a stop doesn't rest on it alone (B18): `update` and
   `saveInUse` also read the job's `stoppedBySystem` before each source, each set and each save,
   a commit on the job's thread clears the flag first and then ends the run (the record of a set
-  done is written, the page hears it), and a run `onStopJob` stopped saves nothing.
+  done is written, the page hears it), and a run `onStopJob` stopped saves nothing. **The
+  order at a run's end** (B24, 2026-10-26): the flag cleared, `ranJob` (under the lock, unless
+  an off came since or the switch is off), then `jobFinished`, then `ensure`: a death between
+  `jobFinished` and `ranJob` left `runGoing` after a good run, and the next start counted a
+  failure that didn't happen (its pair an hour ahead). A death after `ranJob` and before
+  `jobFinished` counts the run as ended; Android may re-run job 1 (it finds nothing new).
+  `ensure` stays after `jobFinished`: scheduling an id Android still counts as running stops it.
 - **Off is off** (`DailyJob.cancel`): both jobs and both alarms cancelled, a running run too;
   `JobRuns.drop` bumps a generation each run takes at its start, so a run from before an off
   ends without effect (it arms and notes nothing; a lock keeps its end and the cancel apart;

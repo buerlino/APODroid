@@ -856,7 +856,8 @@ the user's own picture; with "Skip it" APOD has nothing new, so a screen with AP
 its picture and one with turns goes to the next new source or waits); "new" is APOD's post
 being new, and the record keeps APOD as the owner, and only while the stand-in's picture isn't
 noted for its own source on that screen (else APOD's turn passes on, as with "Skip it"; B15).
-With one source too (B22, 2026-10-26, from V12b), and within a turn: a stand-in noted shown on
+With one source too (B22, 2026-10-26, from V12b), and within a turn (kept, user, 2026-10-26
+evening, pass 26: APOD's older picture stays until the next change time, turns move only then): a stand-in noted shown on
 that screen doesn't go on by the window, so APOD has nothing new and the screen keeps its
 picture (once on, it stays: the day it went on doesn't change); Set, a pull, a forgotten picture
 and a new screen put it on as before, the user's own picture always stands in, a newer post of
@@ -938,11 +939,13 @@ the new job. **Where it stands** (2026-10-26): V11a–d's findings fixed (user, 
 all bugs and retest"): a killed run keeps its retry and counts as failed (B19, Retries by the
 alarms), Set says when its setup couldn't be saved (B20, Set as wallpaper), one source after a
 day offline takes the newest post (B21, Turns, rule 2); V12b–d pass on master 654848c, V12a ran
-3 of its items. **To fix before V7 and P** (user, 2026-10-26, from the night's report; the plan,
-B22–B24): the stand-in not twice with APOD alone too, and the video notice saying so (B22); no
-"Video day, wallpaper kept" while something takes APOD's place (B23); a run's bookkeeping before
-`jobFinished`, so a death between them doesn't count a good run as killed (B24); then V12a's rest
-as V12e and V12f. Lenovo's ZuiMemoryCleaner force-stopping the app (seen once, V12d): no 0.6.0
+3 of its items. B22–B24 (the stand-in not twice with APOD alone too, the notice saying so; no
+"kept" while something takes APOD's place; a run's bookkeeping before `jobFinished`) merged with
+tablet PASS and Opus pass 26 clean, and SIM found no bug in 240 seeds (2026-10-26, master
+db78d0c; 0.6.0's versionCode 10 from 423f082). Running from the evening of 26 Oct: V7 on the
+tablet (on battery), P's install and W on the FP6 (0.6.0 over the real 0.5.0, the page not
+opened: the migration and the alarms by `MY_PACKAGE_REPLACED` seen). Left: V7's second session,
+V12e and V12f (Tue 27), the rest of P, W to Mon 2 Nov. Lenovo's ZuiMemoryCleaner force-stopping the app (seen once, V12d): no 0.6.0
 change (`on-time-0.7.0.md`). **More testing before the tag** (user, 2026-10-26 afternoon, from a
 report on the repo's state; the plan, Remaining 4j): **W**, a week on the FP6 from P's install
 to the morning of Mon 2 Nov, the tag not before Tue 3 Nov. Why: no real night has run the new
@@ -1183,3 +1186,8 @@ press on the title block copies the link).
    black tile on any failure. The 16 Oct mp4: 25.7 MB, `accept-ranges: bytes`, `moov` at the
    start (so a few hundred KB should do); untested on the phone, other files' layout unknown.
    Fallback if it fails: a local tile (star field or logo), no network.
+3. A second picture on the same date (SIM, 2026-10-26; for 0.7.0, user): the job and the page
+   skip a source whose stored post is today's (`Store.isCurrent`), so a second post on that date
+   arrives only with a pull or once the date is over in US Eastern time (in SIM's 240 seeds 143
+   of 408 were ever stored, most at US Eastern midnight, Los Angeles' evening). Never seen in the
+   real feeds; accepted for 0.6.0, to look at in 0.7.0.

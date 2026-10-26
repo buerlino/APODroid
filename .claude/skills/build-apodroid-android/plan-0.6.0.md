@@ -560,6 +560,18 @@ reading; their build check passed, 108 tests with `private/`):
    tablet is V7's overnight). **Tue 27 to Thu 29** SIM; the rest of P by day. **Tue 27 to Mon
    2 Nov** W's morning reads; a `B<n>` from any of them as the gate says (a fix to the job or
    the rules restarts W's count, W). **Tue 3 Nov** R, then T.
+4k. **The evening of 2026-10-26**: B22, B23 and B24 merged with tablet PASS, Opus pass 26 clean
+   (210 tests; its question, B22's guard within a turn, kept by the user); SIM merged early
+   (240 seeds, no bug; each invariant shown able to fail; its question, a second picture on the
+   same date, left for 0.7.0, `CLAUDE.md`, Open questions); master db78d0c, versionCode 10 from
+   423f082. P's install: by mistake first fresh (0.5.0 uninstalled), then redone as planned:
+   0.5.0 back through Obtainium and set up, 0.6.0 (sha256 21e494b6…) over it at 20:24 without
+   opening the page; the migration and the alarms by `MY_PACKAGE_REPLACED` in the log, the
+   wallpaper untouched (`.coord/runs/w/start.md`). The FP6 charges overnight (pascaline's
+   night), so W's first night has no Doze; its log is recorded on the PC
+   (`.coord/runs/w/logcat-night.txt`: the phone's 256 KB buffer rolled over within 15 min).
+   V7's session 1 at 20:31, the tablet on battery (`.coord/runs/v7/start.md`). **Tue 27:** V7's
+   second session (about 09:30), W's first read, then V12e and V12f.
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then W, R and T.
 
@@ -2489,7 +2501,7 @@ merged), with these changes:
 - **V12c (V11c):** as written.
 - **Done when:** each item ran or is under Not tested; the tablet set back.
 
-### [ ] B22. The stand-in not twice with APOD alone too; the video notice says so (Opus, high)
+### [x] B22. The stand-in not twice with APOD alone too; the video notice says so (Opus, high)
 
 (User, 2026-10-26, from V12b's open question; a change under the freeze.) V12b: APOD alone (no
 turns), NASA for video days; on an APOD video day NASA's newest post went on although that
@@ -2527,7 +2539,7 @@ in both cases, also where it doesn't.
   noted shown, nothing set), with the day the stand-in went on, a pull, Set and "my picture"
   unchanged; the tablet passes.
 
-### [ ] B23. No "kept" while something takes APOD's place (Opus, medium)
+### [x] B23. No "kept" while something takes APOD's place (Opus, medium)
 
 (User, 2026-10-26, from regression 10's wording question; under the freeze.) With "Use my
 picture" stored on a faked video day the status line said "Video day, wallpaper kept" while the
@@ -2551,7 +2563,7 @@ Los Angeles).
   the tablet passes.
 - After B22 (both change `Screens.kt`).
 
-### [ ] B24. A run's bookkeeping before `jobFinished` (Opus, medium)
+### [x] B24. A run's bookkeeping before `jobFinished` (Opus, medium)
 
 (User, 2026-10-26, from Opus pass 23's note; under the freeze.) `DailyJob`'s worker calls
 `jobFinished` a few ms before `ended()` runs `Store.ranJob`: a process death in between leaves
@@ -2596,7 +2608,7 @@ retry kept, B16f1). `kill -9` and `install -r` during a run ran in V12a and agai
 - **Done when:** each item ran or is under Not tested; the tablet set back (`auto_time` 1,
   Europe/Zurich, Wi-Fi on, airplane mode off).
 
-### [ ] SIM. `:core`: the rules over random months (Opus, high)
+### [x] SIM. `:core`: the rules over random months (Opus, high)
 
 (User, 2026-10-26 afternoon, Remaining 4j: the job and the rules gave 13 of the 24 fix packages
 B2–B24, and every check of the rules since J1 is a hand-written case or a faked clock. Under the

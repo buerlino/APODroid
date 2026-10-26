@@ -493,7 +493,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
   is open, 12/24 h at the next resume), with " · NASA" when the wallpaper isn't APOD's or two or
   more sources are ticked (the source's short name, user, 2026-10-20: the full names wrapped) and
   " · My picture" for the user's own, in both modes; or "Video day, wallpaper kept" (`:core`'s
-  `videoDayKept`: APOD ticked there, its turn, nothing standing in; with turns "Skip it" passes
+  `videoDayKept`: APOD ticked there, its turn, and nothing will take APOD's place there (B23,
+  user, 2026-10-26): "Skip it", "Use my picture" without one, or the stand-in shown there before
+  and not on it now (B22's check); a stand-in that will go on, stored and not set yet (until the
+  next check or change time) or still loading, isn't "kept": the line stays the screen's last
+  change, or none before the first set; with turns "Skip it" passes
   the turn, so nothing is kept; a record without a picture, as Set leaves it, counts when the
   screen was set before, `wallpaperSetAt`, else not: a fresh install's first video day shows no
   line); before the first set nothing. In APOD mode for the screen "Where" names (with Lock the

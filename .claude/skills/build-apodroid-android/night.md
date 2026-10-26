@@ -96,8 +96,9 @@ it run. Only APODroid's nights use the tablet (pascaline's leave HA24BZ2Y alone)
 What each night queued and why: the plan's Remaining (git has this file's old paragraphs).
 
 **Rows 1–59 are done:** each has a MERGED line in the log, most of them out of josh's view (night.sh shows only the
-last 80 of the log's night headers and RESULT lines). Pass over them (`pipeline.sh` doesn't refuse a merged ID). No
-row is queued for a night yet (2026-10-26): the user names the next night's rows here and adds them to the table.
+last 80 of the log's night headers and RESULT lines). Pass over them (`pipeline.sh` doesn't refuse a merged ID).
+Rows 60–64 (user, 2026-10-26; the plan, Remaining 4i) run by day, one at a time with `scripts/pipeline.sh <ID>`: B22 →
+B23 → B24, then V12e → V12f on that tree, before V7 and P's real night.
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -160,6 +161,11 @@ row is queued for a night yet (2026-10-26): the user names the next night's rows
 | 57 | V12d | Final pass again 2: R8 and the update from 0.5.0 | rosie | opus, high | no | — | plan V + plan V11d + plan V12 |
 | 58 | V12b | Final pass again 3: the rules on a faked clock | rosie | opus, high | no | — | plan V + plan V11b + plan V12 |
 | 59 | V12c | Final pass again 4: what a user does to the new UI | rosie | opus, high | no | — | plan V + plan V11c + plan V12 |
+| 60 | B22 | The stand-in not twice with APOD alone too; the video notice says so | winston | opus, high | yes | — | plan B22 |
+| 61 | B23 | No "kept" while something takes APOD's place | winston | opus, medium | yes | B22 | plan B23 |
+| 62 | B24 | A run's bookkeeping before `jobFinished` | winston | opus, medium | yes | — | plan B24 |
+| 63 | V12e | V12a's rest 1: Doze and battery saver | rosie | opus, high | no | — | plan V + plan V11a + plan V12e |
+| 64 | V12f | V12a's rest 2: reboot, the clock, what happens during a run | rosie | opus, high | no | — | plan V + plan V11a + plan V12f |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

@@ -508,8 +508,8 @@ findings were spot-checked.
   Oct, `CLAUDE.md` wins.
 - [x] Q4 `turn.sh` (no effect since J1) out of night.md and the V rules; the regression's and the
   smoke list's 0.5.0 words (tabs, "All NASA pictures") updated.
-- [ ] Q5 V12b's "Set while a run goes" needs Tailscale off on the tablet: the user's, before
-  `night.sh`.
+- [x] Q5 V12b's "Set while a run goes" needs Tailscale off on the tablet: not needed (2026-10-26):
+  V12b made the run long with "Save every picture" at No limit (the skill, Learned in the V rows).
 - [x] Q6 B21 settled: the 24 h test a `:core` function with tests; no `checkedAt` isn't a gap; the
   stand-in's own mark counts.
 - [x] Q7 The plan's Packages table and commands: B19–B21, V12, V7 (rosie's default, Sonnet,

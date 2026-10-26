@@ -270,7 +270,7 @@ list (until 2026-10-26). A V row, the regression or a phone pass removes what it
 what it leaves open.
 
 **For 0.6.0's release gate** (`CLAUDE.md`, Next features):
-- V12a's rest on the tree with B19–B21 (V12a, 2026-10-25: 3 of its items ran in the time box):
+- V12a's rest, as V12e and V12f after B22–B24 (V12a, 2026-10-25: 3 of its items ran in the time box):
   reboot, time zones, the clock ±3 h, Doze Unrestricted and Optimized (`working_set`), battery
   saver, `force-stop` and airplane mode during a run, a page open during a run (B16f1's retry),
   the switch off mid-run (B19's info line). Low storage during Set ran in B20's check and

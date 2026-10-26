@@ -284,6 +284,11 @@ Advanced settings ▸                                closed by default
 | B20 | Set says when its setup couldn't be saved | Opus, medium |
 | B21 | One source after a day offline: the newest goes on | Opus, high |
 | V12 | The final pass again (V12a–d: V11a–d on the tree with B19–B21) | Opus, high |
+| B22 | The stand-in not twice with APOD alone too; the video notice says so | Opus, high |
+| B23 | No "kept" while something takes APOD's place | Opus, medium |
+| B24 | A run's bookkeeping before `jobFinished` | Opus, medium |
+| V12e | V12a's rest 1: Doze and battery saver | Opus, high |
+| V12f | V12a's rest 2: reboot, the clock, what happens during a run | Opus, high |
 | V7 | Turns over hours, by hand: rosie's default (Sonnet, medium), as its commands below | Sonnet, medium |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
@@ -316,6 +321,7 @@ scripts/night.sh --until <HH:MM>    # J1, A1, J2, A3, A4, J3, then the regressio
 scripts/night.sh --until <HH:MM>    # B15, B16, then the regression (2026-10-24)
 scripts/night.sh --until <HH:MM>    # B17, CR2, B18, V11a, V11d, V11b, V11c, then the regression (2026-10-25)
 scripts/night.sh --until 07:30      # B19, B20, B21, V12a, V12d, V12b, V12c, then the regression (the night of 2026-10-25)
+scripts/pipeline.sh B22    # by day, 2026-10-26, one at a time: then B23, B24, V12e, V12f
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7 in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # session 1 at bedtime, the night after
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model sonnet --effort medium "Do V7's second session in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # ≥ 6 h later, before pascaline
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
@@ -524,9 +530,13 @@ reading; their build check passed, 108 tests with `private/`):
    `.coord/reports/2026-10-25-night.md`): B19, B20, B21 merged (B19 and B20 tablet PASS; B21
    by V12b), V12b, V12c and V12d PASS, regression 10 PASS, no bug; master fast-forwarded to
    654848c, the shift's tree. V12a ran 3 of its items in its 50 minutes (the 15 real minutes
-   twice), so the gate waits for the rest (V12, Status). Open for the user: when the rest runs
-   against V7's and P's night; the stand-in with APOD alone on a screen that showed it;
-   ZuiMemoryCleaner; the status line beside "takes its place" (`CLAUDE.md`, the release gate).
+   twice), so the gate waits for the rest (V12, Status). Decided (user, 2026-10-26, from the
+   report's questions): the stand-in not twice with APOD alone too, the notice by the same check
+   (**B22**); no "kept" while something takes APOD's place (**B23**); a run's bookkeeping before
+   `jobFinished` (**B24**, pass 23's note); ZuiMemoryCleaner no 0.6.0 change (noted in
+   `on-time-0.7.0.md`). **Today (Mon 26), by day, one at a time:** B22 → B23 → B24, then V12a's
+   rest as **V12e** and **V12f** (rosie, the tablet), so V7 and P's real night test the final
+   tree. **Mon 26 to Tue 27:** V7 and P's real night, as 4h. Then the rest of P, R and T.
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then R and T.
 
@@ -2435,6 +2445,7 @@ source is stored, so D−1's is gone.
 2026-10-25; master 654848c). V12a passed the 3 items it ran (the safety alarm after `kill -9`
 alone, `kill -9` of job 1, `install -r` during a run) and ran out of time for the rest: the
 skill's Still untested lists them. Low storage during Set ran in B20's check and regression 10.
+The rest runs as V12e and V12f (user, 2026-10-26), after B22–B24.
 
 (User, 2026-10-25: fix A–D, then V11a–d again in full, before V7 and P.) V12a–d each run their
 V11 section (V11a, V11d, V11b, V11c) on dev's tree after B19–B21 (say which of them are
@@ -2454,6 +2465,112 @@ merged), with these changes:
   the tablet), else Not tested.
 - **V12c (V11c):** as written.
 - **Done when:** each item ran or is under Not tested; the tablet set back.
+
+### [ ] B22. The stand-in not twice with APOD alone too; the video notice says so (Opus, high)
+
+(User, 2026-10-26, from V12b's open question; a change under the freeze.) V12b: APOD alone (no
+turns), NASA for video days; on an APOD video day NASA's newest post went on although that
+screen had shown it already (noted in its record's `shown`). With turns B15 already passes
+APOD's turn on in that case (`Stored.isNew`); with one source `Rules.within` puts
+`stored.picture(APOD)`, the stand-in, on regardless. The video notice says "… takes its place"
+in both cases, also where it doesn't.
+- **The rule** (`:core`, `Screens.kt`): with one source too, the stand-in (NASA's or Earth's
+  post) goes on in a run only while its post isn't noted shown on that screen for its own source
+  (the check `isNew` makes for turns); else APOD has nothing to show, as with "Skip it", and the
+  screen keeps its picture. Once the stand-in is on it counts as shown, and keeping holds it
+  there, so the day it went on doesn't change. **Set, a pull, a forgotten picture and a new
+  screen put it on as now** (they put the newest on at once, whatever it was: Set sets each
+  screen afresh, e.g. after a changed whole picture). The user's own picture always stands in,
+  as now. A newer post of the standing-in source goes on by the usual rules (the window, B15;
+  the gap mark, B21).
+- **The notice** (`VideoNotice`): one `:core` check per screen where APOD is ticked, the stand-in
+  shown there before and not on it now (the same check the rule uses, and B23's line). While it
+  holds on every such screen the notice reuses the "Skip it" texts, without their second
+  sentence (approved, user 2026-10-26: no new text): APOD mode "This APOD is a video, so your
+  wallpaper stays as it was."; with "More NASA pictures" on "This APOD is a video, so it's
+  skipped." (also with turns, B15's case). Both keep " Tap ▶ to watch it on NASA's site." on
+  APOD's page. Otherwise as now.
+- **Files:** `Screens.kt`, `ScreensTest`, `Store.kt` (the check for the page), `MainActivity.kt`
+  (`VideoNotice`); `CLAUDE.md` (Turns and the picture time: the stand-in; Video days on the page).
+- **Tablet:** APOD mode, "Where" Both, NASA for video days, APOD's post faked a video, both
+  screens on the day before's APOD, NASA's stored post noted shown on both (`nasa.shownDate` and
+  `nasa.shownUrl`, also `lock.`): `run -f 1` sets nothing; the notice "This APOD is a video, so
+  your wallpaper stays as it was. Tap ▶ …" (a screenshot). The notes removed: the run sets NASA,
+  the notice "… so NASA's Image of the Day takes its place. …", a second run sets nothing. Set
+  with NASA already shown puts it on (one set). With "More NASA pictures" on, home APOD + Earth
+  (turns), lock APOD alone, NASA noted on both: home passes to Earth (or waits), lock keeps its
+  picture; the notice "This APOD is a video, so it's skipped. …". Then the smoke list.
+- **Done when:** a `ScreensTest` case that fails on the old code (V12b's: APOD alone, the stand-in
+  noted shown, nothing set), with the day the stand-in went on, a pull, Set and "my picture"
+  unchanged; the tablet passes.
+
+### [ ] B23. No "kept" while something takes APOD's place (Opus, medium)
+
+(User, 2026-10-26, from regression 10's wording question; under the freeze.) With "Use my
+picture" stored on a faked video day the status line said "Video day, wallpaper kept" while the
+box said "your own picture takes its place": `videoDayKept` is true while the screen doesn't
+show the stand-in yet (until the next check or change time: minutes in Zurich, all evening in
+Los Angeles).
+- Fix (`:core`'s `videoDayKept`): "kept" only when nothing will take APOD's place on that
+  screen: "Skip it", "Use my picture" without a picture, or the stand-in shown there before and
+  not on it now (B22's check). While a stand-in is chosen and will go on (stored, or still
+  loading: the box says "… takes its place once it has loaded."), the screen's line is its last
+  change, "Wallpaper changed 25 Oct, 06:12" with its " · APOD" as now, or no line before the
+  first set. No new text. With turns nothing changes ("Skip it" passes the turn, nothing kept).
+- **Files:** `Screens.kt`, `ScreensTest`; `CLAUDE.md` (Problems and status lines: "Video day,
+  wallpaper kept").
+- **Tablet:** a faked APOD video day in APOD mode, the screens on the day before's APOD, each
+  choice with Set: "Use my picture" with a picture, before the change time (the page open sets
+  only what's due; fake the post's `published` after the window): "Wallpaper changed …", not
+  "kept"; NASA stored the same; "Skip it": "Video day, wallpaper kept"; B22's already-shown
+  case: "kept". A screenshot each. Then the smoke list.
+- **Done when:** a test that fails on the old code (a stand-in stored, not on yet: not kept);
+  the tablet passes.
+- After B22 (both change `Screens.kt`).
+
+### [ ] B24. A run's bookkeeping before `jobFinished` (Opus, medium)
+
+(User, 2026-10-26, from Opus pass 23's note; under the freeze.) `DailyJob`'s worker calls
+`jobFinished` a few ms before `ended()` runs `Store.ranJob`: a process death in between leaves
+`runGoing` (B19) after a good run, and the next run's start counts a failure that didn't happen
+(its pair an hour ahead instead of 15 min).
+- Fix (`DailyJob.kt`): the interrupt flag cleared (`Thread.interrupted()`, B16: an interrupted
+  thread's `commit()` skips the prefs listeners), then the bookkeeping, `ranJob(failed)`
+  (`runGoing` removed, the failures counted or cleared), under `lock` with the same guards as
+  now (no off since the run's start, the switch on), then `jobFinished`, then `runs.finished`
+  and `ensure` as now (`ensure` mustn't schedule a job Android still counts as running:
+  scheduling an id again stops its run). A death after `ranJob` and before `jobFinished`: the
+  run counts as ended; Android may re-run job 1 (harmless: it finds nothing new).
+- **Files:** `DailyJob.kt`; `CLAUDE.md` (Background update, Retries by the alarms) if the order
+  is named there; the skill's Where things are (`DailyJob.kt`).
+- **Tablet:** a good `run -f 1`: no `runGoing`, no `failedRuns` in the prefs, armed by the clock;
+  a failed one (Wi-Fi off): `failedRuns` 1, the pair 15 min after; B19's checks again
+  (`install -r` and `kill -9` 1–2 s into a run made long V12b's way: the retry kept, the next
+  start counts the killed run, its pair an hour ahead). Then the smoke list.
+- **Done when:** built, the tablet passes.
+
+### [ ] V12e. V12a's rest 1: Doze and battery saver (Opus, high)
+
+(User, 2026-10-26: V12a ran 3 of its items in its time box; the rest on the tree with B22–B24,
+as two rows, the Doze items apart. The rows' rules: V.) Of V11a's list only these, with V12's
+change: **Doze, Unrestricted**; **Doze, Optimized** with `am set-standby-bucket … working_set`
+at once (RARE's quota of about one alarm an hour was seen and accepted); **battery saver**
+(`cmd battery unplug` first on the charging tablet). The tree: dev with B22–B24 (say which are
+merged). The how-tos: the skill, Working on the phone (also "Learned in the V rows").
+- **Done when:** each item ran or is under Not tested; the tablet set back (`dumpsys deviceidle
+  unforce`, `battery reset`, the bucket and the whitelist as they were).
+
+### [ ] V12f. V12a's rest 2: reboot, the clock, and what happens during a run (Opus, high)
+
+(As V12e.) Of V11a's list only these: **reboot**; **time zones** (New York, Tehran, back);
+**the clock** 3 h forward and back; **during a run**, made long V12b's way ("Save every picture"
+at No limit with the posts faked back, the second action sent from the tablet's shell in the
+same command): `am force-stop` (say what arms the alarms again), airplane mode on (failed, 15
+min, then hourly; off: the next alarm's run sets), the daily switch off (B19's "Daily job:
+stopped (the switch off)", no "failed", both alarms and both jobs gone), a page open (the run's
+retry kept, B16f1). `kill -9` and `install -r` during a run ran in V12a and again in B24's check.
+- **Done when:** each item ran or is under Not tested; the tablet set back (`auto_time` 1,
+  Europe/Zurich, Wi-Fi on, airplane mode off).
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 

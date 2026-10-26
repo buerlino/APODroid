@@ -919,7 +919,12 @@ the new job. **Where it stands** (2026-10-26): V11a–d's findings fixed (user, 
 all bugs and retest"): a killed run keeps its retry and counts as failed (B19, Retries by the
 alarms), Set says when its setup couldn't be saved (B20, Set as wallpaper), one source after a
 day offline takes the newest post (B21, Turns, rule 2); V12b–d pass on master 654848c, V12a ran
-3 of its items (the rest: the skill's Still untested); V7 and P to come. **Accepted, no change:** the RARE bucket's about one alarm
+3 of its items. **To fix before V7 and P** (user, 2026-10-26, from the night's report; the plan,
+B22–B24): the stand-in not twice with APOD alone too, and the video notice saying so (B22); no
+"Video day, wallpaper kept" while something takes APOD's place (B23); a run's bookkeeping before
+`jobFinished`, so a death between them doesn't count a good run as killed (B24); then V12a's rest
+as V12e and V12f. Lenovo's ZuiMemoryCleaner force-stopping the app (seen once, V12d): no 0.6.0
+change (`on-time-0.7.0.md`). **Accepted, no change:** the RARE bucket's about one alarm
 an hour (Android's quota; the pause hint covers Optimized); CR2's finding 4 (a Set that
 changes the picture time or "Change every" costs one spare check; noting `lastRunAt` at Set
 could drop an owed check); a Set tap in the same input burst as the time menu's closing goes to

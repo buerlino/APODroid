@@ -43,6 +43,12 @@ user's report): the pause hint's battery line names a path that isn't there.
   follow Android 14's rules work since One UI 6.0.
 - **Oppo / realme / OnePlus** (ColorOS, OxygenOS): "Allow background activity", "Auto launch".
 - **Vivo / iQOO**: "High background power consumption", Autostart.
+- **Lenovo** (ZUI, the test tablet TB305FU, Android 15; seen once, V12d, 2026-10-25):
+  `ZuiMemoryCleaner[Aggressive-MemFreeCritical]` force-stopped the cached app (with F-Droid,
+  the permission controller and others) 2 s after a clock step, which deleted both alarms and
+  job 1 until the next page open; not seen in V11d's identical step. The detector's case: a
+  force stop leaves nothing armed. No 0.6.0 change (user, 2026-10-26); V7's real mornings watch
+  for it.
 
 The "Unrestricted" row is often there under the maker's name ("No restrictions" on Xiaomi), but
 the maker's Autostart switch stops everything the app schedules. **No app-side setting gets past

@@ -51,6 +51,13 @@ packages unattended): `night.md`.
   the screens with a column forgotten, each stamped with the current change time; a `Restart`
   with the plan and the screens whose record to `drop`, a column that was empty), and
   `videoDayKept` for the page's status line (B23: not while a stand-in will go on; `Stored.standsIn`), `standInSkipped` for its video notice (B22; tests in `ScreensTest`).
+  The rules over random months (SIM, test code only): `RulesSimulationTest`, 240 seeded phones of
+  60 days (seven zones, both DST changes, random setups, posts, runs, pulls, Sets, offline spans,
+  failed sets, killed runs) doing what `Store` and `DailyJob` do, eight invariants from
+  `CLAUDE.md`'s rules checked around every set and arming; a failure names the seed, the
+  invariant and the day's runs and sets; a seed that finds a bug goes into `knownBugs` with an
+  `@Ignore`d test of its own. The phone of `PictureTimeTest` and the simulation, with the posts'
+  times (`apod`, `week`, …): `core/src/test/.../Phone.kt`.
   `core/.../Saving.kt` (0.6.0, F5): `sourcesInUse` (what the job fetches and saves) and
   `toSave` (Save every picture's choice; tests in `SavingTest`).
   `core/.../Migration.kt` (0.6.0, M2): `migrate`, 0.5.0's prefs → 0.6.0's keys, run once by

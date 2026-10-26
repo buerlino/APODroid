@@ -192,6 +192,7 @@ class MainActivity : ComponentActivity() {
 
     /** On an APOD video day: the stand-in is stored ([Store.tabPicture] of APOD), for the video notice with the switch on. */
     private var standInReady by mutableStateOf(false)
+    private var standInSkipped by mutableStateOf(false)
 
     /** The offered sources whose stored post ★ saved ([Store.isSaved]). */
     private var saved by mutableStateOf(emptySet<Source>())
@@ -577,6 +578,7 @@ class MainActivity : ComponentActivity() {
         pageScreen = store.pageScreen
         screens = Screen.entries.associateWith(store::screenState)
         standInReady = apod?.isVideo == true && store.tabPicture(Source.APOD) != null
+        standInSkipped = apod?.isVideo == true && store.standInSkipped
         readProblem()
     }
 
@@ -1427,7 +1429,7 @@ class MainActivity : ComponentActivity() {
     /**
      * Says why the wallpaper didn't change on a video day and what the user can do; follows the
      * settings. What takes APOD's place ("… takes its place." once its picture is stored, B17), with the switch on also with turns; with APOD ticked
-     * nowhere only that it's a video.
+     * nowhere only that it's a video. A stand-in every screen with APOD has shown already (B22): "Skip it"'s first sentence.
      */
     @Composable
     private fun VideoNotice() {
@@ -1441,6 +1443,7 @@ class MainActivity : ComponentActivity() {
         val text = when {
             !daily || (stored.allSources && !apodTicked) -> "This APOD is a video.$watch"
             stored.allSources -> when {
+                other != null && standInSkipped -> "This APOD is a video, so it's skipped.$watch"
                 other != null && standInReady -> "This APOD is a video, so ${other.possessive} takes its place.$watch"
                 other != null -> "This APOD is a video. ${other.possessive} takes its place once it has loaded.$watch"
                 mine && hasFallback -> "This APOD is a video, so your own picture takes its place.$watch"
@@ -1449,6 +1452,8 @@ class MainActivity : ComponentActivity() {
             }
             // B15: "takes its place", not "is the wallpaper": the wallpaper changes at the next check or change time.
             // B17: by the stand-in's stored picture, as above, not by what the screen shows yet.
+            // B22: shown on the screen before, it doesn't go on again: the wallpaper stays.
+            other != null && standInSkipped -> "$kept$watch"
             other != null && standInReady -> "This APOD is a video, so ${other.possessive} takes its place.$watch"
             other != null -> "This APOD is a video. ${other.possessive} takes its place once it has loaded.$watch"
             mine && hasFallback -> "This APOD is a video, so your own picture takes its place.$watch"

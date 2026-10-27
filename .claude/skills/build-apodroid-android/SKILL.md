@@ -277,10 +277,6 @@ list (until 2026-10-26). A V row, the regression or a phone pass removes what it
 what it leaves open.
 
 **For 0.6.0's release gate** (`CLAUDE.md`, Next features):
-- V12a's rest, as V12f after B22–B24 (V12a, 2026-10-25: 3 of its items ran in the time box; the
-  Doze items and battery saver passed in V12e): reboot, time zones, the clock ±3 h, `force-stop`
-  and airplane mode during a run, a page open during a run (B16f1's retry), the switch off
-  mid-run (B19's info line). Low storage during Set ran in B20's check and regression 10.
 - Doze on a real night with the app Optimized, not forced and not stepped (V12e: only `force-idle`
   and `deviceidle step`; V7's night was Unrestricted).
 - Battery saver with the app Optimized over a real day (V12e: the alarm's run waited for the
@@ -299,7 +295,8 @@ what it leaves open.
 - Android's real ~10 min job deadline (V2: only `cmd jobscheduler timeout`); a frozen process
   during a run; a stop timed into a rendition download (WP8b's fix, found by reading).
 - A connection cut during a Set's download (V9).
-- After a reboot, the armed pair firing (V9, V11a: armed at `BOOT_COMPLETED`, not waited for).
+- A failed run's 1 h retry firing by itself (V12f: after two failed runs the clock's hourly check,
+  10:24:37, came before the retry, 10:50:29; only the 15-min retry fired).
 - A real DST change (only faked clocks: V11a, V11b, V11d). W sees the US's on 1 Nov as the
   sites' zone and the Zurich case after it, not a change of the phone's own clock.
 - Real mornings, a weekend and the Zurich case on a real clock: W (FP6, to Mon 2 Nov).

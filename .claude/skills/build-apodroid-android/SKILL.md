@@ -277,11 +277,14 @@ list (until 2026-10-26). A V row, the regression or a phone pass removes what it
 what it leaves open.
 
 **For 0.6.0's release gate** (`CLAUDE.md`, Next features):
-- V12a's rest, as V12e and V12f after B22–B24 (V12a, 2026-10-25: 3 of its items ran in the time box):
-  reboot, time zones, the clock ±3 h, Doze Unrestricted and Optimized (`working_set`), battery
-  saver, `force-stop` and airplane mode during a run, a page open during a run (B16f1's retry),
-  the switch off mid-run (B19's info line). Low storage during Set ran in B20's check and
-  regression 10.
+- V12a's rest, as V12f after B22–B24 (V12a, 2026-10-25: 3 of its items ran in the time box; the
+  Doze items and battery saver passed in V12e): reboot, time zones, the clock ±3 h, `force-stop`
+  and airplane mode during a run, a page open during a run (B16f1's retry), the switch off
+  mid-run (B19's info line). Low storage during Set ran in B20's check and regression 10.
+- Doze on a real night with the app Optimized, not forced and not stepped (V12e: only `force-idle`
+  and `deviceidle step`; V7's night was Unrestricted).
+- Battery saver with the app Optimized over a real day (V12e: the alarm's run waited for the
+  network while saver was on, then Android held the ready run back; how late it comes unmeasured).
 - V7: turns over hours on a real night, the tablet on battery.
 - P on the FP6: the release build over Obtainium's 0.5.0, a real morning, a reboot with the PIN,
   and what the tablet left: "my picture" from the picker as a huge, tiny, panorama, tall, WebP,

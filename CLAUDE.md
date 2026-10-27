@@ -942,10 +942,12 @@ day offline takes the newest post (B21, Turns, rule 2); V12b–d pass on master 
 3 of its items. B22–B24 (the stand-in not twice with APOD alone too, the notice saying so; no
 "kept" while something takes APOD's place; a run's bookkeeping before `jobFinished`) merged with
 tablet PASS and Opus pass 26 clean, and SIM found no bug in 240 seeds (2026-10-26, master
-db78d0c; 0.6.0's versionCode 10 from 423f082). Running from the evening of 26 Oct: V7 on the
-tablet (on battery), P's install and W on the FP6 (0.6.0 over the real 0.5.0, the page not
-opened: the migration and the alarms by `MY_PACKAGE_REPLACED` seen). Left: V7's second session,
-V12e and V12f (Tue 27), the rest of P, W to Mon 2 Nov. Lenovo's ZuiMemoryCleaner force-stopping the app (seen once, V12d): no 0.6.0
+db78d0c; 0.6.0's versionCode 10 from 423f082). V7 (the tablet's real night on battery: two
+sets, each on time, nothing twice), V12e and V12f pass (2026-10-27): all of V12 has run, no
+`BUG:` line. P's install (26 Oct, 20:24): 0.6.0 over the real 0.5.0 on the FP6, the page not
+opened; the migration kept the user's setup exactly (APOD + NASA on both screens, 12 h, checked
+by the user in Setup) and the alarms were armed by `MY_PACKAGE_REPLACED`; the first morning set
+on time (06:12, NASA's turn). Left: the rest of P with the user, W to Mon 2 Nov. Lenovo's ZuiMemoryCleaner force-stopping the app (seen once, V12d): no 0.6.0
 change (`on-time-0.7.0.md`). **More testing before the tag** (user, 2026-10-26 afternoon, from a
 report on the repo's state; the plan, Remaining 4j): **W**, a week on the FP6 from P's install
 to the morning of Mon 2 Nov, the tag not before Tue 3 Nov. Why: no real night has run the new

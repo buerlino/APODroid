@@ -572,6 +572,13 @@ reading; their build check passed, 108 tests with `private/`):
    (`.coord/runs/w/logcat-night.txt`: the phone's 256 KB buffer rolled over within 15 min).
    V7's session 1 at 20:31, the tablet on battery (`.coord/runs/v7/start.md`). **Tue 27:** V7's
    second session (about 09:30), W's first read, then V12e and V12f.
+4l. **Tue 27 Oct**: V7 PASS (lock: Tuesday's Earth at 05:34, the first waiting check after 05:00;
+   home: Tuesday's APOD at 06:19; one set per screen; the log before 06:19 rolled over, the
+   fallback pushed 35 h ahead by earlier `run -f`s), V12e PASS (battery saver holds an Optimized
+   app's network: `on-time-0.7.0.md`), V12f PASS. W's first morning PASS (`.coord/runs/w/report.md`:
+   06:12 NASA's Monday post, NASA's turn by the 12 h turns; the window's checks set nothing) and
+   the migration on the FP6 confirmed by the user in Setup. Left for the gate: the rest of P (with
+   the user), W's mornings to Mon 2 Nov; then R and T, Tue 3 Nov at the earliest.
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then W, R and T.
 
@@ -1564,7 +1571,7 @@ V4 ran on trees before S4–S6; V8 repeats what those changed. Every row:
   today's 208 MB one: ★ saves the original anyway; the file deleted after), the swipe between
   sources (S6); no crash (`logcat`, `exit-info`). R8 isn't covered by the unit tests.
 
-### [ ] V7. Turns over hours (a night of its own, after V12)
+### [x] V7. Turns over hours (a night of its own, after V12)
 
 **Moved after J1–J3** (user, 2026-10-22 evening): it tests the new job. Its setup then also
 takes the picture time and the three rules (`CLAUDE.md`, Next features): Home APOD alone,
@@ -2584,7 +2591,7 @@ Los Angeles).
   start counts the killed run, its pair an hour ahead). Then the smoke list.
 - **Done when:** built, the tablet passes.
 
-### [ ] V12e. V12a's rest 1: Doze and battery saver (Opus, high)
+### [x] V12e. V12a's rest 1: Doze and battery saver (Opus, high)
 
 (User, 2026-10-26: V12a ran 3 of its items in its time box; the rest on the tree with B22–B24,
 as two rows, the Doze items apart. The rows' rules: V. Before V7's session 1, or on Tue 27 by
@@ -2596,7 +2603,7 @@ merged). The how-tos: the skill, Working on the phone (also "Learned in the V ro
 - **Done when:** each item ran or is under Not tested; the tablet set back (`dumpsys deviceidle
   unforce`, `battery reset`, the bucket and the whitelist as they were).
 
-### [ ] V12f. V12a's rest 2: reboot, the clock, and what happens during a run (Opus, high)
+### [x] V12f. V12a's rest 2: reboot, the clock, and what happens during a run (Opus, high)
 
 (As V12e.) Of V11a's list only these: **reboot**; **time zones** (New York, Tehran, back);
 **the clock** 3 h forward and back; **during a run**, made long V12b's way ("Save every picture"

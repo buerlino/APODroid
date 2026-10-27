@@ -47,8 +47,14 @@ user's report): the pause hint's battery line names a path that isn't there.
   `ZuiMemoryCleaner[Aggressive-MemFreeCritical]` force-stopped the cached app (with F-Droid,
   the permission controller and others) 2 s after a clock step, which deleted both alarms and
   job 1 until the next page open; not seen in V11d's identical step. The detector's case: a
-  force stop leaves nothing armed. No 0.6.0 change (user, 2026-10-26); V7's real mornings watch
-  for it.
+  force stop leaves nothing armed. No 0.6.0 change (user, 2026-10-26). Not seen in V7's real
+  night on battery (26–27 Oct: no exit in `exit-info`).
+- **Android's battery saver** (V12e, 2026-10-27, the tablet): it blocks an Optimized app's
+  background network (netpolicy `BLOCKED`), so the alarm's run (id 2) waits, pending, until saver
+  ends or the page opens; after saver went off Android still held the ready run back about 4 min
+  (batching of apps outside the ACTIVE bucket). An Unrestricted app's run set at once with saver
+  on. For "Exact timing": whether a `dataSync` foreground service gets the network under saver is
+  part of its check.
 
 The "Unrestricted" row is often there under the maker's name ("No restrictions" on Xiaomi), but
 the maker's Autostart switch stops everything the app schedules. **No app-side setting gets past

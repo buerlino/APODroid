@@ -281,9 +281,10 @@ what it leaves open.
   and `deviceidle step`; V7's night was Unrestricted).
 - Battery saver with the app Optimized over a real day (V12e: the alarm's run waited for the
   network while saver was on, then Android held the ready run back; how late it comes unmeasured).
-- V7: turns over hours on a real night, the tablet on battery.
-- P on the FP6: the release build over Obtainium's 0.5.0, a real morning, a reboot with the PIN,
-  and what the tablet left: "my picture" from the picker as a huge, tiny, panorama, tall, WebP,
+- How far Doze delays the alarms' runs over a real night (V7: the tablet's log before 06:19 rolled
+  over; the runs seen came at their window's end with the network at once). Set `logcat -G 16M`
+  before such a night.
+- P on the FP6: a reboot with the PIN, and what the tablet left: "my picture" from the picker as a huge, tiny, panorama, tall, WebP,
   GIF and EXIF-8 picture (V10, V11c, V12c); the boxes' "Don't show again" with its dialog and
   "App info"; TalkBack's "not set yet" and the headers' states (V8); home and lock set apart on
   Android 16 (M0: the tablet only); "my picture" and video days on R8 (V6).
@@ -300,7 +301,7 @@ what it leaves open.
 - A real DST change (only faked clocks: V11a, V11b, V11d). W sees the US's on 1 Nov as the
   sites' zone and the Zurich case after it, not a change of the phone's own clock.
 - Real mornings, a weekend and the Zurich case on a real clock: W (FP6, to Mon 2 Nov).
-- The rules under random failures, gaps and Sets over months: SIM (`:core`).
+- W's FP6 nights on battery: the first (26–27 Oct) charged on the PC, so no Doze.
 - A download that isn't a picture (`badUrl`, WP7c's made-up feed): not rerun since 0.5.0.
 
 **The update from 0.5.0:**

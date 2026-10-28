@@ -543,7 +543,7 @@ findings were spot-checked.
 - [ ] D23 `features.md` ticked and trimmed (R); deleted when 0.7.0's queue starts, with
   `pipeline.test.sh`'s F2 check.
 - [ ] D24 `keep-running.md`: a header line (before the alarms), the dead `features.md` reference,
-  0.7.0's Live and foreground service.
+  0.7.0's Live and "Keep running" (the foreground service, `on-time-0.7.0.md`, O11).
 - [x] D25 (2026-10-26) night.md: the queue's history prose cut to its rules and "Rows 1–59 are
   done"; about 5 k tokens a decision (also in `night.sh`); "Tested" to its two unseen cases.
 - [ ] D26 This file: the passes of 4–7 Oct to a short "left on purpose" list.
@@ -551,7 +551,7 @@ findings were spot-checked.
   `review-0.6.0-cr2.md`, with the pointers in `CLAUDE.md`, the skill and `features.md`. Kept
   `on-time-0.7.0.md`: a `plan-0.7.0.md` would become the pipeline's plan at once.
 
-### Code (after 0.6.0 ships, one package)
+### Code (after 0.6.0 ships: `on-time-0.7.0.md`'s O1, C4 as O2, C5 as O3; 2026-10-28)
 - [ ] C1–C12 The 3 compiler warnings (`: Unit` on `started`/`ended`, errors from Kotlin 2.5) and
   lint's 2 `UseKtx`; the duplicates (⛶'s noted part three times, one dropdown four times,
   `VideoNotice`'s branches, the problem's words, `columns`/`hasList`, `PictureTime`, `:app`/`:core`

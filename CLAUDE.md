@@ -26,7 +26,7 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   2026-10-26 (`git log --diff-filter=D -- .claude/skills/build-apodroid-android/`).
 - Work for 0.6.0 (APOD first, the "More NASA pictures" switch, and the features from 0.1.1's
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
-- 0.7.0, on time on any phone ("Exact timing", the detector; 2026-10-25): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
+- 0.7.0, on time on any phone (the expedited run, "Keep running", the detector; 2026-10-28): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
   Only APODroid's nights use the tablet HA24BZ2Y (user, 2026-10-20: pascaline's nights leave it alone).
@@ -1100,29 +1100,43 @@ night (still at the end, or back to the start), Android 10–13's lock screen, A
 live too (one drawing code for the wallpaper and the preview).
 
 **0.7.0: on time on any phone** (user, 2026-10-25, after a friend's Chinese phone had no
-"Unrestricted"; after 0.6.0 ships, the freeze; the findings, the plan and the checks in
+"Unrestricted"; planned again 2026-10-28 after W's tablet day; after 0.6.0 ships, the freeze; the
+findings, the plan, the checks and the packages O1–O17 in
 [on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md)). Two layers stop the
 job: Android's (Optimized: no network in Doze, hours late; standby buckets) and the maker's
-(Xiaomi, Huawei, Samsung, Oppo, Vivo: Autostart and the like, which no app setting gets past).
-Decided:
-- **"Exact timing"**, a switch in Advanced settings, default off: an exact alarm
-  (`setExactAndAllowWhileIdle`) starts each run as a `dataSync` foreground service, so it
-  should have the network in Doze (to check first, J0's way). Permissions approved:
-  `SCHEDULE_EXACT_ALARM` (asked only when the switch is turned on: Android's "Alarms &
-  reminders"), `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` (at install, no prompt).
-  The notification permission is never asked (the run works without it).
+(Xiaomi, Huawei, Samsung, Oppo, Vivo, Lenovo: Autostart, cleaners that force-stop cached apps
+and the like, which no app setting gets past). Decided:
+- **The expedited run** (user, 2026-10-28, replacing "Exact timing" of 2026-10-25): the alarms'
+  run (job 2) is an expedited job on Android 12+ (`setExpedited`; no permission, no setting, no
+  notification): AOSP lets it run in Doze and battery saver and past their network blocks, so an
+  Optimized phone gets the picture on time. To check first on the tablet (O6); if it fails, "Exact
+  timing" comes back to the user. A large save it stops is accepted (B7's path). The buckets
+  (RARE's alarm an hour, RESTRICTED's a day) stay the pause hint's Unrestricted.
+- **Keep running** (user, 2026-10-28, after ZUI's cleaner force-stopped the Unrestricted app on
+  a real afternoon: "we have to find a solution, sadly it will lead to a persistent
+  notification"): a permanent foreground service (`specialUse`) that does nothing but keep the
+  process out of the cleaners' reach (they stop cached processes; ZUI's only those of oom adj 701
+  or more). A switch in Advanced settings, default off, acting at once, with an ⓘ: "Keeps
+  APODroid running, so the phone can't stop it between changes. It shows as an active app." The
+  notification (channel "Keep running"): "Keeps the wallpaper changing on time"; on Android 13+
+  it shows only in Quick Settings' Active apps, since the notification permission is never asked;
+  on 10–12 in the shade. Permissions approved: `FOREGROUND_SERVICE`,
+  `FOREGROUND_SERVICE_SPECIAL_USE` (at install, no prompt). Texts are placeholders until approved
+  from screenshots.
 - **The detector:** a page open that sets a wallpaper due at a change time 30 min or more ago,
-  with no job run started since (not after a boot, an update or the switch turned on since),
-  shows a box at the first miss pointing to "Exact timing"; with it already on, the maker's
-  settings path for `Build.MANUFACTURER` and "App info".
+  with no job run started since (not after a boot, an update or the switch turned on since, nor
+  while job 2 is pending), shows a box at the first miss pointing to "Keep running"; with it
+  already on, the maker's settings path for `Build.MANUFACTURER` and "App info". Keep running is
+  offered only there, not by maker before a miss (user, 2026-10-28).
 - **The pause hint per maker** (after the friend's Honor X60, MagicOS 9: App info has no
   "Unrestricted"): the battery line names the phone's own path (`Build.MANUFACTURER`), and a
   button opens Android's Battery optimisation list (`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`,
   no permission). The detection (`isIgnoringBatteryOptimizations`) already works there.
 - **Live (D)** checks for a new picture when the screen turns on (the system keeps the current
   live wallpaper running).
-- Rejected: a permanent foreground service with a permanent notification, `setAlarmClock`,
-  `USE_EXACT_ALARM`.
+- Rejected: "Exact timing" (`SCHEDULE_EXACT_ALARM` and a `dataSync` service per run; the
+  expedited job gives the network without them, user, 2026-10-28), Keep running always on (every
+  phone would pay), `setAlarmClock`, `USE_EXACT_ALARM`.
 
 **0.6.0: APOD first** (user, 2026-10-19; built 2026-10-20 to 24; the how in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different

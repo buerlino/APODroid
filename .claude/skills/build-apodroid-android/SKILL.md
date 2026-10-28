@@ -261,8 +261,9 @@ packages unattended): `night.md`.
     `sys.boot_completed`.
   - Tailscale's VPN stays VALIDATED with no network under it (airplane mode), so JobScheduler
     sees connectivity (V9).
-  - Lenovo's ZuiMemoryCleaner force-stopped the cached app once after a clock step (V12d), which
-    deletes the alarms and job 1 until the next start: check `dumpsys alarm` after each step.
+  - Lenovo's ZuiMemoryCleaner force-stops the cached app (V12d after a clock step; W on a real
+    day, 28 Oct), which deletes the alarms and job 1 until the next start: check `dumpsys alarm`
+    after each step and at each read.
   - `am kill` keeps the page's saved draft, so a Set after reopening saves that draft, not prefs
     pushed meanwhile. A Compose popup takes the tap that closes it: in one `input` line, a Set
     tap right after a menu choice goes to the menu.
@@ -288,7 +289,6 @@ what it leaves open.
   GIF and EXIF-8 picture (V10, V11c, V12c); the boxes' "Don't show again" with its dialog and
   "App info"; TalkBack's "not set yet" and the headers' states (V8); home and lock set apart on
   Android 16 (M0: the tablet only); "my picture" and video days on R8 (V6).
-- Whether ZuiMemoryCleaner force-stops the app on a real morning without a clock step (V12d).
 
 **The job and the rules:**
 - A set failing on one screen and its retry, also after 09:00 (V3, V11b, V12b: nothing on the

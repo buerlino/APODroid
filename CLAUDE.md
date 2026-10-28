@@ -27,6 +27,7 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - Work for 0.6.0 (APOD first, the "More NASA pictures" switch, and the features from 0.1.1's
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
 - 0.7.0, on time on any phone (the expedited run, "Keep running", the detector; 2026-10-28): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
+- 0.7.0, Live, the day's pan (the live wallpaper, Size [Fill | Live]; 2026-10-28): [.claude/skills/build-apodroid-android/live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
   Only APODroid's nights use the tablet HA24BZ2Y (user, 2026-10-20: pascaline's nights leave it alone).
@@ -1090,14 +1091,31 @@ right edge at 24:00), so the whole picture is seen by evening. Built as a **live
 (Android's `WallpaperService`, no library, no permission): the app draws the wallpaper itself
 at the position for the time of day whenever the screen turns on, smooth, nothing drawn or set
 while the screen is off. The clock moves it, not the launcher: it works on any launcher (the
-FP6's Niagara scrolls vertically and reports `mWallpaperX=0.0`; a launcher that scrolls
-sideways could add its offset, optional). Since Android 14 the engine knows whether it draws
-home or lock (`getWallpaperFlags`), so the screens can keep their own pictures. Chosen once in
-Android's live wallpaper picker (the app opens it; one confirmation). Rejected: steps set by
-the job (it jumps, every set redraws and recolours the system's theme colours, smooth would mean
-dozens of sets a day). Open for 0.7.0: the route (straight, or slowing over what matters), the
-night (still at the end, or back to the start), Android 10–13's lock screen, Auto and Fill as
-live too (one drawing code for the wallpaper and the preview).
+FP6's Niagara scrolls vertically and reports `mWallpaperX=0.0`; a launcher's
+sideways scroll is ignored). Since Android 14 the engine knows whether it draws home or lock
+(`getWallpaperFlags`), so the screens can keep their own pictures; a separate lock-screen live
+wallpaper is always there from Android 15 (Android 14's first AOSP release had it off by
+default); on 10–13 a live wallpaper is the home screen's only. Chosen in Android's live
+wallpaper picker (the app opens it; one confirmation). Rejected: steps set by the job (it jumps,
+every set redraws and recolours the system's theme colours, smooth would mean dozens of sets a
+day). **Decided** (user, 2026-10-28; the findings, the plan, the checks and the packages L0–L10
+in [live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md)):
+- **The route straight**, the same speed all day; **at night still at the right edge** until
+  the next change time; **with turns each picture crosses within its own turn** (at most 18 h).
+- **A screen with a column where APODroid's live wallpaper isn't on gets Fill**, as 0.6.0 (the
+  lock screen on 10–13, a screen left out in the picker, another wallpaper picked, a force stop,
+  which makes Android drop a live wallpaper to the default): at once, by the next run.
+- **Android 10–13's lock screen: Fill**, not `clear(FLAG_LOCK)` (untested there).
+- **Fill stays a still set**, not drawn by the engine (updaters would need the picker; a force
+  stop or a crash loop drops a live wallpaper; Auto went in 0.6.0). Live only for those who
+  choose it.
+- **The preview in ⛶ mode:** with Live the frame where the clock has it (no drag); with "Whole
+  picture" a screen-shaped preview on its background, drawn by the wallpaper's code.
+- **"My picture" moves too.** **The detector doesn't suggest Live.**
+- **Different pictures on home and lock:** Set offers Android's picker once more for the lock
+  screen (14+), once per setup.
+- The engine draws only its screen's own copy of the picture (`live-home.jpg`, `live-lock.jpg`,
+  written when a screen is handed to it), never the source's file. No new permission.
 
 **0.7.0: on time on any phone** (user, 2026-10-25, after a friend's Chinese phone had no
 "Unrestricted"; planned again 2026-10-28 after W's tablet day; after 0.6.0 ships, the freeze; the

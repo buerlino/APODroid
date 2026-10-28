@@ -126,7 +126,7 @@ a boot or an update.
 | The expedited run (O10) | yes, 12+, while the app is opened now and then | no | no | no | no | nothing |
 | Keep running (C, O11) | the network, not the run | no | no | likely (adj ~200 < 701; O8) | likely (the process lives) | 2 install-time permissions, an active app (13+), a notification (10–12), memory |
 | Exact timing (B, dropped) | the timing; the run needed its own service | yes | yes (AOSP) | no | no | special access, a setting |
-| Live (D, track L) | at screen-on | — | — | likely (bound by the system) | yes (the system starts it) | Live chosen in Android's picker |
+| Live (D, track L) | at screen-on | — | — | likely while it doesn't force-stop (then Android drops Live to the default wallpaper; L1) | yes (the system starts it) | Live chosen in Android's picker |
 | The detector (O14) | — (the pause hint) | — (the pause hint) | — (the pause hint) | tells: the alarms found gone | — (the alarms stay) | a box |
 
 None of them gets past a force stop by the user. The expedited run lasts only until the
@@ -794,7 +794,8 @@ state, the shown source, Setup's and Advanced's state (B13's rules for a rotatio
 - **Tablet:** Keep running off: `am force-stop` after a run, the clock stepped (forward only) past
   a change time + offset + 31 min with something new due, the page opened: the box (screenshot);
   "Keep running" opens Advanced at the switch; Dismiss hides it until the next miss. Keep running
-  on, the same steps: the maker's line (Lenovo). No box: a reboot after T; a page open before T +
+  on, the same steps: the maker's line (Lenovo). With Size Fill (a force stop drops a live
+  wallpaper to the default; `live-0.7.0.md`). No box: a reboot after T; a page open before T +
   offset + 30 min; job 2 pending (Wi-Fi off when its alarm fires, then the page); a held alarm
   without a force stop (`am set-standby-bucket … rare`, the clock stepped past T + offset + 31 min
   before the alarm fires, the alarm still in `dumpsys alarm`, then the page). The clock and
@@ -836,23 +837,26 @@ time after a morning.
 
 ## Seams with track L
 
-`live-0.7.0.md` wasn't there when this was written (2026-10-28); align when it is.
-1. **D, the screen-on check, is track L's:** the engine's `onVisibilityChanged(true)` runs
-   `Store.update` when a check is owed since `lastRunAt` (`:core`'s `nextRun`). This track gives
-   it the run's bookkeeping after O4: whether that run notes `lastRunAt` (recommended: yes, as a
-   run's start; then the detector counts it as a run, and a Live user's miss shows only when the
-   screen stayed off past the change), and whether it takes `JobRuns` (one run at a time). O4
-   asks the question; L's engine package uses the answer.
+Aligned with `live-0.7.0.md`'s "Seams with track O" (2026-10-28).
+1. **D, the screen-on check, is track L's (L8), and it's job 2:** the engine's
+   `onVisibilityChanged(true)`, when a check is owed (`Store.nextAlarm()` ≤ now) and no run started
+   in the last 15 min, calls `DailyJob.runNow`, as an alarm does, not `Store.update`. So the run
+   notes `lastRunAt` and takes `JobRuns` as any run (the detector counts it; a Live user's miss
+   shows only when the screen stayed off past the change), and with O10 it's expedited. O4 keeps
+   `runNow` callable from the engine (the main thread, no lock held).
 2. **The live wallpaper keeps the process alive:** the system binds it with
    `BIND_FOREGROUND_SERVICE_WHILE_AWAKE` and rebinds it after a low-memory kill (AOSP 15), so
-   ZUI's cleaner (minAdj 701) very likely spares it, and with it the alarms. With Live as the
-   current wallpaper, Keep running adds nothing. L's checks should read the engine's oom adj with
-   the screen off (`/proc/<pid>/oom_score_adj`), and O8's sweep can include L's probe if it exists
-   by then.
-3. **The detector and Live:** recommended, to decide in L's plan: the detector doesn't recommend
-   Live (Live is a look, Keep running the fix); with APODroid the current live wallpaper
-   (`WallpaperManager.getWallpaperInfo()?.packageName`) and still a miss, it shows the maker's
-   line. Keep running stays a plain switch, not turned off by Live.
+   ZUI's cleaner (minAdj 701) very likely spares it while the screen is on. But **a force stop
+   makes Android drop a live wallpaper to the default** (AOSP: `ACTION_PACKAGE_RESTARTED` →
+   `clearWallpaperLocked`), and with the screen off the binding's foreground level lapses. So Keep
+   running still matters with Live unless L1 shows the adj stays low with the screen off. L1
+   reads the engine's oom adj and runs ZUI's cleaner against a live probe; O8's sweep can include
+   L's probe if it exists by then.
+3. **The detector and Live** (user, 2026-10-28, `live-0.7.0.md` Decision 9): the detector doesn't
+   suggest Live (Live is a look, Keep running the fix); with APODroid the current live wallpaper
+   and still a miss, it shows the maker's line. "APODroid is the live wallpaper" is L5's
+   `Store.liveOn`, not `getWallpaperInfo()`: below Android 14 that returns null without
+   `QUERY_ALL_PACKAGES`. Keep running stays a plain switch, not turned off by Live.
 4. **No shared service:** Keep running is a foreground service that does nothing; Live's engine a
    `WallpaperService`; the runs stay JobScheduler's. All in the app's one process: L must not use
    `android:process` (the prefs, the locks and `JobRuns` are per process).
@@ -869,3 +873,6 @@ time after a morning.
    `on-time <key>` and `live <key>`), and `night.md` gets the O and L rows.
 8. **Permissions:** this track adds `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE`
    (O11); L adds none (CLAUDE.md: a `WallpaperService`, no permission).
+9. **Force stops in checks:** with APODroid's live wallpaper on, `am force-stop` drops it to the
+   default and `am kill` doesn't kill the process. This track's checks that force-stop the app
+   (O14) run with Size Fill.

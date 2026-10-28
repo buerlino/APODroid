@@ -9,7 +9,7 @@ How-tos and what's still untested. `CLAUDE.md` at the repo root is the source of
 stack, the data source and the decisions. Read it first. If this skill and `CLAUDE.md` disagree,
 `CLAUDE.md` wins; update this skill to match. The history is in git. The next features to build,
 with a checklist: `features.md` next to this file. The work for 0.6.0: `plan-0.6.0.md` (0.4.0's and
-0.5.0's, done, are in git). Night shifts (agents working through the
+0.5.0's, done, are in git); for 0.7.0: `on-time-0.7.0.md` and `live-0.7.0.md`. Night shifts (agents working through the
 packages unattended): `night.md`.
 
 ## Where things are
@@ -141,6 +141,10 @@ packages unattended): `night.md`.
   delivering `BOOT_COMPLETED` as the app leaves the stopped state) arms them again (pref `daily`).
   Use `am kill` to restart the app and keep them (it doesn't kill while a Set runs: `run-as
   io.github.buerlino.apodroid kill -9 <pid>`). `pm clear` cancels them and the pref.
+  **With APODroid's live wallpaper on** (0.7.0, Live): `am force-stop` and `pm clear` also make
+  Android drop the live wallpaper to the system's default (AOSP), and `am kill` doesn't kill the
+  process (the system keeps it bound): use `run-as … kill -9 <pid>`, after which Android rebinds
+  it (`live-0.7.0.md`).
 - The hint about Android pausing the app: undo "Don't show again" with
   `adb shell run-as io.github.buerlino.apodroid sed -i '/pauseHintHidden/d' shared_prefs/apodroid.xml`
   (after `am kill`). The two settings by adb: `keep-running.md`, How to test.

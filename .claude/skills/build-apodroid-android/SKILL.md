@@ -320,7 +320,7 @@ what it leaves open.
 
 **Android:**
 - Android 10–14 on any device (the tablet is 15, the FP6 16; E, the emulator, only on the user's yes): there the system crops the stored
-  file to the hint itself; 10–11's stock palette; keep running on 10–12 (`keep-running.md`).
+  file to the hint itself; 10–11's stock palette; the pause hint on 10–12 (`keep-running.md`).
 - Dynamic colour following a set wallpaper (U1: the tablet's ZUI and the FP6's LineageOS have
   wallpaper colours off).
 - TalkBack itself (the labels only by `uiautomator dump`); the themed icon in a launcher that

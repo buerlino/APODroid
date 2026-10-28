@@ -123,13 +123,16 @@ a boot or an update.
 | | Optimized in Doze or saver | RARE: 1 alarm an hour | RESTRICTED: 1 alarm a day | A cleaner stops the cached app (ZUI) | Autostart off, the process dead | Costs the user |
 |---|---|---|---|---|---|---|
 | Unrestricted (the pause hint) | yes | yes | yes | no (W: Unrestricted, EXEMPTED) | no | a setting in App info, the maker's path |
-| The expedited run (O10) | yes, 12+ | no | no | no | no | nothing |
+| The expedited run (O10) | yes, 12+, while the app is opened now and then | no | no | no | no | nothing |
 | Keep running (C, O11) | the network, not the run | no | no | likely (adj ~200 < 701; O8) | likely (the process lives) | 2 install-time permissions, an active app (13+), a notification (10–12), memory |
 | Exact timing (B, dropped) | the timing; the run needed its own service | yes | yes (AOSP) | no | no | special access, a setting |
 | Live (D, track L) | at screen-on | — | — | likely (bound by the system) | yes (the system starts it) | Live chosen in Android's picker |
-| The detector (O14) | tells | tells | tells | tells | tells | a box |
+| The detector (O14) | — (the pause hint) | — (the pause hint) | — (the pause hint) | tells: the alarms found gone | — (the alarms stay) | a box |
 
-None of them gets past a force stop by the user.
+None of them gets past a force stop by the user. The expedited run lasts only until the
+bucket changes: about 8 days after the last open an Optimized app is in RESTRICTED (Android
+13+), its alarm comes once a day, and a set-and-forget wallpaper app is rarely opened. So
+Unrestricted stays the real fix for Optimized phones, and the pause hint keeps saying why.
 
 ## Decisions (user, 2026-10-28)
 
@@ -164,6 +167,17 @@ a persistent notification") and the investigation above:
    - **O8's go is given** ("Yes, go ahead"): rosie runs it when its turn comes and names every app
      the cleaner stopped, for the user to reopen.
    - **E stays open** ("No, leave E open"): Android 10–14 ship untested for this track too.
+6. **After a review of this plan** (the user, 2026-10-28 evening, each the recommended choice):
+   - **The detector offers Keep running only on a force stop** ("Only on a force stop"): its
+     miss also needs the alarms found gone (a force stop deletes them; a bucket that only holds
+     the alarm doesn't, and Keep running wouldn't help there). Without that sign no box: the
+     pause hint already covers the buckets.
+   - **The pause hint's text stays** ("Keep today's text"): the expedited run helps only while the
+     app is opened now and then (RESTRICTED after about 8 days).
+   - **O16 only if needed** ("Skip if O8 is clear"): the week on the tablet runs only when O8's
+     sweep is unclear or O15 finds something; track L needs the tablet too.
+   - "Keep running" names only the new switch: `CLAUDE.md`'s section of 4 Oct on the pause hint is
+     now "The pause hint". O11 waits for O4, O7 and O8, not for O10 (independent).
 
 ## The plan
 
@@ -192,10 +206,14 @@ the job:
   regular one: a run that downloads a large original for "Save every picture" may be stopped
   during its saves. It ends as a stop does today (B7: counted as failed, the alarms retry 15 min
   later, the next job save of that post is the smaller copy). Accepted (user, 2026-10-28).
-- The pause hint's battery line loses " (on Optimized, a new picture can come hours late)" once
-  O6 confirms (the line shows on Android 13+ only, which all have expedited jobs). Unrestricted
-  still fixes RESTRICTED after 8 days unused, RARE's hourly alarm and the makers' savers.
-- `CLAUDE.md`'s "Optimized phones get the picture late, accepted" becomes Android 10–11 only.
+- **What it fixes, and for how long:** an Optimized phone in Doze or battery saver gets the run
+  with the network on Android 12+ **while the app is opened now and then**. About 8 days after
+  the last open Android 13+ puts it in RESTRICTED: one alarm a day, so the picture can be up to
+  a day late, expedited or not; RARE's hourly alarm stays too. Unrestricted fixes both.
+- **The pause hint's text stays** (user, 2026-10-28, "Keep today's text"): " (on Optimized, a
+  new picture can come hours late)" is still its only reason for Unrestricted and still true
+  from day 8. `CLAUDE.md`'s "Optimized phones get the picture late, accepted" stays, with the
+  expedited run noted for an app opened now and then.
 
 ### Keep running (O11; was C)
 
@@ -245,6 +263,20 @@ the job:
   waits for the network or its quota, Android's layer, not a stopped app). A run that started and
   failed (no network, a 503) isn't a miss: the problem box covers it. A missed run with nothing to
   set shows nothing (nothing was lost).
+- **And the alarms were found gone** (user, 2026-10-28 evening, "Only on a force stop"): a bucket
+  can hold the alarm past T + 30 min too (RARE: 57 min in V11a), and Keep running doesn't help
+  there. The sign: whoever arms first in a process (`DailyJob.ensure`, from the page's
+  `onResume` or a receiver) asks for the pair's `PendingIntent` with `FLAG_NO_CREATE` before
+  arming; null while `daily` is on means a force stop deleted it (a process death doesn't). A
+  boot or an update explains a missing pair (their receivers find it gone too: the boot time or
+  `lastUpdateTime` after `lastRunAt`); Android 15's `BOOT_COMPLETED` on leaving the stopped state
+  (seen in J2) isn't a boot (`elapsedRealtime` long) and doesn't explain it. The finding is noted
+  (`alarmsLostAt`) and the miss needs it after T. O7 and O8 record whether a force stop (`am
+  force-stop`, Task Manager's Stop, ZUI's cleaner) leaves this sign, and the exit reasons
+  (`getHistoricalProcessExitReasons`) and Android 15's `ApplicationStartInfo.wasForceStopped()`
+  beside it; if the `PendingIntent` sign fails, O14 uses the one that works.
+- **Without the sign no box:** a bucket's delay is the pause hint's (shown while the app isn't
+  Unrestricted).
 - **Shown at the first miss** (user, 2026-10-25), only while the daily switch is on: a neutral
   box with the others (problem, video notice, battery hint). "Dismiss" hides it until the next
   miss. Texts are placeholders for the user:
@@ -263,7 +295,7 @@ the job:
     "Dismiss".
 - The battery line of the pause hint stays the place for Unrestricted (RESTRICTED and RARE are
   its causes); the detector doesn't repeat it.
-- The prefs: `missedAt` (T of the last miss) and the dismissed one; nothing else stored.
+- The prefs: `alarmsLostAt`, `missedAt` (T of the last miss) and the dismissed one.
 
 ### The pause hint per maker (O13)
 
@@ -384,7 +416,7 @@ Built after 0.6.0's tag (Tue 3 Nov at the earliest), one at a time; the checks n
 after W (to Mon 2 Nov) and the FP6 after the tag. Each package writes its decisions into
 `CLAUDE.md` (the source of truth) when it lands; this file is the how. For the pipeline, the
 queue rows go into `night.md` and the plan file becomes `plan-0.7.0.md` with track L's (Seams,
-7). Rosie uses only the tablet; O9, O16 and O17 need the user (O8's go is given).
+7). Rosie uses only the tablet; O9, O16 (if it runs) and O17 need the user (O8's go is given).
 
 | WP | What | Model, effort | Who, device | After |
 |----|------|---------------|-------------|-------|
@@ -398,13 +430,13 @@ queue rows go into `night.md` and the plan file becomes `plan-0.7.0.md` with tra
 | O8 | Android check: ZUI's cleaner against a foreground service | Opus, medium | rosie, tablet (the user's go given) | O7 |
 | O9 | Android check on the FP6: the expedited run and the service on Android 16 | Opus, medium | a day session, **FP6, with the user** | O6, O7 |
 | O10 | The alarms' run as an expedited job | Opus, medium | winston, tablet | O4 (and its packages), O6 |
-| O11 | Keep running: the service, the setting, its starts | Opus, high | winston, tablet | O10, O7, O8 |
+| O11 | Keep running: the service, the setting, its starts | Opus, high | winston, tablet | O4, O7, O8 |
 | O12 | The page lets its pictures go while stopped (only if O7 asks for it) | Opus, medium | winston, tablet | O11 |
 | O13 | The pause hint per maker | Opus, medium | winston, tablet | O3 |
 | O14 | The detector | Opus, high | winston, tablet | O11, O13 |
 | O15 | Tablet pass of the track (debug and R8, the update from 0.6.0) | Opus, high | rosie, tablet | O10–O14 |
-| O16 | A week on the tablet with Keep running (W's way) | Opus, medium | morning reads by hand, tablet, **the user** | O15 |
-| O17 | Phone pass: the FP6 and the friend's Honor | Opus, high | a day session, **FP6, the user**; the friend's screenshots | O15 |
+| O16 | A week on the tablet with Keep running (W's way), only if O8 is unclear or O15 finds something | Opus, medium | morning reads by hand, tablet, **the user** | O15 |
+| O17 | Phone pass: the FP6 and the friend's Honor | Opus, high | a day session, **FP6, the user**; the friend's screenshots | O15 (O16 if it runs) |
 
 ```
 scripts/pipeline.sh O1    # then O2, O3, O4 (the queue rows in night.md, once 0.7.0's queue starts)
@@ -415,7 +447,7 @@ ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model opus --effort medium "Do O7
 ANDROID_SERIAL=HA24BZ2Y claude --agent rosie --model opus --effort medium "Do O8 in .claude/skills/build-apodroid-android/on-time-0.7.0.md"    # the user's go given 2026-10-28
 claude --model opus --effort medium "Do O9 in .claude/skills/build-apodroid-android/on-time-0.7.0.md"    # with the user, the FP6 attached
 scripts/pipeline.sh O10   # then O11, O12 (if O7 asks), O13, O14, O15
-claude --model opus --effort medium "Do O16's start in .claude/skills/build-apodroid-android/on-time-0.7.0.md"    # then "Do O16's morning read" each morning
+claude --model opus --effort medium "Do O16's start in .claude/skills/build-apodroid-android/on-time-0.7.0.md"    # only if O8 was unclear or O15 found something; then "Do O16's morning read" each morning
 claude --model opus --effort high "Do O17 in .claude/skills/build-apodroid-android/on-time-0.7.0.md"
 ```
 
@@ -525,7 +557,9 @@ expedited), `.reg` (regular, the control) and `.hog` (only its Hog screen is use
   `keepTry` (`KeepOn --ez try true`) the alarm's receiver, the job and a receiver for
   `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` each try to start `Keep` and log the outcome.
 - **At each process start** it logs `getHistoricalProcessExitReasons` (the last three: reason,
-  description, time): how a cleaner's force stop is labelled.
+  description, time), on Android 15 `ApplicationStartInfo.wasForceStopped()`, and whether the
+  armed alarm's `PendingIntent` still exists (`FLAG_NO_CREATE`, before anything arms): how a
+  force stop is labelled and which sign it leaves (O14's detector).
 - **`Hog`** (`.hog`, a window, so it is the top app): allocates memory in 32 MB steps a second
   (`ByteBuffer.allocateDirect`, every page written), shows the total, frees it all when it
   finishes; `--ei maxMb`.
@@ -554,11 +588,14 @@ two sessions, the probes `.ej` and `.reg`, both Optimized (not on `deviceidle wh
   deviceidle`, `dumpsys alarm` (the history), `dumpsys jobscheduler`, `dumpsys battery`.
 - **Expected** (AOSP): `.ej`'s job within about a minute of its alarm with `http=200` in (a),
   (b), (d) and each night T; `.reg`'s waits for a maintenance window or saver's end (the
-  control, as J0 and V12e saw).
+  control, as J0 and V12e saw). In (c) the alarm itself is held (one a day): note when it comes
+  and whether `.ej`'s job then runs at once with the network. That case is the common one for an
+  Optimized app not opened for a week: it bounds what O10 fixes (The expedited run).
 - **Report** `.coord/runs/o6/report.md`: a table probe × case × T → the alarm's time, the job's,
   idle, the bucket, the network. Uninstall both probes; set the tablet back.
 - **Verdict:** PASS when `.ej` ran with the network within about a minute of its alarm in (a),
-  (b) and (d) and on the night; STOP otherwise (B comes back to the user).
+  (b) and (d) and on the night; STOP otherwise (B comes back to the user). (c) is reported, not
+  judged: how late RESTRICTED's alarm came, and the job after it.
 - **Done when:** both sessions ran, the table and the verdict written, the probes uninstalled,
   the tablet set back.
 
@@ -579,7 +616,8 @@ short, 1–4 and 8 first.
    how long, and may it go foreground (`startForeground ok` or the exception)?
 4. **Task Manager's Stop** (`cmd activity stop-app <pkg>`) with an alarm armed 5 min ahead: the
    process gone, the alarm still fires (`ALARM`), the service doesn't come back by itself. Then
-   **`am force-stop`**: the alarm gone too (`dumpsys alarm`).
+   **`am force-stop`**: the alarm gone too (`dumpsys alarm`). After each, open `Main`: the logged
+   signs (the `PendingIntent`, the exit reason, `wasForceStopped`), for O14.
 5. **Starts from the background** (`KeepOn --ez try true`, then `KeepOff`): from the alarm's
    receiver and from the job, Optimized (expected refused, the exception logged) and with `cmd
    deviceidle whitelist +<pkg>` (Unrestricted: expected allowed; the entry removed after); from
@@ -618,7 +656,8 @@ on the tablet, as on 28 Oct, and they lose their alarms until opened: the user's
 - **Read:** `logcat -d | grep -e ZuiMemoryCleaner -e 'Force stopping' -e am_kill -e
   lowmemorykiller`: which of `.reg` (the service), `.ej` (cached) and APODroid were force-stopped,
   killed by the low-memory killer (alarms stay) or spared; `dumpsys alarm | grep -e probe -e
-  apodroid`; each probe's exit reasons (logged at its next start).
+  apodroid`; each probe's exit reasons, `wasForceStopped` and its `PendingIntent` sign (logged at
+  its next start: open each probe's `Main` after the sweep), for O14.
 - **If Recents has a lock:** lock `.ej`'s task, `KeepOff` on `.reg`, sweep again: does the lock
   spare a cached app?
 - **Expected:** the service's process spared, a cached app force-stopped in the same sweep (if
@@ -651,24 +690,23 @@ probes; nothing of the user's.
   (`params.isExpeditedJob`, 12+).
 - Nothing else in the job changes unless O4 says so. A stop by the expedited job's limit ends as a
   stop does (B7).
-- The pause hint's battery line without " (on Optimized, a new picture can come hours late)" (a
-  text change: the report lists it for the user).
-- **Files:** `DailyJob.kt`, `MainActivity.kt` (the line); `CLAUDE.md` (Background update, The
-  alarms: Optimized gets the run with the network on 12+, 10–11 as before; Keep running, the
-  pause hint's text; Next features, 0.6.0: "Optimized phones get the picture late, accepted"
-  narrowed to 10–11); the skill's Where things are (`DailyJob.kt`).
+- The pause hint's text stays as it is (Decisions, 6).
+- **Files:** `DailyJob.kt`; `CLAUDE.md` (Background update, The alarms: on 12+ an Optimized
+  phone's run is expedited and has the network while the app isn't in RESTRICTED, 10–11 as
+  before; Next features, 0.6.0: "Optimized phones get the picture late, accepted" with that
+  note); the skill's Where things are (`DailyJob.kt`).
 - **Tablet:** Optimized (the whitelist entry removed), on battery, `rare`, force-idle, a change
   time a few minutes ahead ("New picture at" or a stepped clock, forward only): the alarm's run
   sets within about a minute of the alarm (`logcat -s APODroid`: "alarm, run scheduled", the start
   expedited, "wallpaper set"); battery saver the same; Unrestricted as before; `dumpsys
   jobscheduler` shows job 2 expedited while pending; the smoke list. The bucket, whitelist,
   battery and Doze set back.
-- **Done when:** built; the tablet passes; the text listed.
+- **Done when:** built; the tablet passes.
 
 ### [ ] O11. Keep running: the service, the setting, its starts (Opus, high)
 
-(This file, Keep running; Decisions 1 and 3. After O10, and O7's and O8's PASS or the user's
-word after a STOP.)
+(This file, Keep running; Decisions 1 and 3. After O4's packages the user picked, and O7's and
+O8's PASS or the user's word after a STOP; not after O10, which it doesn't need.)
 - **Manifest:** `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`; `<service
   android:name=".KeepRunning" android:exported="false" android:foregroundServiceType="specialUse">`
   with `<property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
@@ -726,8 +764,8 @@ state, the shown source, Setup's and Advanced's state (B13's rules for a rotatio
   optimisation" → "Don't allow"; Lenovo: what O8 found; stock: as now), and beside "App info" a
   button "Battery optimisation" opening `Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`
   (always: the night's default; the user decides from the screenshots).
-- **Files:** a `:core` file and its test, `MainActivity.kt`; `CLAUDE.md` (Keep running, the
-  hint); the skill's Where things are.
+- **Files:** a `:core` file and its test, `MainActivity.kt`; `CLAUDE.md` (Background update, The
+  pause hint); the skill's Where things are.
 - **Tablet:** the hint on the tablet (Lenovo's line; screenshot), the new button opens the list
   (screenshot), "App info" as before; the other makers' lines listed in the report as text for the
   user; the smoke list.
@@ -737,24 +775,29 @@ state, the shown source, Setup's and Advanced's state (B13's rules for a rotatio
 
 (This file, The detector. After O11 and O13.)
 - **`:core`:** whether a page open's set is a miss (this file's rule: the set's stamp T, now, the
-  offset, `lastRunAt`, the boot time, the update time, job 2 pending), with tests: each
-  exclusion; W's tablet day (the lock screen waiting with turns, the new stamp 18:00,
+  offset, `lastRunAt`, the boot time, the update time, job 2 pending, `alarmsLostAt`), with
+  tests: each exclusion; a bucket's held alarm (no `alarmsLostAt`: none); W's tablet day (the
+  lock screen waiting with turns, the new stamp 18:00,
   `lastRunAt` 13:34, the page at 19:40: a miss); a page at 06:20 with a 7 min offset (T + offset +
   30 min not passed: none); a phone off overnight (booted after T: none); a run that started and
   failed (none).
+- **`DailyJob.ensure`:** before arming, the `PendingIntent` sign (or the one O7 and O8 found
+  working), noted as `alarmsLostAt` unless a boot or an update since `lastRunAt` explains it.
 - **`Store`:** the page's `update` notes a miss (`missedAt`, T) when one of its sets is one; the
   dismissed T.
 - **The box** (neutral, with the others; while the daily switch is on; from `missedAt` until
   dismissed): the texts and buttons of this file's detector by Keep running off or on (O13's
   maker line); "Keep running" opens Advanced settings at the switch.
-- **Files:** a `:core` function and its test, `Store.kt`, `MainActivity.kt`; `CLAUDE.md` (The app,
-  the boxes; Background update); the skill's Where things are. SIM: unchanged (no rule changes);
+- **Files:** a `:core` function and its test, `DailyJob.kt`, `Store.kt`, `MainActivity.kt`;
+  `CLAUDE.md` (The app, the boxes; Background update); the skill's Where things are. SIM: unchanged (no rule changes);
   run it.
 - **Tablet:** Keep running off: `am force-stop` after a run, the clock stepped (forward only) past
   a change time + offset + 31 min with something new due, the page opened: the box (screenshot);
   "Keep running" opens Advanced at the switch; Dismiss hides it until the next miss. Keep running
   on, the same steps: the maker's line (Lenovo). No box: a reboot after T; a page open before T +
-  offset + 30 min; job 2 pending (Wi-Fi off when its alarm fires, then the page). The clock and
+  offset + 30 min; job 2 pending (Wi-Fi off when its alarm fires, then the page); a held alarm
+  without a force stop (`am set-standby-bucket … rare`, the clock stepped past T + offset + 31 min
+  before the alarm fires, the alarm still in `dumpsys alarm`, then the page). The clock and
   `auto_time` set back; the smoke list.
 - **Done when:** built; the tests pass; the tablet passes; the texts listed.
 
@@ -770,7 +813,9 @@ pause hint (O13's), a Set and the daily switch with the service on, `am kill` an
 
 ### [ ] O16. A week on the tablet with Keep running (Opus, medium)
 
-(W's way, by hand, morning reads; **the user** keeps the tablet on battery at night and plugs it
+(Only when O8's sweep was unclear, e.g. the low-memory killer took the cached apps before the
+cleaner acted, or O15 finds something about the service; user, 2026-10-28: "Skip if O8 is
+clear". Track L needs the tablet too.) (W's way, by hand, morning reads; **the user** keeps the tablet on battery at night and plugs it
 in by day as W did.) Keep running on, Optimized for the first half of the week and Unrestricted
 for the second; `logcat -G 16M`. Each morning: the sets on time (`dumpsys wallpaper`, the log), the
 service alive, `ZuiMemoryCleaner` lines and whom they stopped, `exit-info`, `dumpsys alarm` (the

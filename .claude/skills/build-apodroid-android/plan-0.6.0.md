@@ -2749,7 +2749,7 @@ then Lock (home and lock set apart, `dumpsys wallpaper`; M0 saw only Android 15)
 picture on blur and on black; "my picture" from the picker; the alarms armed (`dumpsys alarm`)
 and one forced run (`cmd jobscheduler run -f`); the pause hint's lines (31: the pause line; 33:
 both); the colours (29: `darkColorScheme()`, 31+: dynamic). Not: the alarms' real timing (an
-emulator's Doze isn't a phone's), keep running on 10–12.
+emulator's Doze isn't a phone's), the pause hint on 10–12.
 - **Done when:** each version's list ran or is under Not tested; each bug a `BUG:` line; Still
   untested's Android 10–14 line updated.
 

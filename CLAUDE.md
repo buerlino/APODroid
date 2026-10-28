@@ -904,7 +904,7 @@ sources before).
 Seen on the tablet (Android 15, 2026-10-17): `Num Required Flexible constraints: 0` for the
 job, so Android doesn't hold it back for charging or idle; the same on the FP6 (Android 16, WP8).
 
-**Keep running** (user, 2026-10-04; report:
+**The pause hint** (user, 2026-10-04; report:
 [keep-running.md](.claude/skills/build-apodroid-android/keep-running.md)). Android pauses an app
 that isn't opened, and the job doesn't count as use: the restricted bucket after about 8 days
 (Android 13+; later or never before) and hibernation after about 3 months (12+), which deletes
@@ -1109,7 +1109,9 @@ and the like, which no app setting gets past). Decided:
 - **The expedited run** (user, 2026-10-28, replacing "Exact timing" of 2026-10-25): the alarms'
   run (job 2) is an expedited job on Android 12+ (`setExpedited`; no permission, no setting, no
   notification): AOSP lets it run in Doze and battery saver and past their network blocks, so an
-  Optimized phone gets the picture on time. To check first on the tablet (O6); if it fails, "Exact
+  Optimized phone gets the picture on time while the app is opened now and then (about 8 days
+  after the last open Android puts it in RESTRICTED: one alarm a day, up to a day late; the pause
+  hint's text stays, user, 2026-10-28). To check first on the tablet (O6); if it fails, "Exact
   timing" comes back to the user. A large save it stops is accepted (B7's path). The buckets
   (RARE's alarm an hour, RESTRICTED's a day) stay the pause hint's Unrestricted.
 - **Keep running** (user, 2026-10-28, after ZUI's cleaner force-stopped the Unrestricted app on
@@ -1125,7 +1127,9 @@ and the like, which no app setting gets past). Decided:
   from screenshots.
 - **The detector:** a page open that sets a wallpaper due at a change time 30 min or more ago,
   with no job run started since (not after a boot, an update or the switch turned on since, nor
-  while job 2 is pending), shows a box at the first miss pointing to "Keep running"; with it
+  while job 2 is pending), **and the alarms found gone** (a force stop deletes them, a bucket
+  holding them doesn't; user, 2026-10-28: "Only on a force stop"), shows a box at the first miss
+  pointing to "Keep running"; without that sign no box (the pause hint covers the buckets); with it
   already on, the maker's settings path for `Build.MANUFACTURER` and "App info". Keep running is
   offered only there, not by maker before a miss (user, 2026-10-28).
 - **The pause hint per maker** (after the friend's Honor X60, MagicOS 9: App info has no
@@ -1168,7 +1172,7 @@ until another job ran), and its delay alarm doesn't wake a sleeping device.
 
 **From a review of 0.1.1** (user, 2026-10-04, features users would expect; the review is
 `private/APODroid missing features users might expect.md`; the checklist `features.md` in the
-skill). Built: keep running, the status line, the video marker; the sharper wallpaper (0.5.0:
+skill). Built: the pause hint, the status line, the video marker; the sharper wallpaper (0.5.0:
 the daily download a rendition the screen's height, about 10× less data than the originals,
 which ★ saves); the credit (APOD only, user, 2026-10-20: NASA's feed names one in 1 of 60 items,
 Earth's only in `content`, about 100× the data per check); Save every picture with "Largest

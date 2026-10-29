@@ -165,29 +165,10 @@ These stay under the skill's Still untested, by name:
 - **Memory and speed of a real low-end 10–12 phone** (the AVD has 2 GB, x86_64, the host's CPU).
 - **Hibernation's 90 days**, a real DST change of the phone's clock.
 
-## Found while setting up: B25 (draft for `plan-0.6.0.md`)
+## Found while setting up: B25
 
-For the user to commit with its queue row (night.md, The morning, step 6):
-
-```
-### [ ] B25. The pause hint's unused line on Android 12 (Sonnet, medium)
-
-(E's setup, 2026-10-29, on the API 31 emulator; user: "B25 before the tag".) On Android 12
-(API 31–32) the box shows only the unused line (the battery line is 33+), and it says
-`Unused app settings → "Pause or manage app if unused": off`. Android 12's App info has the
-header "Unused apps" with the switch "Remove permissions and free up space" (seen on AOSP
-SE1A.220826.006.A1; 13 and 14 match today's text). `MainActivity.PauseHint`: on API 31–32 the
-line reads `Unused apps → "Remove permissions and free up space": off`; 33+ unchanged. The
-effect sentence stays (12's hibernation also stops jobs and alarms). A page text, not the job
-or the rules: W's count stays.
-- **Device (emulator, by hand):** dev's debug build on `apodroid-31` (emulator.md, The setup):
-  the box's line (a screenshot for the user), App info's switch off → the line gone at the next
-  resume. On the tablet (15) the box is unchanged.
-- **Done when:** the line on 31–32 as above (the user approves the text from the screenshot),
-  33+ unchanged, `CLAUDE.md`'s pause hint names the Android 12 path.
-```
-Queue row: `| 66 | B25 | The pause hint's unused line on Android 12 | winston | sonnet, medium | no | — | plan B25 |`
-(Tablet no: the line doesn't show on 15; its check is the emulator bullet, by hand in the morning.)
+The pause hint's unused line on Android 12 (seen on `apodroid-31`): `plan-0.6.0.md`'s B25 (queue
+row 66), committed 2026-10-29. Its check is by hand on `apodroid-31` (The setup's start line).
 
 ## Packages
 

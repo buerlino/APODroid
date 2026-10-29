@@ -100,6 +100,8 @@ last 80 of the log's night headers and RESULT lines). Pass over them (`pipeline.
 Rows 60–65 (user, 2026-10-26; the plan, Remaining 4i and 4j) run by day, one at a time with `scripts/pipeline.sh <ID>`:
 B22 → B23 → B24 before V7 and P's real night; V12e → V12f on that tree, before V7's session 1 or on Tue 27 after its
 second; SIM (test code, no tablet) after B23, by day or by night. V7, P, W and E run by hand (the plan's commands).
+Row 66, B25 (2026-10-29, from E's setup), by day or by night; Tablet no (the line doesn't show on 15), its check by
+hand on the emulator `apodroid-31` (`emulator.md`).
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -168,6 +170,7 @@ second; SIM (test code, no tablet) after B23, by day or by night. V7, P, W and E
 | 63 | V12e | V12a's rest 1: Doze and battery saver | rosie | opus, high | no | — | plan V + plan V11a + plan V12e |
 | 64 | V12f | V12a's rest 2: reboot, the clock, what happens during a run | rosie | opus, high | no | — | plan V + plan V11a + plan V12f |
 | 65 | SIM | `:core`: the rules over random months (test code only) | winston | opus, high | no | B23 | plan SIM |
+| 66 | B25 | The pause hint's unused line on Android 12 | winston | sonnet, medium | no | — | plan B25 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

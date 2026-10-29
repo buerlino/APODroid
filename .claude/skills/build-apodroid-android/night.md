@@ -170,7 +170,7 @@ hand on the emulator `apodroid-31` (`emulator.md`).
 | 63 | V12e | V12a's rest 1: Doze and battery saver | rosie | opus, high | no | — | plan V + plan V11a + plan V12e |
 | 64 | V12f | V12a's rest 2: reboot, the clock, what happens during a run | rosie | opus, high | no | — | plan V + plan V11a + plan V12f |
 | 65 | SIM | `:core`: the rules over random months (test code only) | winston | opus, high | no | B23 | plan SIM |
-| 66 | B25 | The pause hint's unused line on Android 12 | winston | sonnet, medium | no | — | plan B25 |
+| 66 | B25 | The pause hint's unused line on Android 12; the weekday dialog's false sentence | winston | sonnet, medium | no | — | plan B25 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

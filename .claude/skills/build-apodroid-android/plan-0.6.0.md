@@ -291,7 +291,7 @@ Advanced settings ▸                                closed by default
 | V12e | V12a's rest 1: Doze and battery saver | Opus, high |
 | V12f | V12a's rest 2: reboot, the clock, what happens during a run | Opus, high |
 | SIM | `:core`: the rules over random months (test code only) | Opus, high |
-| B25 | The pause hint's unused line on Android 12 (E's setup) | Sonnet, medium |
+| B25 | The pause hint's unused line on Android 12 (E's setup); the weekday dialog's false sentence | Sonnet, medium |
 | V7 | Turns over hours, by hand: rosie's default (Sonnet, medium), as its commands below | Sonnet, medium |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | W  | A week on the FP6 before the tag: real mornings, a weekend, the US DST end, the Zurich case | Opus, medium |
@@ -2664,7 +2664,7 @@ features, 0.6.0: the picture time), not from the code.
   `:core:test`; each invariant shown able to fail (a deliberately broken copy of its rule in a
   throwaway run, said in the report, not committed); all `:core` tests pass.
 
-### [ ] B25. The pause hint's unused line on Android 12 (Sonnet, medium)
+### [ ] B25. The pause hint's unused line on Android 12; the weekday dialog's false sentence (Sonnet, medium)
 
 (E's setup, 2026-10-29, on the API 31 emulator; user: "B25 before the tag".) On Android 12
 (API 31–32) the box shows only the unused line (the battery line is 33+), and it says
@@ -2672,13 +2672,20 @@ features, 0.6.0: the picture time), not from the code.
 header "Unused apps" with the switch "Remove permissions and free up space" (seen on AOSP
 SE1A.220826.006.A1; 13 and 14 match today's text). `MainActivity.PauseHint`: on API 31–32 the
 line reads `Unused apps → "Remove permissions and free up space": off`; 33+ unchanged. The
-effect sentence stays (12's hibernation also stops jobs and alarms). A page text, not the job
-or the rules: W's count stays.
+effect sentence stays (12's hibernation also stops jobs and alarms).
+**The weekday dialog** (user, 2026-10-29 evening, from the lean-texts review: "In B25, before
+the tag"): it says "On weekends, Friday's pictures come back.", true for 0.5.0's rotation, false
+since J1: a screen with turns never shows a picture twice (it waits, rule 3), and with NASA or
+Earth alone Friday's picture simply stays. Drop that sentence; the dialog keeps "NASA Image of
+the Day and Earth Observatory post on weekdays only." and its buttons.
+Both are page texts, not the job or the rules: W's count stays.
 - **Device (emulator, by hand):** dev's debug build on `apodroid-31` (emulator.md, The setup):
   the box's line (a screenshot for the user), App info's switch off → the line gone at the next
-  resume. On the tablet (15) the box is unchanged.
+  resume; "More NASA pictures" on, tick NASA: the dialog's one sentence (a screenshot). On the
+  tablet (15) the box is unchanged.
 - **Done when:** the line on 31–32 as above (the user approves the text from the screenshot),
-  33+ unchanged, `CLAUDE.md`'s pause hint names the Android 12 path.
+  33+ unchanged, `CLAUDE.md`'s pause hint names the Android 12 path; the weekday dialog without
+  the weekend sentence, and `CLAUDE.md`'s weekday dialog paragraph without it.
 
 ### [ ] P. Phone pass on the FP6 (Opus, high)
 

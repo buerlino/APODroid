@@ -28,6 +28,7 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
 - 0.7.0, on time on any phone (the expedited run, "Keep running", the detector; 2026-10-28): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
 - 0.7.0, Live, the day's pan (the live wallpaper, Size [Fill | Live]; 2026-10-28): [.claude/skills/build-apodroid-android/live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md).
+- 0.7.0, a clearer Setup and leaner texts (2026-10-29; mockup first, then UI1–UI3 after O3): [.claude/skills/build-apodroid-android/lean-ui-0.7.0.md](.claude/skills/build-apodroid-android/lean-ui-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
   Only APODroid's nights use the tablet HA24BZ2Y (user, 2026-10-20: pascaline's nights leave it alone).
@@ -68,7 +69,10 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - Personal data stays on the phone. Real test files go in the gitignored `private/`; tests use
   made-up data.
 - English UI, short texts: one idea per line, drop what the screen already shows, explain each
-  concept in one place only.
+  concept in one place only. Binding for every new or changed text from 0.7.0 on (user,
+  2026-10-29: "I don't like the many sentence-like texts on the page"): a label or a fact, not
+  a sentence; one fact per line, numbers and names over words; explanations only in an ⓘ or a
+  dialog, never on the page; Android's own labels word for word (people search for them).
 - Migrations: remove migration code two releases after F-Droid has shipped past the version that
   needed it (gridload's rule, 2026-10-02). Current ones: `Post.isNoted` letting a missing
   `wallpaperUrl`, `savedUrl` or `cropUrl` (0.4.0's prefs) match by date alone (0.4.0 → 0.5.0,

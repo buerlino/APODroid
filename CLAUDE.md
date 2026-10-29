@@ -114,7 +114,9 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
 - Release build uses R8 (minify + shrinkResources). The build must be reproducible: no
   timestamps, build paths or machine-specific values in the APK; `dependenciesInfo` off. Unit
   tests don't cover R8, so test release builds on the phone.
-- Android SDK in `~/Android/Sdk`. The user tests on a real phone over adb, no emulator.
+- Android SDK in `~/Android/Sdk`. The user tests on real devices over adb; the emulator only for
+  the Android versions no device has (10–14; user, 2026-10-29: E, before 0.6.0's tag and again for
+  0.7.0), never for real timing (Doze, buckets, makers' cleaners).
 - Git branch `master`, remote `origin`. `dev` holds the night shift's merges until the user fast-forwards master.
 
 **Releases** (F-Droid builds only the newest tag: it ships 0.5.0, 0.3.1 and 0.3.0 and skipped
@@ -956,8 +958,8 @@ job (every check since J1 used a faked or stepped clock), and the case most Euro
 each morning, APOD out after the picture time (06:05 Zurich from the US DST end on 1 Nov), only
 starts then; W also sees real weekday mornings and a weekend. **SIM**, a seeded random test of
 the rules over months in `:core` (test code only): the job and the rules gave 13 of the 24 fix
-packages B2–B24. **Open, the user's call:** Android 10, 12 and 13 in the emulator (**E**; this
-file says no emulator); without it Android 10–14 ships untested, an accepted risk. **Accepted, no change:** the RARE bucket's about one alarm
+packages B2–B24. **E**, Android 10–14 in the emulator (user, 2026-10-29: before the tag, a baseline for
+0.7.0's Live and on-time work; `emulator.md`). **Accepted, no change:** the RARE bucket's about one alarm
 an hour (Android's quota; the pause hint covers Optimized); CR2's finding 4 (a Set that
 changes the picture time or "Change every" costs one spare check; noting `lastRunAt` at Set
 could drop an owed check); a Set tap in the same input burst as the time menu's closing goes to
@@ -1229,3 +1231,7 @@ press on the title block copies the link).
    arrives only with a pull or once the date is over in US Eastern time (in SIM's 240 seeds 143
    of 408 were ever stored, most at US Eastern midnight, Los Angeles' evening). Never seen in the
    real feeds; accepted for 0.6.0, to look at in 0.7.0.
+4. APOD's title prefix with the day first (W, 2026-10-29; fix in 0.7.0, user): the 29 Oct post is
+   `APOD: 29 October 2026 – The Horns of Venus`, every post before it `APOD: 2026 October 28 – …`.
+   `titlePrefix` (`Post.kt`) wants the year first, so the page shows the prefix and ★'s file name
+   carries it. Accepted for 0.6.0 (cosmetic, `:core` only); 0.7.0 strips both orders, with a test.

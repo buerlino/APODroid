@@ -294,7 +294,7 @@ Advanced settings ▸                                closed by default
 | V7 | Turns over hours, by hand: rosie's default (Sonnet, medium), as its commands below | Sonnet, medium |
 | P  | Phone pass on the FP6 (release-signed), after the version bump | Opus, high |
 | W  | A week on the FP6 before the tag: real mornings, a weekend, the US DST end, the Zurich case | Opus, medium |
-| E  | Android 10, 12 and 13 in the emulator (optional: only on the user's yes) | Opus, medium |
+| E  | Android 10, 12, 13 and 14 in the emulator: E0 by day, E1a–E4 one night (`emulator.md`) | Opus, high (E0), medium |
 | R  | Docs, changelog, store texts, screenshots | Opus, medium |
 | T  | Commit and tag, when the user says so | Sonnet, low |
 
@@ -333,7 +333,7 @@ scripts/pipeline.sh SIM    # after B23, by day or night (no tablet)
 claude --model opus --effort high "Do P in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model opus --effort medium "Do W's start in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # with P's install
 claude --model opus --effort medium "Do W's morning read in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # each morning, Tue 27 to Mon 2 Nov
-claude --model opus --effort medium "Do E in .claude/skills/build-apodroid-android/plan-0.6.0.md"    # only after the user's yes
+claude --model opus --effort high "Do E0 in .claude/skills/build-apodroid-android/emulator.md"    # by day; then E1a, E1b, E4, E2, E3 one night (emulator.md, Packages)
 claude --model opus --effort medium "Do R in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 claude --model sonnet --effort low "Do T in .claude/skills/build-apodroid-android/plan-0.6.0.md"
 ```
@@ -2737,21 +2737,17 @@ user leaves them, "New picture at" 06:00. What it covers that no row did:
   `BUG:`; the skill's Still untested updated (the real mornings, the weekend, the US DST end,
   the Zurich case out; what W couldn't see in).
 
-### [ ] E. Android 10, 12 and 13 in the emulator (optional: only on the user's yes; Opus, medium)
+### [ ] E. Android 10, 12, 13 and 14 in the emulator (Opus; E0 high, E1a–E4 medium)
 
-(Remaining 4j: no device has run Android 10–14; the tablet is 15, the FP6 16. `CLAUDE.md` says
-the user tests on real devices, no emulator, so this row waits for the user's yes; without it
-Android 10–14 ships untested, an accepted risk named in Still untested.) An emulator per API 29,
-31 and 33 (AOSP images without Play Services; the SDK manager downloads a few GB: say so before),
-the release build signed with the debug key. Per version: install and the page; Set in APOD mode
-(Fill, a moved part: the system crops the stored file to the hint itself there); "Where" Home,
-then Lock (home and lock set apart, `dumpsys wallpaper`; M0 saw only Android 15); the whole
-picture on blur and on black; "my picture" from the picker; the alarms armed (`dumpsys alarm`)
-and one forced run (`cmd jobscheduler run -f`); the pause hint's lines (31: the pause line; 33:
-both); the colours (29: `darkColorScheme()`, 31+: dynamic). Not: the alarms' real timing (an
-emulator's Doze isn't a phone's), the pause hint on 10–12.
-- **Done when:** each version's list ran or is under Not tested; each bug a `BUG:` line; Still
-  untested's Android 10–14 line updated.
+(User, 2026-10-29: before the tag, a baseline for 0.7.0; Remaining 4j.) The findings, the
+decisions, the setup and the packages are in `emulator.md`: the emulators `apodroid-29`, `-31`,
+`-33`, `-34` (set up 2026-10-29); **E0** by day (the night shift learns an emulator), then
+**E1a** and **E1b** (10), **E4** (14), **E2** (12), **E3** (13) in one night, on W's candidate as
+root. Its
+setup found **B25** (the pause hint's unused line on Android 12; draft in `emulator.md`).
+- **Done when:** E0, E1a, E1b and E2–E4 done there (each list ran or is under Not tested, each bug a `BUG:` line);
+  the skill's Still untested Android 10–14 line updated with what the emulator can't tell
+  (`emulator.md`).
 
 ### [ ] R. Docs, changelog, store texts, screenshots (Opus, medium)
 
@@ -2763,6 +2759,12 @@ the picture time and new pictures first, the whole picture (500
 characters is tight: one short line each, the rest in `full_description.txt`);
 `features.md` (F6 added under Save every picture) and this file ticked; the screenshots on the FP6 by the user (APOD mode
 first, as `README.md` embeds `1.png`).
+**The tag's build on the FP6** (2026-10-29, from E's review: once B25 or any other fix merges, the
+tag ships an APK no device has run; W's candidate is 423f082's): the release build from the final
+tree, release-signed by the user (the skill, Testing an update on the user's phone), installed with
+`adb install -r` over W's candidate on the FP6: the update keeps the setup (Setup's summary), the
+alarms armed again (`MY_PACKAGE_REPLACED` in the log, the pair in `dumpsys alarm`), the page opens
+without a crash, the pause hint (if shown) with its 16 text. Before T; a failure is a `B<n>`.
 
 ### [ ] T. Commit and tag (Sonnet, low)
 

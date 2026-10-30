@@ -581,6 +581,12 @@ reading; their build check passed, 108 tests with `private/`):
    06:12 NASA's Monday post, NASA's turn by the 12 h turns; the window's checks set nothing) and
    the migration on the FP6 confirmed by the user in Setup. Left for the gate: the rest of P (with
    the user), W's mornings to Mon 2 Nov; then R and T, Tue 3 Nov at the earliest.
+4m. **Wed 28 to Fri 30 Oct**: W's FP6 reads PASS each day (every change at 06:00 and 18:00 as the
+   rules say; the log rolls over by the read, so the times come from the page and the wallpaper
+   ids). The tablet's half: the rules and the retries PASS (Thu: Earth's 502 morning, a Wi-Fi gap,
+   airplane mode), but ZuiMemoryCleaner force-stopped the app twice (Wed 13:57, Fri 01:34), each
+   time nothing until the page opened (`on-time-0.7.0.md`, Lenovo; no 0.6.0 change). Thu: APOD's
+   day-first title prefix (`CLAUDE.md`, Open questions 4: 0.7.0).
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
    R8 and the update on the final tree), then W, R and T.
 

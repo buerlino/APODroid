@@ -265,8 +265,8 @@ packages unattended): `night.md`.
     `sys.boot_completed`.
   - Tailscale's VPN stays VALIDATED with no network under it (airplane mode), so JobScheduler
     sees connectivity (V9).
-  - Lenovo's ZuiMemoryCleaner force-stops the cached app (V12d after a clock step; W on a real
-    day, 28 Oct), which deletes the alarms and job 1 until the next start: check `dumpsys alarm`
+  - Lenovo's ZuiMemoryCleaner force-stops the cached app (V12d after a clock step; W on real
+    days, 28 and 30 Oct), which deletes the alarms and job 1 until the next start: check `dumpsys alarm`
     after each step and at each read.
   - `am kill` keeps the page's saved draft, so a Set after reopening saves that draft, not prefs
     pushed meanwhile. A Compose popup takes the tap that closes it: in one `input` line, a Set

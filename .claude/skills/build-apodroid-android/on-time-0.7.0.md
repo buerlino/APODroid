@@ -80,7 +80,7 @@ user's report): the pause hint's battery line names a path that isn't there.
   if they follow Android 14's rules (a type and its permission).
 - **Oppo / realme / OnePlus** (ColorOS, OxygenOS): "Allow background activity", "Auto launch".
 - **Vivo / iQOO**: "High background power consumption", Autostart.
-- **Lenovo** (ZUI, the test tablet TB305FU, Android 15; seen twice, V12d, 2026-10-25, and W, 2026-10-28):
+- **Lenovo** (ZUI, the test tablet TB305FU, Android 15; seen three times, V12d, 2026-10-25, and W, 2026-10-28 and 30):
   `ZuiMemoryCleaner[Aggressive-MemFreeCritical]` force-stopped the cached app (with F-Droid,
   the permission controller and others) 2 s after a clock step, which deleted both alarms and
   job 1 until the next page open; not seen in V11d's identical step. No 0.6.0 change (user,
@@ -91,6 +91,10 @@ user's report): the pause hint's battery line names a path that isn't there.
   before. The app was Unrestricted and in the EXEMPTED bucket: neither protects against it.
   Nothing ran from 13:57 until the page opened at 19:40 (NASA's 16:35 post missed the lock
   screen); the page open re-armed and set it. A force stop also deletes an exact alarm.
+  **At night (W, Fri 30 Oct 01:34, the screen off):** the same cleaner, `MemFreeCritical`, the
+  app cached at adj 920 (its process alive since the Wed 19:40 page open), right after a waiting
+  check's run had ended. Nothing ran until the page opened at 20:18, so the whole day's sets (APOD
+  at 06:10 on home, Earth and NASA on lock) were missed; the open set APOD and Earth at once.
   `.coord/runs/w/report.md`.
   **Whom it stops** (`.coord/runs/w/tab-wed-all.txt`, read 2026-10-28): each sweep logs
   `updateStrategy use: Moderate|Aggressive …, minAdj: 701`, then `forcestop app: <package>` for

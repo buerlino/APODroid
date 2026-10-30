@@ -954,7 +954,7 @@ sets, each on time, nothing twice), V12e and V12f pass (2026-10-27): all of V12 
 `BUG:` line. P's install (26 Oct, 20:24): 0.6.0 over the real 0.5.0 on the FP6, the page not
 opened; the migration kept the user's setup exactly (APOD + NASA on both screens, 12 h, checked
 by the user in Setup) and the alarms were armed by `MY_PACKAGE_REPLACED`; the first morning set
-on time (06:12, NASA's turn). Left: the rest of P with the user, W to Mon 2 Nov. Lenovo's ZuiMemoryCleaner force-stopping the app (V12d after a clock step; W on a real day, 28 Oct 13:57, Unrestricted and EXEMPTED: no alarm or job left until the page opened at 19:40): no 0.6.0
+on time (06:12, NASA's turn). Left: the rest of P with the user, W to Mon 2 Nov. Lenovo's ZuiMemoryCleaner force-stopping the app (V12d after a clock step; W on real days, 28 Oct 13:57 and 30 Oct 01:34, Unrestricted and EXEMPTED: no alarm or job left until the page opened, 19:40 and 20:18): no 0.6.0
 change (`on-time-0.7.0.md`). **More testing before the tag** (user, 2026-10-26 afternoon, from a
 report on the repo's state; the plan, Remaining 4j): **W**, a week on the FP6 from P's install
 to the morning of Mon 2 Nov, the tag not before Tue 3 Nov. Why: no real night has run the new

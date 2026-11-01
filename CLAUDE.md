@@ -32,6 +32,16 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
   Only APODroid's nights use the tablet HA24BZ2Y (user, 2026-10-20: pascaline's nights leave it alone).
+- **APODiOS** (user, 2026-11-01): an iPhone shortcut, not an app; recipe and link in
+  [ios/README.md](ios/README.md). Why: iOS has no wallpaper API for apps or the web (a PWA can't
+  set it), only Shortcuts' Set Wallpaper Photo with a daily Time of Day automation. Plain APOD on
+  both screens, video days skipped by one regex equal to `:core`'s `isVideo` (283 real posts, 27
+  video days, no difference), the picture `featured_image.file?h=2868`. Shared as an iCloud link
+  from the user's own Apple account; no `.shortcut` file in the repo (a signed binary; "people who
+  know me" carries the signer's identity). Built on the user's iPhone XS Max, iOS 18: a run by hand
+  and the video test passed; a second run hit iOS 18's extensionKit error 2 (a known bug; a fresh
+  photo wallpaper and a second automation 5 min later). Open: the link (waits for the phone's
+  iCloud), the morning automation.
 
 ## How the user works (2026-10-01)
 
@@ -136,7 +146,8 @@ What each brought: the tags and `changelogs/<versionCode>.txt`.
 **The official API is broken.** `https://api.nasa.gov/planetary/apod` (what the Tasker task
 uses) returns `title: "NASA Science"` and the NASA logo as `url` and `hdurl` for every date
 tried. Cause: APOD moved from `apod.nasa.gov` to `science.nasa.gov/apod` (301 redirects), and the
-API still scrapes the old site.
+API still scrapes the old site. Still so on 2026-11-01 (the explanation real, the title and
+picture the logo's; an older date HTTP 500).
 
 **Source: the new site's WordPress REST API, the only one** (user, 2026-10-01; public, no key,
 no auth). Why: the official API has no working data at all; the risk below is accepted.

@@ -38,6 +38,9 @@ from [Releases](https://github.com/buerlino/APODroid/releases), or add
 `https://github.com/buerlino/APODroid` to [Obtainium](https://github.com/ImranR98/Obtainium) to
 get updates. Android 10 or newer.
 
+On an iPhone? [APODiOS](ios/README.md) is a shortcut that does the plain part: today's APOD on
+both screens, every morning.
+
 ## Where the pictures come from
 
 The official APOD API (`api.nasa.gov/planetary/apod`) currently returns the NASA logo instead of

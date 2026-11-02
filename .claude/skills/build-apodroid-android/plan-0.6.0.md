@@ -2803,7 +2803,7 @@ setup found **B25** (the pause hint's unused line on Android 12; draft in `emula
   the skill's Still untested Android 10–14 line updated with what the emulator can't tell
   (`emulator.md`).
 
-### [ ] U0. Setup row, lean texts, ⛶'s ✓ (Opus, medium)
+### [x] U0. Setup row, lean texts, ⛶'s ✓ (Opus, medium): done 2026-11-02
 
 (User, 2026-11-02, after P: "I want a cleaner page"; the code freeze lifted for exactly these three,
 the page only, the job and the rules untouched, so W's result stands.) `lean-ui-0.7.0.md`'s MK and
@@ -2862,9 +2862,10 @@ nothing on the page said that Set was still needed.
   failed ✓ couldn't be retried with the same part. Now ✓ saves at once on the page's thread
   (`Store.savePart`), then `Store.setPart` sets; each page's draft parts are the stored ones
   (`readStatus`); `failedPart`; ⛶ has no highlight any more.
-- **Waits for:** the user's approval of the screenshots.
+- **Done** (2026-11-02): committed as fa4b45c with the second check's fixes (the user: "Commit U0
+  now"); the FP6 showed the page on the tag's build and the user approved R's `1.png` (R).
 
-### [ ] R. Docs, changelog, store texts, screenshots (Opus, medium)
+### [x] R. Docs, changelog, store texts, screenshots (Opus, medium): done 2026-11-02
 
 After P and W, on the build that passed. `changelogs/10.txt` (max 500 characters; say that a
 video-day choice saved while it was greyed out in 0.5.0, e.g. "Use my picture" with turns, now
@@ -2880,7 +2881,40 @@ tree, release-signed by the user (the skill, Testing an update on the user's pho
 `adb install -r` over W's candidate on the FP6: the update keeps the setup (Setup's summary), the
 alarms armed again (`MY_PACKAGE_REPLACED` in the log, the pair in `dumpsys alarm`), the page opens
 without a crash, the pause hint (if shown) with its 16 text. Before T; a failure is a `B<n>`.
+- **Results** (2026-11-02, Claude with the user, master fa4b45c; U0 committed first, it wasn't):
+  - **The tag's build:** `:core:test :app:assembleRelease` pass (211 tests), unsigned (no
+    `keystore.properties`, no env vars): 2,174,940 bytes, sha256
+    `f1caca75d68f49cbe56678f19ef85fc72969b1f61c5af15ee546b0b77cb90019`; `zipalign -p 4`, signed by
+    the user (v3, the same certificate as W's candidate) as `apodroid-v0.6.0.apk`, sha256
+    `aee1779bc4f86179077fb74eb12656218f488590298451ded33cb1378a91578d` (W's candidate kept as
+    `app/build/apodroid-v0.6.0-candidate-423f082.apk`). `adb install -r` over W's candidate (26 Oct,
+    20:24) at 13:30:46 (adb chose an incremental install: apksigner writes a v4 `.idsig` beside the
+    APK): the log's "MY_PACKAGE_REPLACED, arming again" and "alarms for 2026-11-02T17:02:50Z", the
+    pair at 18:02:50 (18:00 + the offset) as before the install; job 1 still there; the wallpaper
+    id unchanged (277, one wallpaper on both screens: the update set nothing); exit-info "PACKAGE
+    UPDATED", no crash. **The page:** Setup's summary "APOD, NASA · both screens · every 12 h from
+    06:00", open: APOD and NASA on Both, Earth unticked, 06:00, 12 h, "Skip it" (the user's setup);
+    the Setup row with "▴" open, "Change automatically", "Changed 2 Nov, 11:49 · APOD", ⛶ without
+    a highlight, crop mode's "Whole picture" toggle (closed with Back, nothing set). Earth ticked
+    in the draft: the weekday dialog with B25's one sentence; Dismiss; Earth's row and "Setup" in
+    tertiary; the draft dropped by a Recents swipe (exit-info "REMOVE TASK"); reopened: Setup
+    closed, the stored summary, nothing highlighted, the alarms kept. No pause hint (nothing
+    missing). **Not on the FP6:** ⛶'s ✓ on R8 (it sets the user's wallpaper), a failed set.
+  - **Texts:** `changelogs/10.txt`'s "the daily switch" became U0's label "Change automatically"
+    (456 characters; the user's pick, no line for U0: 0.5.0's ✓ set the wallpaper too). `README.md`
+    and `full_description.txt` already use U0's names (checked against the page).
+  - **Screenshot:** `1.png` on the FP6 with the tag's build, the user's setup as it is (the user:
+    no APOD-mode shot, nothing Set), APOD's page, Setup closed; SystemUI demo mode
+    (`sysui_demo_allowed` 0 before and after); approved by the user; only `1.png` (the user).
+  - The FP6 left as found: nothing set, demo mode off, the draft dropped.
+  - **The tag's APK is the tested one:** rebuilt after T's commit, the unsigned APK's sha256
+    differed (`956d79f1…`), only in `META-INF/version-control-info.textproto`: AGP writes HEAD's
+    commit there (8997c80 in the tested build, made on U0's tree before its commit; T's commit in
+    the tag's). Every other file the same (`diff -r` of both unzipped).
 
-### [ ] T. Commit and tag (Sonnet, low)
+### [x] T. Commit and tag (Sonnet, low): done 2026-11-02
 
 Only when the user says so; the user pushes.
+- **Done** (2026-11-02, the user's go): one commit on master (the changelog, `1.png`, the docs),
+  then the annotated tag `v0.6.0` ("APODroid 0.6.0"), as v0.5.0. The user pushes master, then the
+  tag.

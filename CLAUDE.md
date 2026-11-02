@@ -141,6 +141,7 @@ What each brought: the tags and `changelogs/<versionCode>.txt`.
 - 0.1.2 (3), 0.2.0 (4), 0.2.1 (5): 2026-10-04. 0.3.0 (6): 2026-10-05. 0.3.1 (7): 2026-10-07.
 - 0.4.0 (8): 2026-10-16. 0.5.0 (9): 2026-10-18, after a release audit and a release-signed
   phone pass on the FP6.
+- 0.6.0 (10): 2026-11-02, after its release gate (Next features) and the tag's build on the FP6.
 
 ## Data source (checked 2026-10-01)
 
@@ -986,7 +987,8 @@ wake and fail offline).
 
 ## Next features
 
-**0.6.0's release gate** (user, 2026-10-24 evening, from a review of the plan): a code freeze
+**0.6.0's release gate** (user, 2026-10-24 evening, from a review of the plan; **passed, 0.6.0
+released 2026-11-02**): a code freeze
 from 25 Oct: only bug fixes, no new texts or settings unless a bug needs one. Stable when V12a–d
 (V11a–d again on the tree with B19–B21; user, 2026-10-25), V7, P, SIM and W (user, 2026-10-26) all pass on the same tree with no open `BUG:` line; a fix after V7 or P that touches the
 job or the rules reruns that part; the skill's "Still untested" is updated; the release slips a
@@ -1011,11 +1013,14 @@ the tablet, no `BUG:` line; the weekend waited, the US DST end and the Zurich ca
 `.coord/runs/p/report.md`). B25 merged. **U0** (user, 2026-11-02: "I want a cleaner page"; the freeze lifted for
 exactly these): Setup and Advanced as Settings rows, the page's texts short (picked in a mockup), ⛶'s ✓ setting
 again (`Store.setPart`: a new set path beside the rules', only the screens showing that post, no record, turn or
-change time touched, so W's result stands); built and checked on the tablet (`plan-0.6.0.md`, U0). Left: the
-user's approval of U0's screenshots; R's screenshots and the tag's build on the FP6; T. The release as soon as possible (user, 2026-11-02). Lenovo's ZuiMemoryCleaner force-stopping the app (V12d after a clock step; W on real days, 28 Oct 13:57 and 30 Oct 01:34, Unrestricted and EXEMPTED: no alarm or job left until the page opened, 19:40 and 20:18): no 0.6.0
+change time touched, so W's result stands); built and checked on the tablet (`plan-0.6.0.md`, U0). **Released**
+2026-11-02 (user: "release asap"): the tag's build (fa4b45c's tree, release-signed by the user) passed on the FP6
+over W's candidate (the setup kept, the alarms armed again by `MY_PACKAGE_REPLACED`, nothing set, no crash), and the
+user approved R's new `1.png` (`plan-0.6.0.md`, R and T). Lenovo's ZuiMemoryCleaner force-stopping the app (V12d after a clock step; W on real days, 28 Oct 13:57 and 30 Oct 01:34, Unrestricted and EXEMPTED: no alarm or job left until the page opened, 19:40 and 20:18): no 0.6.0
 change (`on-time-0.7.0.md`). **More testing before the tag** (user, 2026-10-26 afternoon, from a
 report on the repo's state; the plan, Remaining 4j): **W**, a week on the FP6 from P's install
-to the morning of Mon 2 Nov, the tag not before Tue 3 Nov. Why: no real night has run the new
+to the morning of Mon 2 Nov, the tag not before Tue 3 Nov (moved up to Mon 2 Nov by the user
+once W had passed). Why: no real night has run the new
 job (every check since J1 used a faked or stepped clock), and the case most European users meet
 each morning, APOD out after the picture time (06:05 Zurich from the US DST end on 1 Nov), only
 starts then; W also sees real weekday mornings and a weekend. **SIM**, a seeded random test of

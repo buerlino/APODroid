@@ -282,7 +282,7 @@ are in its report commit and run folder (`.coord/runs/`, gitignored); git keeps 
 list (until 2026-10-26). A V row, the regression or a phone pass removes what it closed and adds
 what it leaves open.
 
-**For 0.6.0's release gate** (`CLAUDE.md`, Next features):
+**Open at 0.6.0's release** (2026-11-02; its gate in `CLAUDE.md`, Next features):
 - Doze on a real night with the app Optimized, not forced and not stepped (V12e: only `force-idle`
   and `deviceidle step`; V7's night was Unrestricted).
 - Battery saver with the app Optimized over a real day (V12e: the alarm's run waited for the
@@ -317,10 +317,12 @@ what it leaves open.
 - Obtainium tracking the app after an `adb install -r` of the release-signed build (WP8).
 
 **The page:**
-- U0 (2026-11-02, tablet only): the rows' and highlighted controls' screen-reader states (this
-  `uiautomator dump` doesn't print them), ⛶ disabled during a Set, `Store.setPart` with a screen
-  left alone (its column check, by reading) and a failed one, the HTTP and site-changed texts and
-  APOD mode's texts on a device, "▴" on Android 10–14; the FP6 sees the page at R's screenshots.
+- U0 (2026-11-02; the tablet, and the FP6 on the tag's build, R): the rows' and highlighted
+  controls' screen-reader states (this `uiautomator dump` doesn't print them), a failed ✓ and its
+  retry (`failedPart`), two ✓s whose sets overlap (the end state right on the tablet, the overlap
+  not seen in the log), ⛶'s ✓ on R8 since the second check's fixes (`Store.savePart`; the FP6 ran
+  the tag's build without ✓, which would set the user's wallpaper), the HTTP and site-changed
+  texts and APOD mode's texts on a device, "▴" on Android 10–14.
 - A rotation during "Change picture"'s picker (V4, V8).
 - The problem box's Dismiss across a faked day; each source on each screen one by one (V10).
 - The toast "Setup saved. Nothing to set yet." (regression 2: toasts weren't caught then).
@@ -344,7 +346,10 @@ what it leaves open.
 3. Commit and tag `vX.Y.Z` only when the user asks; the user pushes. The tag builds the signed
    GitHub Release for Obtainium.
 4. F-Droid rebuilds the tag and must get a byte-identical APK apart from the signature. For
-   build-only changes, compare the unsigned release APK's sha256 before and after.
+   build-only changes, compare the unsigned release APK's sha256 before and after. AGP writes
+   HEAD's commit into `META-INF/version-control-info.textproto`, so the sha256 matches only at the
+   same HEAD (a dirty tree gets HEAD's); across commits `diff -r` the unzipped APKs, that file
+   apart (R, 2026-11-02).
 5. Push order: `master`, then the tag. F-Droid's bot (`UpdateCheckMode: Tags`,
    `AutoUpdateMode: Version`) finds the new tag on its own, usually within a day or two, adds a
    build to the recipe and builds it. Its `Binaries:` check needs `apodroid-vX.Y.Z.apk` in the
@@ -368,10 +373,9 @@ drafts, the user posts.
 `fastlane/metadata/android/en-US/`: title, short and full description, changelogs, `icon.png`,
 `featureGraphic.png`, `phoneScreenshots/1.png` (the whole page on one screen; `README.md` embeds
 it).
-- For 0.5.0 `1.png` still shows 0.4.0's page: the user takes new ones on the FP6 after WP8 (U7,
-  2026-10-18), in this order: 1. the page with tabs on NASA's tab, the "On wallpaper" chip on
-  it, no box; 2. the explanation expanded; 3. the settings with the source chips (two or three
-  picked) and "Change every". `README.md` embeds `1.png`, so 1 is the one that matters most.
+- 0.6.0's `1.png` (R, 2026-11-02): the user's own setup as it was (APOD + NASA, APOD's page,
+  Setup closed) on the FP6 with the tag's release build, nothing set, SystemUI demo mode only (a
+  release build has no `run-as`, so no faked page). Only `1.png` (user); `README.md` embeds it.
 - Screenshot with SystemUI demo mode, as in gridload: `settings put global sysui_demo_allowed 1`,
   broadcasts `enter`, `clock -e hhmm 1200`, `notifications -e visible false`,
   `network -e wifi show -e level 4 -e fully true` (without `fully` the Wi-Fi icon shows "!"),

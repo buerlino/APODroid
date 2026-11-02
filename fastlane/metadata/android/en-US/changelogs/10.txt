@@ -1,6 +1,6 @@
 - APOD first; "More NASA pictures" adds NASA and Earth Observatory, each on home, lock or both
 - "New picture at" (06:00): changes by the clock, on time in Doze; turns show only pictures not seen yet
-- Setup is a draft until "Set as wallpaper"; the daily switch acts at once
+- Setup is a draft until "Set as wallpaper"; "Change automatically" acts at once
 - "Whole picture" for a post, on a blurred or black background
 - Swipe between sources
 - Save every picture, with a size limit

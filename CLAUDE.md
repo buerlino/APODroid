@@ -129,8 +129,8 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
   timestamps, build paths or machine-specific values in the APK; `dependenciesInfo` off. Unit
   tests don't cover R8, so test release builds on the phone.
 - Android SDK in `~/Android/Sdk`. The user tests on real devices over adb; the emulator only for
-  the Android versions no device has (10–14; user, 2026-10-29: E, before 0.6.0's tag and again for
-  0.7.0), never for real timing (Doze, buckets, makers' cleaners).
+  the Android versions no device has (10–14; user, 2026-10-29: E; postponed to 0.7.0, user,
+  2026-11-02: release 0.6.0 as soon as possible), never for real timing (Doze, buckets, makers' cleaners).
 - Git branch `master`, remote `origin`. `dev` holds the night shift's merges until the user fast-forwards master.
 
 **Releases** (F-Droid builds only the newest tag: it ships 0.5.0, 0.3.1 and 0.3.0 and skipped
@@ -965,7 +965,10 @@ sets, each on time, nothing twice), V12e and V12f pass (2026-10-27): all of V12 
 `BUG:` line. P's install (26 Oct, 20:24): 0.6.0 over the real 0.5.0 on the FP6, the page not
 opened; the migration kept the user's setup exactly (APOD + NASA on both screens, 12 h, checked
 by the user in Setup) and the alarms were armed by `MY_PACKAGE_REPLACED`; the first morning set
-on time (06:12, NASA's turn). Left: the rest of P with the user, W to Mon 2 Nov. Lenovo's ZuiMemoryCleaner force-stopping the app (V12d after a clock step; W on real days, 28 Oct 13:57 and 30 Oct 01:34, Unrestricted and EXEMPTED: no alarm or job left until the page opened, 19:40 and 20:18): no 0.6.0
+on time (06:12, NASA's turn). **W passed** (2026-11-02): every morning Tue 27 Oct to Mon 2 Nov read on the FP6 and
+the tablet, no `BUG:` line; the weekend waited, the US DST end and the Zurich case (APOD out 06:05, set at
+06:12 by the first run after it) as the rules say (`.coord/runs/w/report.md`). Left: B25, the rest of P with
+the user, R (with the tag's build on the FP6), T; the release as soon as possible (user, 2026-11-02). Lenovo's ZuiMemoryCleaner force-stopping the app (V12d after a clock step; W on real days, 28 Oct 13:57 and 30 Oct 01:34, Unrestricted and EXEMPTED: no alarm or job left until the page opened, 19:40 and 20:18): no 0.6.0
 change (`on-time-0.7.0.md`). **More testing before the tag** (user, 2026-10-26 afternoon, from a
 report on the repo's state; the plan, Remaining 4j): **W**, a week on the FP6 from P's install
 to the morning of Mon 2 Nov, the tag not before Tue 3 Nov. Why: no real night has run the new
@@ -973,8 +976,9 @@ job (every check since J1 used a faked or stepped clock), and the case most Euro
 each morning, APOD out after the picture time (06:05 Zurich from the US DST end on 1 Nov), only
 starts then; W also sees real weekday mornings and a weekend. **SIM**, a seeded random test of
 the rules over months in `:core` (test code only): the job and the rules gave 13 of the 24 fix
-packages B2–B24. **E**, Android 10–14 in the emulator (user, 2026-10-29: before the tag, a baseline for
-0.7.0's Live and on-time work; `emulator.md`). **Accepted, no change:** the RARE bucket's about one alarm
+packages B2–B24. **E**, Android 10–14 in the emulator (user, 2026-10-29, a baseline for 0.7.0's Live and on-time
+work; `emulator.md`): **postponed to 0.7.0** (user, 2026-11-02: release 0.6.0 as soon as possible), so
+0.6.0 ships Android 10–14 untested on a device, an accepted risk. **Accepted, no change:** the RARE bucket's about one alarm
 an hour (Android's quota; the pause hint covers Optimized); CR2's finding 4 (a Set that
 changes the picture time or "Change every" costs one spare check; noting `lastRunAt` at Set
 could drop an owed check); a Set tap in the same input burst as the time menu's closing goes to

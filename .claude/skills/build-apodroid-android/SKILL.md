@@ -302,10 +302,11 @@ what it leaves open.
 - A connection cut during a Set's download (V9).
 - A failed run's 1 h retry firing by itself (V12f: after two failed runs the clock's hourly check,
   10:24:37, came before the retry, 10:50:29; only the 15-min retry fired).
-- A real DST change (only faked clocks: V11a, V11b, V11d). W sees the US's on 1 Nov as the
-  sites' zone and the Zurich case after it, not a change of the phone's own clock.
-- Real mornings, a weekend and the Zurich case on a real clock: W (FP6, to Mon 2 Nov).
-- W's FP6 nights on battery: the first (26–27 Oct) charged on the PC, so no Doze.
+- A DST change of the phone's own clock (only faked: V11a, V11b, V11d). W (2026-11-02) saw the
+  US's on 1 Nov as the sites' zone and the Zurich case after it; real mornings, nights on battery
+  and a weekend passed on the FP6 (Unrestricted, EXEMPTED) and the tablet.
+- A reboot during a real run of days, a page open or pull that sets, the job on mobile data, a
+  real APOD video day (W saw none of them, 27 Oct to 2 Nov).
 - A download that isn't a picture (`badUrl`, WP7c's made-up feed): not rerun since 0.5.0.
 
 **The update from 0.5.0:**
@@ -323,7 +324,7 @@ what it leaves open.
   2026-10-22); dragging the frame with TalkBack (it has no screen-reader action).
 
 **Android:**
-- Android 10–14 on any device (the tablet is 15, the FP6 16; E, the emulator, only on the user's yes): there the system crops the stored
+- Android 10–14 on any device (the tablet is 15, the FP6 16; E, the emulator, postponed to 0.7.0, user 2026-11-02): there the system crops the stored
   file to the hint itself; 10–11's stock palette; the pause hint on 10–12 (`keep-running.md`).
 - Dynamic colour following a set wallpaper (U1: the tablet's ZUI and the FP6's LineageOS have
   wallpaper colours off).

@@ -587,8 +587,14 @@ reading; their build check passed, 108 tests with `private/`):
    airplane mode), but ZuiMemoryCleaner force-stopped the app twice (Wed 13:57, Fri 01:34), each
    time nothing until the page opened (`on-time-0.7.0.md`, Lenovo; no 0.6.0 change). Thu: APOD's
    day-first title prefix (`CLAUDE.md`, Open questions 4: 0.7.0).
+4n. **Mon 2 Nov**: W's last read PASS on both devices (the Zurich case: FP6 06:12:50, tablet 06:19:41
+   with Earth's Monday post on lock); W done with no `BUG:`, so the job and the rules are released from
+   the gate. **E postponed to 0.7.0, the release as soon as possible** (user, 2026-11-02). **Mon 2**:
+   B25, the rest of P with the user on the FP6, R (texts; the screenshots by the user; the tag's
+   build from the final tree, release-signed by the user, `install -r` over the candidate), T if all
+   pass (a `B<n>` in the job or the rules restarts W's count: two weekday mornings).
 5. P on the FP6 with the user (the release build over the real 0.5.0 install: it also covers
-   R8 and the update on the final tree), then W, R and T.
+   R8 and the update on the final tree), then R and T.
 
 ### [x] F1. Fill / Fit (Opus, medium)
 
@@ -2731,7 +2737,11 @@ zone change in Settings: armed again for the new zone's 06:00. After V12a–d an
 `B<n>` package (night.md, The morning, step 6) before R. P's install starts W: after P's
 checks the phone keeps the candidate, set up as the user uses it.
 
-### [ ] W. A week on the FP6 before the tag (Opus, medium)
+### [x] W. A week on the FP6 before the tag (Opus, medium)
+
+**Results (2026-11-02):** PASS. Every morning Tue 27 Oct to Mon 2 Nov read on both devices, no `BUG:`;
+the Zurich case (APOD out 06:05, set 06:12:50 by the first run after it) as rule 2 and 3 say; the tablet's
+cleaner stopped it twice (0.7.0). What W didn't see: the skill's Still untested. `.coord/runs/w/report.md`.
 
 (User, 2026-10-26 afternoon, Remaining 4j: no real night has run the new job yet, and the case
 most European users meet every morning starts only on 1 Nov.) From P's install (Mon 26 evening)
@@ -2769,6 +2779,8 @@ user leaves them, "New picture at" 06:00. What it covers that no row did:
   the Zurich case out; what W couldn't see in).
 
 ### [ ] E. Android 10, 12, 13 and 14 in the emulator (Opus; E0 high, E1a–E4 medium)
+
+**Postponed to 0.7.0** (user, 2026-11-02: "i want to release 0.6.0 asap"); 0.6.0 ships 10–14 untested.
 
 (User, 2026-10-29: before the tag, a baseline for 0.7.0; Remaining 4j.) The findings, the
 decisions, the setup and the packages are in `emulator.md`: the emulators `apodroid-29`, `-31`,

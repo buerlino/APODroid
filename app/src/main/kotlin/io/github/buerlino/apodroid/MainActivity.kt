@@ -1934,10 +1934,7 @@ class MainActivity : ComponentActivity() {
             confirmButton = { TextButton(onClick = { closeWeekdayDialog(forever = false) }) { Text("Dismiss") } },
             dismissButton = { TextButton(onClick = { closeWeekdayDialog(forever = true) }) { Text("Don't show again") } },
             text = {
-                Text(
-                    "NASA Image of the Day and Earth Observatory post on weekdays only. " +
-                        "On weekends, Friday's pictures come back.",
-                )
+                Text("NASA Image of the Day and Earth Observatory post on weekdays only.")
             },
         )
     }
@@ -1958,8 +1955,13 @@ class MainActivity : ComponentActivity() {
         } else {
             "App battery usage → Unrestricted"
         } + " (on Optimized, a new picture can come hours late)"
-        // Stock Android 12–14: "Pause app activity if unused"; the test phone (Android 16): "Manage app if unused".
-        val unused = "Unused app settings → \"Pause or manage app if unused\": off"
+        // Stock Android 13–14: "Pause app activity if unused"; the test phone (Android 16): "Manage app if unused".
+        // Android 12 (API 31–32): "Unused apps" with "Remove permissions and free up space" (B25).
+        val unused = if (Build.VERSION.SDK_INT >= 33) {
+            "Unused app settings → \"Pause or manage app if unused\": off"
+        } else {
+            "Unused apps → \"Remove permissions and free up space\": off"
+        }
         val (missing, effect) = when {
             batteryLimited && mayHibernate -> listOf(battery, unused) to
                 "after about 8 days the wallpaper only changes while the phone charges, and after about 3 months it stops"

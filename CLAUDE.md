@@ -397,9 +397,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
     daily switch is off "Where" or the list still shows, so a one-off Set uses settings the user
     can see.
   - **Weekday dialog** (user, 2026-10-17): ticking NASA or Earth where it wasn't ticked on
-    either screen says they post on weekdays only and Friday's pictures come back on weekends;
-    "Dismiss" (again at the next such tick) and "Don't show again" (`weekdayNoticeHidden`). Not
-    for the video-day choice or the mode switch. No text on the page.
+    either screen says they post on weekdays only (B25: not that Friday's pictures come back on
+    weekends, false since J1: a screen never shows a picture twice); "Dismiss" (again at the
+    next such tick) and "Don't show again" (`weekdayNoticeHidden`). Not for the video-day choice
+    or the mode switch. No text on the page.
   - **Where** (APOD mode's only; the list has its columns): home screen, lock screen, or both
     (user: a setting, not fixed). Default: both. Its segments, like "Change every"'s, share one
     height when a label wraps (in the FP6's landscape pane only "Home screen" wrapped).
@@ -928,11 +929,12 @@ that isn't opened, and the job doesn't count as use: the restricted bucket after
 (Android 13+; later or never before) and hibernation after about 3 months (12+), which deletes
 the job. While the stored daily switch is on, a hint in a neutral box below the picture (user, 2026-10-16) names only what's missing, one line each:
 battery Unrestricted (checked on API 33+ only, 2026-10-04 evening: on 10–12 the 8 days aren't
-true) and "pause/manage app if unused" off (API 31+). Each line is the path in App info (user,
-2026-10-04: "Unrestricted" alone didn't say where): on API 35+ the battery line says to tap
-"Allow background usage" and turn it on first (Unrestricted is greyed out until then), on 33–34
-it doesn't (no such row there, not checked on a phone); either ends with " (on Optimized, a new
-picture can come hours late)" (approved by the user, 2026-10-24; Next features, 0.6.0: the
+true) and "pause/manage app if unused" off (API 31+; on Android 12, API 31–32, its own App
+info's `Unused apps → "Remove permissions and free up space": off`, B25). Each line is the path
+in App info (user, 2026-10-04: "Unrestricted" alone didn't say where): on API 35+ the battery
+line says to tap "Allow background usage" and turn it on first (Unrestricted is greyed out until
+then), on 33–34 it doesn't (no such row there, not checked on a phone); either ends with " (on
+Optimized, a new picture can come hours late)" (approved by the user, 2026-10-24; Next features, 0.6.0: the
 picture time). With "App info"
 (`ACTION_APPLICATION_DETAILS_SETTINGS`) and "Don't show again". The latter asks first in a dialog
 saying what will happen ("the user has all power"); the pref `pauseHintHidden` keeps it hidden

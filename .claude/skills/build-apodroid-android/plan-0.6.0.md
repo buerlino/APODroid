@@ -2676,7 +2676,7 @@ features, 0.6.0: the picture time), not from the code.
   `:core:test`; each invariant shown able to fail (a deliberately broken copy of its rule in a
   throwaway run, said in the report, not committed); all `:core` tests pass.
 
-### [ ] B25. The pause hint's unused line on Android 12; the weekday dialog's false sentence (Sonnet, medium)
+### [x] B25. The pause hint's unused line on Android 12; the weekday dialog's false sentence (Sonnet, medium)
 
 (E's setup, 2026-10-29, on the API 31 emulator; user: "B25 before the tag".) On Android 12
 (API 31–32) the box shows only the unused line (the battery line is 33+), and it says
@@ -2698,6 +2698,10 @@ Both are page texts, not the job or the rules: W's count stays.
 - **Done when:** the line on 31–32 as above (the user approves the text from the screenshot),
   33+ unchanged, `CLAUDE.md`'s pause hint names the Android 12 path; the weekday dialog without
   the weekend sentence, and `CLAUDE.md`'s weekday dialog paragraph without it.
+- **Results** (2026-11-02, winston by hand, branch `wp/B25`): both texts as above, 33+ and the
+  weekday dialog's buttons unchanged, `CLAUDE.md` updated; `:core:test :app:assembleDebug` pass.
+  The emulator check not run (E postponed to 0.7.0): the Android 12 line ships unseen on a
+  device (user, 2026-11-02).
 
 ### [x] P. Phone pass on the FP6 (Opus, high)
 

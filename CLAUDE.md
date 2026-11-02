@@ -28,6 +28,8 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
 - 0.7.0, on time on any phone (the expedited run, "Keep running", the detector; 2026-10-28): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
 - 0.7.0, Live, the day's pan (the live wallpaper, Size [Fill | Live]; 2026-10-28): [.claude/skills/build-apodroid-android/live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md).
+- 0.7.0, bright pictures darker (GitHub issue #2; planned 2026-11-02): [.claude/skills/build-apodroid-android/bright-0.7.0.md](.claude/skills/build-apodroid-android/bright-0.7.0.md).
+- 0.8.0, Fill's frame on the subject (issue #3, a saliency map; planned 2026-11-02): [.claude/skills/build-apodroid-android/subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md).
 - A clearer Setup and leaner texts (planned for 0.7.0, 2026-10-29; MK and UI1–UI3 built in 0.6.0 as U0, 2026-11-02, with ⛶'s ✓ setting again; what's left for 0.7.0 is there): [.claude/skills/build-apodroid-android/lean-ui-0.7.0.md](.claude/skills/build-apodroid-android/lean-ui-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
@@ -1149,11 +1151,12 @@ library (ML Kit needs Play Services; Tesseract is large). Decided:
   11 px on a 1080×2400 screen), the edge pixels extended outwards, then 35% darker, opaque.
 - **Dropped** (user, 2026-10-23 night, the simplification): the Background setting [Blurred |
   Black] (the edges decide), Fill's part [Middle | Brightest area] (always the middle, ⛶ moves
-  it: the picks showed no gain), a "Whole picture" switch for "my picture" (Fill, centred, as
-  now).
-- Not wanted (2026-10-22): a "Colour" background, a dim setting, screen-aware placement (clock
-  and dock), per-screen Size (the 2026-10-19 decision stands); learning per user (was "after
-  0.6.0", gone with the smart Auto). The preview on the page comes with Live (0.7.0).
+  it: the picks showed no gain; a saliency map tried again for 0.8.0, issue #3), a "Whole
+  picture" switch for "my picture" (Fill, centred, as now).
+- Not wanted (2026-10-22): a "Colour" background, a dim setting (bright pictures alone darker
+  planned for 0.7.0, issue #2), screen-aware placement (clock and dock), per-screen Size (the
+  2026-10-19 decision stands); learning per user (was "after 0.6.0", gone with the smart Auto).
+  The preview on the page comes with Live (0.7.0).
 
 **0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline, right after 0.6.0):
 Size [Fill | Live], with the preview on the page (one drawing code). A wide picture is shown at the screen's full height and moves
@@ -1230,6 +1233,28 @@ and the like, which no app setting gets past). Decided:
 - Rejected: "Exact timing" (`SCHEDULE_EXACT_ALARM` and a `dataSync` service per run; the
   expedited job gives the network without them, user, 2026-10-28), Keep running always on (every
   phone would pay), `setAlarmClock`, `USE_EXACT_ALARM`.
+
+**0.7.0: bright pictures darker** (user, 2026-11-02, from GitHub issue #2: "in 0.7.0"; the
+findings, the questions and the draft packages BR0–BR3 in
+[bright-0.7.0.md](.claude/skills/build-apodroid-android/bright-0.7.0.md)). A bright picture (a
+daytime landscape, the Sun, a blue sky) washes out the clock and the widgets. The request: measure
+the picture's brightness and darken it modestly (a `ColorMatrix` scale) when it's brighter than a
+target; dark pictures untouched; Android's own classes, no library. It revisits 2026-10-22's "a
+dim setting" (Muzei's kind: every picture dimmed by a fixed amount). Measured (the frame Fill
+shows, mean grey 0–255): over 110 on 12% of A2's 253 APODs, 41% of NASA's 56 newest pictures,
+62% of Earth's 40; the issue's X-59 test pilot (NASA, 26 Oct) 130, 163 in the top third. Apps
+can't use Android's own wallpaper dimming (`setWallpaperDimAmount` is a system API). Open, the
+user's: a switch or automatic and its default, the target and the floor (a picking page, BR0),
+the whole frame or its top third, "my picture".
+
+**0.8.0: Fill's frame on the subject** (user, 2026-11-02, from issue #3: "for 0.8.0";
+[subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md)). A saliency map
+(what draws the eye), computed once per picture, places Fill's frame by default; ⛶ still moves
+it, the middle on any failure. It revisits the smart Auto's map of what matters and Fill's part
+[Middle | Brightest area] (dropped 2026-10-23: the picks showed no gain), so first a test on the
+desktop against the user's picks (SA0); built only if it beats the middle. The issue's model
+(Glimpse, 148 KB) needs TensorFlow Lite, a native library: the stack's rules ask the user; the
+same model by hand-written inference in `:core`, or a method without a model, would need none.
 
 **0.6.0: APOD first** (user, 2026-10-19; built 2026-10-20 to 24; the how in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different

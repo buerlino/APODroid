@@ -7,6 +7,14 @@ everything that is not needed".) This file is the how and the packages; the text
 screenshots. 0.6.0 is in its code freeze, so this is 0.7.0's, built after O1–O3 (they work in
 the same file, `MainActivity.kt`) and before O13, O14 and L6, which add or rewrite texts.
 
+**Moved into 0.6.0 (user, 2026-11-02, after P: "I want a cleaner page"):** MK, UI1, UI2 and UI3
+were built as `plan-0.6.0.md`'s U0, together with ⛶'s ✓ setting again; the picks are below
+("Picked") and `CLAUDE.md` quotes the texts as they now are. **Left for 0.7.0:** the pause hint
+and its Hide dialog (O13, which rewrites them per maker; the mockup didn't show them, so O13's
+text is still to pick), the texts O14 and L6 add (the rule in `CLAUDE.md` binds them), the rows
+on `apodroid-29` (E: "▴" there unseen), and the screen readers' states on a device. O1–O3 now
+work on a `MainActivity.kt` that already has the rows.
+
 ## Decisions (user, 2026-10-29 evening)
 
 1. **Setup as a Settings row** ("A: a Settings row (Recommended)"; B, a card, and C, only the
@@ -45,6 +53,14 @@ the same.
   differs.
 
 ## The texts, today → draft
+
+**Picked** (user, 2026-11-02, in the mockup https://claude.ai/artifact/7mCPg2D5aQLNjRJMwhhSfk):
+every draft below, except: the source line, **today's** ("Astronomy Picture of the Day · 29
+October 2026"; no full names in the menu); the kept line, the user's own words, **"Video day,
+previous kept"**, per screen "Lock: video day, previous kept"; Setup's summary keeps "every"
+("APOD, NASA · both screens · every 12 h from 06:00", "Home: APOD, Earth · Lock: NASA, Earth ·
+every 6 h from 06:00"), since "12 h from 06:00" can read as 18:00. Setup's row as drawn
+(decision 1).
 
 What the mockup shows. **Revisits** are texts the user approved before (the date in `CLAUDE.md`);
 the mockup puts each beside today's so the user decides again, nothing changes silently.
@@ -113,7 +129,7 @@ NASA pictures", "Pictures from", "New picture at", "Change every", "If APOD is a
 | UI2 | The daily switch, the status lines, Setup's summary (by screen: code), the source line (or the title's menu) | Opus, medium | winston, tablet; after UI1 |
 | UI3 | The video notice, the problem box, the Save ⓘ dialog | Sonnet, medium | winston, tablet; after UI1 |
 
-### [ ] MK. The mockup (Opus, medium)
+### [x] MK. The mockup (Opus, medium): done 2026-11-02, as 0.6.0's U0
 
 (By day, with the user; allowed in 0.6.0's freeze: no code, no device.) One private HTML
 artifact in the page's dark look at a phone's width (the colours from a tablet screenshot in
@@ -127,7 +143,7 @@ artifact in the page's dark look at a phone's width (the colours from a tablet s
   written into this file's tables (one "Picked" column) and the drafts updated.
 - **Done when:** the user picked every row; this file says what was picked, with the date.
 
-### [ ] UI1. Setup and Advanced as Settings rows (Opus, medium)
+### [x] UI1. Setup and Advanced as Settings rows (Opus, medium): built 2026-11-02 in 0.6.0's U0
 
 (After O3: O1–O3 clean up `MainActivity.kt` first.) `Header` becomes the row of "The row"
 above; "Setup" and "Advanced settings" use it; nothing else changes (the summary's text is
@@ -139,7 +155,7 @@ UI2's).
 - **Done when:** built; the tablet passes; the user approved the look from the screenshots;
   `CLAUDE.md`'s Settings paragraph describes the row.
 
-### [ ] UI2. The lines under the switch, Setup's summary, the source line (Opus, medium)
+### [x] UI2. The lines under the switch, Setup's summary, the source line (Opus, medium): built 2026-11-02 in 0.6.0's U0
 
 (After UI1.) The texts as picked in MK: the daily switch's label, `statusLines`, `setupSummary`
 (grouped by screen when the columns differ: a small code change, the cases as today: APOD mode,
@@ -150,7 +166,7 @@ reader labels unchanged).
   columns; a screen kept on a faked video day), portrait and landscape, font scale 2.0.
 - **Done when:** built; the texts are MK's picks; `CLAUDE.md` quotes them; the tablet passes.
 
-### [ ] UI3. The video notice, the problem box, the Save ⓘ dialog (Sonnet, medium)
+### [x] UI3. The video notice, the problem box, the Save ⓘ dialog (Sonnet, medium): built 2026-11-02 in 0.6.0's U0
 
 (After UI1.) The texts as picked in MK; `VideoNotice` and `problemText` keep every case they have
 today (the stand-in ready, loading, skipped by B22; my picture with and without one; the prefix

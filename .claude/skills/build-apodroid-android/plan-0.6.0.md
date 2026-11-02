@@ -2803,6 +2803,67 @@ setup found **B25** (the pause hint's unused line on Android 12; draft in `emula
   the skill's Still untested Android 10–14 line updated with what the emulator can't tell
   (`emulator.md`).
 
+### [ ] U0. Setup row, lean texts, ⛶'s ✓ (Opus, medium)
+
+(User, 2026-11-02, after P: "I want a cleaner page"; the code freeze lifted for exactly these three,
+the page only, the job and the rules untouched, so W's result stands.) `lean-ui-0.7.0.md`'s MK and
+UI1–UI3 moved into 0.6.0, and a third fix: since S4 ⛶'s ✓ only kept the part in the draft, and
+nothing on the page said that Set was still needed.
+- **MK, the mockup** (https://claude.ai/artifact/7mCPg2D5aQLNjRJMwhhSfk, private; the picks in the
+  page's database): the rows closed, open and closed with a draft that differs; 19 texts today's
+  against the draft; ✓'s (a) and (b). The user's picks: the new rows; every draft but the source
+  line (today's, the full name stays) and the kept line (the user's words, "Video day, previous
+  kept", per screen "Lock: video day, previous kept"); Setup's summary keeps "every" ("every 12 h
+  from 06:00": "12 h from 06:00" can read as 18:00); ✓ = (a), after Claude said it needs code
+  outside the page (a new set path in Store) and the user said go, as described: no toast when
+  the post is on no screen.
+- **Built:** `Header` a Settings row (`bodyLarge` title, the summary under it, "▾"/"▴" at 30 sp at
+  the right, the ripple across the pane through `bleed`, 56 dp at least); `setupSummary` grouped
+  by screen; `statusLines`, `VideoNotice`, `problemText`, the switch's label and the Save ⓘ text as
+  picked; ⛶'s ✓ calls `setPart` (`MainActivity`, in `runs`), which calls `Store.setPart`: under
+  the wallpaper lock the part saved (`putPart`, shared with `saveSetup`, same writes), then the
+  screens with a column whose record shows that very post set again, `wallpaperSetAt` moved, no
+  record, turn or change time touched; ⛶ disabled while Set or the daily switch's run goes.
+  Found on the way: "Save every picture" wrapped in the tablet's pane (a `Spacer` of the same
+  weight gave the label half the width): the label and ⓘ now share what the switch leaves.
+  Found by reading the diff: a screen left alone (an empty column) keeps its record, so
+  `setPart` sets only screens with a column (else ✓ could overwrite a lock wallpaper the user
+  chose). `full_description.txt` and `README.md`: "Change automatically", ✓ sets it.
+- **Results** (2026-11-02, Claude by day, master's tree, not committed): `:core:test
+  :app:assembleDebug` pass. **Tablet** (HA24BZ2Y, debug, Android 15; its setup: home APOD, lock
+  NASA + Earth every 3 h): Setup closed (summary "Home: APOD · Lock: NASA, Earth · every 3 h from
+  06:00"), open (▴ drawn, not a box), the ripple across the pane, the rows 440–800 px wide and
+  Advanced 57 dp tall; a draft that differs (6 h) closed by hand: "Setup" in tertiary, the
+  summary the stored one; font scale 2.0 at a phone's width (`wm density 344`): the summary
+  wraps under the title, the glyph stays right; landscape: two panes, the open state kept.
+  ⛶ → drag → ✓ on APOD's page (on home only): "Wallpaper set", the log's "Part: APOD 2026-11-02
+  set on HOME", home's wallpaper id 1101 → 1103 with the crop hint at the left edge, the lock's
+  (1102) untouched, only home's `wallpaperSetAt` moved, the 6 h draft still a draft. On NASA's
+  page (on no screen): the part saved, no set, no toast, no log line. "Whole picture" on → ✓: set
+  whole (id 1105); off → ✓: Fill at the middle (id 1106, the crop hint the one before the test).
+  The texts on a faked video day offline: "Astronomy Picture of the Day: no connection since
+  31 Oct.", "This APOD is a video: Earth Observatory's Image of the Day instead.", "Changed 2 Nov,
+  12:33 · Earth"; with "Skip it": "This APOD is a video: skipped. Change: Setup › If APOD is a
+  video", "Home: video day, previous kept". The tablet left as found (font 1.1, density, rotation,
+  Wi-Fi, the prefs but the fallback job's own real run, both wallpapers).
+  **Not tested:** the screen readers' states (this `uiautomator dump` doesn't print them; the
+  semantics are the old header's), ⛶ disabled during a Set (not caught on screen), `setPart` with
+  a screen left alone (the column check, by reading only), a failed `setPart`, the HTTP and
+  site-changed texts and APOD mode's texts on a device (the tablet is in the switch's mode), the
+  FP6 (R's screenshots will show the page there). A mis-tap on NASA's picture opened it in the
+  tablet's browser (WebLibre) and the next taps went there; it showed its start page after.
+- **Second check** (2026-11-02, Claude, a fresh session by reading and on the tablet): checks 1–5
+  pass (a screen left alone: ✓ set HOME only, the lock's id and crop hint kept; equal columns: one
+  set HOME+LOCK, one shared wallpaper; ⛶ dimmed 0.2 s into a Set; a rotation during ✓'s whole
+  set: the toast, the stored part; R8 build). Found and fixed: a page under a stacked one (over
+  the photo picker) kept its older part in the draft, showed ⛶ as "not set yet" and wrote it back
+  with Set (reproduced: 0.030 by ✓ in the top page, 0.836 back by Set in the one below); a second
+  ✓ during the first's set compared with the page's old stored part and was lost (by reading); a
+  failed ✓ couldn't be retried with the same part. Now ✓ saves at once on the page's thread
+  (`Store.savePart`), then `Store.setPart` sets; each page's draft parts are the stored ones
+  (`readStatus`); `failedPart`; ⛶ has no highlight any more.
+- **Waits for:** the user's approval of the screenshots.
+
 ### [ ] R. Docs, changelog, store texts, screenshots (Opus, medium)
 
 After P and W, on the build that passed. `changelogs/10.txt` (max 500 characters; say that a

@@ -12,7 +12,7 @@ One page: today's picture with its title and date, and the settings below it (be
 tablets and in landscape). With "More NASA pictures" on, swipe or use the name above the picture
 to see each source; "On wallpaper" marks the picture that's on your wallpaper.
 
-- **Change wallpaper automatically:** alarms check for the new picture at the change times,
+- **Change automatically:** alarms check for the new picture at the change times,
   only with a network, and set it once it's out (APOD at about 00:05 US Eastern time). On or off
   at once.
 - **Setup**, a draft until you tap **Set as wallpaper**:
@@ -31,7 +31,7 @@ to see each source; "On wallpaper" marks the picture that's on your wallpaper.
 - Tap the picture to open it on NASA's website; tap the star to save the original to your
   gallery (`Pictures/APODroid/`).
 - Tap ⛶ to choose which part of the picture becomes the wallpaper, or the whole picture on a
-  blurred or black background; ✓ keeps it, Set as wallpaper sets it.
+  blurred or black background; ✓ sets it.
 - The explanation's first two lines show under the title; tap them to read it all.
   Long-press the title or the explanation to copy the link or the text.
 

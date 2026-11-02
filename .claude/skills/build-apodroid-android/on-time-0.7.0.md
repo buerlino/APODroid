@@ -771,8 +771,9 @@ state, the shown source, Setup's and Advanced's state (B13's rules for a rotatio
 - **The texts lean** (`CLAUDE.md`'s short-texts rule, binding since 2026-10-29): O13 is the pause
   hint's only rewrite (`lean-ui-0.7.0.md` leaves the hint and its Hide dialog to it), with
   Android's and the makers' labels word for word. Whether " (on Optimized, a new picture can
-  come hours late)" stays (decided 2026-10-28, "Keep today's text") is revisited in
-  `lean-ui-0.7.0.md`'s mockup; O13 follows what the user picks there.
+  come hours late)" stays (decided 2026-10-28, "Keep today's text") was to be revisited in
+  `lean-ui-0.7.0.md`'s mockup; that mockup ran for 0.6.0 (U0, 2026-11-02) without the pause hint,
+  so O13 shows its draft beside today's and the user picks there.
 - **Files:** a `:core` file and its test, `MainActivity.kt`; `CLAUDE.md` (Background update, The
   pause hint); the skill's Where things are.
 - **Tablet:** the hint on the tablet (Lenovo's line; screenshot), the new button opens the list

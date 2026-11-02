@@ -1,10 +1,10 @@
 APODroid sets NASA's Astronomy Picture of the Day (APOD) as your wallpaper. A new picture comes out every day, and the app picks it up on its own. Turn on "More NASA pictures" to add NASA's Image of the Day and the Earth Observatory's Image of the Day.
 
-The app is one page: today's picture with its title and date, and the settings below it (beside it on tablets and in landscape). With more than one source, swipe or use the name above the picture to see each one. Pull down to refresh. Tap the picture to open it on NASA's website, or tap the star to save it to your gallery. Tap the frame button to choose which part of the picture becomes the wallpaper, or the whole picture on a blurred or black background. The astronomer's explanation starts under the title; tap it to read it all.
+The app is one page: today's picture with its title and date, and the settings below it (beside it on tablets and in landscape). With more than one source, swipe or use the name above the picture to see each one. Pull down to refresh. Tap the picture to open it on NASA's website, or tap the star to save it to your gallery. Tap the frame button to choose which part of the picture becomes the wallpaper, or the whole picture on a blurred or black background; the check mark sets it. The astronomer's explanation starts under the title; tap it to read it all.
 
 <b>Settings:</b>
 <ul>
-<li><b>Change wallpaper automatically:</b> on or off, at once.</li>
+<li><b>Change automatically:</b> the wallpaper, on or off, at once.</li>
 <li><b>Where</b> (Setup, like the next two: a draft until you tap Set as wallpaper): home screen, lock screen, or both. With "More NASA pictures" on, <b>Pictures from</b> instead: each source on the home screen, the lock screen or both. A screen with two or more takes turns, every 24, 12, 6 or 3 hours, and shows only pictures it hasn't shown yet. NASA and Earth Observatory post on weekdays only.</li>
 <li><b>New picture at:</b> the hour the wallpaper changes, 06:00 by default. A picture that comes out in the 3 hours after it still goes on.</li>
 <li><b>If APOD is a video:</b> skip it, use NASA's or Earth Observatory's picture, or a picture of your own. The page shows a ▶ tile that opens the video on NASA's website.</li>

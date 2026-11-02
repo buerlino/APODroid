@@ -42,13 +42,13 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -110,6 +110,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -117,6 +118,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -291,6 +293,9 @@ class MainActivity : ComponentActivity() {
 
         /** The daily switch's run is going ([switchOn]); Set waits for it. */
         var switching by mutableStateOf(false)
+
+        /** ⛶'s ✓ whose set failed ([setPart]): ✓ with that part again isn't "no change". */
+        var failedPart: Part? = null
 
         /**
          * The daily switch went on while a load, a Set or a switch-on ran: [switchOn] runs after it
@@ -569,10 +574,13 @@ class MainActivity : ComponentActivity() {
 
     /**
      * What the last check and the last sets stored (also the job's), the stored setup, and the
-     * stored APOD, which decides the pages.
+     * stored APOD, which decides the pages. The draft's parts are the stored ones: ✓ saves at
+     * once, so a page's own (one under a stacked page, or restored after the system killed the
+     * app) mustn't bring an older one back with Set.
      */
     private fun readStatus() {
         stored = store.setup
+        parts = stored.parts
         hasFallback = store.fallbackFile.exists()
         apod = store.apod
         pageScreen = store.pageScreen
@@ -599,49 +607,48 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The cause in a sentence, with since when nothing has worked once that's more than a day;
-     * named when it isn't APOD's or two or more sources are ticked.
+     * The cause, short (U0, 2026-11-02), with since when nothing has worked once that's more than a
+     * day: "NASA's site: no connection since 27 Oct."; the source's name instead of "NASA's site"
+     * when it isn't APOD's or two or more sources are ticked.
      */
     private fun problemText(problem: Problem): String {
         val since = checkedAt?.takeIf { it < Instant.now().minus(1, ChronoUnit.DAYS) }
-            ?.let { " since " + it.atZone(zone).format(dayFormat) }
-        val name = if (problemSource == Source.APOD && apodAlone) "" else "${problemSource.label}: "
-        return name + when (problem) {
-            Problem.Network -> "Couldn't reach NASA's site${since.orEmpty()}. Check the connection."
-            is Problem.Http -> if (since == null) {
-                "NASA's site answered with an error (${problem.code}). The app tries again later."
-            } else {
-                "NASA's site has answered with an error (${problem.code})$since. The app tries again later."
-            }
-            Problem.Storage -> "Couldn't store the picture. Check the free space."
-            Problem.SiteChanged -> "NASA's site has changed${since?.let { "; nothing new$it" }.orEmpty()}. " +
-                "An app update may be needed."
+            ?.let { " since " + it.atZone(zone).format(dayFormat) }.orEmpty()
+        val named = !(problemSource == Source.APOD && apodAlone)
+        val subject = if (named) problemSource.label else "NASA's site"
+        return when (problem) {
+            Problem.Network -> "$subject: no connection$since."
+            is Problem.Http -> "$subject: error ${problem.code}$since. Trying again later."
+            Problem.Storage -> (if (named) "$subject: " else "") + "Couldn't store the picture. Check the free space."
+            Problem.SiteChanged -> "$subject has changed${if (since.isEmpty()) "" else " (nothing new$since)"}. An app update may be needed."
         }
     }
 
     /**
      * Under the daily switch: when the wallpaper last changed, from where when it isn't APOD or
      * two or more sources are ticked, or that a video day kept it ([ScreenState.kept]). In APOD
-     * mode one line, for the screen "Where" names. With the switch on one line while both
-     * screens show the same picture, else one per screen that was set or kept ("Home screen
-     * changed …", "Lock screen: video day, wallpaper kept").
+     * mode one line, for the screen "Where" names ("Changed 2 Nov, 06:12", "Video day, previous
+     * kept"; U0, 2026-11-02). With the switch on one line while both screens show the same
+     * picture, else one per screen that was set or kept ("Home: 2 Nov, 06:12 · NASA", "Lock:
+     * video day, previous kept").
      */
     private fun statusLines(): List<String> {
-        fun line(name: String, state: ScreenState, setAt: Instant? = state.setAt): String? = when {
-            state.kept -> if (name == "Wallpaper") "Video day, wallpaper kept" else "$name: video day, wallpaper kept"
+        // [name] null: the one line for the whole wallpaper.
+        fun line(name: String?, state: ScreenState, setAt: Instant? = state.setAt): String? = when {
+            state.kept -> if (name == null) "Video day, previous kept" else "$name: video day, previous kept"
             else -> setAt?.let {
                 val time = if (hours24) "d MMM, HH:mm" else "d MMM, h:mm\u00A0a"
-                "$name changed " + it.atZone(zone).format(DateTimeFormatter.ofPattern(time, Locale.ENGLISH)) +
+                (if (name == null) "Changed " else "$name: ") + it.atZone(zone).format(DateTimeFormatter.ofPattern(time, Locale.ENGLISH)) +
                     pictureSuffix(state.picture)
             }
         }
-        if (!stored.allSources) return listOfNotNull(screens[pageScreen]?.let { line("Wallpaper", it) })
+        if (!stored.allSources) return listOfNotNull(screens[pageScreen]?.let { line(null, it) })
         val home = screens[Screen.HOME]
         val lock = screens[Screen.LOCK]
         if (home != null && lock != null && home.picture != null && home.picture == lock.picture && home.kept == lock.kept) {
-            return listOfNotNull(line("Wallpaper", home, listOfNotNull(home.setAt, lock.setAt).maxOrNull()))
+            return listOfNotNull(line(null, home, listOfNotNull(home.setAt, lock.setAt).maxOrNull()))
         }
-        return listOfNotNull(home?.let { line("Home screen", it) }, lock?.let { line("Lock screen", it) })
+        return listOfNotNull(home?.let { line("Home", it) }, lock?.let { line("Lock", it) })
     }
 
     /** " · NASA" on the status line, none for APOD's with APOD ticked alone; the user's own " · My picture" in both modes. */
@@ -1030,10 +1037,45 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** ✓: crop mode closes; the frame's place and the "Whole picture" toggle are [post]'s part in the draft. */
+    /** Crop mode closes; the frame's place and the "Whole picture" toggle are [post]'s part in the draft. */
     private fun keepPart(post: Post) {
         parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition, cropWhole))
         cropping = false
+    }
+
+    /**
+     * ✓ (U0, 2026-11-02: users expected ✓ to set it): [keepPart], then, when the part differs from
+     * the stored one or its last set failed, [Store.savePart] saves it at once (each page's draft
+     * takes it at its next [readStatus]) and [Store.setPart] sets the screens showing that post
+     * again (a post on no screen: only saved). "Wallpaper set" or "Couldn't set the wallpaper"; no
+     * toast when nothing was set. In [runs], as Set's, so a rotation keeps its end. ⛶ is disabled
+     * while a Set or the daily switch's run goes: Set's draft, taken before, would write the old
+     * part back.
+     */
+    private fun setPart(post: Post) {
+        keepPart(post)
+        val part = parts.getValue(post.source)
+        if (part.position == storedPosition(post) && part.whole == storedWhole(post) && part != failedPart) return
+        store.savePart(post.source, part)
+        readStatus()
+        val store = store
+        val app = applicationContext
+        val page = id
+        runs.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { store.setPart(post) } }
+            // A failed set: the same part again sets it once more.
+            failedPart = if (result.isFailure) part else null
+            result.exceptionOrNull()?.let { Log.w("APODroid", "Part: set failed: $it", it) }
+            result.getOrNull()?.takeIf { it.isNotEmpty() }?.let { Log.i("APODroid", "Part: ${post.source} ${post.date} set on ${it.joinToString("+")}") }
+            live[page]?.run {
+                readStatus()
+                if (isStale()) show()
+            }
+            when {
+                result.isFailure -> toast(app, "Couldn't set the wallpaper")
+                result.getOrNull().orEmpty().isNotEmpty() -> toast(app, "Wallpaper set")
+            }
+        }
     }
 
     /** ⛶: crop mode opens on [post]'s draft part and whole picture. */
@@ -1265,23 +1307,22 @@ class MainActivity : ComponentActivity() {
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
-            // ✓ keeps the chosen part and the whole picture in the draft (Set stores them).
+            // ✓ saves the chosen part and the whole picture and sets the screens showing this post (U0).
+            // Not while a Set or the daily switch's run goes (their draft or setup was read before).
+            val partEnabled = !setting && !switching
             IconButton(
-                onClick = { if (!crop) startCrop(post) else keepPart(post) },
+                onClick = { if (!crop) startCrop(post) else setPart(post) },
+                enabled = partEnabled,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(8.dp)
                     .background(Color.Black.copy(alpha = 0.4f), CircleShape),
             ) {
-                // The draft's part or whole picture differs from the stored one: in tertiary until Set.
-                val partChanged = draftPosition(post) != storedPosition(post) || draftWhole(post) != storedWhole(post)
+                // No highlight: ✓ saves the part at once, so the draft never holds one not set.
                 Text(
                     if (crop) "✓" else "⛶",
-                    Modifier.clearAndSetSemantics {
-                        contentDescription = if (crop) "Done" else "Choose the wallpaper's part"
-                        if (partChanged) stateDescription = "not set yet"
-                    },
-                    color = if (partChanged) MaterialTheme.colorScheme.tertiary else Color.White,
+                    Modifier.clearAndSetSemantics { contentDescription = if (crop) "Done" else "Choose the wallpaper's part" },
+                    color = Color.White.copy(alpha = if (partEnabled) 1f else 0.4f),
                     fontSize = 24.sp,
                 )
             }
@@ -1427,38 +1468,33 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Says why the wallpaper didn't change on a video day and what the user can do; follows the
-     * settings. What takes APOD's place ("… takes its place." once its picture is stored, B17), with the switch on also with turns; with APOD ticked
-     * nowhere only that it's a video. A stand-in every screen with APOD has shown already (B22): "Skip it"'s first sentence.
+     * Says what a video day does to the wallpaper, short (U0, 2026-11-02), by the stored settings:
+     * what takes APOD's place ("…: NASA's Image of the Day instead." once its picture is stored,
+     * B17), with the switch on also with turns; with APOD ticked nowhere only that it's a video.
+     * A stand-in every screen with APOD has shown already (B22): "Skip it"'s first part. Where to
+     * change it ("Change: Setup › If APOD is a video") only when nothing takes APOD's place.
      */
     @Composable
     private fun VideoNotice() {
-        // ▶ is only on APOD's page.
-        val watch = if (post?.isVideo == true) " Tap ▶ to watch it on NASA's site." else ""
-        val kept = "This APOD is a video, so your wallpaper stays as it was."
+        val video = "This APOD is a video"
+        val change = " Change: Setup › If APOD is a video"
+        // APOD mode: the screen keeps its picture; with the switch on a screen with turns passes the turn.
+        val skipped = if (stored.allSources) "$video: skipped" else "$video: wallpaper unchanged"
         // What is set, not the draft.
         val other = stored.videoDays.source
         val apodTicked = stored.columns.values.any { Source.APOD in it }
         val mine = stored.videoDays == VideoDays.MINE
         val text = when {
-            !daily || (stored.allSources && !apodTicked) -> "This APOD is a video.$watch"
-            stored.allSources -> when {
-                other != null && standInSkipped -> "This APOD is a video, so it's skipped.$watch"
-                other != null && standInReady -> "This APOD is a video, so ${other.possessive} takes its place.$watch"
-                other != null -> "This APOD is a video. ${other.possessive} takes its place once it has loaded.$watch"
-                mine && hasFallback -> "This APOD is a video, so your own picture takes its place.$watch"
-                mine -> "This APOD is a video, so it's skipped.$watch Pick a picture below to use it on video days."
-                else -> "This APOD is a video, so it's skipped.$watch To change that, choose another picture for video days below."
-            }
-            // B15: "takes its place", not "is the wallpaper": the wallpaper changes at the next check or change time.
-            // B17: by the stand-in's stored picture, as above, not by what the screen shows yet.
+            !daily || (stored.allSources && !apodTicked) -> "$video."
+            // B15: "instead", not "is the wallpaper": the wallpaper changes at the next check or change time.
+            // B17: by the stand-in's stored picture, not by what the screen shows yet.
             // B22: shown on the screen before, it doesn't go on again: the wallpaper stays.
-            other != null && standInSkipped -> "$kept$watch"
-            other != null && standInReady -> "This APOD is a video, so ${other.possessive} takes its place.$watch"
-            other != null -> "This APOD is a video. ${other.possessive} takes its place once it has loaded.$watch"
-            mine && hasFallback -> "This APOD is a video, so your own picture takes its place.$watch"
-            mine -> "$kept$watch Pick a picture below to use it on video days."
-            else -> "$kept$watch To change that, choose another picture for video days below."
+            other != null && standInSkipped -> "$skipped."
+            other != null && standInReady -> "$video: ${other.possessive} instead."
+            other != null -> "$video: ${other.possessive} instead, once loaded."
+            mine && hasFallback -> "$video: your picture instead."
+            mine -> "$skipped (no picture chosen).$change"
+            else -> "$skipped.$change"
         }
         NoticeBox({
             TextButton(onClick = { dismissVideoNotice(forever = false) }) { Text("Dismiss") }
@@ -1559,7 +1595,7 @@ class MainActivity : ComponentActivity() {
                 Modifier.fillMaxWidth().toggleable(daily, role = Role.Switch, onValueChange = ::switchDaily),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Change wallpaper automatically", Modifier.weight(1f))
+                Text("Change automatically", Modifier.weight(1f))
                 Switch(checked = daily, onCheckedChange = null)
             }
             if (daily) {
@@ -1672,26 +1708,26 @@ class MainActivity : ComponentActivity() {
     private fun videoDaysChanged() = videoDays != stored.videoDays || (videoDays == VideoDays.MINE && draftFallback)
 
     /**
-     * "Setup"'s summary while it's closed, of the stored setup: "APOD on both screens" (APOD
-     * mode), else each ticked source "NASA on home screen", joined by ", "; while the daily
-     * switch is on " · every 6 h from 06:00" when a screen takes turns, else " · at 06:00".
+     * "Setup"'s summary while it's closed, of the stored setup, grouped by screen (U0,
+     * 2026-11-02): "APOD, NASA · both screens" while both screens have the same sources, "APOD ·
+     * home screen" while only one has any, else "Home: APOD, Earth · Lock: NASA, Earth"; while
+     * the daily switch is on " · every 6 h from 06:00" when a screen takes turns, else " · 06:00".
      */
     private fun setupSummary(): String {
-        fun on(screens: Set<Screen>) = when (Where.entries.first { it.screens == screens }) {
-            Where.HOME -> "home screen"
-            Where.LOCK -> "lock screen"
-            Where.BOTH -> "both screens"
-        }
-        val sources = if (!stored.allSources) {
-            "APOD on ${on(stored.where.screens)}"
-        } else {
-            stored.list.ticked().joinToString(", ") { "${it.shortLabel} on ${on(stored.list.screensOf(it))}" }
+        val home = stored.columns[Screen.HOME].orEmpty()
+        val lock = stored.columns[Screen.LOCK].orEmpty()
+        fun names(sources: List<Source>) = sources.joinToString(", ") { it.shortLabel }
+        val sources = when {
+            lock.isEmpty() -> "${names(home)} · home screen"
+            home.isEmpty() -> "${names(lock)} · lock screen"
+            home.toSet() == lock.toSet() -> "${names(home)} · both screens"
+            else -> "Home: ${names(home)} · Lock: ${names(lock)}"
         }
         val time = hourLabel(stored.pictureAt)
         val turns = when {
             !daily -> ""
             stored.columns.values.any { it.size >= 2 } -> " · every ${stored.interval.label} from $time"
-            else -> " · at $time"
+            else -> " · $time"
         }
         return "$sources$turns"
     }
@@ -1724,28 +1760,46 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * A header that opens and closes its section ("Setup ▸", "Setup ▾"), a button for screen
-     * readers ("expanded", "collapsed"); [summary] under it while it's closed. [changed]: in `tertiary`.
+     * A row that opens and closes its section, as a row in Android's Settings (U0, 2026-11-02:
+     * the heading-like "Setup ▸" didn't look tappable): the title, [summary] under it while it's
+     * closed, "▾" (closed) or "▴" (open) at the right; the whole row tappable with its ripple, the
+     * pane's full width, at least 56 dp. A button for screen readers ("expanded", "collapsed").
+     * [changed]: the title in `tertiary`, ", not set yet".
      */
     @Composable
     private fun Header(text: String, open: Boolean, changed: Boolean, summary: String? = null, toggle: () -> Unit) {
-        Column(
+        Row(
             Modifier
+                .bleed(16.dp)
                 .fillMaxWidth()
+                .heightIn(min = 56.dp)
                 .clickable(role = Role.Button, onClick = toggle)
                 .semantics { stateDescription = (if (open) "expanded" else "collapsed") + if (changed) ", not set yet" else "" }
-                .padding(top = 8.dp, bottom = 4.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                "$text\u00A0${if (open) "▾" else "▸"}",
-                Modifier.clearAndSetSemantics { contentDescription = text },
-                style = MaterialTheme.typography.titleSmall,
-                color = if (changed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
-            )
-            if (!open && summary != null) {
-                Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(Modifier.weight(1f)) {
+                Text(text, style = MaterialTheme.typography.bodyLarge, color = highlight(changed))
+                if (!open && summary != null) {
+                    Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
+            // Roboto draws "▾" small: larger than the text, so it reads as the row's control.
+            Text(
+                if (open) "▴" else "▾",
+                Modifier.padding(start = 16.dp).clearAndSetSemantics { },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 30.sp,
+                lineHeight = 30.sp,
+            )
         }
+    }
+
+    /** Wider by [by] on each side, into the parent's padding: a row whose ripple spans the pane. */
+    private fun Modifier.bleed(by: Dp) = layout { measurable, constraints ->
+        val extra = if (constraints.hasBoundedWidth) by.roundToPx() * 2 else 0
+        val placeable = measurable.measure(constraints.copy(minWidth = constraints.minWidth + extra, maxWidth = constraints.maxWidth + extra))
+        layout(placeable.width - extra, placeable.height) { placeable.place(-extra / 2, 0) }
     }
 
     /** A highlighted control's text: `tertiary` while the draft differs from the stored setup, else the default. */
@@ -1874,17 +1928,20 @@ class MainActivity : ComponentActivity() {
             Modifier.fillMaxWidth().toggleable(saveEvery, role = Role.Switch, onValueChange = ::switchSaveEvery),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Not filling: the ⓘ stays beside the label, also when a large font wraps it.
-            Text("Save every picture", Modifier.weight(1f, fill = false))
-            Text(
-                "ⓘ",
-                Modifier
-                    .clickable(role = Role.Button, onClick = { info = true })
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .clearAndSetSemantics { contentDescription = "About saving" },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.weight(1f))
+            // The label and the ⓘ take the width the switch leaves (U0: with a Spacer of the same weight
+            // the label got half of it and wrapped in the tablet's pane); not filling, so the ⓘ stays
+            // beside the label, also when a large font wraps it.
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                Text("Save every picture", Modifier.weight(1f, fill = false))
+                Text(
+                    "ⓘ",
+                    Modifier
+                        .clickable(role = Role.Button, onClick = { info = true })
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .clearAndSetSemantics { contentDescription = "About saving" },
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Switch(checked = saveEvery, onCheckedChange = null)
         }
         if (saveEvery) {
@@ -1916,8 +1973,8 @@ class MainActivity : ComponentActivity() {
                 confirmButton = { TextButton(onClick = { info = false }) { Text("OK") } },
                 text = {
                     Text(
-                        "Each new picture is saved to Pictures/APODroid: full size up to the largest original, " +
-                            "else a screen-sized copy. A few hundred MB a month or more.",
+                        "Saves each new picture to Pictures/APODroid: full size up to the limit, else screen size. " +
+                            "A few hundred MB a month or more.",
                     )
                 },
             )
@@ -2015,7 +2072,7 @@ private val Source.shortLabel
         Source.EARTH -> "Earth"
     }
 
-/** The source's picture in a sentence, e.g. "NASA's Image of the Day takes its place". */
+/** The source's picture in the video notice, e.g. "NASA's Image of the Day instead". */
 private val Source.possessive
     get() = when (this) {
         Source.APOD -> "the APOD"

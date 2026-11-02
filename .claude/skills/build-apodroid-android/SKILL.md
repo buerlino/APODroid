@@ -77,7 +77,8 @@ packages unattended): `night.md`.
   `ranJob(failed)` (a job run's end: counts or clears the failures, removes `runGoing`),
   `setup` (the stored `Setup`: mode, "Where", list, interval, video days, `parts`, ⛶'s
   `Part` per source with its `whole`, `pictureAt`) and
-  `saveSetup(setup, pick)` (S4, Set: one commit with the settings, `putColumns`, the parts and
+  `setPart(post, part)` (U0, ⛶'s ✓: the part saved with `putPart` and the screens with a column whose record shows that post set again; only `wallpaperSetAt` moves),
+  `saveSetup(setup, pick)` (S4, Set: one commit with the settings, `putColumns`, the parts (`putPart`) and
   `restartAndForget`'s plan; returns whether the commit was written, B20; `draftFallbackFile` renamed to `fallbackFile` first, only with `pick`, the page's own `draftFallback` (B11); not `daily`), `setsSinceSetup()` (after Set's update: whether any run set a screen since `saveSetup`, and whether one's last set failed; Set's toast, B14),
   `switchDaily(on)` (S4f2: writes `daily` at once, clears the job's failures) and `startAfresh()` (the switch on:
   `restartAndForget` with the stored columns),
@@ -92,7 +93,7 @@ packages unattended): `night.md`.
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
   the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob(context)` (`DailyJob.ensure`: the alarms and the fallback) after its set, as Set's; Set's and the switch-on's runs go in the companion's process-wide `runs` scope with `setting`, `switching` and `switchRuns`, so a rotation or Back keeps their end, and `redrawAfterRun` goes to the page in `live` under the starter's `id`, kept by a rotation, B13; on while a load, Set or switch-on runs: owed in `switchRuns` (`core/.../SwitchRuns.kt`, `SwitchRunsTest`), run by `runNext` after it, as `loadAgain`, unless the switch-on run went on to set, `Updated.wentToSet`: B6); the draft (S4: `where`, `list`, `interval`, `videoDays`, `parts`, `draftFallback`,
   `allSources`; `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`; `pages`, the live pages: a start deletes `fallback-draft.jpg` only without a saved draft and with no other page, B8;
-  ⛶ `startCrop`, ✓ `keepPart`, `draftPosition`, `storedPosition`; A4's toggle `cropWhole`, `draftWhole`, `storedWhole`); the settings (`Settings`: `Header` for "Setup" and "Advanced settings", `setupOpen`/`advancedOpen`
+  ⛶ `startCrop`, ✓ `setPart` (U0: `keepPart`, then `Store.setPart` in `runs`; ⛶ disabled while Set or the switch-on runs), `draftPosition`, `storedPosition`; A4's toggle `cropWhole`, `draftWhole`, `storedWhole`); the settings (`Settings`: `Header`, the Settings row for "Setup" and "Advanced settings" (U0; `bleed` widens it into the column's padding), `setupOpen`/`advancedOpen`
   in the saved state, `setupSummary` of the stored setup; the highlight: `setupChanged`, `rowChanged`, `videoDaysChanged`, `highlight`, `Segments`
   (the segmented rows), `DropdownButton`; with the switch "More NASA pictures" `PictureList`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
@@ -316,6 +317,10 @@ what it leaves open.
 - Obtainium tracking the app after an `adb install -r` of the release-signed build (WP8).
 
 **The page:**
+- U0 (2026-11-02, tablet only): the rows' and highlighted controls' screen-reader states (this
+  `uiautomator dump` doesn't print them), ⛶ disabled during a Set, `Store.setPart` with a screen
+  left alone (its column check, by reading) and a failed one, the HTTP and site-changed texts and
+  APOD mode's texts on a device, "▴" on Android 10–14; the FP6 sees the page at R's screenshots.
 - A rotation during "Change picture"'s picker (V4, V8).
 - The problem box's Dismiss across a faked day; each source on each screen one by one (V10).
 - The toast "Setup saved. Nothing to set yet." (regression 2: toasts weren't caught then).

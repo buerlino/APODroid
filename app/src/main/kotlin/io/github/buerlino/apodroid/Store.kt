@@ -274,18 +274,50 @@ class Store(private val context: Context) {
             putString("interval", setup.interval.name)
             putInt("pictureAt", setup.pictureAt)
             putString("videoDays", setup.videoDays.name)
-            for ((source, part) in setup.parts) {
-                putString(source.key("cropDate"), part.date.toString())
-                putString(source.key("cropUrl"), part.url)
-                putFloat(source.key("cropPosition"), part.position)
-                putBoolean(source.key("whole"), part.whole)
-            }
+            for ((source, part) in setup.parts) putPart(source, part)
             putRestart(restart)
             commit()
         }
         if (!saved) Log.w("APODroid", "Couldn't save the setup")
         setsSinceSetup = mutableMapOf()
         saved
+    }
+
+    /** ⛶'s part of [source]'s post (its date and picture URL, the frame's place, the whole picture). */
+    private fun SharedPreferences.Editor.putPart(source: Source, part: Part) {
+        putString(source.key("cropDate"), part.date.toString())
+        putString(source.key("cropUrl"), part.url)
+        putFloat(source.key("cropPosition"), part.position)
+        putBoolean(source.key("whole"), part.whole)
+    }
+
+    /**
+     * ⛶'s ✓ (U0, 2026-11-02): [part] as [source]'s stored part, at once, on the page's thread, so
+     * every page (and a page a rotation makes) reads it before [setPart]'s set; that set and any
+     * run's read the part when they set, so the last ✓ wins.
+     */
+    fun savePart(source: Source, part: Part) = prefs.edit(commit = true) { putPart(source, part) }
+
+    /**
+     * Blocking. After [savePart]: sets the screens with a column whose record shows [post]
+     * again with its stored part. Nothing else: the records, the turns and the change times stay
+     * as they are, only `wallpaperSetAt` moves (the status line). A post on no screen, or one a
+     * newer post replaced meanwhile, isn't set; the job uses the part when it puts the post on.
+     * Under [wallpaperLock], so a run's set comes before or after it. Returns the screens set
+     * (empty: none showed it); throws when the set failed (the part stays saved).
+     */
+    fun setPart(post: Post): Set<Screen> = synchronized(wallpaperLock) {
+        val stored = stored()
+        val current = stored.post(post.source)?.takeIf { it.date == post.date && it.imageUrl == post.imageUrl } ?: return emptySet()
+        // Only screens with a column: a screen left alone keeps its record, but may show anything now.
+        val columns = columns
+        val showing = Screen.entries.filter { columns[it].orEmpty().isNotEmpty() }.mapNotNull { screen ->
+            (record(screen)?.picture as? Picture.Of)?.takeIf { it.source == post.source && current.isNoted(it.date, it.url) }?.let { screen to it }
+        }.toMap()
+        val picture = showing.values.firstOrNull() ?: return emptySet()
+        set(picture, showing.keys, stored)
+        prefs.edit(commit = true) { showing.keys.forEach { putSetAt(it) } }
+        showing.keys
     }
 
     /**

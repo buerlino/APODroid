@@ -28,7 +28,7 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
 - 0.7.0, on time on any phone (the expedited run, "Keep running", the detector; 2026-10-28): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
 - 0.7.0, Live, the day's pan (the live wallpaper, Size [Fill | Live]; 2026-10-28): [.claude/skills/build-apodroid-android/live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md).
-- 0.7.0, a clearer Setup and leaner texts (2026-10-29; mockup first, then UI1–UI3 after O3): [.claude/skills/build-apodroid-android/lean-ui-0.7.0.md](.claude/skills/build-apodroid-android/lean-ui-0.7.0.md).
+- A clearer Setup and leaner texts (planned for 0.7.0, 2026-10-29; MK and UI1–UI3 built in 0.6.0 as U0, 2026-11-02, with ⛶'s ✓ setting again; what's left for 0.7.0 is there): [.claude/skills/build-apodroid-android/lean-ui-0.7.0.md](.claude/skills/build-apodroid-android/lean-ui-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
   Only APODroid's nights use the tablet HA24BZ2Y (user, 2026-10-20: pascaline's nights leave it alone).
@@ -79,7 +79,8 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - Personal data stays on the phone. Real test files go in the gitignored `private/`; tests use
   made-up data.
 - English UI, short texts: one idea per line, drop what the screen already shows, explain each
-  concept in one place only. Binding for every new or changed text from 0.7.0 on (user,
+  concept in one place only. Binding for every new or changed text from 0.7.0 on, and applied
+  to the page's texts in 0.6.0 by U0 (2026-11-02; the pause hint waits for O13) (user,
   2026-10-29: "I don't like the many sentence-like texts on the page"): a label or a fact, not
   a sentence; one fact per line, numbers and names over words; explanations only in an ⓘ or a
   dialog, never on the page; Android's own labels word for word (people search for them).
@@ -269,21 +270,27 @@ set it as wallpaper, and on video days kept the old wallpaper.
   two panes both ways.
 - **Settings** (SharedPreferences; the layout and texts approved by the user from the tablet's
   screenshots, 2026-10-20 to 24), in order: **Wallpaper**: the daily switch; the status lines
-  (while the stored daily switch is on); **Setup ▸/▾**, a header that opens and closes the
-  draft's settings (a button for screen readers, "expanded"/"collapsed"; closed: a summary of
-  the **stored** setup under it, "APOD on both screens" in APOD mode (or "home screen", "lock
-  screen", as the stored "Where" says), else "NASA on home screen, Earth on both screens", then,
-  while the daily switch is on, " · every 6 h from 06:00" while a screen takes turns, else
-  " · at 06:00", 12/24 h as the system says): at its top the switch **More NASA pictures**
+  (while the stored daily switch is on); **Setup**, a row that opens and closes the draft's
+  settings, as a row in Android's Settings (U0, user, 2026-11-02, from the mockup: the old
+  "Setup ▸" header looked like the heading "Wallpaper" and didn't look tappable): the title in
+  `bodyLarge` and the normal text colour, the summary under it while closed (`bodyMedium`,
+  `onSurfaceVariant`), "▾" (closed) or "▴" (open) at the right at 30 sp (Roboto draws them
+  small), the whole row tappable with its ripple across the pane's full width (`bleed` into the
+  column's padding), at least 56 dp; a button for screen readers, "expanded"/"collapsed". The
+  summary is of the **stored** setup, grouped by screen (U0): "APOD, NASA · both screens"
+  while both screens have the same sources (APOD mode with Both: "APOD · both screens"), "APOD ·
+  home screen" or "… · lock screen" while only one has any, else "Home: APOD, Earth · Lock:
+  NASA, Earth"; then, while the daily switch is on, " · every 6 h from 06:00" while a screen
+  takes turns, else " · 06:00", 12/24 h as the system says. At its top the switch **More NASA pictures**
   (Setup is the draft, Advanced acts at once), then in APOD mode **Where**, with the switch on
   **Pictures from** (the list); while the daily switch is on **New picture at**, then, while a
   column takes turns, "Change every", and "If APOD is a video". Closed at a fresh start; it
   opens by itself while the draft differs from the store in it, when "More NASA pictures" is
   turned (the area swaps), and closes after a Set that saved (also "Setup saved. Nothing to set
   yet."; a failed set leaves it open). Its state and Advanced's survive a rotation (the saved
-  state). **Set as wallpaper**, always, after Setup. **Advanced settings ▸/▾**, closed by
-  default, only while the daily switch is on (empty otherwise): "Save every picture" with
-  "Largest original" under it while on.
+  state). **Set as wallpaper**, always, after Setup. **Advanced settings**, the same kind of
+  row (no summary), closed by default, only while the daily switch is on (empty otherwise):
+  "Save every picture" with "Largest original" under it while on.
   - **New picture at** (the label and the times approved by the user, 2026-10-24): a dropdown
     as "Largest original", the button "06:00 ▾" (12/24 h as the system says: "6:00 AM ▾"), a
     menu of 00:00 … 23:00 with ✓ before the chosen one, screen readers "New picture at: 06:00".
@@ -295,16 +302,17 @@ set it as wallpaper, and on video days kept the old wallpaper.
     (`tertiaryContainer` / `onTertiaryContainer`) and the row's borders (`tertiary`), the
     list's row (tick box, name, dropdown) where that source's screens differ, the video
     dropdown's border and text (another choice, or a newly picked "my picture" while it's
-    chosen), the mode switch and its label, ⛶ (or ✓) while the shown post's draft part or whole
-    picture differs from the stored one, the "Setup" header while anything in it differs (the
-    shown mode's "Where" or list, the mode switch, "New picture at", "Change every", "If APOD is
-    a video"; not ⛶). Not the daily switch, nor Advanced (they act at once). Screen readers: a
-    highlighted control's state adds "not set yet" ("Selected, not set yet", "Checked, not set
-    yet", "On, not set yet"; the headers "collapsed, not set yet").
+    chosen), the mode switch and its label, crop mode's "Whole picture" toggle while it differs
+    (not ⛶ since U0: ✓ saves the part at once), the
+    "Setup" row's title while anything in it differs (the shown mode's "Where" or list, the
+    mode switch, "New picture at", "Change every", "If APOD is a video"; not ⛶). Not the daily
+    switch, nor Advanced (they act at once). Screen readers: a highlighted control's state adds
+    "not set yet" ("Selected, not set yet", "Checked, not set yet", "On, not set yet"; the rows
+    "collapsed, not set yet").
   - **Set applies the setup** (user, 2026-10-20 evening; why: a change took effect at once,
     "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks and dropdowns),
-    "New picture at", "Change every", "If APOD is a video", a newly picked "my picture", ⛶'s
-    part and whole picture and the switch "More NASA pictures" change only the page
+    "New picture at", "Change every", "If APOD is a video", a newly picked "my picture" and the
+    switch "More NASA pictures" change only the page
     (`MainActivity`'s draft state; no pref is written, no set, no scheduling). **A hidden
     setting goes back to the stored one** (user, 2026-10-22: else Set saved a hidden "Change
     every", and "Setup" stayed highlighted with nothing in it highlighted): "Change every" while
@@ -322,8 +330,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
     in the second page replaces the first page's picture; a Set renames it to `fallback.jpg`
     only when its own draft holds the pick (`draftFallback`, `Store.saveSetup`'s `pick`), else it
     leaves `fallback.jpg` and the draft file, for the page that owns it.
-  - **The daily switch** ("Change wallpaper automatically", user 2026-10-17: with turns it
-    isn't daily; the pref `daily`) **acts at once, both ways** (user, 2026-10-20 evening: a
+  - **The daily switch** ("Change automatically" since U0, 2026-11-02, under the heading
+    "Wallpaper"; "Change wallpaper automatically" before, user 2026-10-17: with turns it isn't
+    daily; the pref `daily`) **acts at once, both ways** (user, 2026-10-20 evening: a
     setting that changes how the whole app works must act at once): off writes `daily` and
     cancels the job and its alarms; on writes it, starts the stored setup afresh
     (`Store.startAfresh`: `restartAndForget` with the stored columns, both records' pictures
@@ -342,8 +351,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     box, the battery hint, the opening page. **The job follows the stored setup only:**
     `onResume`'s `DailyJob.ensure` reads `store.daily`, the stored mode and columns; only Set
     and the daily switch schedule or cancel (Set by the stored switch, after saving the draft).
-    **At once:** Advanced ("Save every picture", "Largest original": they change no picture)
-    and ★.
+    **At once:** Advanced ("Save every picture", "Largest original": they change no picture),
+    ★, and ⛶'s ✓ (U0, 2026-11-02: Choosing the part).
   - **Set as wallpaper**: one button at the end of the Wallpaper section, both modes, the daily
     switch on or off, no Home / Lock / Both menu, enabled unless a Set or the daily switch's run goes. It saves the whole
     draft in one commit (`Store.saveSetup`: the settings, the list with its `lastScreens`, the
@@ -408,8 +417,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     ▾" and a `DropdownMenu`, ✓ before the chosen one), under its heading after "Where" or
     "Change every" in both modes, hidden while the daily switch is off; with the switch "More
     NASA pictures" on greyed out while APOD has no tick (so the page doesn't move), never greyed
-    out otherwise. A no-break space before every "▾" and "▸" (the dropdowns, the title, the
-    headers) keeps the glyph with the last word (user, 2026-10-21: at font scale 2.0 and a
+    out otherwise. A no-break space before every "▾" (the dropdowns, the title) keeps the glyph with the last word (user, 2026-10-21: at font scale 2.0 and a
     phone's width a "▾" wrapped alone). The choices: "Skip it" (`VideoDays.KEEP`, the pref's
     name from 0.5.0's "Keep"), NASA Image of the Day, Earth Observatory (`VideoDays.NASA`,
     `.EARTH`), or "Use my picture" (user). Default: "Skip it", as the Tasker task did. The choice fills APOD's turn on every
@@ -429,20 +437,24 @@ set it as wallpaper, and on video days kept the old wallpaper.
     update), the video-day notice and the ⓘ (Save every picture, Save).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. A neutral box below the
-  tile (`surfaceVariant` fill, `outline` border) says why the wallpaper didn't change and what to
-  do; the text follows the stored settings (daily off / keep / my picture with or without a
-  picture), also with turns. What takes APOD's place, the same in both modes ("This APOD is a
-  video, so your own picture takes its place.", "… so NASA's Image of the Day takes its place."
-  once the stand-in's picture is stored, `standInReady`, "… takes its place once it has
-  loaded." while it isn't; with "Skip it" "… so it's skipped." with the switch on, "… so your
-  wallpaper stays as it was." in APOD mode; approved by the user, 2026-10-20 and 24), and with
-  APOD ticked nowhere only "This APOD is a video.". A stand-in that every screen with APOD ticked
-  has shown before and doesn't show now (B22, `:core`'s `standInSkipped`, `Store.standInSkipped`;
-  not when it filled APOD's turn there this video day and the turn moved on) gets "Skip it"'s
-  first sentence, without its second: "This APOD is a video, so your wallpaper stays as it
-  was." in APOD mode, "… so it's skipped." with the switch on (user, 2026-10-26: no new text). "Takes its place", not "is the wallpaper"
-  (user, 2026-10-24): the wallpaper changes at the next check or change time, e.g. all evening
-  after a 21:05 video in Los Angeles. "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
+  tile (`surfaceVariant` fill, `outline` border) says what the video day does to the wallpaper;
+  the text follows the stored settings (daily off / keep / my picture with or without a
+  picture), also with turns. The texts (U0, user, 2026-11-02, from the mockup; short, "Tap ▶ to
+  watch it on NASA's site" dropped, ▶ says it), the same in both modes: what takes APOD's place,
+  "This APOD is a video: your picture instead.", "This APOD is a video: NASA's Image of the Day
+  instead." once the stand-in's picture is stored (`standInReady`), "…: NASA's Image of the Day
+  instead, once loaded." while it isn't; with "Skip it" "This APOD is a video: wallpaper
+  unchanged. Change: Setup › If APOD is a video" in APOD mode, "This APOD is a video: skipped.
+  Change: Setup › If APOD is a video" with the switch on; "Use my picture" without one "…:
+  wallpaper unchanged (no picture chosen). Change: …" (with the switch on "…: skipped (no
+  picture chosen). …"); with the daily switch off, or APOD ticked nowhere, only "This APOD is a
+  video.". A stand-in that every screen with APOD ticked has shown before and doesn't show now
+  (B22, `:core`'s `standInSkipped`, `Store.standInSkipped`; not when it filled APOD's turn there
+  this video day and the turn moved on) gets "Skip it"'s first part, without the pointer: "This
+  APOD is a video: wallpaper unchanged." in APOD mode, "…: skipped." with the switch on.
+  "Instead" (was "takes its place"), not "is the wallpaper" (user, 2026-10-24): the wallpaper
+  changes at the next check or change time, e.g. all evening after a 21:05 video in Los
+  Angeles. "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
   (`videoNoticeHidden`, no confirmation). The second help text besides the pause hint (the problem box is a status, not help). `refresh()` stores the
   entry without a picture and deletes the previous `apod.jpg`; `isCurrent` doesn't need one.
 - **Fetch** in `:core`: newest post → `Post(source, date, title, imageUrl, pageUrl, isVideo,
@@ -495,8 +507,13 @@ set it as wallpaper, and on video days kept the old wallpaper.
   today's post already stored) sets `checkedAt` and clears `problem`; a failure stores `problem`
   (and `httpCode`). One box: in APOD mode the first offered source with a problem (APOD's
   first); with the switch on (all three fetched) the shown source's, else the first ticked
-  source's, prefixed with its name ("NASA Image of the Day: …"; its `problemNoticeKey` starts
-  `nasa:`) unless it's APOD's with APOD ticked alone. A failed set isn't a problem (the toasts
+  source's, named ("NASA Image of the Day: …"; its `problemNoticeKey` starts `nasa:`) unless
+  it's APOD's with APOD ticked alone. The texts (U0, user, 2026-11-02, from the mockup; the
+  subject once: "NASA's site" unnamed, else the source's name): "NASA's site: no connection
+  since 27 Oct." ("Earth Observatory: no connection …"), "NASA's site: error 503. Trying again
+  later." ("…: error 503 since 27 Oct. Trying again later."), "NASA's site has changed (nothing
+  new since 27 Oct). An app update may be needed." ("Earth Observatory has changed (…). …"),
+  the storage one as it was, named with a prefix. A failed set isn't a problem (the toasts
   and the job's retry cover it). While `problem` is set, it shows in the orange box below the
   picture or tile (orange for problems only: a failing app must look failing, the other boxes
   are neutral), with "since <day>" when `checkedAt` is more than a day old. Only "Dismiss": it
@@ -507,11 +524,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
   update), each with its own buttons. The empty state shows the text above "Try again", no
   problem box, but the battery hint below it. So on a day whose post is stored, opening the
   page clears a pull's failure: nothing is wrong until the next picture is due. **The status
-  lines**, under the switch while it's on: "Wallpaper changed 16 Oct, 06:12" (`wallpaperSetAt`,
+  lines**, under the switch while it's on (texts since U0, user, 2026-11-02): "Changed 16 Oct, 06:12" (`wallpaperSetAt`,
   any successful set; 12/24 h and the time zone as the system; the zone followed while the page
   is open, 12/24 h at the next resume), with " · NASA" when the wallpaper isn't APOD's or two or
   more sources are ticked (the source's short name, user, 2026-10-20: the full names wrapped) and
-  " · My picture" for the user's own, in both modes; or "Video day, wallpaper kept" (`:core`'s
+  " · My picture" for the user's own, in both modes; or "Video day, previous kept" (the user's
+  words; `:core`'s
   `videoDayKept`: APOD ticked there, its turn, and nothing will take APOD's place there (B23,
   user, 2026-10-26): "Skip it", "Use my picture" without one, or the stand-in shown there before
   and not on it now (B22's check); a stand-in that will go on, stored and not set yet (until the
@@ -521,8 +539,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   screen was set before, `wallpaperSetAt`, else not: a fresh install's first video day shows no
   line); before the first set nothing. In APOD mode for the screen "Where" names (with Lock the
   `lock.*` record). With the switch on one line while both screens show the same picture, else a
-  line per screen set or kept: "Home screen changed 16 Oct, 06:12 · NASA", "Lock screen: video
-  day, wallpaper kept"; a screen never set has no line. The page re-reads both around each
+  line per screen set or kept: "Home: 16 Oct, 06:12 · NASA", "Lock: video day, previous
+  kept"; a screen never set has no line. The page re-reads both around each
   update and after a set.
 - **The title and the swipe** (from the user's mockup of 2026-10-20 evening; the texts "APOD ▾",
   the menu's short names and "Picture from: …" approved by the user, 2026-10-21, with the
@@ -552,8 +570,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   in crop mode) marks the post on a screen, from the records (`Store.screenState`): with the
   switch on "On home screen", "On lock screen" or "On wallpaper" (both); in APOD mode "On
   wallpaper" for the screen "Where" names. With one source the caption is title, then date. The pages follow the draft (Settings, Set applies the setup); the chip and the
-  opening page the stored setup. The boxes show for every source (the video notice's "Tap ▶ …"
-  only on APOD's page, user); pull refreshes every source in use and covers the picture side
+  opening page the stored setup. The boxes show for every source; pull refreshes every source in use and covers the picture side
   (the left pane on wide screens).
 - **Credit** (approved by the user, 2026-10-20): one line under the date
   (APOD mode: title, date, credit) or, with two or more sources, under the title on APOD's page; smaller and
@@ -587,7 +604,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   came out stretched, with or without a crop. Only changed when the date is new and the
   download is a complete, decodable image.
   **The whole picture**, per post beside ⛶'s part (`<source>.whole`, keyed by the part's
-  `cropDate`/`cropUrl`, so a new post drops it; `Part.whole`, part of the draft until Set; its
+  `cropDate`/`cropUrl`, so a new post drops it; `Part.whole`, saved and set by ⛶'s ✓ since U0; its
   toggle is ⛶ mode's "Whole picture"). Each set of a source's post with it: the picture decoded
   upright by `ImageDecoder` straight to `:core`'s `fitFrame` size (`setTargetSize`: one large
   bilinear shrink from the rendition's full size can make stars jagged; a smaller picture is
@@ -608,21 +625,40 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the
   screen, none of 85 posts checked was). While it shows, a tap doesn't open the page; ✓ closes it
-  and keeps the part in the draft ("Done" for screen readers; it no longer sets the wallpaper,
-  since S4); Back closes it without keeping; reopening ⛶ shows the
-  draft's part. A rotation or a resize closes it too (the page is recreated), dropping a dragged
-  part not yet kept with ✓, as Back does, and closes an open dropdown; the draft, Setup's and
-  Advanced's state and the shown source survive (user, 2026-10-22: left as is). Set stores it (a Set while crop mode is open keeps the dragged part, as ✓
-  would). The position (0–1) is per source for that post only (date and picture URL), so each new
-  picture starts centred (a new post drops a draft part); the job uses only the stored one. The user's own picture (video days) is always centred.
+  ("Done" for screen readers) and **sets it at once** (U0, user, 2026-11-02, from the mockup's
+  (a): from S4 ✓ only kept the part in the draft, and nothing on the page said that Set was
+  still needed; users expected ✓ to set it). `Store.savePart` saves the part (and the whole
+  picture) for that post at once, on the page's thread; then `Store.setPart`, under the
+  wallpaper lock, sets the screens with a column whose record
+  shows that very post again with it (one set with both flags when both do), their
+  `wallpaperSetAt` moved; the records, the turns and the change times stay as they are (not Set's
+  `restartAndForget`), the draft's other changes stay a draft. A post on no screen (NASA's page
+  while APOD is on) or one a newer post replaced: only saved, no toast, the job uses the part
+  when the post goes on. Toasts "Wallpaper set" or "Couldn't set the wallpaper" (the part stays
+  saved, and ✓ with the same part tries again: `failedPart`); none when ✓ changed nothing. A
+  page's draft parts are the stored ones, read again with the status (`readStatus`; second
+  check of U0, 2026-11-02: a page under a stacked one kept its older part, showed ⛶ as "not set
+  yet" and wrote it back with Set), and a second ✓ while the first's set runs compares with
+  what the first saved (else it counted as no change and was lost); each set reads the part
+  when it sets, so the last ✓ wins. ⛶ is disabled (dimmed) while Set or the daily switch's
+  run goes: Set's draft, read before, would write the old part back. In the process-wide
+  `runs`, as Set's (a rotation keeps its end). Back closes crop mode without keeping;
+  reopening ⛶ shows the stored part. A rotation or a resize closes
+  it too (the page is recreated), dropping a dragged part not yet kept with ✓, as Back does,
+  and closes an open dropdown; the draft, Setup's and Advanced's state and the shown source
+  survive (user, 2026-10-22: left as is). A Set while crop mode is open keeps the dragged part
+  in its draft and stores it with the setup. The position (0–1) is per source for that post
+  only (date and picture URL), so each new picture starts centred (a new post drops a draft
+  part); the job uses only the stored one. The user's own picture (video days) is always
+  centred.
   **Whole picture** (texts approved by the user, 2026-10-24): in ⛶ mode a toggle at the
   picture's top left (where the chip is otherwise; the chip's dark pill), "Whole picture", "✓ Whole
   picture" while on. While on, the frame hides (no dimming, no drag) and the page shows the
-  picture as it is (no preview of the background: that comes with Live, 0.7.0). ✓ keeps it with
-  the part in the draft (`Part.whole`), Back drops it, reopening ⛶ shows the draft's; Set
-  stores it (also from open crop mode), per source for that post only, as the part. The toggle
-  and ⛶ show in `tertiary` while it differs from the stored one (⛶ also for the part); screen
-  readers: "Whole picture", a switch, "On"/"Off" with ", not set yet" while it differs.
+  picture as it is (no preview of the background: that comes with Live, 0.7.0). ✓ saves and
+  sets it with the part (`Part.whole`, U0), Back drops it, reopening ⛶ shows the stored one; a
+  Set from open crop mode stores it too, per source for that post only, as the part. The toggle
+  shows in `tertiary` while it differs from the stored one (until ✓); screen readers: "Whole
+  picture", a switch, "On"/"Off" with ", not set yet" while it differs.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title.
 - **Icon:** the user's SVGs in `logo/` as an adaptive icon; a monochrome layer for themed icons
@@ -652,8 +688,10 @@ redraws the page.
 
 **Save every picture** (0.6.0; the pref `saveEvery`, default off): a switch
 in "Advanced settings" while the daily switch is on, with a small ⓘ ("About saving") that opens a
-dialog: "Each new picture is saved to Pictures/APODroid: full size up to the largest original,
-else a screen-sized copy. A few hundred MB a month or more." (OK; user, 2026-10-20 night). After each job run (not the page's), also
+dialog: "Saves each new picture to Pictures/APODroid: full size up to the limit, else screen
+size. A few hundred MB a month or more." (OK; user, 2026-10-20 night; shorter since U0,
+2026-11-02). The label and ⓘ share the width the switch leaves (U0: a `Spacer` of the same
+weight gave the label half of it, so it wrapped in the tablet's pane). After each job run (not the page's), also
 after a failed one, not after a stop, `Store.saveInUse` saves each source in use's stored post
 in order APOD → NASA → Earth, as ★ does (`save`: the original, else the stored picture). The set
 in use is `:core`'s `sourcesInUse`, the one `update` fetches (the ticked sources and
@@ -970,9 +1008,11 @@ by the user in Setup) and the alarms were armed by `MY_PACKAGE_REPLACED`; the fi
 on time (06:12, NASA's turn). **W passed** (2026-11-02): every morning Tue 27 Oct to Mon 2 Nov read on the FP6 and
 the tablet, no `BUG:` line; the weekend waited, the US DST end and the Zurich case (APOD out 06:05, set at
 06:12 by the first run after it) as the rules say (`.coord/runs/w/report.md`). **P passed** (2026-11-02, with the user on the FP6, no `BUG:`;
-`.coord/runs/p/report.md`). Left: B25; three page fixes the user wants before the screenshots (2026-11-02:
-Setup as a Settings row, leaner texts, a sign that ⛶'s ✓ hasn't set anything: plan U0); R's screenshots and the
-tag's build on the FP6; T. The release as soon as possible (user, 2026-11-02). Lenovo's ZuiMemoryCleaner force-stopping the app (V12d after a clock step; W on real days, 28 Oct 13:57 and 30 Oct 01:34, Unrestricted and EXEMPTED: no alarm or job left until the page opened, 19:40 and 20:18): no 0.6.0
+`.coord/runs/p/report.md`). B25 merged. **U0** (user, 2026-11-02: "I want a cleaner page"; the freeze lifted for
+exactly these): Setup and Advanced as Settings rows, the page's texts short (picked in a mockup), ⛶'s ✓ setting
+again (`Store.setPart`: a new set path beside the rules', only the screens showing that post, no record, turn or
+change time touched, so W's result stands); built and checked on the tablet (`plan-0.6.0.md`, U0). Left: the
+user's approval of U0's screenshots; R's screenshots and the tag's build on the FP6; T. The release as soon as possible (user, 2026-11-02). Lenovo's ZuiMemoryCleaner force-stopping the app (V12d after a clock step; W on real days, 28 Oct 13:57 and 30 Oct 01:34, Unrestricted and EXEMPTED: no alarm or job left until the page opened, 19:40 and 20:18): no 0.6.0
 change (`on-time-0.7.0.md`). **More testing before the tag** (user, 2026-10-26 afternoon, from a
 report on the repo's state; the plan, Remaining 4j): **W**, a week on the FP6 from P's install
 to the morning of Mon 2 Nov, the tag not before Tue 3 Nov. Why: no real night has run the new
@@ -1088,7 +1128,8 @@ library (ML Kit needs Play Services; Tesseract is large). Decided:
   Size returns in 0.7.0 as [Fill | Live].
 - **Whole picture, per picture**: a toggle in ⛶ mode for the shown post (text, an asteroid, a
   grid of planets), kept like ⛶'s part (per source, for that post only, part of the draft
-  until Set; the job uses the stored one).
+  until Set; the job uses the stored one). Since U0 (2026-11-02) ⛶'s ✓ saves and sets both at
+  once (The app, Choosing the part).
 - **The background, automatic by the picture's edges** (user, 2026-10-23 night; no setting):
   black when the picture's edges are nearly black (a planet or a moon on space: the picture
   blends in), else blurred: the picture enlarged to cover the screen, blurred properly (passes

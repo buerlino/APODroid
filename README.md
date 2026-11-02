@@ -2,32 +2,36 @@
 
 An Android app that sets NASA's [Astronomy Picture of the Day](https://science.nasa.gov/apod/)
 (APOD) as your wallpaper, once a day, on its own. NASA's Image of the Day and the Earth
-Observatory's Image of the Day can be added.
+Observatory's Image of the Day can be added ("More NASA pictures").
 
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="300" alt="APODroid: today's picture and the settings">
 
 ## What it does
 
 One page: today's picture with its title and date, and the settings below it (beside it on
-tablets and in landscape). With more than one source, a tab per source sits above the picture,
-and "On wallpaper" marks the picture that's on your wallpaper.
+tablets and in landscape). With "More NASA pictures" on, swipe or use the name above the picture
+to see each source; "On wallpaper" marks the picture that's on your wallpaper.
 
-- **Change wallpaper automatically:** a background job checks for the new picture every few hours, only
-  with a network, and sets it once it's out (about 00:05 US Eastern time).
-- **Pictures from:** pick APOD, NASA (Image of the Day), Earth (Observatory). With two or more they
-  take turns: change every day, 12, 6 or 3 hours. NASA and Earth Observatory post on weekdays
-  only.
-- **Where:** home screen, lock screen, or both.
-- **If APOD is a video:** keep the previous wallpaper, use NASA's or Earth Observatory's picture,
-  or a picture of your own (with APOD alone; with more, the next source takes its turn). The page shows a ▶ tile that
-  opens the video on NASA's website.
-- **Set as wallpaper now:** sets the picture shown; with two or more sources, its turn starts.
+- **Change wallpaper automatically:** alarms check for the new picture at the change times,
+  only with a network, and set it once it's out (APOD at about 00:05 US Eastern time). On or off
+  at once.
+- **Setup**, a draft until you tap **Set as wallpaper**:
+  - **Where:** home screen, lock screen, or both. With **More NASA pictures** on, **Pictures
+    from** instead: APOD, NASA (Image of the Day), Earth (Observatory), each on the home screen,
+    the lock screen or both. A screen with two or more takes turns, every 24, 12, 6 or 3 hours,
+    and shows only pictures it hasn't shown yet. NASA and Earth Observatory post on weekdays only.
+  - **New picture at:** the hour the wallpaper changes (06:00 by default). A picture that comes
+    out in the 3 hours after it still goes on.
+  - **If APOD is a video:** skip it, use NASA's or Earth Observatory's picture, or a picture of
+    your own. The page shows a ▶ tile that opens the video on NASA's website.
+- **Advanced settings:** save every new picture to your gallery, up to a size you choose.
 - Pull down to refresh. Notes below the picture say when the check fails.
 - If Android would pause the app because you don't open it, a note below the picture names the
   settings in App info that prevent it.
 - Tap the picture to open it on NASA's website; tap the star to save the original to your
   gallery (`Pictures/APODroid/`).
-- Tap ⛶ to choose which part of the picture becomes the wallpaper; ✓ sets it.
+- Tap ⛶ to choose which part of the picture becomes the wallpaper, or the whole picture on a
+  blurred or black background; ✓ keeps it, Set as wallpaper sets it.
 - The explanation's first two lines show under the title; tap them to read it all.
   Long-press the title or the explanation to copy the link or the text.
 

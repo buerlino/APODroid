@@ -289,10 +289,10 @@ what it leaves open.
 - How far Doze delays the alarms' runs over a real night (V7: the tablet's log before 06:19 rolled
   over; the runs seen came at their window's end with the network at once). Set `logcat -G 16M`
   before such a night.
-- P on the FP6: a reboot with the PIN, and what the tablet left: "my picture" from the picker as a huge, tiny, panorama, tall, WebP,
-  GIF and EXIF-8 picture (V10, V11c, V12c); the boxes' "Don't show again" with its dialog and
-  "App info"; TalkBack's "not set yet" and the headers' states (V8); home and lock set apart on
-  Android 16 (M0: the tablet only); "my picture" and video days on R8 (V6).
+- On the FP6 after P (2026-11-02): "my picture" as the wallpaper and video days on R8 (no video
+  day; the picker took all seven types), the black background (no such post), the video notice's
+  "Don't show again", the save limit hit; TalkBack only by the user, "works in principle" (rough
+  spots for 0.7.0).
 
 **The job and the rules:**
 - A set failing on one screen and its retry, also after 09:00 (V3, V11b, V12b: nothing on the

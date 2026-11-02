@@ -2699,7 +2699,14 @@ Both are page texts, not the job or the rules: W's count stays.
   33+ unchanged, `CLAUDE.md`'s pause hint names the Android 12 path; the weekday dialog without
   the weekend sentence, and `CLAUDE.md`'s weekday dialog paragraph without it.
 
-### [ ] P. Phone pass on the FP6 (Opus, high)
+### [x] P. Phone pass on the FP6 (Opus, high)
+
+**Results (2026-11-02):** PASS, no `BUG:` (`.coord/runs/p/report.md`). The rest with the user: dropdown and swipe,
+long presses, landscape, font 1.5/2.0, the highlight, a Set into APOD mode, home and lock apart on Android 16, the picker's
+seven types accepted, the Recents swipe, ⛶'s whole picture (blurred) and moved part on the screens, the daily switch, the
+PIN reboot, a time zone change, the pause hint's text and buttons, Save every picture, the job on LTE, TalkBack (works in
+principle, rough: 0.7.0). Not seen: black edges (no such post), "my picture" as the wallpaper and the video notice (no
+video day), the save limit hit.
 
 Before R (user, 2026-10-19, the last pass: a bug P finds would otherwise mean redoing R's
 changelog and screenshots). First the version: `versionCode` 10, `versionName` 0.6.0 in

@@ -78,7 +78,7 @@ Decided (user, 2026-10-04): **the daily download is a rendition, ★ saves the o
 - Test on the phone: today's picture sharper as wallpaper (compare with a 0.1.2 screenshot), ★
   file in the gallery at the original size, ★ with the network off (falls back or says so).
 
-### [ ] 2. Fill / Fit (0.6.0)
+### [x] 2. Fill / Fit (0.6.0): removed; ⛶'s "Whole picture" per post instead (`CLAUDE.md`, 0.6.0: the picture)
 
 With 0.5.0's sources: Earth Observatory has some wide maps (one of 10 checked was 1440×600),
 where Fill shows a narrow slice and Fit would help.
@@ -145,7 +145,7 @@ features). Differs from the plan above it: the button opens App info, not
   stays off after a restart. The R8 build and the real Settings screens in the evening
   (`declutter.md`). What's still untested: the skill, Still untested.
 
-### [ ] 6. Share (0.6.0)
+### [x] 6. Share (0.6.0): removed with Set applies the setup (a long press on the title copies the link)
 
 Decided (user, 2026-10-04): share **title and page link** with `ACTION_SEND` (text), through
 the system share sheet. No `FileProvider`, no picture file.
@@ -154,7 +154,7 @@ the system share sheet. No `FileProvider`, no picture file.
   link works). There's no clear share glyph in Unicode: the user chose ⤴ (U+2934) from ⤴, ↗, ⇪
   and a drawn Material icon (2026-10-20), to be seen on a device. Screen-reader label "Share".
 
-### [ ] 7. Image credit (0.6.0)
+### [x] 7. Image credit (0.6.0, APOD only)
 
 **APOD only** (user, 2026-10-20). Checked in `private/` that day: NASA's feed names a credit in
 1 of 60 items (the others only on each image page); Earth has one on 33 of 40 posts, but in
@@ -179,9 +179,10 @@ stripped they run together: "…NSF/AURAImage Processing: …") and sometimes st
 - An entry stored by 0.1.x has no credit: show nothing until the next day's post (no refetch;
   see the migration rule in `CLAUDE.md`).
 
-### [ ] 8. Save every picture (0.6.0)
+### [x] 8. Save every picture (0.6.0)
 
-Built and unit-tested (`plan-0.6.0.md` F5, 2026-10-20; `CLAUDE.md`, Save); device checks open.
+Built (`plan-0.6.0.md` F5, 2026-10-20; `CLAUDE.md`, Save), with **Largest original** (F6: 10, 20, 50,
+100 MB or no limit, default 20 MB, the job only); on the FP6 in P (2026-11-02).
 
 With 0.5.0's sources: **every source in use**, not APOD only (user, 2026-10-20: APOD only
 would favour it), and on a failed original the stored picture, as ★ does. What it saves, its

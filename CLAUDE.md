@@ -967,8 +967,10 @@ opened; the migration kept the user's setup exactly (APOD + NASA on both screens
 by the user in Setup) and the alarms were armed by `MY_PACKAGE_REPLACED`; the first morning set
 on time (06:12, NASA's turn). **W passed** (2026-11-02): every morning Tue 27 Oct to Mon 2 Nov read on the FP6 and
 the tablet, no `BUG:` line; the weekend waited, the US DST end and the Zurich case (APOD out 06:05, set at
-06:12 by the first run after it) as the rules say (`.coord/runs/w/report.md`). Left: B25, the rest of P with
-the user, R (with the tag's build on the FP6), T; the release as soon as possible (user, 2026-11-02). Lenovo's ZuiMemoryCleaner force-stopping the app (V12d after a clock step; W on real days, 28 Oct 13:57 and 30 Oct 01:34, Unrestricted and EXEMPTED: no alarm or job left until the page opened, 19:40 and 20:18): no 0.6.0
+06:12 by the first run after it) as the rules say (`.coord/runs/w/report.md`). **P passed** (2026-11-02, with the user on the FP6, no `BUG:`;
+`.coord/runs/p/report.md`). Left: B25; three page fixes the user wants before the screenshots (2026-11-02:
+Setup as a Settings row, leaner texts, a sign that ⛶'s ✓ hasn't set anything: plan U0); R's screenshots and the
+tag's build on the FP6; T. The release as soon as possible (user, 2026-11-02). Lenovo's ZuiMemoryCleaner force-stopping the app (V12d after a clock step; W on real days, 28 Oct 13:57 and 30 Oct 01:34, Unrestricted and EXEMPTED: no alarm or job left until the page opened, 19:40 and 20:18): no 0.6.0
 change (`on-time-0.7.0.md`). **More testing before the tag** (user, 2026-10-26 afternoon, from a
 report on the repo's state; the plan, Remaining 4j): **W**, a week on the FP6 from P's install
 to the morning of Mon 2 Nov, the tag not before Tue 3 Nov. Why: no real night has run the new

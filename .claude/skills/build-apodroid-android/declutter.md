@@ -535,8 +535,10 @@ findings were spot-checked.
 - [x] D20 (2026-10-26) `SKILL.md` Still untested: open gaps only, one line each with the row that
   left them (V12a's rest, V7 and P first); the V rows' how-to lessons moved to Working on the
   phone; the V rule and V7's morning step changed to match. `SKILL.md` 815 → 389 lines.
-- [ ] D21 `plan-0.6.0.md` after 0.6.0 ships: finished packages to one line each, headings kept;
-  the old Decisions rewritten.
+- [x] D21 (2026-11-02) `plan-0.6.0.md` after 0.6.0 ships: finished packages to one line each,
+  headings kept (the pipeline finds packages by them), the old Decisions rewritten with pointers
+  to `CLAUDE.md`; only E stays open and whole. 2920 → 594 lines. `prompts-0.7.0.md` deleted
+  (both 0.7.0 plans written).
 - [ ] D22 `SKILL.md`'s 10 stale points (`swap.sh r8` installing 0.5.0's APK, `onNewIntent`, the
   Store listing note, …) and 9 repeats of `CLAUDE.md`. Done 2026-10-26: the job's log lines,
   force-stop and the alarms.

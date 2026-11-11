@@ -29,6 +29,7 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - 0.7.0, on time on any phone (the expedited run, "Keep running", the detector; 2026-10-28): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
 - 0.7.0, Live, the day's pan (the live wallpaper, Size [Fill | Live]; 2026-10-28): [.claude/skills/build-apodroid-android/live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md).
 - 0.7.0, bright pictures darker (GitHub issue #2; planned 2026-11-02): [.claude/skills/build-apodroid-android/bright-0.7.0.md](.claude/skills/build-apodroid-android/bright-0.7.0.md).
+- 0.7.0, turns as a plain rotation (the "hasn't shown" rule and the waiting go; planned 2026-11-11): [.claude/skills/build-apodroid-android/rotation-0.7.0.md](.claude/skills/build-apodroid-android/rotation-0.7.0.md).
 - 0.8.0, Fill's frame on the subject (issue #3, a saliency map; planned 2026-11-02): [.claude/skills/build-apodroid-android/subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md).
 - A clearer Setup and leaner texts (planned for 0.7.0, 2026-10-29; MK and UI1–UI3 built in 0.6.0 as U0, 2026-11-02, with ⛶'s ✓ setting again; what's left for 0.7.0 is there): [.claude/skills/build-apodroid-android/lean-ui-0.7.0.md](.claude/skills/build-apodroid-android/lean-ui-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
@@ -1246,6 +1247,18 @@ shows, mean grey 0–255): over 110 on 12% of A2's 253 APODs, 41% of NASA's 56 n
 can't use Android's own wallpaper dimming (`setWallpaperDimAmount` is a system API). Open, the
 user's: a switch or automatic and its default, the target and the floor (a picking page, BR0),
 the whole frame or its top third, "my picture".
+
+**0.7.0: turns as a plain rotation** (user, 2026-11-11; the rules' draft, the questions and the
+packages RO1–RO3 in [rotation-0.7.0.md](.claude/skills/build-apodroid-android/rotation-0.7.0.md)).
+Replaces 0.6.0's rule 1 "a picture it hasn't shown" and rule 3, the waiting: at each change time
+a screen goes to the next source and shows its newest picture, also one shown before; rule 2,
+the 3-hour window, stays. Why: on the FP6 (11 Nov, APOD and NASA, 6 h) APOD didn't come back at
+18:00, its picture already shown that morning and NASA with nothing new, so the screen waited;
+the user expected APOD ("this is very confusing"), and it took the phone's history to tell why.
+Repeats accepted (today's APOD twice a day with 6 h, Friday's NASA and Earth at their weekend
+turns). Open, the user's: the turn's source by the clock or after the one on, B22's stand-in
+not twice, an ⓘ for "Change every". Until it ships, 0.6.0's rules (Background update, Turns)
+stand.
 
 **0.8.0: Fill's frame on the subject** (user, 2026-11-02, from issue #3: "for 0.8.0";
 [subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md)). A saliency map

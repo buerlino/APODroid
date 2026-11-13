@@ -123,12 +123,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
+import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
 import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
+import io.github.buerlino.apodroid.core.pictureAtOrDefault
+import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
 import kotlinx.coroutines.CoroutineScope
@@ -170,7 +173,7 @@ class MainActivity : ComponentActivity() {
     private var showing = 0
 
     /** The source the user chose (the dropdown, a swipe); null opens on the source on the wallpaper. Survives rotation, not a restart. */
-    private var tab by mutableStateOf<Source?>(null)
+    private var chosenSource by mutableStateOf<Source?>(null)
     private var loading by mutableStateOf(false)
 
     /**
@@ -192,7 +195,7 @@ class MainActivity : ComponentActivity() {
     /** APOD mode's screen ([Store.pageScreen]): the lock screen's record with "Where" = Lock. */
     private var pageScreen by mutableStateOf(Screen.HOME)
 
-    /** On an APOD video day: the stand-in is stored ([Store.tabPicture] of APOD), for the video notice with the switch on. */
+    /** On an APOD video day: the stand-in is stored ([Store.sourcePicture] of APOD), for the video notice. */
     private var standInReady by mutableStateOf(false)
     private var standInSkipped by mutableStateOf(false)
 
@@ -350,7 +353,7 @@ class MainActivity : ComponentActivity() {
         weekdayDialog = savedInstanceState?.getBoolean("weekdayDialog") == true
         setupOpen = savedInstanceState?.getBoolean("setupOpen") == true
         advancedOpen = savedInstanceState?.getBoolean("advancedOpen") == true
-        tab = savedInstanceState?.getString("tab")?.let { name -> Source.entries.firstOrNull { it.name == name } }
+        chosenSource = savedInstanceState?.getString("chosenSource")?.let { name -> Source.entries.firstOrNull { it.name == name } }
         daily = store.daily
         saveEvery = store.saveEvery
         saveLimit = store.saveLimit
@@ -392,7 +395,7 @@ class MainActivity : ComponentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString("pageId", id)
-        outState.putString("tab", tab?.name)
+        outState.putString("chosenSource", chosenSource?.name)
         outState.putBoolean("weekdayDialog", weekdayDialog)
         outState.putBoolean("setupOpen", setupOpen)
         outState.putBoolean("advancedOpen", advancedOpen)
@@ -500,7 +503,7 @@ class MainActivity : ComponentActivity() {
     private val shown
         get() = sources.let { s ->
             val onScreens = if (stored.allSources) Screen.entries.mapNotNull(::pictureSource) else listOfNotNull(pictureSource(pageScreen))
-            tab?.takeIf { it in s } ?: onScreens.firstOrNull { it in s } ?: s.first()
+            chosenSource?.takeIf { it in s } ?: onScreens.firstOrNull { it in s } ?: s.first()
         }
 
     /**
@@ -585,7 +588,7 @@ class MainActivity : ComponentActivity() {
         apod = store.apod
         pageScreen = store.pageScreen
         screens = Screen.entries.associateWith(store::screenState)
-        standInReady = apod?.isVideo == true && store.tabPicture(Source.APOD) != null
+        standInReady = apod?.isVideo == true && store.sourcePicture(Source.APOD) != null
         standInSkipped = apod?.isVideo == true && store.standInSkipped
         readProblem()
     }
@@ -712,8 +715,8 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The dropdown's choice or the page a swipe settled on. Crop mode closes. */
-    private fun showTab(source: Source) {
-        tab = source
+    private fun showSource(source: Source) {
+        chosenSource = source
         cropping = false
         // With the switch on the problem box follows the shown source.
         readProblem()
@@ -1166,7 +1169,7 @@ class MainActivity : ComponentActivity() {
         // The page a swipe settled on is the shown source.
         LaunchedEffect(pager) {
             snapshotFlow { pager.settledPage }.collect { page ->
-                sources.getOrNull(page)?.let { if (it != shown) showTab(it) }
+                sources.getOrNull(page)?.let { if (it != shown) showSource(it) }
             }
         }
         // The shown source changed otherwise (the dropdown, the picture on the wallpaper): the pager follows.
@@ -1221,7 +1224,7 @@ class MainActivity : ComponentActivity() {
                         text = { Text(choice.shortLabel) },
                         onClick = {
                             open = false
-                            if (choice != shown) showTab(choice)
+                            if (choice != shown) showSource(choice)
                         },
                         leadingIcon = { Text(if (choice == source) "✓" else "") },
                     )
@@ -1680,7 +1683,7 @@ class MainActivity : ComponentActivity() {
             val name = hourLabel(pictureAt)
             DropdownButton("$name\u00A0▾", "New picture at: $name", enabled = true, changed = changed) { open = true }
             DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                (0..23).forEach { hour ->
+                pictureHours.forEach { hour ->
                     DropdownMenuItem(
                         text = { Text(hourLabel(hour)) },
                         onClick = { open = false; pictureAt = hour },
@@ -2134,7 +2137,7 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         },
         interval = Interval.valueOf(bundle.getString("interval")!!),
         videoDays = VideoDays.valueOf(bundle.getString("videoDays")!!),
-        pictureAt = bundle.getInt("pictureAt", DEFAULT_PICTURE_AT).takeIf { it in 0..23 } ?: DEFAULT_PICTURE_AT,
+        pictureAt = pictureAtOrDefault(bundle.getInt("pictureAt", DEFAULT_PICTURE_AT)),
         parts = Source.entries.mapNotNull { source ->
             bundle.getString("part.${source.name}")?.split('|', limit = 4)?.let { (date, position, whole, url) ->
                 source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict())

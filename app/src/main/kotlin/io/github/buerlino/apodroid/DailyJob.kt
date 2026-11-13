@@ -232,7 +232,7 @@ class DailyJob : JobService() {
          * that never reaches its end (the process frozen or killed) is retried by them; its end
          * arms them again.
          */
-        private fun started(context: Context, store: Store, generation: Int) = synchronized(lock) {
+        private fun started(context: Context, store: Store, generation: Int): Unit = synchronized(lock) {
             if (!runs.counts(generation) || !store.daily) return
             if (store.runStarts()) Log.w("APODroid", "Daily job: the run before never ended (killed), counted as failed")
             arm(context, System.currentTimeMillis() + store.runRetry().toMillis())
@@ -245,7 +245,7 @@ class DailyJob : JobService() {
          * A death after it and before [jobFinished] counts the run as ended; Android may re-run
          * job 1 (it finds nothing new).
          */
-        private fun noted(context: Context, generation: Int, failed: Boolean) = synchronized(lock) {
+        private fun noted(context: Context, generation: Int, failed: Boolean): Unit = synchronized(lock) {
             if (!runs.counts(generation)) return
             val store = Store(context)
             if (!store.daily) return
@@ -258,7 +258,7 @@ class DailyJob : JobService() {
          * again ([ensure]: by the clock after a good run, 15 min later after a failed or stopped
          * one, then hourly).
          */
-        private fun ended(context: Context, generation: Int) = synchronized(lock) {
+        private fun ended(context: Context, generation: Int): Unit = synchronized(lock) {
             if (!runs.finished(generation)) return
             if (!Store(context).daily) return
             if (!ensure(context)) Log.w("APODroid", "Daily job: couldn't schedule the fallback after the run")

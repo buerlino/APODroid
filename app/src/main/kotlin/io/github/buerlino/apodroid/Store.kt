@@ -20,7 +20,9 @@ import android.util.Log
 import android.util.Size
 import android.view.Display
 import androidx.core.content.edit
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
+import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
 import io.github.buerlino.apodroid.core.Frame
 import io.github.buerlino.apodroid.core.HttpStatus
 import io.github.buerlino.apodroid.core.OWN_PICTURE
@@ -54,10 +56,12 @@ import io.github.buerlino.apodroid.core.nextAlarm as coreNextAlarm
 import io.github.buerlino.apodroid.core.randomOffset
 import io.github.buerlino.apodroid.core.runRetry as coreRunRetry
 import io.github.buerlino.apodroid.core.originalUrl
+import io.github.buerlino.apodroid.core.pictureAtOrDefault
 import io.github.buerlino.apodroid.core.restartAndForget
 import io.github.buerlino.apodroid.core.sourcesInUse
 import io.github.buerlino.apodroid.core.standInSkipped
 import io.github.buerlino.apodroid.core.toSave
+import io.github.buerlino.apodroid.core.usEastern
 import io.github.buerlino.apodroid.core.videoDayKept
 import io.github.buerlino.apodroid.core.waiting
 import io.github.buerlino.apodroid.core.renditionUrl
@@ -83,13 +87,12 @@ enum class Where(val screens: Set<Screen>) {
  * ⛶'s part of a source's post: the post's [date] and picture [url], where the frame sits
  * ([position], 0–1), and whether the wallpaper shows the [whole] picture instead (A3).
  */
-data class Part(val date: LocalDate, val url: String?, val position: Float, val whole: Boolean = false)
+data class Part(val date: LocalDate, val url: String?, val position: Float, val whole: Boolean)
 
 /**
  * Everything "Set as wallpaper" saves at once ([Store.saveSetup]); the page's draft until then.
  * [list] is the list's columns, kept in APOD mode too; [parts] ⛶'s part per source; [pictureAt]
- * "New picture at", an hour (J2 stores it; the page shows it with J3, until then it passes the
- * stored one). Not the daily switch: it acts at once ([Store.switchDaily]).
+ * "New picture at", an hour. Not the daily switch: it acts at once ([Store.switchDaily]).
  */
 data class Setup(
     val allSources: Boolean,
@@ -103,6 +106,10 @@ data class Setup(
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
     val columns: Map<Screen, List<Source>>
         get() = if (allSources) list else apodColumns(where.screens)
+
+    /** Its change times ([PictureTime]): at [pictureAt], with turns every [interval] from it. */
+    val pictureTime: PictureTime
+        get() = PictureTime(pictureAt, interval.hours)
 }
 
 /**
@@ -116,18 +123,20 @@ data class Updated(val done: String?, val setFailed: Boolean, val failure: Excep
  * What fills APOD's turn on an APOD video day ("If APOD is a video", both modes): "Skip it"
  * ([KEEP], the pref's name from 0.5.0's "Keep"), another source's newest, or the user's own.
  */
-enum class VideoDays(val standIn: StandIn, val source: Source? = standIn.source) {
+enum class VideoDays(val standIn: StandIn) {
     KEEP(StandIn.SKIP),
     NASA(StandIn.NASA),
     EARTH(StandIn.EARTH),
     MINE(StandIn.OWN),
+    ;
+
+    /** The source whose newest picture stands in, null for "Skip it" and the user's own. */
+    val source: Source?
+        get() = standIn.source
 }
 
-/** "New picture at"'s default, 06:00 (an update from 0.5.0 gets it too). */
-const val DEFAULT_PICTURE_AT = 6
-
 /** How long each source's turn lasts with two or more sources ticked. */
-enum class Interval(val hours: Long) { DAY(24), H12(12), H6(6), H3(3) }
+enum class Interval(val hours: Int) { DAY(24), H12(12), H6(6), H3(3) }
 
 /** What [Store.save] did. */
 enum class Saved {
@@ -223,7 +232,7 @@ class Store(private val context: Context) {
      * list was first saved, APOD on the screens "Where" names (the list starts from "Where").
      */
     val list: Map<Screen, List<Source>>
-        get() = if (!prefs.contains("home")) apodColumns(where.screens) else Screen.entries.associateWith { screen ->
+        get() = if (!hasList) apodColumns(where.screens) else Screen.entries.associateWith { screen ->
             val names = prefs.getString(screen.name.lowercase(), null)?.split(',').orEmpty()
             Source.entries.filter { it.name in names }
         }
@@ -238,7 +247,7 @@ class Store(private val context: Context) {
      * or more takes turns.
      */
     val columns: Map<Screen, List<Source>>
-        get() = if (!allSources) apodColumns(where.screens) else list
+        get() = setup.columns
 
     /** A column takes turns: its change times are every [interval] from [pictureAt] ([PictureTime]). */
     val hasTurns: Boolean
@@ -264,13 +273,13 @@ class Store(private val context: Context) {
     fun saveSetup(setup: Setup, pick: Boolean): Boolean = synchronized(wallpaperLock) {
         if (pick && draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
         val before = columns
-        val restart = restartAndForget(before, setup.columns, records(), stored(), PictureTime(setup.pictureAt, setup.interval.hours.toInt()), ZoneId.systemDefault(), Instant.now())
+        val restart = restartAndForget(before, setup.columns, records(), stored(), setup.pictureTime, ZoneId.systemDefault(), Instant.now())
         // edit(commit = true) { } drops commit()'s result (B20).
         val saved = with(prefs.edit()) {
             putBoolean("allSources", setup.allSources)
             putString("where", setup.where.name)
             // Before the first time on, the list stays unsaved, so it still starts from "Where".
-            if (setup.allSources || prefs.contains("home")) putColumns(setup.list, list)
+            if (setup.allSources || hasList) putColumns(setup.list, list)
             putString("interval", setup.interval.name)
             putInt("pictureAt", setup.pictureAt)
             putString("videoDays", setup.videoDays.name)
@@ -352,7 +361,7 @@ class Store(private val context: Context) {
      * column are forgotten; the next [setDue] sets each screen anew.
      */
     fun startAfresh(): Unit = synchronized(wallpaperLock) {
-        val restart = restartAndForget(columns, columns, records(), stored(), pictureTime(), ZoneId.systemDefault(), Instant.now())
+        val restart = restartAndForget(columns, columns, records(), stored(), setup.pictureTime, ZoneId.systemDefault(), Instant.now())
         prefs.edit(commit = true) { putRestart(restart) }
     }
 
@@ -389,15 +398,12 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("weekdayNoticeHidden", false)
         set(value) = prefs.edit { putBoolean("weekdayNoticeHidden", value) }
 
-    /** "New picture at", an hour 0–23 (part of the [setup]; an update from 0.5.0 gets 06:00). */
-    val pictureAt: Int
-        get() = prefs.getInt("pictureAt", DEFAULT_PICTURE_AT).takeIf { it in 0..23 } ?: DEFAULT_PICTURE_AT
-
     /**
-     * The change times ([PictureTime]): at [pictureAt], with turns every [interval] from it. 0.6.0's
-     * `turnStartedAt` is no longer read (left in the prefs).
+     * "New picture at", an hour 0–23 (part of the [setup]; an update from 0.5.0 gets 06:00).
+     * 0.6.0's `turnStartedAt` is no longer read (left in the prefs).
      */
-    private fun pictureTime() = PictureTime(pictureAt, interval.hours.toInt())
+    val pictureAt: Int
+        get() = pictureAtOrDefault(prefs.getInt("pictureAt", DEFAULT_PICTURE_AT))
 
     /**
      * This device's offset after the clock's checks ([randomOffset], 0–10 min), drawn once and
@@ -461,10 +467,10 @@ class Store(private val context: Context) {
      * that started in another process and never ended, `runGoing`, B19) no later than [runRetry] after its start (B16f1). Not under the wallpaper lock: the page's `onResume` and the alarms' receiver call it
      * on the main thread, and a set holds that lock for seconds.
      */
-    fun nextAlarm(running: Boolean = false): Instant {
+    fun nextAlarm(running: Boolean): Instant {
         val now = Instant.now()
         val zone = ZoneId.systemDefault()
-        val time = pictureTime()
+        val time = setup.pictureTime
         return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), instant("failedAt"), time, hasTurns, offset, waiting(columns, records(), time, zone, now), instant("lastRunAt"), running || prefs.getBoolean("runGoing", false))
     }
 
@@ -602,7 +608,7 @@ class Store(private val context: Context) {
     val pageScreen: Screen
         get() = columns.let { if (it[Screen.HOME].orEmpty().isEmpty() && it[Screen.LOCK].orEmpty().isNotEmpty()) Screen.LOCK else Screen.HOME }
 
-    /** What the page says about [screen]: from its record, the chip, the opening tab and its status line. */
+    /** What the page says about [screen]: from its record, the chip, the page it opens on and its status line. */
     fun screenState(screen: Screen): ScreenState {
         val record = record(screen)
         val setAt = instant(screen.key("wallpaperSetAt"))
@@ -642,7 +648,7 @@ class Store(private val context: Context) {
 
     /** True when [source]'s stored post is today's (the dates are US Eastern). */
     fun isCurrent(source: Source): Boolean =
-        post(source)?.let { it.date == LocalDate.now(ZoneId.of("America/New_York")) && isComplete(it) } == true
+        post(source)?.let { it.date == LocalDate.now(usEastern) && isComplete(it) } == true
 
     /** Its picture is there, or it needs none (an APOD video day). */
     private fun isComplete(post: Post) = post.isVideo || imageFile(post.source).exists()
@@ -776,7 +782,7 @@ class Store(private val context: Context) {
      * picture. An original over [saveLimit] isn't downloaded in full: the stored picture instead,
      * no retry. Returns what it saved for the log, or null. [stopped] as for [update].
      */
-    fun saveInUse(stopped: () -> Boolean = { false }): String? {
+    fun saveInUse(stopped: () -> Boolean): String? {
         if (!saveEvery) return null
         val saved = Source.entries.mapNotNull { source ->
             prefs.getString(source.key("savedDate"), null)?.let { source to Picture.Of(source, LocalDate.parse(it), prefs.getString(source.key("savedUrl"), null)) }
@@ -824,7 +830,7 @@ class Store(private val context: Context) {
     private fun setDue(pull: Boolean, stopped: () -> Boolean): Pair<String?, Exception?> = synchronized(wallpaperLock) {
         val now = Instant.now()
         val stored = stored()
-        val plan = dueWallpapers(columns, records(), stored, pictureTime(), ZoneId.systemDefault(), now, pull)
+        val plan = dueWallpapers(columns, records(), stored, setup.pictureTime, ZoneId.systemDefault(), now, pull)
         val unset = plan.screens.filterValues { !it.set }
         if (unset.isNotEmpty()) commitBeforeStop(stopped) { putPlan(plan.copy(screens = unset)) }
         val done = mutableListOf<String>()
@@ -863,10 +869,10 @@ class Store(private val context: Context) {
     )
 
     /**
-     * What [tab]'s picture is now ([Stored.picture]): on APOD's video tab the stand-in (NASA's or
-     * Earth's, or the user's own; null with "Skip it" or nothing stored yet).
+     * What [source]'s picture is now ([Stored.picture]): on APOD's video day the stand-in (NASA's
+     * or Earth's, or the user's own; null with "Skip it" or nothing stored yet).
      */
-    fun tabPicture(tab: Source): Picture? = stored().picture(tab)
+    fun sourcePicture(source: Source): Picture? = stored().picture(source)
 
     /**
      * Whether the video day's stand-in passed every screen where APOD is ticked by (B22,
@@ -1135,7 +1141,7 @@ private fun whole(file: File, screen: Size): Bitmap {
         decoder.setTargetSize(maxOf(1, frame.right - frame.left), maxOf(1, frame.bottom - frame.top))
         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
     }
-    return Bitmap.createBitmap(screen.width, screen.height, Bitmap.Config.ARGB_8888).also {
+    return createBitmap(screen.width, screen.height).also {
         Canvas(it).run {
             drawColor(Color.BLACK)
             background?.let { blur ->
@@ -1176,7 +1182,7 @@ private fun blurred(file: File, screen: Size): Bitmap {
         decoder.setTargetSampleSize(sample)
         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
     }
-    val copy = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888)
+    val copy = createBitmap(bw, bh)
     Canvas(copy).drawBitmap(decoded, wallpaperFrame(decoded.width, decoded.height, screen, 0.5f), Rect(0, 0, bw, bh), Paint(Paint.FILTER_BITMAP_FLAG))
     decoded.recycle()
     val pixels = IntArray(bw * bh).also { copy.getPixels(it, 0, bw, 0, 0, bw, bh) }

@@ -4,7 +4,7 @@ package io.github.buerlino.apodroid.core
  * From 0.5.0's prefs to 0.6.0's (CLAUDE.md, Stack: drop two releases after F-Droid ships past
  * 0.6.0). A one-time write at 0.6.0's first start, not a fallback on each read: home's record is
  * the unprefixed keys, so a read couldn't make it unknown with "Where" = Lock, and columns read
- * from "Where" each time would make a later "Where" change in APOD mode change the grid too.
+ * from "Where" each time would make a later "Where" change in APOD mode change the list too.
  */
 
 /** The value of the picture key ([Record.picture]) for the user's own picture; else a [Source]'s name. */
@@ -20,7 +20,7 @@ data class Migration(val write: Map<String, Any>, val remove: Set<String>)
  *
  * - `allSources` (the mode switch): on unless `sources` is APOD alone (missing: APOD alone, as
  *   0.5.0 read it). With it on, the columns `home` and `lock`: `sources` in those "Where" names
- *   (Both: both); with it off none (the grid starts from "Where" when the switch first goes on).
+ *   (Both: both); with it off none (the list starts from "Where" when the switch first goes on).
  * - The record (home's: the unprefixed keys; lock's: `lock.`), when 0.5.0 noted one: **Both**
  *   copies it to the lock screen, **Home** leaves the lock screen unknown (the app never set
  *   it), **Lock** copies it to the lock screen and clears home's (unknown).

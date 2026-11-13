@@ -57,7 +57,7 @@ data class Post(
 ) {
     /** [published], or for a post without one (stored before B15) its [date]'s 00:00 US Eastern. */
     val publishedAt: Instant
-        get() = published ?: date.atStartOfDay(eastern).toInstant()
+        get() = published ?: date.atStartOfDay(usEastern).toInstant()
 
     /**
      * A name for the saved picture, without extension:
@@ -199,7 +199,7 @@ private fun wpDate(date: String): LocalDate = try {
 
 /** The WordPress `date` with its time (US Eastern, `2026-10-23T00:05:00`); null without a time it can read (the date alone still counts). */
 private fun wpPublished(date: String): Instant? = try {
-    LocalDateTime.parse(date).atZone(eastern).toInstant()
+    LocalDateTime.parse(date).atZone(usEastern).toInstant()
 } catch (e: DateTimeParseException) {
     null
 }
@@ -263,7 +263,7 @@ internal fun nasaPosts(body: String): Sequence<Post> = item.findAll(body).map { 
     }
     Post(
         source = Source.NASA,
-        date = published.withZoneSameInstant(eastern).toLocalDate(),
+        date = published.withZoneSameInstant(usEastern).toLocalDate(),
         published = published.toInstant(),
         title = title,
         imageUrl = enclosure.find(xml)?.groupValues?.get(1)?.let(::decodeEntities) ?: throw SiteChanged("No image"),
@@ -275,7 +275,9 @@ internal fun nasaPosts(body: String): Sequence<Post> = item.findAll(body).map { 
 
 private val item = Regex("<item>(.*?)</item>", RegexOption.DOT_MATCHES_ALL)
 private val enclosure = Regex("""<enclosure\s[^>]*?url="([^"]+)"""")
-private val eastern = ZoneId.of("America/New_York")
+
+/** US Eastern: a post's date is its day there (NASA's `pubDate` converted to it). */
+val usEastern: ZoneId = ZoneId.of("America/New_York")
 
 private val titlePrefix = Regex("""^APOD:\s*\d{4}\s+\p{L}+(?:\s+\d{1,2})?\s*[-–—]\s*""")
 

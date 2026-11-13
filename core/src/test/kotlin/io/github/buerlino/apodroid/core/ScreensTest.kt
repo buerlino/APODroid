@@ -639,7 +639,7 @@ class ScreensTest {
     }
 
     @Test
-    fun setPutsTheSamePictureOnAgainSoAChangedFitOrOwnPictureShows() {
+    fun setPutsTheSamePictureOnAgainSoAChangedWholePictureOrOwnPictureShows() {
         val record = Record(APOD, pic(APOD), t0, shown(pic(APOD)))
         val records = mapOf(HOME to record, LOCK to record)
         assertEquals(emptyList(), due(cols(listOf(APOD)), records).sets)

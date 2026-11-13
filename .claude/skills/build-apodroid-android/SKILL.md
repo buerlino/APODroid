@@ -19,7 +19,7 @@ packages unattended): `night.md`.
 - `core/.../Post.kt`: `Source`, `Post`, `fetchLatest(source, userAgent)`, `parseLatest`
   (`parseApod`, `nasaPosts`, `earthPosts`), `download(url, to, userAgent, limit)` (`TooLarge` over the limit, F6), `renditionUrl`,
   `originalUrl`, title, video, explanation and credit parsing (`apodPosts`, `credit`), `Post.fileName`,
-  `Post.published` and `publishedAt` (B15: the publish time, `wpPublished` for WordPress's `date`). Tests with made-up data
+  `Post.published` and `publishedAt` (B15: the publish time, `wpPublished` for WordPress's `date`), `usEastern` (the posts' dates' zone; also `Store.isCurrent`'s today). Tests with made-up data
   shaped like the real responses: APOD in `ApodTest` (also the HTTP part), NASA, Earth and the
   URLs in `SourcesTest`, whose `readsEveryRealPost` reads `private/` when it's there. Real
   responses in `private/` (`latest.json`, `last100.json`, `iotd-feed-2026-10-16.xml`,
@@ -31,9 +31,13 @@ packages unattended): `night.md`.
   `core/.../Background.kt` (0.6.0, A1): the background behind a whole picture: `edgesBlack`
   (black or blurred, from a small grey copy; `gray` for an ARGB pixel; `edgeCopySize`, the copy's size, A3), `blurSize`,
   `blurRadius`, `blurBackground` (tests in `BackgroundTest`).
+  `core/.../Problem.kt` (O1): `Problem` (why a check failed; `key`, the word stored in
+  `<source>.problem`, 0.6.0's, never to change: a dismissed problem's notice key holds it),
+  `Problem.of(key, httpCode)` and `Problem.of(failure)` (tests in `ProblemTest`).
   `core/.../Turn.kt`: `nextSource` (the next ticked source in order for which a test holds;
   tests in `TurnTest`; the Set clock, `isTurnOver` and `turnSlack`, went in J1).
-  `core/.../PictureTime.kt` (0.6.0, J1): `PictureTime(pictureAt, everyHours)` with `hours`,
+  `core/.../PictureTime.kt` (0.6.0, J1): `DEFAULT_PICTURE_AT` (6), `pictureHours` (0..23) and
+  `pictureAtOrDefault` (O1), `PictureTime(pictureAt, everyHours)` with `hours`,
   `last`, `next`, `isChangeTime` (the change times in a zone, on the clock's hours through DST),
   `pictureWindow` (3 h), `checkGap` (24 h) and `afterGap(lastCheck, now)` (a new post stored after more than a day without a successful check, B21), `firstCheck` (15 min), `nextRun(now, zone, failures, time, turns,
   offset, waiting, lastRun)` (when the alarms should run next; at `now` for a check passed since
@@ -72,8 +76,8 @@ packages unattended): `night.md`.
   `setFailed`, the first failure; throws only a stop), `refresh(source)`
   (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
   `list` (the list's columns in both modes; before the first save APOD on "Where"'s screens,
-  `hasList`), `columns` (the mode's), `hasTurns`, `pictureAt` (J2, pref `pictureAt`, default
-  `DEFAULT_PICTURE_AT` 6), `pictureTime()`, `offset` (pref `offset`, seconds, drawn once),
+  `hasList`), `columns` (the mode's, `Setup.columns`), `hasTurns`, `pictureAt` (J2, pref `pictureAt`, default
+  `:core`'s `DEFAULT_PICTURE_AT`), `Setup.pictureTime`, `offset` (pref `offset`, seconds, drawn once),
   `nextAlarm()` (when the alarms go: `:core`'s `nextAlarm` with `failedRuns`/`failedAt` and
   `lastRunAt`, not under a lock; `runGoing` counts as a run going, B19), `runStarts()` (a job run's start: `lastRunAt` and `runGoing`, B16, B19; a `runGoing` still there counts the killed run before in `failedRuns`, returns `true` then), `runRetry()` (B19) and
   `ranJob(failed)` (a job run's end: counts or clears the failures, removes `runGoing`),
@@ -88,10 +92,10 @@ packages unattended): `night.md`.
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
   is APOD mode's screen), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
-  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `tabPicture(tab)`, `standInSkipped` (B22, the video notice), `set(picture, screens)` (the flags per screen; a photo with
+  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `sourcePicture(source)`, `standInSkipped` (B22, the video notice), `set(picture, screens)` (the flags per screen; a photo with
   an EXIF orientation goes upright through `setBitmap`; with ⛶'s whole picture (`isWhole(post)`, A3) the `whole` bitmap: `hasBlackEdges` on black, else on `blurred`), `cropPosition(post)`, `save` (the original, else the stored picture; the job's `limit`; returns `Saved`; its temp file `cache/original.part`, leftovers dropped by `dropSaveLeftovers` at the page's first start and by each save, B13), `imageBounds`,
   `wallpaperFrame` (`:core`'s as a `Rect`).
-- `app/.../MainActivity.kt`: the page, one instance (`launchMode="singleTop"` in `AndroidManifest.xml`, B4; `onNewIntent` does nothing) (`PictureSide`: `SourceTitle`, the shown source's name with its dropdown, and `PicturePage`, each source's picture, in a `HorizontalPager` whose settled page is `shown` (`tab`, `showTab`), then `Caption`, the boxes and the caption of the shown `post`; `show()` loads `posts` and `pictures` of every offered source (`sources`; `apod` decides them in APOD mode), `saved` per source;
+- `app/.../MainActivity.kt`: the page, one instance (`launchMode="singleTop"` in `AndroidManifest.xml`, B4; `onNewIntent` does nothing) (`PictureSide`: `SourceTitle`, the shown source's name with its dropdown, and `PicturePage`, each source's picture, in a `HorizontalPager` whose settled page is `shown` (`chosenSource`, `showSource`), then `Caption`, the boxes and the caption of the shown `post`; `show()` loads `posts` and `pictures` of every offered source (`sources`; `apod` decides them in APOD mode), `saved` per source;
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture;
   the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob(context)` (`DailyJob.ensure`: the alarms and the fallback) after its set, as Set's; Set's and the switch-on's runs go in the companion's process-wide `runs` scope with `setting`, `switching` and `switchRuns`, so a rotation or Back keeps their end, and `redrawAfterRun` goes to the page in `live` under the starter's `id`, kept by a rotation, B13; on while a load, Set or switch-on runs: owed in `switchRuns` (`core/.../SwitchRuns.kt`, `SwitchRunsTest`), run by `runNext` after it, as `loadAgain`, unless the switch-on run went on to set, `Updated.wentToSet`: B6); the draft (S4: `where`, `list`, `interval`, `videoDays`, `parts`, `draftFallback`,
   `allSources`; `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`; `pages`, the live pages: a start deletes `fallback-draft.jpg` only without a saved draft and with no other page, B8;

@@ -2,7 +2,7 @@ package io.github.buerlino.apodroid.core
 
 import kotlin.math.roundToInt
 
-/** A rectangle in a picture's pixels (with Fit, the screen's), right and bottom exclusive (as Android's `Rect`). */
+/** A rectangle in a picture's pixels (with [fitFrame], the screen's), right and bottom exclusive (as Android's `Rect`). */
 data class Frame(val left: Int, val top: Int, val right: Int, val bottom: Int)
 
 /**
@@ -25,7 +25,7 @@ fun wallpaperFrame(width: Int, height: Int, screenWidth: Int, screenHeight: Int,
 }
 
 /**
- * Where a [width]×[height] picture goes with Fit, on a black canvas of the screen's size: all of
+ * Where a [width]×[height] picture goes as the whole picture, on a canvas of the screen's size: all of
  * it, as large as fits, centred. A picture wider than the screen's shape fills the width, a
  * taller one the height.
  */

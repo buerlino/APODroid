@@ -45,6 +45,15 @@ val maxOffset: Duration = Duration.ofMinutes(10)
 /** A device's offset, 0 to [maxOffset] in whole seconds; drawn once and stored. */
 fun randomOffset(random: Random = Random.Default): Duration = Duration.ofSeconds(random.nextLong(0, maxOffset.seconds + 1))
 
+/** "New picture at"'s default, 06:00 (an update from 0.5.0 gets it too). */
+const val DEFAULT_PICTURE_AT = 6
+
+/** The hours "New picture at" offers: 00:00 to 23:00. */
+val pictureHours: IntRange = 0..23
+
+/** [hour] when it's one of the [pictureHours], else [DEFAULT_PICTURE_AT] (a stored or saved value out of range). */
+fun pictureAtOrDefault(hour: Int): Int = hour.takeIf { it in pictureHours } ?: DEFAULT_PICTURE_AT
+
 /**
  * "New picture at" ([pictureAt], an hour 0–23) and "Change every" ([everyHours]: 24, 12, 6 or 3).
  * A column with turns (two or more sources) changes at [pictureAt] + k × [everyHours], a column
@@ -52,9 +61,9 @@ fun randomOffset(random: Random = Random.Default): Duration = Duration.ofSeconds
  * day has 23 or 25 hours between two 06:00s; an hour that doesn't exist (02:00 on a spring-forward
  * night) comes at the gap's end (03:00), one that happens twice counts once, the first time.
  */
-data class PictureTime(val pictureAt: Int = 6, val everyHours: Int = 24) {
+data class PictureTime(val pictureAt: Int = DEFAULT_PICTURE_AT, val everyHours: Int = 24) {
     init {
-        require(pictureAt in 0..23) { "pictureAt $pictureAt" }
+        require(pictureAt in pictureHours) { "pictureAt $pictureAt" }
         require(everyHours in 1..24 && 24 % everyHours == 0) { "everyHours $everyHours" }
     }
 

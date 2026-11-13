@@ -279,7 +279,7 @@ private val enclosure = Regex("""<enclosure\s[^>]*?url="([^"]+)"""")
 /** US Eastern: a post's date is its day there (NASA's `pubDate` converted to it). */
 val usEastern: ZoneId = ZoneId.of("America/New_York")
 
-private val titlePrefix = Regex("""^APOD:\s*\d{4}\s+\p{L}+(?:\s+\d{1,2})?\s*[-–—]\s*""")
+private val titlePrefix = Regex("""^APOD:\s*(?:\d{4}\s+\p{L}+(?:\s+\d{1,2})?|(?:\d{1,2}\s+)?\p{L}+\s+\d{4})\s*[-–—]\s*""")
 
 internal fun cleanTitle(rendered: String): String = decodeEntities(rendered).replace(titlePrefix, "").trim()
 

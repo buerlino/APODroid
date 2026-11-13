@@ -169,7 +169,7 @@ GET https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_pa
   - `date`: e.g. `2026-10-01T00:05:00` (US Eastern). A new picture appears at about 00:05 US Eastern
     (04:05 UTC in summer time, 05:05 UTC in winter).
   - `title.rendered`: `APOD: 2026 October 1 &#8211; Harvest Moon with Erupting Mount Etna`. The
-    `APOD: <date> – ` prefix is stripped and HTML entities decoded (`&#8211;`, `&#8217;`; some
+    `APOD: <date> – ` prefix, year first (`2026 October 28`) or day first (`29 October 2026`, 29 Oct 2026 only; B26), is stripped and HTML entities decoded (`&#8211;`, `&#8217;`; some
     titles have a plain `–`, one had `-` with no space after it, 3 Apr 2026 had no day number).
   - `featured_image.file`: the picture (image days only; missing on the video day 16 Oct 2026).
   - `link`: the post's page, for "open on the web".
@@ -1364,7 +1364,3 @@ press on the title block copies the link).
    arrives only with a pull or once the date is over in US Eastern time (in SIM's 240 seeds 143
    of 408 were ever stored, most at US Eastern midnight, Los Angeles' evening). Never seen in the
    real feeds; accepted for 0.6.0, to look at in 0.7.0.
-4. APOD's title prefix with the day first (W, 2026-10-29; fix in 0.7.0, user): the 29 Oct post is
-   `APOD: 29 October 2026 – The Horns of Venus`, every post before it `APOD: 2026 October 28 – …`.
-   `titlePrefix` (`Post.kt`) wants the year first, so the page shows the prefix and ★'s file name
-   carries it. Accepted for 0.6.0 (cosmetic, `:core` only); 0.7.0 strips both orders, with a test.

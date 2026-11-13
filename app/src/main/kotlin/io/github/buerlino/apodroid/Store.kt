@@ -96,6 +96,13 @@ enum class Where(val screens: Set<Screen>) {
 data class Part(val date: LocalDate, val url: String?, val position: Float, val whole: Boolean)
 
 /**
+ * [post]'s part: its source's, when noted for this very post (date and picture URL, so a new
+ * post drops it); null for none, which is the middle and not whole. The one lookup for the
+ * job's set ([Store.parts]) and the page's draft and highlight.
+ */
+fun Map<Source, Part>.forPost(post: Post): Part? = this[post.source]?.takeIf { post.isNoted(it.date, it.url) }
+
+/**
  * Everything "Set as wallpaper" saves at once ([Store.saveSetup]); the page's draft until then.
  * [list] is the list's columns, kept in APOD mode too; [parts] ⛶'s part per source; [pictureAt]
  * "New picture at", an hour. Not the daily switch: it acts at once ([Store.switchDaily]).
@@ -911,27 +918,7 @@ class Store(private val context: Context) {
             return Size(minOf(mode.physicalWidth, mode.physicalHeight), maxOf(mode.physicalWidth, mode.physicalHeight))
         }
 
-    /**
-     * Where the wallpaper sits on [post]'s picture, from 0 (left or top edge) to 1 (right or
-     * bottom edge): the middle unless the user moved it for this post.
-     */
-    fun cropPosition(post: Post?): Float {
-        val source = post?.source ?: return 0.5f
-        val date = prefs.getString(source.key("cropDate"), null)?.let(LocalDate::parse)
-        return if (post.isNoted(date, prefs.getString(source.key("cropUrl"), null))) prefs.getFloat(source.key("cropPosition"), 0.5f) else 0.5f
-    }
-
-    /**
-     * Whether the wallpaper shows all of [post]'s picture (A3): ⛶'s whole picture, kept beside
-     * the part for that post only (date and picture URL), so a new post drops it.
-     */
-    private fun isWhole(post: Post?): Boolean {
-        val source = post?.source ?: return false
-        val date = prefs.getString(source.key("cropDate"), null)?.let(LocalDate::parse)
-        return post.isNoted(date, prefs.getString(source.key("cropUrl"), null)) && prefs.getBoolean(source.key("whole"), false)
-    }
-
-    /** ⛶'s stored part per source, for the page's draft ([Setup.parts]); the job uses [cropPosition] and [isWhole]. */
+    /** ⛶'s stored part per source, for the page's draft ([Setup.parts]) and the job's set ([forPost]). */
     val parts: Map<Source, Part>
         get() = Source.entries.mapNotNull { source ->
             prefs.getString(source.key("cropDate"), null)?.let {
@@ -950,14 +937,15 @@ class Store(private val context: Context) {
      * a new post meanwhile must not mark the new one as set. The crop is [wallpaperFrame], the
      * screen's portrait shape: without one, Android 15+ shows the left part of a wide picture.
      * The user's own picture (video days) is always Fill, centred. A source's post with ⛶'s
-     * whole picture ([isWhole]): all of it, on black or blurred ([whole]). Writes no record.
+     * whole picture ([Part.whole]): all of it, on black or blurred ([whole]). Writes no record.
      */
     private fun set(picture: Picture, screens: Set<Screen>, stored: Stored) {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
-        val position = if (picture is Picture.Of) cropPosition(stored.post(picture.source)) else 0.5f
+        val part = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
+        val position = part?.position ?: 0.5f
         val flags = screens.fold(0) { flags, it -> flags or if (it == Screen.HOME) WallpaperManager.FLAG_SYSTEM else WallpaperManager.FLAG_LOCK }
         val manager = WallpaperManager.getInstance(context)
-        if (picture is Picture.Of && isWhole(stored.post(picture.source))) {
+        if (part?.whole == true) {
             // The screen's size already: the hint is all of it.
             val bitmap = whole(file, screen)
             manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)

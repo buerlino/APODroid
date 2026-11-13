@@ -1054,7 +1054,8 @@ class MainActivity : ComponentActivity() {
     private fun setPart(post: Post) {
         keepPart(post)
         val part = parts.getValue(post.source)
-        if (part.position == storedPosition(post) && part.whole == storedWhole(post) && part != failedPart) return
+        val saved = stored.parts.forPost(post)
+        if (part.position == (saved?.position ?: 0.5f) && part.whole == (saved?.whole == true) && part != failedPart) return
         store.savePart(post.source, part)
         readStatus()
         val store = store
@@ -1077,30 +1078,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** ⛶: crop mode opens on [post]'s draft part and whole picture. */
+    /** ⛶: crop mode opens on [post]'s draft part and whole picture: the middle, not whole, unless ✓ noted one for this post. */
     private fun startCrop(post: Post) {
-        cropPosition = draftPosition(post)
-        cropWhole = draftWhole(post)
+        val part = parts.forPost(post)
+        cropPosition = part?.position ?: 0.5f
+        cropWhole = part?.whole == true
         cropping = true
     }
-
-    /** ⛶'s part of [post] in the draft: the middle unless ✓ noted one for this post. */
-    private fun draftPosition(post: Post): Float = position(parts, post)
-
-    /** ⛶'s stored part of [post] ([Store.parts]), for the highlight. */
-    private fun storedPosition(post: Post): Float = position(stored.parts, post)
-
-    private fun position(parts: Map<Source, Part>, post: Post): Float =
-        parts[post.source]?.takeIf { post.isNoted(it.date, it.url) }?.position ?: 0.5f
-
-    /** Whether the draft shows [post] whole (A4): only if ✓ noted it for this post. */
-    private fun draftWhole(post: Post): Boolean = whole(parts, post)
-
-    /** Whether [post] is stored whole ([Store.parts]), for the highlight. */
-    private fun storedWhole(post: Post): Boolean = whole(stored.parts, post)
-
-    private fun whole(parts: Map<Source, Part>, post: Post): Boolean =
-        parts[post.source]?.takeIf { post.isNoted(it.date, it.url) }?.whole ?: false
 
     private fun openPage(url: String) {
         try {
@@ -1288,7 +1272,7 @@ class MainActivity : ComponentActivity() {
             }
             // Crop mode's toggle (A4), where the chip is otherwise: the whole picture instead of a part.
             if (crop) {
-                val wholeChanged = cropWhole != storedWhole(post)
+                val wholeChanged = cropWhole != (stored.parts.forPost(post)?.whole == true)
                 Text(
                     (if (cropWhole) "✓ " else "") + "Whole picture",
                     Modifier

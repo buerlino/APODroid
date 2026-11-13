@@ -74,9 +74,9 @@ Both stay inside "no library". SA0 tests them beside the model itself.
 ## How it would fit (by reading, 2026-11-02)
 
 - **The position only.** ⛶'s part is a position 0–1 along the one direction the frame moves
-  (`wallpaperFrame`, `Store.cropPosition`); 0.5 is the middle. The subject's frame is a default
-  position per post, nothing else: `cropPosition` returns the user's part when ⛶ moved it, else
-  the subject's position, else 0.5.
+  (`wallpaperFrame`, `Part.position`, looked up by `parts.forPost(post)` since O2); 0.5 is the
+  middle. The subject's frame is a default position per post, nothing else: the user's part when
+  ⛶ moved it (`forPost`), else the subject's position, else 0.5.
 - **Once per post**, when the picture is stored (`Store.refresh`, after the download): the map
   from a small copy, the position from the map (`:core`: the frame's place whose sum of the map is
   the largest, maybe with a pull to the middle, which SA0 tunes), noted per source beside the
@@ -111,7 +111,7 @@ questions it depends on.
 | SA0 | The test on the desktop: each method's frame against the user's picks, and a new picking round | Opus, high | a day session, **the user** | 0.7.0 shipped |
 | SA1 | The runtime check, only if a library is still in the race: APK size, F-Droid, reproducible build | Opus, medium | a day session, no device | SA0, the user's answer to 2 |
 | SA2 | `:core`: the map (if by hand), the position from the map, tests | Opus, high | winston, no device | SA0, SA1 |
-| SA3 | `Store`: the position noted once per post, `cropPosition` and ⛶ start from it, the setting if any | Opus, high | winston, tablet | SA2 |
+| SA3 | `Store`: the position noted once per post, `Store.set` and ⛶ start from it, the setting if any | Opus, high | winston, tablet | SA2 |
 | SA4 | Tablet pass, then the FP6 with the user | Opus, high | rosie, then a day session with **the user** | SA3 |
 
 ### [ ] SA0. The test on the desktop (Opus, high; a day session with the user)
@@ -153,7 +153,7 @@ pictures from `private/pictures/` and, for NASA and Earth, small copies fetched 
 ### [ ] SA3. `Store`: the position once per post (Opus, high)
 
 - `refresh` notes `<source>.subjectPosition` after a stored download (on a failure nothing);
-  `cropPosition` and ⛶'s start use it when the user hasn't moved ⛶ for that post.
+  `Store.set` and ⛶'s start (`startCrop`) use it where `forPost` finds no part for that post.
 - The setting, if the user wants one (its text a placeholder until the user approves it).
 - **Tablet:** a picture whose subject is off the middle (from SA0's list, faked into `files/` as
   the skill says), set by `run -f 1`: the frame on the subject; ⛶ opens there; ✓ elsewhere wins;

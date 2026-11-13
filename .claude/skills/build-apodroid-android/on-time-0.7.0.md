@@ -532,7 +532,7 @@ SIM's invariants (`RulesSimulationTest`).
   first (severity, `file:line`, the failure: steps → what goes wrong, the fix in a line or two,
   bug or decision); then the simpler model if there is one: what it removes, how each case stays
   fixed, which SIM invariant guards it, and the packages it would take, each drafted as
-  `### [ ] O4f<k>.` for the user's morning (they run before O10). Only what you verified; say how
+  `### [ ] O4a.`, `O4b.`, … (not `O4f<k>`: that's the pipeline's name for a fix package) for the user's morning (they run before O10). Only what you verified; say how
   sure. Commit it, then the report commit.
 - **The audit** checks the form and that the cited lines exist.
 - **Done when:** every file read (listed in the report), the review committed.

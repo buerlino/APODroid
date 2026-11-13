@@ -106,25 +106,25 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 5 | O13 | The pause hint per maker | winston | opus, medium | yes | O3 | on-time-0.7.0.md O13 |
 | 6 | L4 | The drawing: one function for the whole picture, the engine and the preview | winston | opus, medium | yes | O2 | live-0.7.0.md L4 |
 | 7 | B26 | APOD's title prefix with the day first | winston | sonnet, medium | no | — | plan B26 |
-| 8 | O10 | The alarms' run as an expedited job | winston | opus, medium | yes | O4, the user (O6; O4's O4f packages queued) | on-time-0.7.0.md O10 |
-| 9 | O11 | Keep running: the service, the setting, its starts | winston | opus, high | yes | O4, the user (O7, O8) | on-time-0.7.0.md O11 |
+| 8 | O10 | The alarms' run as an expedited job | winston | opus, medium | yes | O4, the user (O6; O4's packages O4a, … queued) | on-time-0.7.0.md O10 |
+| 9 | O11 | Keep running: the service, the setting, its starts | winston | opus, high | yes | O4, the user (O7, O8; O4's packages O4a, … queued) | on-time-0.7.0.md O11 |
 | 10 | O12 | The page lets its pictures go while stopped | winston | opus, medium | yes | O11, the user (only if O7 asks for it) | on-time-0.7.0.md O12 |
 | 11 | O14 | The detector | winston | opus, high | yes | O11, O13 | on-time-0.7.0.md O14 |
-| 12 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O13, O14 | on-time-0.7.0.md O15 |
+| 12 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O13, O14, the user (O12 merged, or its row dropped) | on-time-0.7.0.md O15 |
 | 13 | L3 | `:core`: the position by the clock, the decode size, still or engine | winston | opus, medium | no | O1, the user (L1) | live-0.7.0.md L3 |
 | 14 | L5 | The engine, and `setDue` leaves a live screen to it | winston | opus, high | yes | L3, L4 | live-0.7.0.md L5 |
 | 15 | L6 | Size Fill or Live, Set opens Android's picker, the texts | winston | opus, high | yes | L5, the user (L2) | live-0.7.0.md L6 |
 | 16 | L7 | The preview in ⛶ mode | winston | opus, medium | yes | L6 | live-0.7.0.md L7 |
-| 17 | L8 | D: the screen-on check starts the alarms' run | winston | opus, medium | yes | L5, O4 | live-0.7.0.md L8 |
+| 17 | L8 | D: the screen-on check starts the alarms' run | winston | opus, medium | yes | L5, O4, the user (O4's packages O4a, … queued) | live-0.7.0.md L8 |
 | 18 | RO1 | `:core`: turns as a plain rotation | winston | opus, high | no | O1, the user (rotation's Open 1, 2) | rotation-0.7.0.md RO1 |
 | 19 | RO2 | `Store`, the page's texts, `CLAUDE.md` for the rotation | winston | opus, medium | yes | RO1, the user (rotation's Open 3) | rotation-0.7.0.md RO2 |
 | 20 | RO3 | Tablet check: the rotation on a faked day | rosie | opus, medium | no | RO2 | rotation-0.7.0.md RO3 |
-| 21 | SO1 | `:core`: as soon as it's out, the rule and the hourly checks | winston | opus, high | no | RO1 | soon-0.7.0.md SO1 |
+| 21 | SO1 | `:core`: as soon as it's out, the rule and the hourly checks | winston | opus, high | no | RO1, the user (soon's rules checked) | soon-0.7.0.md SO1 |
 | 22 | SO2 | The switch in Setup, `Store`, `CLAUDE.md` | winston | opus, medium | yes | SO1, the user (soon's Open 1–3) | soon-0.7.0.md SO2 |
 | 23 | SO3 | Tablet check: a NASA post in the afternoon | rosie | opus, medium | no | SO2 | soon-0.7.0.md SO3 |
 | 24 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | the user (BR0, bright's Open 1–5) | bright-0.7.0.md BR1 |
-| 25 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, L4 | bright-0.7.0.md BR2 |
-| 26 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L5 | bright-0.7.0.md BR3 |
+| 25 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, O3, L4 | bright-0.7.0.md BR2 |
+| 26 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L7 | bright-0.7.0.md BR3 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

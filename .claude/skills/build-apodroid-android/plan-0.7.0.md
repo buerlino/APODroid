@@ -1,0 +1,74 @@
+# 0.7.0: the night shift's plan
+
+(Written 2026-11-13, when 0.7.0's building started; user: "prepare everything for me to start the
+night shift".) 0.7.0 is planned in one file per track; this file gathers them for the pipeline
+(`scripts/pipeline.sh` takes the newest `plan-*.md`): the order across the tracks, the rules
+every package keeps, and the packages without a track. The queue is `night.md`'s; its Spec
+names a track file's section (`on-time-0.7.0.md O1`) or one of this file's (`plan B26`).
+`CLAUDE.md` wins where a track file disagrees.
+
+## The tracks
+
+| Track | File | Night packages | By day, with the user |
+|---|---|---|---|
+| On time on any phone (O) | `on-time-0.7.0.md` | O1–O4, O10–O15 | O5 (probe), O6–O8 (rosie by hand), O9, O16, O17 (FP6) |
+| Live, the day's pan (L) | `live-0.7.0.md` | L3–L8 | L0 (probe), L1 (rosie by hand), L2, L9, L10 (FP6) |
+| Turns as a plain rotation (RO) | `rotation-0.7.0.md` | RO1–RO3 | Open 1–3 first |
+| As soon as it's out (SO) | `soon-0.7.0.md` | SO1–SO3 | Open 1–4 first |
+| Bright pictures darker (BR) | `bright-0.7.0.md` | BR1–BR3 | BR0 (the picking page), Open 1–5 first |
+| Android 10–14 (E) | `emulator.md` | — | E0 first (the pipeline on an emulator), then E1–E4 |
+| Leaner texts | `lean-ui-0.7.0.md` | — (its rest is in O13, O14, L6) | — |
+
+## For every package
+
+- **Read your track file's text before its `## Packages`** (the findings and the decisions, with
+  their reasons) before building; the bundle carries only your package's section and this
+  preamble. Its Seams section says what another track expects of your code.
+- **The texts** (`CLAUDE.md`, the stack): a label or a fact, not a sentence; one fact per line;
+  explanations only in an ⓘ or a dialog; Android's own labels word for word. A new or changed
+  text is a placeholder until the user approves it from the tablet's screenshots: list it in the
+  report.
+- **Settings** (`CLAUDE.md`, How the user works): only those the track decided; none beyond.
+- **One tablet:** the rosie checks run one at a time; the probes and the checks by hand run by
+  day, never beside a night.
+- **No permission** beyond O11's two (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`),
+  no dependency, `:core` plain Kotlin.
+- **0.6.0's rules stand** (Background update, Turns) until RO1 and SO1 change them as their
+  files say.
+
+## The order
+
+A row whose After names `the user` waits for a step by day (the words in brackets say which);
+the user takes the words out once it's done (night.md, Commands, 3).
+1. **First, for every track:** O1 (the declutter), then O2, O3 and O4 (the bookkeeping review,
+   whose drafted `O4f<k>` packages the user queues in the morning; they run before O10 and L8).
+2. **Ready without the user:** O13 (after O3), L4 (after O2: one drawing function; BR2 then
+   builds on `Drawing.kt`, as `bright-0.7.0.md` allows), B26.
+3. **After the day steps:** O10 (O6), O11 (O7, O8), then O12 (if O7 asks), O14, O15; L3 (L1), L5,
+   L6 (L2), L7, L8; RO1 (rotation's Open 1–2), RO2 (Open 3), RO3; SO1 after RO1 (the same
+   functions: `dueWallpapers`, `nextRun`'s hourly loop), SO2 (soon's Open 1–3), SO3; BR1 (BR0,
+   Open 1–5), BR2, BR3 (after L5).
+4. **Before the tag:** the phone passes (O17, L10) and the release's own gate, to be planned when
+   the tracks are in (as 0.6.0's V and W).
+
+Not in 0.7.0 unless the user adds it: a second picture on the same date (`CLAUDE.md`, Open
+questions, 3: never seen in the real feeds).
+
+## Packages
+
+### [ ] B26. APOD's title prefix with the day first (Sonnet, medium)
+
+(`CLAUDE.md`, Open questions, 4.) The 29 Oct 2026 post's title was `APOD: 29 October 2026 &#8211;
+The Horns of Venus`; every other post of the last 300 has the year first (`APOD: 2026 October 28
+&#8211; …`, checked again 2026-11-13: 20 of 20 since 25 Oct, 29 Oct the only one). `Post.kt`'s
+`titlePrefix` wants the year first, so the page showed the whole prefix that day and ★'s file
+name carried it (`APOD_2026-10-29_APOD_29_October_2026_…`).
+- **The fix:** `titlePrefix` also strips `APOD: <day> <Month> <year> – ` (the day optional, as
+  3 Apr 2026's year-first title had none), the dash kinds and spacing as now.
+- **Files:** `core/.../Post.kt`, `ApodTest.kt`.
+- **Tests:** `ApodTest`'s `cleanTitle` cases: the 29 Oct title (with `&#8211;`), the day-first
+  form with `–` and with `-` and no space, without the day; the year-first cases unchanged. A
+  title that merely starts with a number after the prefix keeps it (`APOD: 2026 October 1 – 3
+  Moons` → `3 Moons`).
+- **Done when:** the tests pass and fail on the old regex; `CLAUDE.md`'s Open questions, 4
+  removed and the Data source's title bullet names both orders.

@@ -11,7 +11,7 @@ fail() { echo "FAIL: $*" >&2; fails=$((fails + 1)); }
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 
 # Every queue row resolves: the dry run exits 0, names the branch and holds the row's sections.
-"$here/pipeline.sh" M1 --dry-run > "$tmp/m1" 2>&1 || fail "M1 --dry-run: $(tail -n 1 "$tmp/m1")"
+"$here/pipeline.sh" O4 --dry-run > "$tmp/o4" 2>&1 || fail "O4 --dry-run: $(tail -n 1 "$tmp/o4")"
 integ="$(git worktree list --porcelain | awk '/^worktree /{w=substr($0, 10)} /^branch refs\/heads\/dev$/{print w}')"
 [[ -n "$integ" ]] || { echo "no dev worktree" >&2; exit 1; }
 night="$integ/.claude/skills/build-apodroid-android/night.md"
@@ -26,29 +26,30 @@ while IFS= read -r qid; do
 done < <(awk -F'|' '/^## / { q = ($0 ~ /^## The queue/); next } q && /^\| *[0-9]+ *\|/ { gsub(/ /, "", $3); print $3 }' "$night")
 [[ $count -gt 0 ]] || fail "no queue rows found in $night"
 
-# F2 takes the plan's F section and features.md's item 4; M1's row says opus, high, no tablet.
-out="$("$here/pipeline.sh" F2 --dry-run 2>&1)"
-grep -qE '^### \[[ x]\] F2\.' <<<"$out" && grep -qE '^### \[[ x]\] 4\. Wi-Fi only' <<<"$out" || fail "F2: the bundle lacks the plan's F2 or features.md's item 4"
-grep -q 'winston (opus, high), branch wp/m1, tablet no' "$tmp/m1" || fail "M1: not opus, high, tablet no: $(head -n 1 "$tmp/m1")"
+# B26 takes plan-0.7.0.md's section, O1 its track file's (a file beside the plan); O4's row says opus, high, no
+# tablet. A Spec naming a file that isn't there fails.
+out="$("$here/pipeline.sh" B26 --dry-run 2>&1)"
+grep -qE '^### \[[ x]\] B26\.' <<<"$out" || fail "B26: the bundle lacks plan-0.7.0.md's B26"
+out="$("$here/pipeline.sh" O1 --dry-run 2>&1)"
+grep -qE '^### \[[ x]\] O1\. Declutter' <<<"$out" && ! grep -qE '^### \[[ x]\] O2\.' <<<"$out" || fail "O1: the bundle lacks on-time-0.7.0.md's O1 alone"
+grep -q '^## For every package' <<<"$out" || fail "O1: the bundle lacks plan-0.7.0.md's preamble"
+grep -q 'winston (opus, high), branch wp/o4, tablet no' "$tmp/o4" || fail "O4: not opus, high, tablet no: $(head -n 1 "$tmp/o4")"
+plan="$(ls "$integ"/.claude/skills/build-apodroid-android/plan-*.md | sort -V | tail -n1)"
+spec_text "$plan" /dev/null "nope-0.7.0.md X1" > /dev/null 2>&1 && fail "spec_text accepts a missing file"
+spec_text "$plan" /dev/null "../night.md X1" > /dev/null 2>&1 && fail "spec_text accepts a path outside the skill"
 # A device package has rosie as its worker, with her rules in the bundle.
-if [[ -n "$(queue_row "$night" M0)" ]]; then
-  out="$("$here/pipeline.sh" M0 --dry-run 2>&1)"
-  grep -q 'package M0: rosie (opus, medium), branch wp/m0, tablet no' <<<"$out" || fail "M0: not rosie, opus, medium: $(head -n 1 <<<"$out")"
-  grep -q '^## For rosie: the tablet checks (night.md)' <<<"$out" || fail "M0: the bundle lacks rosie's rules"
+if [[ -n "$(queue_row "$night" O15)" ]]; then
+  out="$("$here/pipeline.sh" O15 --dry-run 2>&1)"
+  grep -q 'package O15: rosie (opus, high), branch wp/o15, tablet no' <<<"$out" || fail "O15: not rosie, opus, high: $(head -n 1 <<<"$out")"
+  grep -q '^## For rosie: the tablet checks (night.md)' <<<"$out" || fail "O15: the bundle lacks rosie's rules"
 fi
 # A fix package takes its package's row and the flags; a made-up ID without a task fails with exit 2.
-out="$("$here/pipeline.sh" M2f1 --model sonnet --tablet no --dry-run "Fix the thing in Store.kt" 2>&1)"
-grep -q 'winston (sonnet, high), branch wp/m2f1, tablet no' <<<"$out" || fail "M2f1: wrong defaults: $(head -n 1 <<<"$out")"
-grep -q '^## The package it fixes: M2' <<<"$out" || fail "M2f1: no section of M2 for context"
-# A queue row named like a fix (S4f2) is a package of its own: its row and its section, not S4's.
-if [[ -n "$(queue_row "$night" S4f2)" ]]; then
-  out="$("$here/pipeline.sh" S4f2 --dry-run 2>&1)"
-  grep -q 'winston (opus, medium), branch wp/s4f2,' <<<"$out" || fail "S4f2: not its own row: $(head -n 1 <<<"$out")"
-  grep -qE '^### \[[ x]\] S4f2\.' <<<"$out" && ! grep -qE '^### \[[ x]\] S4\.' <<<"$out" || fail "S4f2: the bundle holds S4's section, not its own"
-fi
+out="$("$here/pipeline.sh" O1f1 --model sonnet --tablet no --dry-run "Fix the thing in Store.kt" 2>&1)"
+grep -q 'winston (sonnet, medium), branch wp/o1f1, tablet no' <<<"$out" || fail "O1f1: wrong defaults: $(head -n 1 <<<"$out")"
+grep -q '^## The package it fixes: O1' <<<"$out" || fail "O1f1: no section of O1 for context"
 out="$("$here/pipeline.sh" Z9 --dry-run 2>&1)"; rc=$?
 [[ $rc -eq 2 ]] && grep -q 'Z9' <<<"$out" || fail "made-up ID: exit $rc: $out"
-out="$("$here/pipeline.sh" M1 --model gpt --dry-run 2>&1)"; rc=$?
+out="$("$here/pipeline.sh" O1 --model gpt --dry-run 2>&1)"; rc=$?
 [[ $rc -eq 2 ]] || fail "a bad model is accepted: exit $rc"
 
 # The log helpers on a made-up log.

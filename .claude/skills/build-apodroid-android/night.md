@@ -86,91 +86,45 @@ pascaline's six agents (three workers by area, an advisor, a verifier, the coord
 
 ## The queue
 
-The packages of `plan-0.6.0.md` a night runs, in the table's order unless the last Opus pass's QUEUE line reorders
-them. "Model, effort" is the plan's. Spec names the sections the bundle takes: `plan <key>` is the plan's
-`### [ ] <key>.`, `features <key>` is `features.md`'s. A device package (Agent rosie: M0, the V rows) has rosie as its
-worker, Tablet no since she is the check; one that isn't PASS stays unmerged with its results on its branch, and the
-rows after it still run unless their After names it. The regression after the last row reruns dev's debug build; let
-it run. Only APODroid's nights use the tablet (pascaline's leave HA24BZ2Y alone). Done rows stay in the table:
-`scripts/pipeline.test.sh` resolves every row, with M1, M2, F2 (and `features.md`'s item 4), M0 and S4f2 by name.
-What each night queued and why: the plan's Remaining (git has this file's old paragraphs).
-
-**Rows 1–59 are done:** each has a MERGED line in the log, most of them out of josh's view (night.sh shows only the
-last 80 of the log's night headers and RESULT lines). Pass over them (`pipeline.sh` doesn't refuse a merged ID).
-Rows 60–65 (user, 2026-10-26; the plan, Remaining 4i and 4j) run by day, one at a time with `scripts/pipeline.sh <ID>`:
-B22 → B23 → B24 before V7 and P's real night; V12e → V12f on that tree, before V7's session 1 or on Tue 27 after its
-second; SIM (test code, no tablet) after B23, by day or by night. V7, P, W and E run by hand (the plan's commands).
-Row 66, B25 (2026-10-29, from E's setup), by day or by night; Tablet no (the line doesn't show on 15), its check by
-hand on the emulator `apodroid-31` (`emulator.md`).
+0.7.0's packages (`plan-0.7.0.md`: the tracks, the order, the rules every package keeps), in the table's order
+unless the last Opus pass's QUEUE line reorders them. "Model, effort" is the track's. Spec names the sections the
+bundle takes: `plan <key>` is `plan-0.7.0.md`'s `### [ ] <key>.`, `<file>.md <key>` a track file's (beside the
+plan), `features <key>` is `features.md`'s. A device package (Agent rosie: O15, RO3, SO3) has rosie as its worker,
+Tablet no since she is the check; one that isn't PASS stays unmerged with its results on its branch, and the rows
+after it still run unless their After names it. An After that names `the user` waits for a step by day (in the
+brackets: the probe, the check by hand or the user's answers; `plan-0.7.0.md`, The order); the user takes the words
+out once it's done. The regression after the last row reruns dev's debug build; let it run. Only APODroid's nights
+use the tablet (pascaline's leave HA24BZ2Y alone). Done rows stay in the table: `scripts/pipeline.test.sh` resolves
+every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-android/night.md`, before 2026-11-13).
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
-| 1 | M0 | Android check: home and lock set separately | rosie | opus, medium | no | — | plan M0 |
-| 2 | M1 | `:core`: screens, columns, the stand-in and the hold | winston | opus, high | no | M0 | plan M1 |
-| 3 | M2 | `Store`: mode, grid, a record per screen, migration, fetch rules | winston | opus, high | yes | M1 | plan M2 |
-| 4 | M3 | Settings: the mode switch, the grid, the dropdown, the set menu | winston | opus, high | yes | M2 | plan M3 |
-| 5 | M4 | The page: three tabs, chip, status lines, video notice, problem box | winston | opus, medium | yes | M3 | plan M4 |
-| 6 | F2 | Wi-Fi only | winston | sonnet, medium | yes | — | plan F2 + features 4 |
-| 7 | V1 | Tablet pass: F1, F3 and F1f1 | rosie | opus, high | no | — | plan V + plan V1 |
-| 8 | V2 | Tablet pass: F4, F5 and F5f1 | rosie | opus, high | no | — | plan V + plan V2 |
-| 9 | S1 | `:core` and `Store`: a set by hand changes the settings, no holds | winston | opus, high | yes | — | plan S1 |
-| 10 | S2 | Settings: the list instead of the grid, the order, the daily switch off | winston | opus, medium | yes | S1 | plan S2 |
-| 11 | S4 | Set applies the setup: the draft, `Store.saveSetup`, the old set paths gone | winston | opus, high | yes | S2 | plan S4 |
-| 12 | B1 | The status line after Set with "Skip it" on a video day | winston | sonnet, medium | yes | S4 | plan B1 |
-| 13 | S4f2 | The daily switch applies at once, both ways | winston | opus, medium | yes | B1 | plan S4f2 |
-| 14 | S4f3 | Set doesn't stop a running job | winston | opus, medium | yes | S4f2 | plan S4f3 |
-| 15 | S5 | Settings: Setup and Advanced settings, the highlight, "24 h", "More NASA pictures" | winston | opus, medium | yes | S4f3 | plan S5 |
-| 16 | F6 | A size limit for the job's saves | winston | opus, medium | yes | S5 | plan F6 |
-| 17 | B2 | Equal columns change together | winston | opus, medium | yes | — | plan B2 |
-| 18 | B4 | The draft after a second start | winston | opus, medium | yes | S5 | plan B4 |
-| 19 | B5 | A failed run keeps its retry | winston | opus, medium | yes | S4f3 | plan B5 |
-| 20 | B6 | Quick taps on the daily switch set once | winston | opus, medium | yes | S4f2 | plan B6 |
-| 21 | S6 | The picture side: the title dropdown, swipe between sources, no Share | winston | opus, high | yes | S5 | plan S6 |
-| 22 | V3 | Tablet pass: M2–M4 again on the final tree | rosie | opus, high | no | S6 | plan V + plan V3 |
-| 23 | V4 | Tablet pass: what the night of 2026-10-20 didn't check | rosie | opus, high | no | — | plan V + plan V4 |
-| 24 | V5 | Tablet pass: the update from 0.5.0, debug builds | rosie | opus, high | no | — | plan V + plan V5 |
-| 25 | V6 | Tablet pass: R8 builds | rosie | opus, high | no | S6 | plan V + plan V6 |
-| 26 | V8 | Tablet pass: V1, V2 and V4 again where S4–S6 changed them | rosie | opus, high | no | S6 | plan V + plan V8 |
-| 27 | B10 | Remove "Wi-Fi only" | winston | sonnet, medium | yes | — | plan B10 |
-| 28 | B7 | The job keeps its retry: a stop during the saves, a Set after a failed run | winston | opus, medium | yes | B10 | plan B7 |
-| 29 | B8 | The draft's picture survives a second page | winston | opus, medium | yes | B4 | plan B8 |
-| 30 | B9 | A no-break space before ▾ and ▸ | winston | sonnet, medium | yes | S6 | plan B9 |
-| 31 | B11 | A Set from a second page keeps the stored "my picture" | winston | opus, medium | yes | B8 | plan B11 |
-| 32 | B12 | Only the first retry is waited for | winston | opus, medium | no | B7 | plan B12 |
-| 33 | V9 | Brute test 1: what the system does to the app | rosie | opus, high | no | — | plan V + plan V9 |
-| 34 | V10 | Brute test 2: what a user does to the app | rosie | opus, high | no | — | plan V + plan V10 |
-| 35 | CR | Code review of the whole app, by reading | winston | opus, high | no | — | plan CR |
-| 36 | B13 | The brute test's bugs | winston | opus, high | yes | — | plan B13 |
-| 37 | B14 | The code review's bugs | winston | opus, high | yes | CR | plan B14 |
-| 38 | J1 | `:core`: the picture time and the three rules | winston | opus, high | no | — | plan J1 |
-| 39 | A1 | `:core`: the background, black or blurred | winston | opus, medium | no | — | plan A1 |
-| 40 | J2 | `Store` and `DailyJob`: alarms at the change times, the job simplified | winston | opus, high | yes | J1 | plan J2 |
-| 41 | A3 | `Store`: the whole picture per post, on black or blurred | winston | opus, medium | yes | A1 | plan A3 |
-| 42 | A4 | ⛶'s Whole picture toggle; Size goes | winston | opus, medium | yes | A3 | plan A4 |
-| 43 | J3 | Settings: New picture at, "More NASA pictures" into Setup, the pause hint | winston | opus, medium | yes | J2 | plan J3 |
-| 44 | B15 | The window by publish time, the 09:00 check, the stand-in shown twice, the video notice | winston | opus, high | yes | — | plan B15 |
-| 45 | B16 | The job: a passed check kept on re-arming, one run at a time, a stale pending run | winston | opus, high | yes | B15 | plan B16 |
-| 46 | B17 | The APOD-mode video notice follows `standInReady` | winston | opus, medium | yes | — | plan B17 |
-| 47 | CR2 | Code review of what changed since 910bfeb, read as a whole | winston | opus, high | no | — | plan CR2 |
-| 48 | B18 | CR2's bugs | winston | opus, high | yes | CR2 | plan B18 |
-| 49 | V11a | Final pass 1: what the system does to the new job | rosie | opus, high | no | — | plan V + plan V11a |
-| 50 | V11d | Final pass 2: R8 and the update from 0.5.0 without opening the page | rosie | opus, high | no | — | plan V + plan V11d |
-| 51 | V11b | Final pass 3: the rules on a faked clock | rosie | opus, high | no | — | plan V + plan V11b |
-| 52 | V11c | Final pass 4: what a user does to the new UI | rosie | opus, high | no | — | plan V + plan V11c |
-| 53 | B19 | The job: a killed run keeps its retry; the switch's stop isn't a failure | winston | opus, high | yes | — | plan B19 |
-| 54 | B20 | Set says when its setup couldn't be saved | winston | opus, medium | yes | B19 | plan B20 |
-| 55 | B21 | One source after a day offline: the newest goes on | winston | opus, high | no | — | plan B21 |
-| 56 | V12a | Final pass again 1: what the system does to the job | rosie | opus, high | no | — | plan V + plan V11a + plan V12 |
-| 57 | V12d | Final pass again 2: R8 and the update from 0.5.0 | rosie | opus, high | no | — | plan V + plan V11d + plan V12 |
-| 58 | V12b | Final pass again 3: the rules on a faked clock | rosie | opus, high | no | — | plan V + plan V11b + plan V12 |
-| 59 | V12c | Final pass again 4: what a user does to the new UI | rosie | opus, high | no | — | plan V + plan V11c + plan V12 |
-| 60 | B22 | The stand-in not twice with APOD alone too; the video notice says so | winston | opus, high | yes | — | plan B22 |
-| 61 | B23 | No "kept" while something takes APOD's place | winston | opus, medium | yes | B22 | plan B23 |
-| 62 | B24 | A run's bookkeeping before `jobFinished` | winston | opus, medium | yes | — | plan B24 |
-| 63 | V12e | V12a's rest 1: Doze and battery saver | rosie | opus, high | no | — | plan V + plan V11a + plan V12e |
-| 64 | V12f | V12a's rest 2: reboot, the clock, what happens during a run | rosie | opus, high | no | — | plan V + plan V11a + plan V12f |
-| 65 | SIM | `:core`: the rules over random months (test code only) | winston | opus, high | no | B23 | plan SIM |
-| 66 | B25 | The pause hint's unused line on Android 12; the weekday dialog's false sentence | winston | sonnet, medium | no | — | plan B25 |
+| 1 | O1 | Declutter: warnings, duplicates, wrong comments (C1–C3, C6–C12) | winston | opus, medium | yes | — | on-time-0.7.0.md O1 |
+| 2 | O2 | Declutter C4: ⛶'s noted part looked up once | winston | opus, medium | yes | O1 | on-time-0.7.0.md O2 |
+| 3 | O3 | Declutter C5: one dropdown | winston | opus, medium | yes | O1 | on-time-0.7.0.md O3 |
+| 4 | O4 | Design review of the run's bookkeeping, by reading | winston | opus, high | no | O1 | on-time-0.7.0.md O4 |
+| 5 | O13 | The pause hint per maker | winston | opus, medium | yes | O3 | on-time-0.7.0.md O13 |
+| 6 | L4 | The drawing: one function for the whole picture, the engine and the preview | winston | opus, medium | yes | O2 | live-0.7.0.md L4 |
+| 7 | B26 | APOD's title prefix with the day first | winston | sonnet, medium | no | — | plan B26 |
+| 8 | O10 | The alarms' run as an expedited job | winston | opus, medium | yes | O4, the user (O6; O4's O4f packages queued) | on-time-0.7.0.md O10 |
+| 9 | O11 | Keep running: the service, the setting, its starts | winston | opus, high | yes | O4, the user (O7, O8) | on-time-0.7.0.md O11 |
+| 10 | O12 | The page lets its pictures go while stopped | winston | opus, medium | yes | O11, the user (only if O7 asks for it) | on-time-0.7.0.md O12 |
+| 11 | O14 | The detector | winston | opus, high | yes | O11, O13 | on-time-0.7.0.md O14 |
+| 12 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O13, O14 | on-time-0.7.0.md O15 |
+| 13 | L3 | `:core`: the position by the clock, the decode size, still or engine | winston | opus, medium | no | O1, the user (L1) | live-0.7.0.md L3 |
+| 14 | L5 | The engine, and `setDue` leaves a live screen to it | winston | opus, high | yes | L3, L4 | live-0.7.0.md L5 |
+| 15 | L6 | Size Fill or Live, Set opens Android's picker, the texts | winston | opus, high | yes | L5, the user (L2) | live-0.7.0.md L6 |
+| 16 | L7 | The preview in ⛶ mode | winston | opus, medium | yes | L6 | live-0.7.0.md L7 |
+| 17 | L8 | D: the screen-on check starts the alarms' run | winston | opus, medium | yes | L5, O4 | live-0.7.0.md L8 |
+| 18 | RO1 | `:core`: turns as a plain rotation | winston | opus, high | no | O1, the user (rotation's Open 1, 2) | rotation-0.7.0.md RO1 |
+| 19 | RO2 | `Store`, the page's texts, `CLAUDE.md` for the rotation | winston | opus, medium | yes | RO1, the user (rotation's Open 3) | rotation-0.7.0.md RO2 |
+| 20 | RO3 | Tablet check: the rotation on a faked day | rosie | opus, medium | no | RO2 | rotation-0.7.0.md RO3 |
+| 21 | SO1 | `:core`: as soon as it's out, the rule and the hourly checks | winston | opus, high | no | RO1 | soon-0.7.0.md SO1 |
+| 22 | SO2 | The switch in Setup, `Store`, `CLAUDE.md` | winston | opus, medium | yes | SO1, the user (soon's Open 1–3) | soon-0.7.0.md SO2 |
+| 23 | SO3 | Tablet check: a NASA post in the afternoon | rosie | opus, medium | no | SO2 | soon-0.7.0.md SO3 |
+| 24 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | the user (BR0, bright's Open 1–5) | bright-0.7.0.md BR1 |
+| 25 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, L4 | bright-0.7.0.md BR2 |
+| 26 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L5 | bright-0.7.0.md BR3 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.
@@ -247,7 +201,8 @@ Judge the diff against the criteria and `CLAUDE.md`; read other files only to ch
 - the plan's rules for the package (for 0.6.0: one reading of the clock; grouping by the due picture, not by the
   columns; Set applies the whole setup, no set by hand and no hold (since S4); the daily switch acts at once (from
   S4f2); the stand-in; forgetting keeps the owner, the stamp becomes the current change time (J1); the migration is a
-  one-time write at the first start, under a lock, and sets nothing at the first run);
+  one-time write at the first start, under a lock, and sets nothing at the first run; for 0.7.0: `plan-0.7.0.md`'s
+  For every package, and the track file's decisions before its `## Packages`, read for the package's track);
 - logic without a test, a test that passes for the wrong reason, a fixed bug without a regression test;
 - what R8 can break (serialized classes, reflection);
 - files outside the package; a user-visible text missing from the report's Texts.

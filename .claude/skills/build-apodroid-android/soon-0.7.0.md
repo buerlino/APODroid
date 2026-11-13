@@ -103,9 +103,42 @@ The user's, one at a time, before SO1.
 
 ## Packages
 
-- **SO1** (`:core`): the rule and `nextRun`, the tests above.
-- **SO2** (`:app`, `CLAUDE.md`): `Store`, the switch in Setup, the texts (Open 1–3).
-- **SO3** (tablet): the check above.
+Each reads this file's text above first (`plan-0.7.0.md`, For every package); the queue rows are
+`night.md`'s.
+
+### [ ] SO1. `:core`: as soon as it's out, the rule and the hourly checks (Opus, high)
+
+After RO1 (the same functions). The rule with the switch on as above (What changes, `:core`):
+`dueWallpapers` takes the switch, `inWindow` lets the owner's newer stored post through while it's
+on; `nextRun` checks hourly until the next change time while it's on.
+- **Files:** `Screens.kt`, `PictureTime.kt`, their tests, `RulesSimulationTest.kt`; `Store.kt`
+  only where a `:core` signature changed (passes `false`, compiles).
+- **Tests:** Tests and checks above, the `:core` ones; the FP6's 13 Nov (NASA at 17:41 on the
+  lock screen) on and off.
+- **Done when:** the tests pass and the 13 Nov case with the switch on fails on the old code; off,
+  every existing test passes unchanged.
+
+### [ ] SO2. The switch in Setup, `Store`, `CLAUDE.md` (Opus, medium)
+
+After SO1 and Open 1–3. The pref `soon` (default false) in `Setup`, `saveSetup`, `nextAlarm` and
+`setDue`; the switch under "New picture at" with its ⓘ, part of the draft (the highlight, "not
+set yet", hidden with the daily switch off and back to the stored value while hidden); Setup's
+summary as Open 3 says. Texts the placeholders above until approved.
+- **Files:** `Store.kt`, `MainActivity.kt`, `CLAUDE.md` (Settings, Turns and the picture time,
+  Traffic, Next features' entry: built); the skill's Where things are.
+- **Tablet:** the switch on and off with Set (`dumpsys alarm`: hourly alarms after the window while
+  on, none while off); the highlight and the ⓘ (screenshots); the smoke list.
+- **Done when:** built; the tablet passes.
+
+### [ ] SO3. Tablet check: a NASA post in the afternoon (Opus, medium)
+
+rosie's device package, on dev's debug build after SO2: APOD on home, NASA on lock, the switch on;
+a NASA post faked as published in the afternoon (the stored post's date and `published` set back
+a day, a run forced: the feed's newest then counts as new); the lock screen set by that run
+(`dumpsys wallpaper`), home untouched; the switch off and the same: nothing set until the next
+change time.
+- **Done when:** the results written into this file under a `## SO3's results` heading and
+  committed; PASS, or the BUG lines for the morning.
 
 ## Seams
 

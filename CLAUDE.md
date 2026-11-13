@@ -26,6 +26,8 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   2026-10-26 (`git log --diff-filter=D -- .claude/skills/build-apodroid-android/`).
 - Work for 0.6.0 (APOD first, the "More NASA pictures" switch, and the features from 0.1.1's
   review; planned 2026-10-19): [.claude/skills/build-apodroid-android/plan-0.6.0.md](.claude/skills/build-apodroid-android/plan-0.6.0.md).
+- 0.7.0's night plan (2026-11-13): the tracks, the order across them and the packages without a track (B26), for
+  `scripts/pipeline.sh`; the queue in `night.md`: [.claude/skills/build-apodroid-android/plan-0.7.0.md](.claude/skills/build-apodroid-android/plan-0.7.0.md).
 - 0.7.0, on time on any phone (the expedited run, "Keep running", the detector; 2026-10-28): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
 - 0.7.0, Live, the day's pan (the live wallpaper, Size [Fill | Live]; 2026-10-28): [.claude/skills/build-apodroid-android/live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md).
 - 0.7.0, bright pictures darker (GitHub issue #2; planned 2026-11-02): [.claude/skills/build-apodroid-android/bright-0.7.0.md](.claude/skills/build-apodroid-android/bright-0.7.0.md).

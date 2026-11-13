@@ -121,10 +121,39 @@ The user's, one at a time, before RO1.
 
 ## Packages
 
-- **RO1** (`:core`): the rules, `nextRun` without `waiting`, the tests above; Open 1 and 2
-  decided first.
-- **RO2** (`:app`, `CLAUDE.md`): `Store`, the page's texts (Open 3), `CLAUDE.md`'s sections.
-- **RO3** (tablet): the check above.
+Each reads this file's text above first (`plan-0.7.0.md`, For every package); the queue rows are
+`night.md`'s.
+
+### [ ] RO1. `:core`: turns as a plain rotation (Opus, high)
+
+After Open 1 and 2 are decided (the user writes the answers into Decided). The rules above as
+decided; `dueWallpapers`' rule 1 and rule 3 as What changes says, `nextRun` and `nextAlarm` without
+`waiting` (keep the hourly loop's code if SO1 needs it: `soon-0.7.0.md`, Seams).
+- **Files:** `Screens.kt`, `PictureTime.kt`, `ScreensTest.kt`, `PictureTimeTest.kt`,
+  `RulesSimulationTest.kt`; `Store.kt` only where a `:core` signature changed (compiles).
+- **Tests:** Tests and checks above, the `:core` ones; the FP6's day of 11 Nov as a test.
+- **Done when:** the tests pass and the FP6's day fails on the old code; `CLAUDE.md`'s Turns and
+  the picture time states the rotation's rules (0.6.0's rule 1 and rule 3 replaced, the date and
+  the why), Traffic without the waiting checks.
+
+### [ ] RO2. `Store`, the page's texts, `CLAUDE.md` for the rotation (Opus, medium)
+
+After RO1 and Open 3. `Store` stops passing `waiting`; `standInSkipped` and its video-notice texts
+go with Open 2; the ⓘ beside "Change every" if Open 3 says so (its text a placeholder).
+- **Files:** `Store.kt`, `MainActivity.kt`; `CLAUDE.md` (the video notice, the status lines, Next
+  features' rotation entry: built); the skill's Where things are.
+- **Tablet:** a faked video day with each stand-in choice (the notice's text, the status line);
+  the ⓘ (a screenshot); the smoke list.
+- **Done when:** built; no text names a stand-in "skipped" unless Open 2 kept it; the tablet passes.
+
+### [ ] RO3. Tablet check: the rotation on a faked day (Opus, medium)
+
+rosie's device package, on dev's debug build after RO2: Tests and checks above, the tablet item
+(APOD and NASA on both screens, 6 h: APOD at 06:00 and 18:00, NASA at 12:00 and 00:00, nothing
+set in between; `dumpsys alarm` without hourly checks after the window), each change by the
+skill's "End a turn".
+- **Done when:** the results written into this file under a `## RO3's results` heading and
+  committed; PASS, or the BUG lines for the morning.
 
 ## Seams
 

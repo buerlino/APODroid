@@ -26,8 +26,9 @@ h2() {
   awk -v t="## $2" '/^## / { if (p) exit; if (index($0, t) == 1) { p = 1; next } } p' "$1"
 }
 
-# spec_text <plan> <features> <spec>: the sections a queue row's Spec names, e.g. "plan M1" or
-# "plan F2 + features 4". Fails, naming the part, when a section is missing.
+# spec_text <plan> <features> <spec>: the sections a queue row's Spec names, e.g. "plan M1",
+# "plan F2 + features 4" or "on-time-0.7.0.md O1" (a file beside the plan, 0.7.0's tracks). Fails, naming the
+# part, when a file or a section is missing.
 spec_text() {
   local plan="$1" features="$2" part file key out
   local IFS=$'\n'
@@ -35,7 +36,9 @@ spec_text() {
     case "$part" in
       plan\ *) file="$plan"; key="${part#plan }";;
       features\ *) file="$features"; key="${part#features }";;
-      *) echo "spec_text: unknown part '$part' (plan <key> or features <key>)" >&2; return 1;;
+      [a-z0-9]*.md\ *) file="$(dirname "$plan")/${part%% *}"; key="${part#* }"
+        [[ "${part%% *}" != */* && -f "$file" ]] || { echo "spec_text: no file '${part%% *}' beside $plan" >&2; return 1; };;
+      *) echo "spec_text: unknown part '$part' (plan <key>, features <key> or <file>.md <key>)" >&2; return 1;;
     esac
     out="$(section "$file" "$key")"
     [[ -n "$out" ]] || { echo "spec_text: no section '### [ ] $key.' in $file" >&2; return 1; }

@@ -222,7 +222,7 @@ How the work after the first night was ordered, each step the user's; the packag
    423f082); P's install over the real 0.5.0 started W; V7's session 1.
 4l. Tue 27 Oct: V7, V12e and V12f PASS; W's first morning PASS.
 4m. Wed 28 to Fri 30 Oct: W PASS each day; ZuiMemoryCleaner force-stopped the tablet's app twice
-   (`on-time-0.7.0.md`); APOD's day-first title prefix (`CLAUDE.md`, Open questions 4).
+   (`on-time-0.7.0.md`); APOD's day-first title prefix (fixed in 0.7.0 by `plan-0.7.0.md`'s B26).
 4n. Mon 2 Nov: W done with no `BUG:`; E postponed to 0.7.0 (user); B25, P, U0, R and T that day.
 5. P on the FP6 with the user, then R and T: done 2026-11-02.
 

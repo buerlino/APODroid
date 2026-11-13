@@ -30,6 +30,7 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - 0.7.0, Live, the day's pan (the live wallpaper, Size [Fill | Live]; 2026-10-28): [.claude/skills/build-apodroid-android/live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md).
 - 0.7.0, bright pictures darker (GitHub issue #2; planned 2026-11-02): [.claude/skills/build-apodroid-android/bright-0.7.0.md](.claude/skills/build-apodroid-android/bright-0.7.0.md).
 - 0.7.0, turns as a plain rotation (the "hasn't shown" rule and the waiting go; planned 2026-11-11): [.claude/skills/build-apodroid-android/rotation-0.7.0.md](.claude/skills/build-apodroid-android/rotation-0.7.0.md).
+- 0.7.0, "As soon as it's out" (a switch: a new picture goes on within the hour, not only in the 3-hour window; planned 2026-11-13): [.claude/skills/build-apodroid-android/soon-0.7.0.md](.claude/skills/build-apodroid-android/soon-0.7.0.md).
 - 0.8.0, Fill's frame on the subject (issue #3, a saliency map; planned 2026-11-02): [.claude/skills/build-apodroid-android/subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md).
 - A clearer Setup and leaner texts (planned for 0.7.0, 2026-10-29; MK and UI1–UI3 built in 0.6.0 as U0, 2026-11-02, with ⛶'s ✓ setting again; what's left for 0.7.0 is there): [.claude/skills/build-apodroid-android/lean-ui-0.7.0.md](.claude/skills/build-apodroid-android/lean-ui-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
@@ -1259,6 +1260,17 @@ Repeats accepted (today's APOD twice a day with 6 h, Friday's NASA and Earth at 
 turns). Open, the user's: the turn's source by the clock or after the one on, B22's stand-in
 not twice, an ⓘ for "Change every". Until it ships, 0.6.0's rules (Background update, Turns)
 stand.
+
+**0.7.0: as soon as it's out** (user, 2026-11-13; the FP6's day, the draft rules, the questions
+and the packages SO1–SO3 in [soon-0.7.0.md](.claude/skills/build-apodroid-android/soon-0.7.0.md)).
+A switch below "New picture at" in Setup (part of the draft), default off: on, a newer picture
+of the source a screen shows goes on whenever a check sees it (rule 2 without the 3-hour
+window), with hourly checks all day; turns still change only at the change times. Why: NASA
+posts 15:00–23:00 in Central Europe, after a 06:00 window, so a screen with NASA alone was a
+weekday behind all day (FP6, 13 Nov: lock on 12 Nov's NASA while the page showed 13 Nov's from
+17:41); Los Angeles' APOD at 21:05 is the same case, which 2026-10-23 wanted at 06:00, so users
+would disagree. Open, the user's: the label, the ⓘ, Setup's summary. Until it ships, rule 2's
+window stands.
 
 **0.8.0: Fill's frame on the subject** (user, 2026-11-02, from issue #3: "for 0.8.0";
 [subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md)). A saliency map

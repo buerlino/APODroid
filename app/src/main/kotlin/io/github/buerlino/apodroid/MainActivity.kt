@@ -1658,20 +1658,7 @@ class MainActivity : ComponentActivity() {
     private fun PictureAtChoice() {
         val changed = pictureAt != stored.pictureAt
         Heading("New picture at", changed)
-        Box {
-            var open by remember { mutableStateOf(false) }
-            val name = hourLabel(pictureAt)
-            DropdownButton("$name\u00A0▾", "New picture at: $name", enabled = true, changed = changed) { open = true }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                pictureHours.forEach { hour ->
-                    DropdownMenuItem(
-                        text = { Text(hourLabel(hour)) },
-                        onClick = { open = false; pictureAt = hour },
-                        leadingIcon = { Text(if (hour == pictureAt) "✓" else "") },
-                    )
-                }
-            }
-        }
+        Dropdown("New picture at", pictureHours, pictureAt, ::hourLabel, changed = changed) { pictureAt = it }
     }
 
     /** An hour as the system's clock shows it: "06:00" or "6:00 AM". */
@@ -1789,23 +1776,48 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun highlight(changed: Boolean) = if (changed) MaterialTheme.colorScheme.tertiary else Color.Unspecified
 
-    /** An outlined dropdown's border and text, in `tertiary` while [changed]. */
+    /**
+     * A dropdown (C5): an outlined button "06:00 ▾" (a no-break space keeps "▾" with the last word)
+     * and a menu of [choices], ✓ before [chosen]; the border and text in `tertiary` while [changed].
+     * Screen readers "[label]: 06:00".
+     */
     @Composable
-    private fun DropdownButton(text: String, description: String, enabled: Boolean, changed: Boolean, onClick: () -> Unit) {
+    private fun <T> Dropdown(
+        label: String,
+        choices: Iterable<T>,
+        chosen: T,
+        name: (T) -> String,
+        enabled: Boolean = true,
+        changed: Boolean = false,
+        choose: (T) -> Unit,
+    ) {
+        var open by remember { mutableStateOf(false) }
         val tertiary = MaterialTheme.colorScheme.tertiary
-        OutlinedButton(
-            onClick = onClick,
-            enabled = enabled,
-            border = if (changed && enabled) BorderStroke(1.dp, tertiary) else ButtonDefaults.outlinedButtonBorder(enabled),
-            colors = if (changed) ButtonDefaults.outlinedButtonColors(contentColor = tertiary) else ButtonDefaults.outlinedButtonColors(),
-        ) {
-            Text(
-                text,
-                Modifier.clearAndSetSemantics {
-                    contentDescription = description
-                    if (changed) stateDescription = "not set yet"
-                },
-            )
+        Box {
+            OutlinedButton(
+                onClick = { open = true },
+                enabled = enabled,
+                border = if (changed && enabled) BorderStroke(1.dp, tertiary) else ButtonDefaults.outlinedButtonBorder(enabled),
+                colors = if (changed) ButtonDefaults.outlinedButtonColors(contentColor = tertiary) else ButtonDefaults.outlinedButtonColors(),
+            ) {
+                Text(
+                    "${name(chosen)}\u00A0▾",
+                    Modifier.clearAndSetSemantics {
+                        contentDescription = "$label: ${name(chosen)}"
+                        if (changed) stateDescription = "not set yet"
+                    },
+                )
+            }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                choices.forEach { choice ->
+                    DropdownMenuItem(
+                        text = { Text(name(choice)) },
+                        onClick = { open = false; choose(choice) },
+                        // A text glyph, no icon library.
+                        leadingIcon = { Text(if (choice == chosen) "✓" else "") },
+                    )
+                }
+            }
         }
     }
 
@@ -1823,7 +1835,7 @@ class MainActivity : ComponentActivity() {
             val on = columns.screensOf(source)
             val shown = on.ifEmpty { lastScreens[source] ?: Screen.entries.toSet() }
             val checked = on.isNotEmpty()
-            val name = Where.of(shown)!!.label
+            val at = Where.of(shown)!!
             // The row differs from the stored list: its tick box, name and dropdown in tertiary.
             val changed = rowChanged(source)
             val tertiary = MaterialTheme.colorScheme.tertiary
@@ -1851,18 +1863,8 @@ class MainActivity : ComponentActivity() {
                     )
                     Text(source.shortLabel, Modifier.padding(start = 8.dp, end = 16.dp), color = highlight(changed), softWrap = false)
                 }
-                Box {
-                    var open by remember { mutableStateOf(false) }
-                    DropdownButton("$name\u00A0▾", "${source.shortLabel} on: $name", enabled = checked, changed = changed) { open = true }
-                    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                        Where.entries.forEach { w ->
-                            DropdownMenuItem(
-                                text = { Text(w.label) },
-                                onClick = { open = false; place(source, w.screens) },
-                                leadingIcon = { Text(if (w.screens == shown) "✓" else "") },
-                            )
-                        }
-                    }
+                Dropdown("${source.shortLabel} on", Where.entries, at, Where::label, enabled = checked, changed = changed) {
+                    place(source, it.screens)
                 }
             }
         }
@@ -1875,24 +1877,9 @@ class MainActivity : ComponentActivity() {
      */
     @Composable
     private fun VideoDaysChoice(enabled: Boolean, pick: () -> Unit, change: () -> Unit) {
-        var open by remember { mutableStateOf(false) }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-            Box {
-                val name = videoDays.label
-                DropdownButton("$name\u00A0▾", "If APOD is a video: $name", enabled, videoDaysChanged()) { open = true }
-                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                    VideoDays.entries.forEach { choice ->
-                        DropdownMenuItem(
-                            text = { Text(choice.label) },
-                            onClick = {
-                                open = false
-                                chooseVideoDays(choice, pickFirst = pick)
-                            },
-                            // As the segmented buttons mark theirs; a text glyph, no icon library.
-                            leadingIcon = { Text(if (choice == videoDays) "✓" else "") },
-                        )
-                    }
-                }
+            Dropdown("If APOD is a video", VideoDays.entries, videoDays, VideoDays::label, enabled, videoDaysChanged()) {
+                chooseVideoDays(it, pickFirst = pick)
             }
             if (videoDays == VideoDays.MINE) {
                 TextButton(onClick = change, enabled = enabled) { Text(if (hasFallback || draftFallback) "Change picture" else "Pick picture") }
@@ -1934,20 +1921,7 @@ class MainActivity : ComponentActivity() {
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Largest original")
-                Box {
-                    var open by remember { mutableStateOf(false) }
-                    val name = limitLabel(saveLimit)
-                    DropdownButton("$name\u00A0▾", "Largest original: $name", enabled = true, changed = false) { open = true }
-                    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                        listOf(10, 20, 50, 100, 0).forEach { mb ->
-                            DropdownMenuItem(
-                                text = { Text(limitLabel(mb)) },
-                                onClick = { open = false; chooseSaveLimit(mb) },
-                                leadingIcon = { Text(if (mb == saveLimit) "✓" else "") },
-                            )
-                        }
-                    }
-                }
+                Dropdown("Largest original", listOf(10, 20, 50, 100, 0), saveLimit, ::limitLabel) { chooseSaveLimit(it) }
             }
         }
         if (info) {

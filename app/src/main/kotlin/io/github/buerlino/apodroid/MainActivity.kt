@@ -126,6 +126,7 @@ import androidx.lifecycle.lifecycleScope
 import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
 import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.Post
+import io.github.buerlino.apodroid.core.Problem
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.SwitchRuns
@@ -828,12 +829,7 @@ class MainActivity : ComponentActivity() {
 
     /** Kind, code and day: what [dismissProblem] hides until one of them changes. */
     private fun problemKey(problem: Problem): String {
-        val kind = when (problem) {
-            Problem.Network -> "network"
-            is Problem.Http -> "http:${problem.code}"
-            Problem.SiteChanged -> "site"
-            Problem.Storage -> "storage"
-        }
+        val kind = if (problem is Problem.Http) "${problem.key}:${problem.code}" else problem.key
         val source = if (problemSource == Source.APOD) "" else "${problemSource.name.lowercase()}:"
         return "$source$kind:${LocalDate.now()}"
     }

@@ -24,12 +24,12 @@ import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
 import io.github.buerlino.apodroid.core.Frame
-import io.github.buerlino.apodroid.core.HttpStatus
 import io.github.buerlino.apodroid.core.OWN_PICTURE
 import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.PictureTime
 import io.github.buerlino.apodroid.core.Plan
 import io.github.buerlino.apodroid.core.Post
+import io.github.buerlino.apodroid.core.Problem
 import io.github.buerlino.apodroid.core.Record
 import io.github.buerlino.apodroid.core.Restart
 import io.github.buerlino.apodroid.core.Screen
@@ -148,14 +148,6 @@ enum class Saved {
     STALE,
     /** Nothing: another save is still running (also one started before a rotation). */
     BUSY,
-}
-
-/** Why the last check failed, for the page to name. */
-sealed interface Problem {
-    data object Network : Problem
-    data class Http(val code: Int) : Problem
-    data object SiteChanged : Problem
-    data object Storage : Problem
 }
 
 /**
@@ -619,13 +611,8 @@ class Store(private val context: Context) {
     fun checkedAt(source: Source): Instant? = instant(source.key("checkedAt"))
 
     /** What the last check of [source] ran into, or null when it worked. */
-    fun problem(source: Source): Problem? = when (prefs.getString(source.key("problem"), null)) {
-        "network" -> Problem.Network
-        "http" -> Problem.Http(prefs.getInt(source.key("httpCode"), 0))
-        "site" -> Problem.SiteChanged
-        "storage" -> Problem.Storage
-        else -> null
-    }
+    fun problem(source: Source): Problem? =
+        Problem.of(prefs.getString(source.key("problem"), null), prefs.getInt(source.key("httpCode"), 0))
 
     /**
      * Calls [action] when a set, a stored post or a save changes, also the job's or one started
@@ -897,13 +884,10 @@ class Store(private val context: Context) {
             if (force || !isCurrent(source)) refresh(source)
         } catch (e: Exception) {
             if (e.isStop()) throw e // not the site's fault
+            val problem = Problem.of(e)
             prefs.edit {
-                when (e) {
-                    is SiteChanged -> putString(source.key("problem"), "site")
-                    is StorageFailed -> putString(source.key("problem"), "storage")
-                    is HttpStatus -> putString(source.key("problem"), "http").putInt(source.key("httpCode"), e.code)
-                    else -> putString(source.key("problem"), "network")
-                }
+                putString(source.key("problem"), problem.key)
+                if (problem is Problem.Http) putInt(source.key("httpCode"), problem.code)
             }
             throw e
         }

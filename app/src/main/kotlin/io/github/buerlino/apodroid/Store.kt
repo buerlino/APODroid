@@ -4,14 +4,12 @@ import android.annotation.SuppressLint
 import android.app.WallpaperManager
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.ImageDecoder
-import android.graphics.Paint
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.os.Environment
@@ -20,10 +18,8 @@ import android.util.Log
 import android.util.Size
 import android.view.Display
 import androidx.core.content.edit
-import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
-import io.github.buerlino.apodroid.core.Frame
 import io.github.buerlino.apodroid.core.OWN_PICTURE
 import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.PictureTime
@@ -45,12 +41,6 @@ import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.download
 import io.github.buerlino.apodroid.core.dueWallpapers
 import io.github.buerlino.apodroid.core.fetchLatest
-import io.github.buerlino.apodroid.core.blurBackground
-import io.github.buerlino.apodroid.core.blurSize
-import io.github.buerlino.apodroid.core.edgeCopySize
-import io.github.buerlino.apodroid.core.edgesBlack
-import io.github.buerlino.apodroid.core.fitFrame
-import io.github.buerlino.apodroid.core.gray
 import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.nextAlarm as coreNextAlarm
 import io.github.buerlino.apodroid.core.randomOffset
@@ -65,7 +55,6 @@ import io.github.buerlino.apodroid.core.usEastern
 import io.github.buerlino.apodroid.core.videoDayKept
 import io.github.buerlino.apodroid.core.waiting
 import io.github.buerlino.apodroid.core.renditionUrl
-import io.github.buerlino.apodroid.core.wallpaperFrame as coreWallpaperFrame
 import java.io.File
 import java.io.IOException
 import java.io.InterruptedIOException
@@ -937,7 +926,7 @@ class Store(private val context: Context) {
      * a new post meanwhile must not mark the new one as set. The crop is [wallpaperFrame], the
      * screen's portrait shape: without one, Android 15+ shows the left part of a wide picture.
      * The user's own picture (video days) is always Fill, centred. A source's post with ⛶'s
-     * whole picture ([Part.whole]): all of it, on black or blurred ([whole]). Writes no record.
+     * whole picture ([Part.whole]): all of it, on black or blurred ([wholePicture], `Drawing.kt`). Writes no record.
      */
     private fun set(picture: Picture, screens: Set<Screen>, stored: Stored) {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
@@ -947,7 +936,8 @@ class Store(private val context: Context) {
         val manager = WallpaperManager.getInstance(context)
         if (part?.whole == true) {
             // The screen's size already: the hint is all of it.
-            val bitmap = whole(file, screen)
+            val bitmap = wholePicture(file, screen)
+            dumpWhole(bitmap)
             manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
         } else if (needsTurning(file)) {
             // Android would measure it unturned but draw it turned, stretching it (seen on API 36).
@@ -957,6 +947,17 @@ class Store(private val context: Context) {
             val crop = imageBounds(file)?.let { wallpaperFrame(it.outWidth, it.outHeight, screen, position) }
             file.inputStream().use { manager.setStream(it, crop, true, flags) }
         }
+    }
+
+    /**
+     * In a debuggable build only: [bitmap], the whole picture [set] sets, to `files/debug-whole.png`,
+     * so a check can compare the pixels before and after a change to the drawing (L4, L5).
+     */
+    private fun dumpWhole(bitmap: Bitmap) {
+        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
+        runCatching {
+            File(context.filesDir, "debug-whole.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }.onFailure { Log.w("APODroid", "Debug dump failed", it) }
     }
 
     /** True when [source]'s stored picture is in the gallery (saved and not deleted since). */
@@ -1103,71 +1104,6 @@ private fun decodeUpright(file: File, screen: Size): Bitmap =
         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
     }
 
-/**
- * The whole picture (A3): [file] upright, all of it as large as fits ([fitFrame]), centred in
- * the [screen]'s size on black when its edges are nearly black ([edgesBlack]: a planet on
- * space blends in), else on the picture blurred and darkened ([blurred]). Decoded straight to the frame's size and drawn 1:1: shrinking the rendition (3726×2484 for a
- * 3:2 post) about 3× in one bilinear step can make stars jagged. `info.size` and `setTargetSize`
- * are both the upright size (Android 10's codec respects EXIF, 11+ swaps for the origin; AOSP's
- * ImageDecoder.cpp).
- */
-private fun whole(file: File, screen: Size): Bitmap {
-    val background = if (hasBlackEdges(file)) null else blurred(file, screen)
-    lateinit var frame: Frame
-    val picture = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
-        frame = fitFrame(info.size.width, info.size.height, screen.width, screen.height)
-        decoder.setTargetSize(maxOf(1, frame.right - frame.left), maxOf(1, frame.bottom - frame.top))
-        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-    }
-    return createBitmap(screen.width, screen.height).also {
-        Canvas(it).run {
-            drawColor(Color.BLACK)
-            background?.let { blur ->
-                drawBitmap(blur, null, Rect(0, 0, screen.width, screen.height), Paint(Paint.FILTER_BITMAP_FLAG))
-                blur.recycle()
-            }
-            drawBitmap(picture, frame.left.toFloat(), frame.top.toFloat(), null)
-        }
-        picture.recycle()
-    }
-}
-
-/** Whether [file]'s edges are nearly black, from an upright grey copy [edgeCopySize] large ([edgesBlack]). */
-private fun hasBlackEdges(file: File): Boolean {
-    val copy = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
-        val (w, h) = edgeCopySize(info.size.width, info.size.height)
-        decoder.setTargetSize(w, h)
-        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-    }
-    val w = copy.width
-    val h = copy.height
-    val pixels = IntArray(w * h).also { copy.getPixels(it, 0, w, 0, 0, w, h) }
-    copy.recycle()
-    return edgesBlack(IntArray(pixels.size) { gray(pixels[it]) }, w, h)
-}
-
-/**
- * The blurred background ([blurBackground]): [file]'s middle in the [screen]'s shape, upright,
- * at [blurSize] (decoded halved while it still covers that, then scaled), blurred and darkened.
- * The caller draws it enlarged to the screen.
- */
-private fun blurred(file: File, screen: Size): Bitmap {
-    val (bw, bh) = blurSize(screen.width, screen.height)
-    val decoded = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
-        val frame = wallpaperFrame(info.size.width, info.size.height, screen, 0.5f)
-        var sample = 1
-        while (frame.width() / (sample * 2) >= bw && frame.height() / (sample * 2) >= bh) sample *= 2
-        decoder.setTargetSampleSize(sample)
-        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-    }
-    val copy = createBitmap(bw, bh)
-    Canvas(copy).drawBitmap(decoded, wallpaperFrame(decoded.width, decoded.height, screen, 0.5f), Rect(0, 0, bw, bh), Paint(Paint.FILTER_BITMAP_FLAG))
-    decoded.recycle()
-    val pixels = IntArray(bw * bh).also { copy.getPixels(it, 0, bw, 0, 0, bw, bh) }
-    copy.setPixels(blurBackground(pixels, bw, bh), 0, bw, 0, 0, bw, bh)
-    return copy
-}
-
 /** The MIME type of a decodable image, e.g. `image/jpeg`, or null. */
 private fun imageType(file: File): String? = imageBounds(file)?.outMimeType
 
@@ -1177,10 +1113,6 @@ fun imageBounds(file: File): BitmapFactory.Options? {
     BitmapFactory.decodeFile(file.path, options)
     return options.takeIf { it.outWidth > 0 && it.outHeight > 0 && it.outMimeType != null }
 }
-
-/** The part of a [width]×[height] picture the wallpaper shows on [screen] (`:core`'s maths). */
-fun wallpaperFrame(width: Int, height: Int, screen: Size, position: Float): Rect =
-    coreWallpaperFrame(width, height, screen.width, screen.height, position).run { Rect(left, top, right, bottom) }
 
 /** The entry of [T] named [name], null for none (a pref or saved state from another version). */
 internal inline fun <reified T : Enum<T>> enumValue(name: String?): T? =

@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+import android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
 import android.text.format.DateFormat
 import android.util.Log
 import android.widget.Toast
@@ -124,6 +125,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
+import io.github.buerlino.apodroid.core.Maker
 import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Problem
@@ -131,6 +133,7 @@ import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
+import io.github.buerlino.apodroid.core.maker
 import io.github.buerlino.apodroid.core.pictureAtOrDefault
 import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
@@ -260,6 +263,9 @@ class MainActivity : ComponentActivity() {
     private var batteryLimited by mutableStateOf(false)
     private var mayHibernate by mutableStateOf(false)
     private var pauseHintHidden by mutableStateOf(false)
+
+    /** The phone's maker, for the pause hint's battery line. */
+    private val phoneMaker = maker(Build.MANUFACTURER)
     private var videoNoticeDate by mutableStateOf<String?>(null)
     private var videoNoticeHidden by mutableStateOf(false)
     private var problemNoticeKey by mutableStateOf<String?>(null)
@@ -809,6 +815,15 @@ class MainActivity : ComponentActivity() {
 
     private fun openAppInfo() {
         startActivity(Intent(ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri()))
+    }
+
+    /** Android's Battery optimisation list ("Don't allow" there is Unrestricted); App info where a phone lacks it. */
+    private fun openBatteryOptimisation() {
+        try {
+            startActivity(Intent(ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        } catch (_: ActivityNotFoundException) {
+            openAppInfo()
+        }
     }
 
     private fun hidePauseHint() {
@@ -1508,7 +1523,7 @@ class MainActivity : ComponentActivity() {
         ) {
             content()
             // TextButton's content padding; the offset lines its text up with the text above.
-            Row(Modifier.offset(x = (-12).dp), content = buttons)
+            FlowRow(Modifier.offset(x = (-12).dp), content = buttons)
         }
     }
 
@@ -1962,31 +1977,25 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun PauseHint() {
         var confirm by rememberSaveable { mutableStateOf(false) }
-        // Android 15+ hides the choice behind a switch whose row has to be tapped; the choice stays
-        // greyed out until the switch is on, and a fresh install shows it off (keep-running.md).
-        val battery = if (Build.VERSION.SDK_INT >= 35) {
-            "App battery usage → tap \"Allow background usage\" → turn it on → Unrestricted"
-        } else {
-            "App battery usage → Unrestricted"
-        } + " (on Optimized, a new picture can come hours late)"
-        // Stock Android 13–14: "Pause app activity if unused"; the test phone (Android 16): "Manage app if unused".
-        // Android 12 (API 31–32): "Unused apps" with "Remove permissions and free up space" (B25).
         val unused = if (Build.VERSION.SDK_INT >= 33) {
-            "Unused app settings → \"Pause or manage app if unused\": off"
+            // Stock Android 13–14: "Pause app activity if unused"; the test phone (Android 16): "Manage app if unused".
+            "App info › Unused app settings › \"Pause or manage app if unused\": off"
         } else {
-            "Unused apps → \"Remove permissions and free up space\": off"
+            // Android 12 (API 31–32): "Unused apps" with "Remove permissions and free up space" (B25).
+            "App info › Unused apps › \"Remove permissions and free up space\": off"
         }
         val (missing, effect) = when {
-            batteryLimited && mayHibernate -> listOf(battery, unused) to
+            batteryLimited && mayHibernate -> listOf(batteryLine(), unused) to
                 "after about 8 days the wallpaper only changes while the phone charges, and after about 3 months it stops"
-            batteryLimited -> listOf(battery) to "after about 8 days the wallpaper only changes while the phone charges"
+            batteryLimited -> listOf(batteryLine()) to "after about 8 days the wallpaper only changes while the phone charges"
             else -> listOf(unused) to "after about 3 months the wallpaper stops changing"
         }
         NoticeBox({
             TextButton(onClick = ::openAppInfo) { Text("App info") }
+            if (batteryLimited) TextButton(onClick = ::openBatteryOptimisation) { Text("Battery optimisation") }
             TextButton(onClick = { confirm = true }) { Text("Don't show again") }
         }) {
-            Text("Android pauses apps you don't open. In App info:", style = MaterialTheme.typography.bodyMedium)
+            Text("Android pauses apps you don't open.", style = MaterialTheme.typography.bodyMedium)
             missing.forEach {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -2000,6 +2009,29 @@ class MainActivity : ComponentActivity() {
                 text = { Text("If you don't open APODroid, $effect.") },
             )
         }
+    }
+
+    /**
+     * The pause hint's battery line: the phone's own path to what `isIgnoringBatteryOptimizations`
+     * reads (:core's [maker]; on-time-0.7.0.md, What stops the job). Placeholders from
+     * dontkillmyapp.com and the makers' guides until checked on their phones; Android's own path
+     * (Pixel, the FP6, the Lenovo tablet) otherwise.
+     */
+    private fun batteryLine(): String = when (phoneMaker) {
+        // MagicOS has no "Unrestricted" in App info (the friend's Honor X60): the Doze allowlist.
+        Maker.HUAWEI -> "Battery optimisation › All apps › APODroid › Don't allow"
+        Maker.XIAOMI -> "App info › Battery saver › No restrictions"
+        Maker.SAMSUNG -> "App info › Battery › Unrestricted"
+        Maker.OPPO -> "App info › Battery usage › \"Allow background activity\": on"
+        Maker.VIVO -> "Battery › High background power consumption › APODroid: on"
+        Maker.LENOVO, Maker.STOCK ->
+            // Android 15+ hides the choice behind a switch whose row has to be tapped; the choice stays
+            // greyed out until the switch is on, and a fresh install shows it off (keep-running.md).
+            if (Build.VERSION.SDK_INT >= 35) {
+                "App info › App battery usage › \"Allow background usage\": on › Unrestricted"
+            } else {
+                "App info › App battery usage › Unrestricted"
+            } + " (on Optimized, a new picture can come hours late)"
     }
 
     @Composable

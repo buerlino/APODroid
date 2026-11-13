@@ -975,12 +975,24 @@ that isn't opened, and the job doesn't count as use: the restricted bucket after
 the job. While the stored daily switch is on, a hint in a neutral box below the picture (user, 2026-10-16) names only what's missing, one line each:
 battery Unrestricted (checked on API 33+ only, 2026-10-04 evening: on 10–12 the 8 days aren't
 true) and "pause/manage app if unused" off (API 31+; on Android 12, API 31–32, its own App
-info's `Unused apps → "Remove permissions and free up space": off`, B25). Each line is the path
-in App info (user, 2026-10-04: "Unrestricted" alone didn't say where): on API 35+ the battery
-line says to tap "Allow background usage" and turn it on first (Unrestricted is greyed out until
-then), on 33–34 it doesn't (no such row there, not checked on a phone); either ends with " (on
-Optimized, a new picture can come hours late)" (approved by the user, 2026-10-24; Next features, 0.6.0: the
-picture time). With "App info"
+info's `Unused apps → "Remove permissions and free up space": off`, B25). Under the line
+"Android pauses apps you don't open." each line is a path starting where it starts ("App info ›
+…", user, 2026-10-04: "Unrestricted" alone didn't say where; O13, 2026-11-13, placeholders until
+the user approves them from screenshots). **The battery line per maker** (O13; `:core`'s
+`maker(Build.MANUFACTURER)`, `Maker.kt`, the table the detector uses too): stock and Lenovo
+Android's path, on API 35+ `App info › App battery usage › "Allow background usage": on ›
+Unrestricted` (Unrestricted is greyed out until the switch is on), on 33–34 `App info › App
+battery usage › Unrestricted` (no such row there, not checked on a phone), either ending with
+" (on Optimized, a new picture can come hours late)" (approved by the user, 2026-10-24; Next
+features, 0.6.0: the picture time); Huawei/Honor `Battery optimisation › All apps › APODroid ›
+Don't allow` (MagicOS has no Unrestricted in App info: the friend's Honor X60), Xiaomi/Redmi/POCO
+`App info › Battery saver › No restrictions`, Samsung `App info › Battery › Unrestricted`,
+Oppo/realme/OnePlus `App info › Battery usage › "Allow background activity": on`, Vivo/iQOO
+`Battery › High background power consumption › APODroid: on` (from dontkillmyapp.com and the
+makers' guides, unchecked on their phones). While the battery line shows, a button "Battery
+optimisation" beside "App info" opens Android's list
+(`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`, no permission; App info where a phone lacks it).
+With "App info"
 (`ACTION_APPLICATION_DETAILS_SETTINGS`) and "Don't show again". The latter asks first in a dialog
 saying what will happen ("the user has all power"); the pref `pauseHintHidden` keeps it hidden
 for good, also when the switch is turned on again (user: it's the user's choice; only clearing

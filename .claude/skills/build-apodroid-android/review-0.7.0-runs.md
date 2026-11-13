@@ -270,6 +270,9 @@ after a failed end (from its end to its start).
 
 Recommended order O4a, O4b, O4c, with O4d optional. Each is independent of the others, apart from
 the line numbers.
+Since b6bc1d0, O13 and L4 moved them (Opus pass 29): `Store.kt`'s by −11 from its imports on
+(`nextAlarm` at 464, `update`'s `daily` check at 738), `MainActivity.kt`'s by +6 from line 266
+on; `DailyJob.kt`'s are unchanged.
 
 ### [ ] O4a. The alarms never lost while the switch is on (Opus, medium)
 

@@ -85,6 +85,12 @@ class ApodTest {
         assertEquals("Shadow and Rainbow", cleanTitle("APOD: 2026 July 18 -Shadow and Rainbow"))
         assertEquals("Stars & Dust", cleanTitle("APOD: 2026 July 2 &#x2013; Stars &amp; Dust"))
         assertEquals("Caught in the Web", cleanTitle("APOD: 2026 April &#8211; Caught in the Web")) // no day, 3 Apr 2026
+        assertEquals("The Horns of Venus", cleanTitle("APOD: 29 October 2026 &#8211; The Horns of Venus")) // day first, 29 Oct 2026
+        assertEquals("The Horns of Venus", cleanTitle("APOD: 29 October 2026 – The Horns of Venus"))
+        assertEquals("The Horns of Venus", cleanTitle("APOD: 29 October 2026 -The Horns of Venus"))
+        assertEquals("The Horns of Venus", cleanTitle("APOD: October 2026 – The Horns of Venus"))
+        assertEquals("3 Moons", cleanTitle("APOD: 2026 October 1 – 3 Moons"))
+        assertEquals("3 Moons", cleanTitle("APOD: 29 October 2026 – 3 Moons"))
         assertEquals("No Prefix &#99999999;", cleanTitle("No Prefix &#99999999;"))
     }
 

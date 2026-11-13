@@ -272,8 +272,8 @@ class Store(private val context: Context) {
         if (pick && draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
         val before = columns
         val restart = restartAndForget(before, setup.columns, records(), stored(), setup.pictureTime, ZoneId.systemDefault(), Instant.now())
-        // edit(commit = true) { } drops commit()'s result (B20).
-        val saved = with(prefs.edit()) {
+        // edit(commit = true) { } drops commit()'s result (B20), so not the KTX edit lint suggests.
+        @SuppressLint("UseKtx") val saved = with(prefs.edit()) {
             putBoolean("allSources", setup.allSources)
             putString("where", setup.where.name)
             // Before the first time on, the list stays unsaved, so it still starts from "Where".

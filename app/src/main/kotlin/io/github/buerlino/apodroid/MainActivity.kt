@@ -354,7 +354,7 @@ class MainActivity : ComponentActivity() {
         weekdayDialog = savedInstanceState?.getBoolean("weekdayDialog") == true
         setupOpen = savedInstanceState?.getBoolean("setupOpen") == true
         advancedOpen = savedInstanceState?.getBoolean("advancedOpen") == true
-        chosenSource = savedInstanceState?.getString("chosenSource")?.let { name -> Source.entries.firstOrNull { it.name == name } }
+        chosenSource = enumValue<Source>(savedInstanceState?.getString("chosenSource"))
         daily = store.daily
         saveEvery = store.saveEvery
         saveLimit = store.saveLimit
@@ -375,7 +375,7 @@ class MainActivity : ComponentActivity() {
         useDraft(draft ?: stored)
         draftFallback = draft != null && savedInstanceState.getBoolean("draftFallback") && store.draftFallbackFile.exists()
         lastScreens = Source.entries.associateWith { source ->
-            savedInstanceState?.getString("lastScreens.${source.name}")?.let { name -> Where.entries.firstOrNull { it.name == name }?.screens }
+            enumValue<Where>(savedInstanceState?.getString("lastScreens.${source.name}"))?.screens
                 ?: store.lastScreens(source)
         }
         enableEdgeToEdge()
@@ -403,7 +403,7 @@ class MainActivity : ComponentActivity() {
         outState.putBundle("draft", draft().toBundle())
         outState.putBoolean("draftFallback", draftFallback)
         lastScreens.forEach { (source, screens) ->
-            outState.putString("lastScreens.${source.name}", Where.entries.firstOrNull { it.screens == screens }?.name)
+            outState.putString("lastScreens.${source.name}", Where.of(screens)?.name)
         }
     }
 
@@ -1444,8 +1444,8 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Video days: no picture (the still frame is often a generic NASA image, or missing), so no
-     * ⛶ or ★. Tapping plays the video on the APOD page. The wallpaper is the previous picture or
-     * the user's own.
+     * ⛶ or ★. Tapping plays the video on the APOD page. What the day does to the wallpaper:
+     * [VideoNotice].
      */
     @Composable
     private fun VideoTile(apod: Post) {
@@ -1839,7 +1839,7 @@ class MainActivity : ComponentActivity() {
             val on = columns.screensOf(source)
             val shown = on.ifEmpty { lastScreens[source] ?: Screen.entries.toSet() }
             val checked = on.isNotEmpty()
-            val name = Where.entries.first { it.screens == shown }.label
+            val name = Where.of(shown)!!.label
             // The row differs from the stored list: its tick box, name and dropdown in tertiary.
             val changed = rowChanged(source)
             val tertiary = MaterialTheme.colorScheme.tertiary

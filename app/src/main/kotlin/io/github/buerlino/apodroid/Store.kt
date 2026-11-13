@@ -81,6 +81,12 @@ enum class Where(val screens: Set<Screen>) {
     HOME(setOf(Screen.HOME)),
     LOCK(setOf(Screen.LOCK)),
     BOTH(Screen.entries.toSet()),
+    ;
+
+    companion object {
+        /** The one naming exactly [screens], null for none. */
+        fun of(screens: Set<Screen>): Where? = entries.firstOrNull { it.screens == screens }
+    }
 }
 
 /**
@@ -370,7 +376,7 @@ class Store(private val context: Context) {
         for (screen in Screen.entries) putString(screen.name.lowercase(), columns[screen].orEmpty().joinToString(",") { it.name })
         for (source in Source.entries) {
             val screens = columns.screensOf(source).ifEmpty { before.screensOf(source) }
-            Where.entries.firstOrNull { it.screens == screens }?.let { putString(source.key("lastScreens"), it.name) }
+            Where.of(screens)?.let { putString(source.key("lastScreens"), it.name) }
         }
     }
 
@@ -1188,5 +1194,6 @@ fun imageBounds(file: File): BitmapFactory.Options? {
 fun wallpaperFrame(width: Int, height: Int, screen: Size, position: Float): Rect =
     coreWallpaperFrame(width, height, screen.width, screen.height, position).run { Rect(left, top, right, bottom) }
 
-private inline fun <reified T : Enum<T>> enumValue(name: String?): T? =
+/** The entry of [T] named [name], null for none (a pref or saved state from another version). */
+internal inline fun <reified T : Enum<T>> enumValue(name: String?): T? =
     enumValues<T>().firstOrNull { it.name == name }

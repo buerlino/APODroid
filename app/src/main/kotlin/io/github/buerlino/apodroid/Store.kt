@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.WallpaperManager
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.graphics.Bitmap
@@ -948,6 +949,7 @@ class Store(private val context: Context) {
         if (part?.whole == true) {
             // The screen's size already: the hint is all of it.
             val bitmap = whole(file, screen)
+            dumpWhole(bitmap)
             manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
         } else if (needsTurning(file)) {
             // Android would measure it unturned but draw it turned, stretching it (seen on API 36).
@@ -957,6 +959,17 @@ class Store(private val context: Context) {
             val crop = imageBounds(file)?.let { wallpaperFrame(it.outWidth, it.outHeight, screen, position) }
             file.inputStream().use { manager.setStream(it, crop, true, flags) }
         }
+    }
+
+    /**
+     * In a debuggable build only: [bitmap], the whole picture [set] sets, to `files/debug-whole.png`,
+     * so a check can compare the pixels before and after a change to the drawing (L4, L5).
+     */
+    private fun dumpWhole(bitmap: Bitmap) {
+        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
+        runCatching {
+            File(context.filesDir, "debug-whole.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }.onFailure { Log.w("APODroid", "Debug dump failed", it) }
     }
 
     /** True when [source]'s stored picture is in the gallery (saved and not deleted since). */

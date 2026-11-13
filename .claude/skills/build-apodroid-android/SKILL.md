@@ -19,7 +19,7 @@ packages unattended): `night.md`.
 - `core/.../Post.kt`: `Source`, `Post`, `fetchLatest(source, userAgent)`, `parseLatest`
   (`parseApod`, `nasaPosts`, `earthPosts`), `download(url, to, userAgent, limit)` (`TooLarge` over the limit, F6), `renditionUrl`,
   `originalUrl`, title, video, explanation and credit parsing (`apodPosts`, `credit`), `Post.fileName`,
-  `Post.published` and `publishedAt` (B15: the publish time, `wpPublished` for WordPress's `date`). Tests with made-up data
+  `Post.published` and `publishedAt` (B15: the publish time, `wpPublished` for WordPress's `date`), `usEastern` (the posts' dates' zone; also `Store.isCurrent`'s today). Tests with made-up data
   shaped like the real responses: APOD in `ApodTest` (also the HTTP part), NASA, Earth and the
   URLs in `SourcesTest`, whose `readsEveryRealPost` reads `private/` when it's there. Real
   responses in `private/` (`latest.json`, `last100.json`, `iotd-feed-2026-10-16.xml`,
@@ -31,9 +31,13 @@ packages unattended): `night.md`.
   `core/.../Background.kt` (0.6.0, A1): the background behind a whole picture: `edgesBlack`
   (black or blurred, from a small grey copy; `gray` for an ARGB pixel; `edgeCopySize`, the copy's size, A3), `blurSize`,
   `blurRadius`, `blurBackground` (tests in `BackgroundTest`).
+  `core/.../Problem.kt` (O1): `Problem` (why a check failed; `key`, the word stored in
+  `<source>.problem`, 0.6.0's, never to change: a dismissed problem's notice key holds it),
+  `Problem.of(key, httpCode)` and `Problem.of(failure)` (tests in `ProblemTest`).
   `core/.../Turn.kt`: `nextSource` (the next ticked source in order for which a test holds;
   tests in `TurnTest`; the Set clock, `isTurnOver` and `turnSlack`, went in J1).
-  `core/.../PictureTime.kt` (0.6.0, J1): `PictureTime(pictureAt, everyHours)` with `hours`,
+  `core/.../PictureTime.kt` (0.6.0, J1): `DEFAULT_PICTURE_AT` (6), `pictureHours` (0..23) and
+  `pictureAtOrDefault` (O1), `PictureTime(pictureAt, everyHours)` with `hours`,
   `last`, `next`, `isChangeTime` (the change times in a zone, on the clock's hours through DST),
   `pictureWindow` (3 h), `checkGap` (24 h) and `afterGap(lastCheck, now)` (a new post stored after more than a day without a successful check, B21), `firstCheck` (15 min), `nextRun(now, zone, failures, time, turns,
   offset, waiting, lastRun)` (when the alarms should run next; at `now` for a check passed since
@@ -72,8 +76,8 @@ packages unattended): `night.md`.
   `setFailed`, the first failure; throws only a stop), `refresh(source)`
   (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
   `list` (the list's columns in both modes; before the first save APOD on "Where"'s screens,
-  `hasList`), `columns` (the mode's), `hasTurns`, `pictureAt` (J2, pref `pictureAt`, default
-  `DEFAULT_PICTURE_AT` 6), `pictureTime()`, `offset` (pref `offset`, seconds, drawn once),
+  `hasList`), `columns` (the mode's, `Setup.columns`), `hasTurns`, `pictureAt` (J2, pref `pictureAt`, default
+  `:core`'s `DEFAULT_PICTURE_AT`), `Setup.pictureTime`, `offset` (pref `offset`, seconds, drawn once),
   `nextAlarm()` (when the alarms go: `:core`'s `nextAlarm` with `failedRuns`/`failedAt` and
   `lastRunAt`, not under a lock; `runGoing` counts as a run going, B19), `runStarts()` (a job run's start: `lastRunAt` and `runGoing`, B16, B19; a `runGoing` still there counts the killed run before in `failedRuns`, returns `true` then), `runRetry()` (B19) and
   `ranJob(failed)` (a job run's end: counts or clears the failures, removes `runGoing`),

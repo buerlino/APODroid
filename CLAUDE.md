@@ -1316,9 +1316,13 @@ target; dark pictures untouched; Android's own classes, no library. It revisits 
 dim setting" (Muzei's kind: every picture dimmed by a fixed amount). Measured (the frame Fill
 shows, mean grey 0–255): over 110 on 12% of A2's 253 APODs, 41% of NASA's 56 newest pictures,
 62% of Earth's 40; the issue's X-59 test pilot (NASA, 26 Oct) 130, 163 in the top third. Apps
-can't use Android's own wallpaper dimming (`setWallpaperDimAmount` is a system API). Open, the
-user's: a switch or automatic and its default, the target and the floor (a picking page, BR0),
-the whole frame or its top third, "my picture".
+can't use Android's own wallpaper dimming (`setWallpaperDimAmount` is a system API). **Decided** (user,
+2026-11-14, from BR0's 50 picks): the measure is the top third of what the screen shows (mean
+grey by `gray`'s weights on a small grey copy), the factor 1 up to a target of 100, else
+100 ÷ the mean, at least ×0.7 (the best fit: 23 of 50 picks exactly on the ladder, 44 within one
+step; floors 0.6 and 0.5 fitted worse); a switch in Setup, default on; "my picture" and a whole
+picture with its background too. **Built** (BR1): `:core`'s `Brightness.kt` (`topThirdMean`,
+`darkening`, `BrightnessTest`); `Store.set` (BR2) and Live (BR3) follow.
 
 **0.7.0: turns as a plain rotation** (user, 2026-11-11; the rules' draft, the questions and the
 packages RO1–RO3 in [rotation-0.7.0.md](.claude/skills/build-apodroid-android/rotation-0.7.0.md)).

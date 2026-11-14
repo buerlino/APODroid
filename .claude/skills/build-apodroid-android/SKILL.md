@@ -31,6 +31,7 @@ packages unattended): `night.md`.
   `core/.../Background.kt` (0.6.0, A1): the background behind a whole picture: `edgesBlack`
   (black or blurred, from a small grey copy; `gray` for an ARGB pixel; `edgeCopySize`, the copy's size, A3), `blurSize`,
   `blurRadius`, `blurBackground` (tests in `BackgroundTest`).
+  `core/.../Brightness.kt` (0.7.0, BR1): `topThirdMean` (mean grey of a grey copy's top third), `darkening(mean)` (the factor: 1 up to `BRIGHT_TARGET` 100, else target ÷ mean, at least `DARKEN_FLOOR` 0.7; tests in `BrightnessTest`).
   `core/.../Problem.kt` (O1): `Problem` (why a check failed; `key`, the word stored in
   `<source>.problem`, 0.6.0's, never to change: a dismissed problem's notice key holds it),
   `Problem.of(key, httpCode)` and `Problem.of(failure)` (tests in `ProblemTest`).

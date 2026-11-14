@@ -298,7 +298,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   takes turns, else " · 06:00", 12/24 h as the system says. At its top the switch **More NASA pictures**
   (Setup is the draft, Advanced acts at once), then in APOD mode **Where**, with the switch on
   **Pictures from** (the list); while the daily switch is on **New picture at**, "As soon as
-  it's out" under it, then, while a column takes turns, "Change every", and "If APOD is a video". Closed at a fresh start; it
+  it's out" under it, then, while a column takes turns, "Change every", and "If APOD is a video";
+  then, always, "Darken bright pictures". Closed at a fresh start; it
   opens by itself while the draft differs from the store in it, when "More NASA pictures" is
   turned (the area swaps), and closes after a Set that saved (also "Setup saved. Nothing to set
   yet."; a failed set leaves it open). Its state and Advanced's survive a rotation (the saved
@@ -320,6 +321,16 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "New picture at": shown only while the daily switch is on, back to the stored one while
     hidden, the highlight (label and switch in `tertiary`, "On, not set yet"). Setup's summary
     doesn't name it (user, 2026-11-14: the row stays short).
+  - **Darken bright pictures** (BR2, 2026-11-14; the label and the ⓘ placeholders until the user
+    approves them from screenshots; `bright-0.7.0.md`): a switch after "If APOD is a video" with
+    a small ⓘ ("About Darken bright pictures"; its dialog "Darkens a bright picture a little, so
+    the clock and widgets stay readable."), the pref `darken`, default on (user, 2026-11-14:
+    most people never open Setup; also for an update from 0.6.0, no migration). On: each set
+    darkens a bright picture (Wallpaper, the darkening). Part of the draft, as "As soon as it's
+    out" (the highlight, the saved state), but shown also while the daily switch is off (night
+    default: a one-off Set darkens too, so the page shows what it uses; never hidden, so never
+    put back). Set sets each screen afresh, so a change shows at once. Setup's summary doesn't
+    name it (as "As soon as it's out"). Before L6's Size row; L6 puts Size before it.
   - **The highlight**: each draft setting that differs from the stored setup shows in the
     theme's `tertiary` until Set: its heading, a segmented row's chosen segment
     (`tertiaryContainer` / `onTertiaryContainer`) and the row's borders (`tertiary`), the
@@ -329,14 +340,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
     (not ⛶ since U0: ✓ saves the part at once), the
     "Setup" row's title while anything in it differs (the shown mode's "Where" or list, the
     mode switch, "New picture at", "As soon as it's out", "Change every", "If APOD is a
-    video"; not ⛶). Not the daily
+    video", "Darken bright pictures"; not ⛶). Not the daily
     switch, nor Advanced (they act at once). Screen readers: a highlighted control's state adds
     "not set yet" ("Selected, not set yet", "Checked, not set yet", "On, not set yet"; the rows
     "collapsed, not set yet").
   - **Set applies the setup** (user, 2026-10-20 evening; why: a change took effect at once,
     "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks and dropdowns),
-    "New picture at", "As soon as it's out", "Change every", "If APOD is a video", a newly
-    picked "my picture" and the switch "More NASA pictures" change only the page
+    "New picture at", "As soon as it's out", "Change every", "If APOD is a video", "Darken
+    bright pictures", a newly picked "my picture" and the switch "More NASA pictures" change only the page
     (`MainActivity`'s draft state; no pref is written, no set, no scheduling). **A hidden
     setting goes back to the stored one** (user, 2026-10-22: else Set saved a hidden "Change
     every", and "Setup" stayed highlighted with nothing in it highlighted): "Change every" while
@@ -466,7 +477,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2).
+    update), the video-day notice and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. A neutral box below the
   tile (`surfaceVariant` fill, `outline` border) says what the video day does to the wallpaper;
@@ -647,6 +658,27 @@ set it as wallpaper, and on video days kept the old wallpaper.
   while it still covers `blurSize`, scaled to it, `blurBackground`, drawn enlarged to the screen
   with filtering). Otherwise Fill at the stored part, else the middle (`setStream` with the
   crop). The user's own picture (video days): always Fill, centred (no whole picture).
+  **The darkening** (BR2, 2026-11-14; GitHub issue #2; the figures in Next features, 0.7.0:
+  bright pictures darker): while "Darken bright pictures" is on (the stored `darken`), each set
+  (the job's, the page's, Set's, ⛶'s ✓; the user's own picture too) first measures what the
+  screen will show: the mean grey of its top third (`:core`'s `topThirdMean`, by `gray`'s
+  weights) on a copy 200 px high (`Drawing.kt`'s `topThirdGrey`): for Fill the frame alone
+  (`frameGrey`: `decodeFrame`, `ImageDecoder`'s crop, upright, decoded straight to that height),
+  for the whole picture the bitmap as drawn, background included. `:core`'s `darkening` gives the
+  factor (1 up to 100, else 100 ÷ the mean, at least ×0.7). **A factor of 1 keeps every path as
+  before** (`setStream`, the EXIF photo's `setBitmap`, the whole picture), byte for byte. **Below
+  1** the picture goes on through a bitmap of the screen's portrait size drawn with a `Paint`
+  holding `ColorMatrixColorFilter(setScale(k, k, k, 1))` (`darkeningPaint`: R, G and B scaled
+  alike, so the hues stay and black stays black), set with `setBitmap`, the hint all of it:
+  Fill's frame (an EXIF photo too) decoded alone at the screen's size (`decodeFrame`: only the
+  frame, since a wide panorama at the screen's height would be hundreds of MB whole) and drawn
+  with `drawPanned`; the whole picture drawn as before and copied through the paint
+  (`darkened`). A failed measure sets the picture as it is (logged). The log's set line ends
+  ", darker ×0.78 (grey 141)" (the job's, the page's, Set's, and "Part: wallpaper set: …" for
+  ⛶'s ✓). The page shows the picture as it is; ★ and "Save every picture" save the originals.
+  Debuggable builds write the bitmap set to `files/debug-set.png` (deleted by a `setStream`
+  set) and the whole picture before the darkening to `files/debug-whole.png` (L4), for checks
+  by the pixels.
   **Home and lock set separately** (M0, 2026-10-20; tablet, Android 15; the FP6 unchecked): both
   flags make one shared wallpaper (`dumpsys wallpaper`'s "Lock wallpaper state" empty);
   `FLAG_SYSTEM` alone first moves the shared one to the lock screen and sets home anew;
@@ -1322,7 +1354,9 @@ grey by `gray`'s weights on a small grey copy), the factor 1 up to a target of 1
 100 ÷ the mean, at least ×0.7 (the best fit: 23 of 50 picks exactly on the ladder, 44 within one
 step; floors 0.6 and 0.5 fitted worse); a switch in Setup, default on; "my picture" and a whole
 picture with its background too. **Built** (BR1): `:core`'s `Brightness.kt` (`topThirdMean`,
-`darkening`, `BrightnessTest`); `Store.set` (BR2) and Live (BR3) follow.
+`darkening`, `BrightnessTest`); BR2 (2026-11-14): `Store.set` darkens (The app, Wallpaper:
+the darkening) and the switch "Darken bright pictures" in Setup (The app, Settings); Live (BR3)
+follows.
 
 **0.7.0: turns as a plain rotation** (user, 2026-11-11; the rules' draft, the questions and the
 packages RO1–RO3 in [rotation-0.7.0.md](.claude/skills/build-apodroid-android/rotation-0.7.0.md)).

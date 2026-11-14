@@ -9,6 +9,7 @@ import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.ImageDecoder
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
@@ -18,6 +19,7 @@ import android.util.Log
 import android.util.Size
 import android.view.Display
 import androidx.core.content.edit
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
 import io.github.buerlino.apodroid.core.OWN_PICTURE
@@ -38,6 +40,7 @@ import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.screensOf
+import io.github.buerlino.apodroid.core.darkening
 import io.github.buerlino.apodroid.core.download
 import io.github.buerlino.apodroid.core.dueWallpapers
 import io.github.buerlino.apodroid.core.fetchLatest
@@ -56,6 +59,7 @@ import io.github.buerlino.apodroid.core.renditionUrl
 import java.io.File
 import java.io.IOException
 import java.io.InterruptedIOException
+import java.util.Locale
 import java.net.SocketTimeoutException
 import java.time.Duration
 import java.time.Instant
@@ -93,7 +97,9 @@ fun Map<Source, Part>.forPost(post: Post): Part? = this[post.source]?.takeIf { p
  * Everything "Set as wallpaper" saves at once ([Store.saveSetup]); the page's draft until then.
  * [list] is the list's columns, kept in APOD mode too; [parts] ⛶'s part per source; [pictureAt]
  * "New picture at", an hour; [soon] "As soon as it's out" (SO2: a newer picture of a screen's
- * source goes on whenever a check sees it, with hourly checks all day). Not the daily switch: it acts at once ([Store.switchDaily]).
+ * source goes on whenever a check sees it, with hourly checks all day); [darken] "Darken bright
+ * pictures" (BR2: each set darkens a picture brighter than `:core`'s target, [Store.set]). Not
+ * the daily switch: it acts at once ([Store.switchDaily]).
  */
 data class Setup(
     val allSources: Boolean,
@@ -104,6 +110,7 @@ data class Setup(
     val parts: Map<Source, Part>,
     val pictureAt: Int = DEFAULT_PICTURE_AT,
     val soon: Boolean = false,
+    val darken: Boolean = true,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
     val columns: Map<Screen, List<Source>>
@@ -269,7 +276,7 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon)
+        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken)
 
     /**
      * Blocking. "Set as wallpaper": saves [setup] in one commit (the list with [putColumns], so
@@ -300,6 +307,7 @@ class Store(private val context: Context) {
             putString("interval", setup.interval.name)
             putInt("pictureAt", setup.pictureAt)
             putBoolean("soon", setup.soon)
+            putBoolean("darken", setup.darken)
             putString("videoDays", setup.videoDays.name)
             for ((source, part) in setup.parts) putPart(source, part)
             putRestart(restart)
@@ -342,7 +350,8 @@ class Store(private val context: Context) {
             (record(screen)?.picture as? Picture.Of)?.takeIf { it.source == post.source && current.isNoted(it.date, it.url) }?.let { screen to it }
         }.toMap()
         val picture = showing.values.firstOrNull() ?: return emptySet()
-        set(picture, showing.keys, stored)
+        val darker = set(picture, showing.keys, stored)
+        Log.i("APODroid", "Part: wallpaper set: $picture on ${showing.keys.joinToString("+")}$darker")
         prefs.edit(commit = true) { showing.keys.forEach { putSetAt(it) } }
         showing.keys
     }
@@ -428,6 +437,14 @@ class Store(private val context: Context) {
      */
     val soon: Boolean
         get() = prefs.getBoolean("soon", false)
+
+    /**
+     * "Darken bright pictures" (BR2, part of the [setup], default on, also for an update from
+     * 0.6.0: the user, 2026-11-14): each [set] darkens a picture whose top third is brighter than
+     * `:core`'s target.
+     */
+    val darken: Boolean
+        get() = prefs.getBoolean("darken", true)
 
     /**
      * This device's offset after the clock's checks ([randomOffset], 0–10 min), drawn once and
@@ -847,7 +864,7 @@ class Store(private val context: Context) {
                 Log.i("APODroid", "Switched off after: ${done.joinToString().ifEmpty { "nothing" }}")
                 return@synchronized Triple(done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: "), failure, true)
             }
-            try {
+            val darker = try {
                 set(picture, screens, stored)
             } catch (e: Exception) {
                 failure = failure ?: e
@@ -855,7 +872,7 @@ class Store(private val context: Context) {
                 continue
             }
             screens.forEach { setsSinceSetup[it] = true }
-            done += "$picture on ${screens.joinToString("+")}"
+            done += "$picture on ${screens.joinToString("+")}$darker"
             // A stop during the set (seconds with the whole picture) ends the run here.
             try {
                 commitBeforeStop(stopped) { screens.forEach { putRecord(it, plan.screens.getValue(it).record); putSetAt(it) } }
@@ -934,37 +951,83 @@ class Store(private val context: Context) {
      * a new post meanwhile must not mark the new one as set. The crop is [wallpaperFrame], the
      * screen's portrait shape: without one, Android 15+ shows the left part of a wide picture.
      * The user's own picture (video days) is always Fill, centred. A source's post with ⛶'s
-     * whole picture ([Part.whole]): all of it, on black or blurred ([wholePicture], `Drawing.kt`). Writes no record.
+     * whole picture ([Part.whole]): all of it, on black or blurred ([wholePicture], `Drawing.kt`).
+     * With [darken] (BR2) what the screen will show is measured first (its top third,
+     * [topThirdGrey], [frameGrey]); a bright one (`:core`'s [darkening] below 1) goes on through a bitmap of
+     * the screen's size drawn with the darkening (Fill's frame [decodeFrame]d alone, the EXIF
+     * photo too; the whole picture darkened as drawn), all of it the hint. A factor of 1 leaves
+     * every path as 0.6.0's. Writes no record. Returns the log's note: ", darker ×0.78 (grey 141)",
+     * or "".
      */
-    private fun set(picture: Picture, screens: Set<Screen>, stored: Stored) {
+    private fun set(picture: Picture, screens: Set<Screen>, stored: Stored): String {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
         val part = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
         val position = part?.position ?: 0.5f
         val flags = screens.fold(0) { flags, it -> flags or if (it == Screen.HOME) WallpaperManager.FLAG_SYSTEM else WallpaperManager.FLAG_LOCK }
         val manager = WallpaperManager.getInstance(context)
+        val screen = screen
+        val darken = darken
         if (part?.whole == true) {
-            // The screen's size already: the hint is all of it.
-            val bitmap = wholePicture(file, screen)
-            dumpWhole(bitmap)
+            // The screen's size already: the hint is all of it. Measured with its background (Open 5).
+            val whole = wholePicture(file, screen)
+            dumpWhole(whole)
+            val grey = if (darken) topThirdGrey(whole) else null
+            val factor = grey?.let(::darkening) ?: 1f
+            val bitmap = if (factor < 1f) darkened(whole, factor) else whole
+            dumpSet(bitmap)
+            manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
+            return darker(factor, grey)
+        }
+        // A failed measure leaves the picture as it is: the set matters more than the darkening.
+        val grey = if (!darken) null else runCatching { frameGrey(file, screen, position) }
+            .onFailure { Log.w("APODroid", "Couldn't measure the brightness: $it") }.getOrNull()
+        val factor = grey?.let(::darkening) ?: 1f
+        if (factor < 1f) {
+            // Only the frame is decoded, at the screen's size, upright (an EXIF photo too).
+            val frame = decodeFrame(file, screen, position, screen.height)
+            val bitmap = createBitmap(screen.width, screen.height)
+            drawPanned(Canvas(bitmap), frame, screen, position, factor)
+            frame.recycle()
+            dumpSet(bitmap)
             manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
         } else if (needsTurning(file)) {
             // Android would measure it unturned but draw it turned, stretching it (seen on API 36).
             val bitmap = decodeUpright(file, screen)
+            dumpSet(bitmap)
             manager.setBitmap(bitmap, wallpaperFrame(bitmap.width, bitmap.height, screen, position), true, flags)
         } else {
+            dumpSet(null)
             val crop = imageBounds(file)?.let { wallpaperFrame(it.outWidth, it.outHeight, screen, position) }
             file.inputStream().use { manager.setStream(it, crop, true, flags) }
         }
+        return darker(factor, grey)
     }
+
+    /** The log's note of a darkened set ([set]): ", darker ×0.78 (grey 141)", or "" at 1. */
+    private fun darker(factor: Float, grey: Double?) =
+        if (factor < 1f && grey != null) String.format(Locale.ROOT, ", darker ×%.2f (grey %.0f)", factor, grey) else ""
+
+    private val debuggable get() = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
 
     /**
      * In a debuggable build only: [bitmap], the whole picture [set] sets, to `files/debug-whole.png`,
-     * so a check can compare the pixels before and after a change to the drawing (L4, L5).
+     * so a check can compare the pixels before and after a change to the drawing (L4, L5); before
+     * the darkening, which [dumpSet] shows.
      */
-    private fun dumpWhole(bitmap: Bitmap) {
-        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
+    private fun dumpWhole(bitmap: Bitmap) = dump(bitmap, "debug-whole.png")
+
+    /**
+     * In a debuggable build only: the bitmap [set] sets to `files/debug-set.png` (BR2), so a check
+     * can measure the pixels (the darkening); a set by `setStream` (null: no bitmap) deletes it.
+     */
+    private fun dumpSet(bitmap: Bitmap?) {
+        if (bitmap != null) dump(bitmap, "debug-set.png") else if (debuggable) File(context.filesDir, "debug-set.png").delete()
+    }
+
+    private fun dump(bitmap: Bitmap, name: String) {
+        if (!debuggable) return
         runCatching {
-            File(context.filesDir, "debug-whole.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            File(context.filesDir, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }.onFailure { Log.w("APODroid", "Debug dump failed", it) }
     }
 

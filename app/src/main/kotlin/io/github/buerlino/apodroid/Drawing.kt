@@ -3,6 +3,8 @@ package io.github.buerlino.apodroid
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.ImageDecoder
 import android.graphics.Paint
 import android.graphics.Rect
@@ -15,23 +17,77 @@ import io.github.buerlino.apodroid.core.edgeCopySize
 import io.github.buerlino.apodroid.core.edgesBlack
 import io.github.buerlino.apodroid.core.fitFrame
 import io.github.buerlino.apodroid.core.gray
+import io.github.buerlino.apodroid.core.topThirdMean
 import io.github.buerlino.apodroid.core.wallpaperFrame as coreWallpaperFrame
 import java.io.File
+import kotlin.math.roundToInt
 
 // The drawing (L4): one place that draws a picture onto a canvas of a given size, panned (Fill's
-// frame at a position) or whole (on black or blurred). Its users: Store.set's whole picture, and
-// from 0.7.0's Live the engine and ⛶'s preview.
+// frame at a position) or whole (on black or blurred). Its users: Store.set's whole picture and a
+// bright picture's frame (BR2), and from 0.7.0's Live the engine and ⛶'s preview.
 
 /**
  * [picture]'s frame at [position] (0–1, [wallpaperFrame]: the [screen]'s portrait shape) drawn to
- * fill [canvas]'s drawing area of [screen]'s size, filtered.
+ * fill [canvas]'s drawing area of [screen]'s size, filtered, darkened by [factor] ([darkeningPaint]).
  */
-fun drawPanned(canvas: Canvas, picture: Bitmap, screen: Size, position: Float) {
+fun drawPanned(canvas: Canvas, picture: Bitmap, screen: Size, position: Float, factor: Float = 1f) {
     canvas.drawBitmap(
         picture, wallpaperFrame(picture.width, picture.height, screen, position),
-        Rect(0, 0, screen.width, screen.height), Paint(Paint.FILTER_BITMAP_FLAG),
+        Rect(0, 0, screen.width, screen.height), darkeningPaint(factor),
     )
 }
+
+/**
+ * The darkening (BR2, issue #2): a filtering [Paint] that scales R, G and B by [factor] (`:core`'s
+ * `darkening`, 0.7–1), one linear scale, so the hues stay and black stays black; none at 1.
+ */
+fun darkeningPaint(factor: Float) = Paint(Paint.FILTER_BITMAP_FLAG).apply {
+    if (factor < 1f) colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setScale(factor, factor, factor, 1f) })
+}
+
+/** [bitmap] darkened by [factor] ([darkeningPaint]) on a new bitmap of its size; [bitmap] is recycled. */
+fun darkened(bitmap: Bitmap, factor: Float): Bitmap =
+    createBitmap(bitmap.width, bitmap.height).also {
+        Canvas(it).drawBitmap(bitmap, 0f, 0f, darkeningPaint(factor))
+        bitmap.recycle()
+    }
+
+/** How high the copy is that [topThirdGrey] measures: BR0 measured the frame shrunk to 90×200. */
+const val MEASURE_HEIGHT = 200
+
+/**
+ * The mean grey (0–255) of [bitmap]'s top third (`:core`'s [topThirdMean], by [gray]'s weights),
+ * measured on a copy at most [MEASURE_HEIGHT] high.
+ */
+fun topThirdGrey(bitmap: Bitmap): Double {
+    val h = minOf(bitmap.height, MEASURE_HEIGHT)
+    val w = maxOf(1, (bitmap.width.toLong() * h / bitmap.height).toInt())
+    val copy = if (h == bitmap.height) bitmap else Bitmap.createScaledBitmap(bitmap, w, h, true)
+    val pixels = IntArray(w * h).also { copy.getPixels(it, 0, w, 0, 0, w, h) }
+    if (copy !== bitmap) copy.recycle()
+    return topThirdMean(IntArray(pixels.size) { gray(pixels[it]) }, w, h)
+}
+
+/** The mean grey of the top third of [file]'s frame at [position] ([topThirdGrey], [decodeFrame] small). */
+fun frameGrey(file: File, screen: Size, position: Float): Double =
+    decodeFrame(file, screen, position, MEASURE_HEIGHT).let { frame -> topThirdGrey(frame).also { frame.recycle() } }
+
+/**
+ * [file]'s frame at [position] ([wallpaperFrame], the [screen]'s shape), upright, decoded alone
+ * (the decoder's crop: a wide panorama at the screen's height would be hundreds of MB whole) and
+ * straight to at most [height] high: the screen's for drawing, [MEASURE_HEIGHT] for measuring.
+ * A picture smaller than that stays its size. The crop and `setTargetSize` are in the upright
+ * picture's coordinates, as `info.size` (AOSP's ImageDecoder.cpp).
+ */
+fun decodeFrame(file: File, screen: Size, position: Float, height: Int): Bitmap =
+    ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
+        val (w, h) = info.size.width to info.size.height
+        val scale = minOf(1.0, height.toDouble() / wallpaperFrame(w, h, screen, position).height())
+        val (tw, th) = maxOf(1, (w * scale).roundToInt()) to maxOf(1, (h * scale).roundToInt())
+        if (scale < 1.0) decoder.setTargetSize(tw, th)
+        decoder.crop = wallpaperFrame(tw, th, screen, position)
+        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+    }
 
 /** The whole picture of [file] on a bitmap of the [screen]'s size ([drawWhole]). */
 fun wholePicture(file: File, screen: Size): Bitmap =

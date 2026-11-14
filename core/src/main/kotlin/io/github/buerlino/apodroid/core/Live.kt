@@ -168,7 +168,9 @@ fun lostLive(homeNoted: Boolean, lockNoted: Boolean, homeLive: Boolean, shared: 
  * (L6, found by SIM): the engine would draw home's new picture there while the lock screen's
  * record names its own. The caller then forgets the lock screen's record and plans again, so it
  * gets its due picture this run: the engine's too when it's home's new one, else its still Fill
- * first (Decision 10). With equal columns the lock screen is due home's picture with it, so never.
+ * first (Decision 10). When it holds for that second plan too (nothing of its own to show, B27),
+ * the lock screen keeps what the engine draws now by a still set before the hand-over, its record
+ * kept. With equal columns the lock screen is due home's picture with it, so never.
  */
 fun lockFollowsHome(split: LiveSets, shared: Boolean, lockColumn: Boolean): Boolean {
     val (_, screens) = split.engine ?: return false

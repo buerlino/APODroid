@@ -54,7 +54,7 @@ packages unattended): `night.md`.
   lockShares)` (whether Set opens Android's picker), `firstStarted(options, failed, start)` (the picker's intents in
   order, any `RuntimeException` of a start logged and the next tried: L6 fix round 1), `unnotedLive(size, homeLive, shared, homeNoted, lockNoted,
   columns)` (the screens the engine is on not noted live, forgotten before the rules) and `lockFollowsHome(split,
-  shared, lockColumn)` (home's hand-over would change a shared lock screen not due it: forget it, plan again).
+  shared, lockColumn)` (home's hand-over would change a shared lock screen not due it: forget it, plan again; holding again, B27, the lock screen keeps the engine's picture as a still).
   L8: `screenOnQuiet` (15 min) and `screenOnRunOwed(now, daily, nextAlarm, lastRun, stray, notedLive)` (D: whether
   an engine that became visible starts the alarms' run; `Store.screenOnRunOwed(stray)` with `Store.liveNoted`).
   `core/.../Turn.kt`: `nextSource(ticked, after, hasPicture, order)` (the next ticked source in
@@ -124,12 +124,12 @@ packages unattended): `night.md`.
   is APOD mode's screen), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
   wallpaper lock; L5: `lostLive` forgets before the rules, `stillOrLive` splits the sets, home's to the engine by
-  `copyForLive`, the records noted `wallpaperLive`; L6: `unnotedLive` forgets too, `lockFollowsHome` plans again), Live (L5): `size` (L6: the pref `size`, Fill by default), `liveFile` (`files/live.jpg`),
+  `copyForLive`, the records noted `wallpaperLive`; L6: `unnotedLive` forgets too, `lockFollowsHome` plans again; B27: when it still holds, the lock screen keeps what the engine draws, `liveFile` or `liveFallback()`, by a still `setFile` before the hand-over, its record kept), Live (L5): `size` (L6: the pref `size`, Fill by default), `liveFile` (`files/live.jpg`),
   `liveWhole`, `liveDarken`, `livePicture` and `putLive` (the notes beside it), `copyForLive` (via `live.part`; returns
   a `LiveCopy`: the whole flag and, with `darken`, the factor and the grey measured once, BR3), `liveFallback()` (no copy: home's first source's file, else APOD's), `liveAt(now)` (`livePosition` for
   home's column), `liveOn(screen)`/`liveShared`/`liveState()` (L1's table; `live.homeId` below 14, `noteHomeId`),
   `noteShared()` (`live.shared` at `update`'s start while home is live), L6's `opensPicker(before)`, `liveMissing`
-  (the status line "Live isn't on…"), `wallpaperIds()` and `awaitLive(ids)` (Set's picker trip), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `sourcePicture(source)`, `set(picture, screens)` (the flags per screen; a photo with
+  (the status line "Live isn't on…"), `wallpaperIds()` and `awaitLive(ids)` (Set's picker trip), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `sourcePicture(source)`, `set(picture, screens)` (its drawing in `setFile(file, screens, position, whole, factor)`, B27: a fixed `factor` for Live's copy, null to measure; the flags per screen; a photo with
   an EXIF orientation goes upright through `setBitmap`; with ⛶'s whole picture (`Part.whole`, A3) `Drawing.kt`'s `wholePicture` bitmap, written to `files/debug-whole.png` too in a debuggable build (`dumpWhole`, L4, for comparing the pixels); the frame's place and the whole picture from `parts.forPost(post)`, O2; with `darken` (BR2) what the screen shows measured first (`frameGrey`, or `topThirdGrey` of the whole picture) and a bright one, `:core`'s `darkening` below 1, set as a screen-sized bitmap through `darkeningPaint` (Fill's frame by `decodeFrame` and `drawPanned`, the whole picture by `darkened`), the bitmap set written to `files/debug-set.png` in a debuggable build (`dumpSet`; a `setStream` set deletes it); returns the log's note ", darker ×0.78 (grey 141)", which `setDue`'s line and `setPart`'s "Part: wallpaper set: …" carry), `parts` with `forPost` (the one lookup of a source's `Part` for a post, date and picture URL; the page's draft and highlight use it too), `save` (the original, else the stored picture; the job's `limit`; returns `Saved`; its temp file `cache/original.part`, leftovers dropped by `dropSaveLeftovers` at the page's first start and by each save, B13), `imageBounds`
   (`wallpaperFrame` is in `Drawing.kt`).
 - `app/.../Drawing.kt` (L4): the one drawing of a picture onto a `Canvas` of a given size, for

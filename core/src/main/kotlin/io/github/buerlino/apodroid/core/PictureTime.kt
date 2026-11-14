@@ -6,15 +6,16 @@ import java.time.ZoneId
 import kotlin.random.Random
 
 /*
- * The picture time (0.6.0, J1; CLAUDE.md, Background update, Turns): one time, one clock, three
- * rules, decided by the clock, never by what is on the screen.
+ * The picture time (0.6.0, J1; turns as a plain rotation since RO1, 2026-11-14; CLAUDE.md,
+ * Background update, Turns): one time, one clock, two rules, decided by the clock, never by what
+ * is on the screen.
  * 1. At "New picture at", and with several sources every "Change every" from then, a screen
- *    changes: to its source's newest picture, or to the next source with a picture it hasn't
- *    shown ([dueWallpapers]).
+ *    changes to the next of its sources and shows that source's newest picture: the source by the
+ *    clock ([PictureTime.turn]), the next with a picture when it has none ([dueWallpapers]).
  * 2. A newer picture of that source published in the [pictureWindow] after the change still
  *    replaces it, whenever a check sees it (B15: by the publish time). With one source a post
  *    stored after a gap in the checks ([afterGap], B21) goes on whenever a run sees it too.
- * 3. With several sources and nothing new, the picture stays until one comes out (the screen waits).
+ * 0.6.0's rule 3 (with nothing new the screen waits, checked hourly) went with RO1.
  * This file has the times: when a screen changes ([PictureTime]) and when the next run checks
  * ([nextRun]).
  */
@@ -71,17 +72,41 @@ data class PictureTime(val pictureAt: Int = DEFAULT_PICTURE_AT, val everyHours: 
     fun hours(turns: Boolean): List<Int> =
         if (!turns) listOf(pictureAt) else (0 until 24 / everyHours).map { (pictureAt + it * everyHours) % 24 }.sorted()
 
-    /** The change times of the local day before [t], its own and the one after, in order. */
-    private fun around(t: Instant, zone: ZoneId, turns: Boolean): List<Instant> {
+    /**
+     * The change times of the local day before [t], its own and the one after, in order, each
+     * with its number ([turn]). A change time whose hour comes before [pictureAt] (00:00 with
+     * 06:00 and 6 h) belongs to the day before.
+     */
+    private fun changes(t: Instant, zone: ZoneId, turns: Boolean): List<Pair<Instant, Long>> {
         val day = t.atZone(zone).toLocalDate()
-        return (-1L..1L).flatMap { d -> hours(turns).map { day.plusDays(d).atTime(it, 0).atZone(zone).toInstant() } }.distinct().sorted()
+        val hours = hours(turns)
+        return (-1L..1L).flatMap { d ->
+            val date = day.plusDays(d)
+            hours.map { hour ->
+                val ofDay = if (hour < pictureAt) date.minusDays(1) else date
+                val number = ofDay.toEpochDay() * hours.size + (hour - pictureAt + 24) % 24 / everyHours
+                date.atTime(hour, 0).atZone(zone).toInstant() to number
+            }
+        }.distinctBy { it.first }.sortedBy { it.first }
     }
+
+    private fun around(t: Instant, zone: ZoneId, turns: Boolean): List<Instant> = changes(t, zone, turns).map { it.first }
 
     /** The latest change time at or before [now]: the current one. */
     fun last(now: Instant, zone: ZoneId, turns: Boolean): Instant = around(now, zone, turns).last { it <= now }
 
     /** The first change time after [now]. */
     fun next(now: Instant, zone: ZoneId, turns: Boolean): Instant = around(now, zone, turns).first { it > now }
+
+    /**
+     * The number of the current change time with turns, at [now] (RO1, by the clock): the day's
+     * change times counted from [pictureAt] (0, 1, …), plus the days since 1970-01-01 × the change
+     * times a day. Consecutive change times have consecutive numbers, so a column's sources take
+     * turns by it, the number mod the column ([dueWallpapers]): with APOD and NASA every 6 h from
+     * 06:00, APOD at 06:00 and 18:00, NASA at 12:00 and 00:00; every 24 h, a day each. A phone
+     * off, a Set or a pull never shifts it.
+     */
+    fun turn(now: Instant, zone: ZoneId): Long = changes(now, zone, true).last { it.first <= now }.second
 
     /** Whether [t] is one of the change times (a record's stamp from 0.6.0's Set clock or 0.5.0 isn't). */
     fun isChangeTime(t: Instant, zone: ZoneId, turns: Boolean): Boolean = t in around(t, zone, turns)
@@ -95,8 +120,9 @@ data class PictureTime(val pictureAt: Int = DEFAULT_PICTURE_AT, val everyHours: 
  * - within the [pictureWindow] after the current change time, [firstCheck] after it, then hourly
  *   (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone), and at its end
  *   (09:00: a half-hour zone's post, Tehran's 08:35, published within it; B15);
- * - while a screen [waiting] (several sources, nothing new: [waiting]), the same checks hourly
- *   until the next change time.
+ * - with [allDay], the same checks hourly until the next change time (0.6.0's waiting screen,
+ *   gone with RO1; kept for "As soon as it's out", SO1). No hourly checks after the window
+ *   otherwise: a post that comes out later waits for its source's next turn.
  * The clock's checks come [offset] later (0 to [maxOffset], kept in that range). No model of each
  * source's posting time (user, 2026-10-23).
  *
@@ -112,8 +138,8 @@ fun nextRun(
     time: PictureTime,
     turns: Boolean,
     offset: Duration,
-    waiting: Boolean,
     lastRun: Instant? = null,
+    allDay: Boolean = false,
 ): Instant {
     val off = offset.coerceIn(Duration.ZERO, maxOffset)
     // The checks on the clock without the offset, from the current change time of [now] less the
@@ -124,7 +150,7 @@ fun nextRun(
     val next = time.next(shifted, zone, turns)
     val checks = mutableListOf(last, next, last + pictureWindow)
     var check = last + firstCheck
-    while (check < next && (waiting || check < last + pictureWindow)) {
+    while (check < next && (allDay || check < last + pictureWindow)) {
         checks += check
         check += hourly
     }
@@ -158,10 +184,9 @@ fun nextAlarm(
     time: PictureTime,
     turns: Boolean,
     offset: Duration,
-    waiting: Boolean,
     lastRun: Instant?,
 ): Instant {
-    val clock = nextRun(now, zone, time, turns, offset, waiting, lastRun)
+    val clock = nextRun(now, zone, time, turns, offset, lastRun)
     if (failures <= 0 || lastRun == null) return clock
     return minOf(clock, maxOf(lastRun + retryAfter(failures), now))
 }

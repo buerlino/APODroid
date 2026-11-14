@@ -233,6 +233,9 @@ class MainActivity : ComponentActivity() {
     /** "New picture at" ([Store.pictureAt], an hour 0–23): the change times start there. */
     private var pictureAt by mutableIntStateOf(DEFAULT_PICTURE_AT)
 
+    /** "As soon as it's out" ([Store.soon]): a newer picture goes on within the hour, not only in the window. */
+    private var soon by mutableStateOf(false)
+
     /** ⛶'s part per source ([Store.parts]); ✓ notes the shown post's. */
     private var parts by mutableStateOf(emptyMap<Source, Part>())
 
@@ -413,7 +416,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -423,6 +426,7 @@ class MainActivity : ComponentActivity() {
         videoDays = setup.videoDays
         parts = setup.parts
         pictureAt = setup.pictureAt
+        soon = setup.soon
     }
 
     /** The draft's columns: APOD mode's from "Where", else the list. A column with two or more takes turns every [interval]. */
@@ -1580,6 +1584,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(showsInterval, interval, stored.interval) { if (!showsInterval) interval = stored.interval }
         LaunchedEffect(daily, videoDays, draftFallback, stored.videoDays) { if (!daily) dropVideoDays() }
         LaunchedEffect(daily, pictureAt, stored.pictureAt) { if (!daily) pictureAt = stored.pictureAt }
+        LaunchedEffect(daily, soon, stored.soon) { if (!daily) soon = stored.soon }
         val setupChanged = setupChanged()
         // Opens by itself while the draft differs (a rotation, the system killing the app).
         LaunchedEffect(setupChanged) { if (setupChanged) setupOpen = true }
@@ -1606,7 +1611,10 @@ class MainActivity : ComponentActivity() {
                 } else {
                     PictureList()
                 }
-                if (daily) PictureAtChoice()
+                if (daily) {
+                    PictureAtChoice()
+                    SoonSwitch()
+                }
                 // Hiding it moves the page only after a tick.
                 if (allSources && showsInterval) {
                     val changed = interval != stored.interval
@@ -1673,6 +1681,53 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
+     * "As soon as it's out" (SO2), under "New picture at": part of the draft, with a small ⓘ beside
+     * the label (as "Save every picture"'s) and the highlight while it differs from the stored one.
+     */
+    @Composable
+    private fun SoonSwitch() {
+        var info by rememberSaveable { mutableStateOf(false) }
+        val changed = soon != stored.soon
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .toggleable(soon, role = Role.Switch, onValueChange = { soon = it })
+                .semantics { if (changed) stateDescription = "${if (soon) "On" else "Off"}, not set yet" },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                Text("As soon as it's out", Modifier.weight(1f, fill = false), color = highlight(changed))
+                Text(
+                    "ⓘ",
+                    Modifier
+                        .clickable(role = Role.Button, onClick = { info = true })
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .clearAndSetSemantics { contentDescription = "About As soon as it's out" },
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            val colors = MaterialTheme.colorScheme
+            Switch(
+                checked = soon,
+                onCheckedChange = null,
+                colors = if (!changed) SwitchDefaults.colors() else SwitchDefaults.colors(
+                    checkedTrackColor = colors.tertiary,
+                    checkedThumbColor = colors.onTertiary,
+                    uncheckedBorderColor = colors.tertiary,
+                    uncheckedThumbColor = colors.tertiary,
+                ),
+            )
+        }
+        if (info) {
+            AlertDialog(
+                onDismissRequest = { info = false },
+                confirmButton = { TextButton(onClick = { info = false }) { Text("OK") } },
+                text = { Text("A new picture goes on within the hour after it's out, not only at the change time.") },
+            )
+        }
+    }
+
+    /**
      * "Change every" with a small ⓘ beside it (RO2, the user's Open 3, 2026-11-14: the rotation's
      * effect is what confused), whose dialog says it in one sentence with the draft's values.
      */
@@ -1709,7 +1764,7 @@ class MainActivity : ComponentActivity() {
     private fun setupChanged(): Boolean =
         allSources != stored.allSources ||
             (if (allSources) Source.entries.any(::rowChanged) else where != stored.where) ||
-            interval != stored.interval || pictureAt != stored.pictureAt || videoDaysChanged()
+            interval != stored.interval || pictureAt != stored.pictureAt || soon != stored.soon || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
     private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
@@ -2134,6 +2189,7 @@ private fun Setup.toBundle() = Bundle().apply {
     putString("interval", interval.name)
     putString("videoDays", videoDays.name)
     putInt("pictureAt", pictureAt)
+    putBoolean("soon", soon)
     parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.whole}|${part.url.orEmpty()}") }
 }
 
@@ -2149,6 +2205,7 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         interval = Interval.valueOf(bundle.getString("interval")!!),
         videoDays = VideoDays.valueOf(bundle.getString("videoDays")!!),
         pictureAt = pictureAtOrDefault(bundle.getInt("pictureAt", DEFAULT_PICTURE_AT)),
+        soon = bundle.getBoolean("soon"),
         parts = Source.entries.mapNotNull { source ->
             bundle.getString("part.${source.name}")?.split('|', limit = 4)?.let { (date, position, whole, url) ->
                 source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict())

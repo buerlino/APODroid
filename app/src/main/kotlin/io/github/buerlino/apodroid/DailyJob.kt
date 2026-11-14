@@ -39,7 +39,9 @@ import kotlin.concurrent.thread
  * either id that starts while a run goes ends at once ([JobRuns.start]); the going run's end arms
  * again. Scheduling a job's id again stops its run, so nothing schedules one while a run goes
  * ([JobRuns.going], process-wide). [cancel] (the daily switch off) cancels both jobs and both
- * alarms, a running run too, which then ends without effect.
+ * alarms, a running run too, which then ends without effect. A force stop deletes the alarms and
+ * the fallback: the first arming in the next process notices it for the detector ([checkAlarms],
+ * O14).
  */
 class DailyJob : JobService() {
     @Volatile
@@ -134,13 +136,22 @@ class DailyJob : JobService() {
         private var runScheduled = false
 
         /**
+         * This process armed or cancelled the alarms: it knows their state, so [ensure] no longer
+         * asks whether they're gone ([checkAlarms], O14).
+         */
+        @Volatile
+        private var armedHere = false
+
+        /**
          * Arms the alarms for the next run ([Store.nextAlarm]) and schedules the fallback unless it's
          * there with the right timing: hibernation or a force stop deletes it, and a 0.5.0 or
          * 0.6.0-test install has a turns job (3 h, 15 min flex) to replace once. The fallback not
          * while a run goes: scheduling its id again would stop it (the run's end calls this
          * again). The caller checks [Store.daily]. `false` when the fallback couldn't be scheduled.
+         * The first arming in a process first asks whether the alarms are gone ([checkAlarms]).
          */
         fun ensure(context: Context): Boolean {
+            checkAlarms(context)
             arm(context)
             if (runs.going) return true
             val pending = scheduler(context).getPendingJob(PERIODIC)
@@ -162,15 +173,36 @@ class DailyJob : JobService() {
             val alarms = context.getSystemService(AlarmManager::class.java)
             alarms.setWindow(AlarmManager.RTC_WAKEUP, at, window, alarm(context, WINDOW_ALARM))
             alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, alarm(context, IDLE_ALARM))
+            armedHere = true
+            Store(context).noteArmed()
             Log.i("APODroid", "Daily job: alarms for ${Instant.ofEpochMilli(at)}")
         }
 
         private fun alarm(context: Context, code: Int): PendingIntent = PendingIntent.getBroadcast(
             context,
             code,
-            Intent(context, AlarmReceiver::class.java).setAction(AlarmReceiver.ACTION_RUN),
+            alarmIntent(context),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+
+        private fun alarmIntent(context: Context) = Intent(context, AlarmReceiver::class.java).setAction(AlarmReceiver.ACTION_RUN)
+
+        /**
+         * The detector's sign (O14; on-time-0.7.0.md, The detector): before the first arming in a
+         * process, while the daily switch is on (the caller's check), whether the pair's
+         * `PendingIntent`s are gone. A force stop deletes them (`am force-stop`, O7; ZUI's cleaner,
+         * O8, which leaves no other sign on the tablet), a process's death doesn't; a boot, an
+         * update and a pending run explain it ([Store.noteAlarmsGone]). Within a process that armed
+         * or cancelled them they're known, so it asks only once.
+         */
+        private fun checkAlarms(context: Context) {
+            if (armedHere) return
+            val gone = listOf(WINDOW_ALARM, IDLE_ALARM).all { code ->
+                PendingIntent.getBroadcast(context, code, alarmIntent(context), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE) == null
+            }
+            if (!gone) return
+            Store(context).noteAlarmsGone(runPending = scheduler(context).getPendingJob(RUN) != null)
+        }
 
         /**
          * An alarm fired: schedules the run ([RUN], no delay, any network) while the daily switch
@@ -241,6 +273,7 @@ class DailyJob : JobService() {
         fun cancel(context: Context) = synchronized(lock) {
             runs.drop()
             runScheduled = false
+            armedHere = true
             scheduler(context).cancel(PERIODIC)
             scheduler(context).cancel(RUN)
             val alarms = context.getSystemService(AlarmManager::class.java)

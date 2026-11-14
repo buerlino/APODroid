@@ -64,6 +64,10 @@ class DailyJob : JobService() {
         worker = thread {
             val store = Store(this)
             started(this, store, generation)
+            // Keep running (O11) back, if it went: allowed from a job only while Unrestricted.
+            // After started() and outside the lock, in its own catch (review-0.7.0-runs, 3): a
+            // throw here would kill every run at its start. A refusal is logged, once a run.
+            runCatching { KeepRunning.ensure(this) }
             // The stop flag besides the interrupt: an interrupted thread's commit() clears it (CR2's finding 2).
             val result = runCatching { store.update(force = false, stopped = { stoppedBySystem }) }
             val failure = result.exceptionOrNull() ?: result.getOrNull()?.failure

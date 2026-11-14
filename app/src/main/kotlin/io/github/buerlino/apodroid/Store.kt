@@ -570,6 +570,14 @@ class Store(private val context: Context) {
         get() = prefs.getInt("saveLimit", 20)
         set(value) = prefs.edit { putInt("saveLimit", value) }
 
+    /**
+     * "Keep running" (O11): a foreground service keeps the process, so a maker's cleaner that
+     * stops cached apps leaves it and its alarms alone ([KeepRunning], while [daily] too).
+     */
+    var keepRunning: Boolean
+        get() = prefs.getBoolean("keepRunning", false)
+        set(value) = prefs.edit { putBoolean("keepRunning", value) }
+
     /** The user hid the hint about Android pausing the app, accepting the warning. */
     var pauseHintHidden: Boolean
         get() = prefs.getBoolean("pauseHintHidden", false)

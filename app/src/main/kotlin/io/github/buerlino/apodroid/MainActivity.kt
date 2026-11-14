@@ -221,6 +221,9 @@ class MainActivity : ComponentActivity() {
     /** "Largest original" ([Store.saveLimit], MB, 0: no limit): at once, as "Save every picture". */
     private var saveLimit by mutableIntStateOf(20)
 
+    /** "Keep running" ([Store.keepRunning], O11): at once, as "Save every picture" ([switchKeepRunning]). */
+    private var keepRunning by mutableStateOf(false)
+
     /** The daily switch ([Store.daily]): not part of the draft, it acts at once ([switchDaily]). */
     private var daily by mutableStateOf(false)
 
@@ -384,6 +387,7 @@ class MainActivity : ComponentActivity() {
         daily = store.daily
         saveEvery = store.saveEvery
         saveLimit = store.saveLimit
+        keepRunning = store.keepRunning
         pauseHintHidden = store.pauseHintHidden
         videoNoticeDate = store.videoNoticeDate
         videoNoticeHidden = store.videoNoticeHidden
@@ -457,6 +461,9 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // Hibernation or a force stop deleted the job (scheduling runs it at once) and the alarms.
         if (store.daily && !DailyJob.ensure(this)) Log.w("APODroid", "Couldn't schedule the daily job again")
+        // Keep running (O11) back after Task Manager's Stop, a force stop or a refused start: the
+        // page in the foreground may start it.
+        KeepRunning.ensure(this)
         checkPausing()
         readClock()
         // System broadcasts only: no export flag needed.
@@ -784,6 +791,7 @@ class MainActivity : ComponentActivity() {
         if (!on) {
             switchRuns.off()
             DailyJob.cancel(this)
+            KeepRunning.stop(this)
             return
         }
         switchRuns.on()
@@ -815,6 +823,7 @@ class MainActivity : ComponentActivity() {
             switchRuns.ended(checkedOn = updated?.wentToSet == true)
             // Switched off again meanwhile: off is off.
             if (store.daily) scheduleJob(app)
+            KeepRunning.ensure(app)
             result.exceptionOrNull()?.let { Log.w("APODroid", "Switch on failed: $it", it) }
             updated?.done?.let { Log.i("APODroid", "Switch on: $it") }
             updated?.failure?.let { Log.w("APODroid", "Switch on: $it", it) }
@@ -995,6 +1004,13 @@ class MainActivity : ComponentActivity() {
     private fun switchSaveEvery(on: Boolean) {
         saveEvery = on
         store.saveEvery = on
+    }
+
+    /** "Keep running" (O11): at once, the service started or stopped ([KeepRunning.ensure]). */
+    private fun switchKeepRunning(on: Boolean) {
+        keepRunning = on
+        store.keepRunning = on
+        KeepRunning.ensure(this)
     }
 
     /** "Largest original": the job's next save uses it. */
@@ -1666,7 +1682,15 @@ class MainActivity : ComponentActivity() {
             // Empty while the daily switch is off: hidden then.
             if (daily) {
                 Header("Advanced settings", advancedOpen, changed = false) { advancedOpen = !advancedOpen }
-                if (advancedOpen) SaveEverySwitch()
+                if (advancedOpen) {
+                    SaveEverySwitch()
+                    // At once, not the draft: the stored state is the shown one, so never highlighted.
+                    DraftSwitch(
+                        "Keep running", keepRunning, keepRunning, about = "About keeping running",
+                        info = "Keeps APODroid running, so the phone can't stop it between changes. It shows as an active app.",
+                        onChange = ::switchKeepRunning,
+                    )
+                }
             }
         }
     }
@@ -1716,6 +1740,7 @@ class MainActivity : ComponentActivity() {
      * A switch of the draft ([label], [checked]), with a small ⓘ beside the label (as "Save every
      * picture"'s; [about] for screen readers) whose dialog says [info], and the highlight while it
      * differs from the [stored] one: "As soon as it's out" (SO2), "Darken bright pictures" (BR2).
+     * Also "Keep running" (O11), which acts at once: [stored] is [checked], so no highlight.
      */
     @Composable
     private fun DraftSwitch(label: String, checked: Boolean, stored: Boolean, about: String, info: String, onChange: (Boolean) -> Unit) {

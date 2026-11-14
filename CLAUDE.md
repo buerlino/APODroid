@@ -307,7 +307,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   yet."; a failed set leaves it open). Its state and Advanced's survive a rotation (the saved
   state). **Set as wallpaper**, always, after Setup. **Advanced settings**, the same kind of
   row (no summary), closed by default, only while the daily switch is on (empty otherwise):
-  "Save every picture" with "Largest original" under it while on.
+  "Save every picture" with "Largest original" under it while on, then "Keep running" (O11).
   - **New picture at** (the label and the times approved by the user, 2026-10-24): a dropdown
     as "Largest original", the button "06:00 ▾" (12/24 h as the system says: "6:00 AM ▾"), a
     menu of 00:00 … 23:00 with ✓ before the chosen one, screen readers "New picture at: 06:00".
@@ -396,7 +396,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     box, the battery hint, the opening page. **The job follows the stored setup only:**
     `onResume`'s `DailyJob.ensure` reads `store.daily`, the stored mode and columns; only Set
     and the daily switch schedule or cancel (Set by the stored switch, after saving the draft).
-    **At once:** Advanced ("Save every picture", "Largest original": they change no picture),
+    **At once:** Advanced ("Save every picture", "Largest original": they change no picture;
+    "Keep running", which starts or stops its service),
     ★, and ⛶'s ✓ (U0, 2026-11-02: Choosing the part).
   - **Set as wallpaper**: one button at the end of the Wallpaper section, both modes, the daily
     switch on or off, no Home / Lock / Both menu, enabled unless a Set or the daily switch's run goes. It saves the whole
@@ -499,7 +500,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2).
+    update), the video-day notice and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Keep running, Background update).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. A neutral box below the
   tile (`surfaceVariant` fill, `outline` border) says what the video day does to the wallpaper;
@@ -745,7 +746,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   shows in `tertiary` while it differs from the stored one (until ✓); screen readers: "Whole
   picture", a switch, "On"/"Off" with ", not set yet" while it differs.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
-  page shows the title.
+  page shows the title. The one exception is Keep running's (O11, Background update): a
+  foreground service must have one; the permission is still never asked, so on Android 13+ it
+  doesn't show in the shade, only APODroid in Quick Settings' Active apps.
 - **Icon:** the user's SVGs in `logo/` as an adaptive icon; a monochrome layer for themed icons
   (2026-10-04) computed from the foreground (skill, Icon).
 
@@ -908,6 +911,41 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   `JobRuns.drop` bumps a generation each run takes at its start, so a run from before an off
   ends without effect (it arms and notes nothing; a lock keeps its end and the cancel apart;
   `:core`'s `JobRuns`, `JobRunsTest`).
+
+**Keep running** (O11, 2026-11-14; the user's decision of 2026-10-28, on-time-0.7.0.md,
+Decisions 1 and 3; the texts placeholders until the user approves them from the tablet's
+screenshots): a switch in Advanced settings, after "Save every picture"'s group, while the daily
+switch is on, the pref `keepRunning`, default off, acting at once (not part of the draft, never
+highlighted), with a small ⓘ ("About keeping running"; its dialog "Keeps APODroid running, so
+the phone can't stop it between changes. It shows as an active app."). Why: a maker's cleaner
+force-stops cached apps (ZUI's from oom adj 701, O8: APODroid at 910 lost both alarms), and a
+foreground service's process isn't cached (O8: the probe at 50–200 was spared in the same
+sweep). `KeepRunning.kt`, a `Service` with `foregroundServiceType="specialUse"` (the property
+`PROPERTY_SPECIAL_USE_FGS_SUBTYPE`, one sentence; only Google Play reads it), not exported: its
+`onStartCommand` goes foreground (`ServiceCompat.startForeground`, the type on 34+) and is
+`START_STICKY` (O7: back about 1 s after a `kill -9`, foreground again on 15); nothing else, no
+thread, no wake lock, no network: the runs stay the alarms' and the fallback's in this process.
+A start that crossed an off (the switch read on just before) goes foreground, then stops
+itself; a stop waits while a start is pending (`:core`'s `PendingStarts`, O11's fix round 1: a
+`stopService` before the start's `onStartCommand` crashes the app, "did not then call
+startForeground"), the start's read of the switch and `startForegroundService` under one lock
+with the stop's check and `stopService` (fix round 2: else a start read on, a stop found
+nothing pending, and the two crossed); a start stays pending until its `onStartCommand`'s
+`startForeground` has gone foreground or been refused (fix round 3: counted off at the top, a
+stop during the notification's building still crashed the app). The notification: channel `keep`, "Keep running", `IMPORTANCE_LOW`, no badge; the text
+"Keeps the wallpaper changing on time" (the header names the app), ongoing, no time, the small
+icon `ic_keep_running` (the monochrome layer's paths, the inner 72 of 108 units, 24 dp), a tap
+opens the page. **Started** by `KeepRunning.ensure` (while `daily` and `keepRunning`, else it
+stops the service): the switch on, each `onResume` (the page in the foreground may start it:
+back after Task Manager's Stop, a force stop or a refused start), the daily switch's run's end,
+`BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` (both may start a foreground service from the
+background), and each job run's start (after `started`, outside the lock, its own catch:
+`review-0.7.0-runs.md`'s finding 3; Android allows it there only while the app is Unrestricted,
+O7: refused while Optimized). **Stopped:** the switch off, the daily switch off (beside
+`DailyJob.cancel`). **Refused** (`ForegroundServiceStartNotAllowedException`, 12+; also a
+sticky restart's `startForeground`): caught, logged ("Keep running: couldn't start: …" or
+"Keep running: refused: …"), the service stops; nothing on the page. With it on the process
+stays resident (O7: about 105 MB PSS after Back with the decoded pictures, O12's question).
 
 Each run (either id), and each page open or pull (2026-10-16, one path): `Store.update(force)`,
 `refresh(source)` for each source in use unless its stored post is today's (always with
@@ -1131,7 +1169,9 @@ storage brings it back). No battery-optimisation permission.
 Permissions (user approved, 2026-10-01), all granted at install with no prompt: `INTERNET`,
 `SET_WALLPAPER`, `RECEIVE_BOOT_COMPLETED` (for `setPersisted` and the alarms' boot receiver), `ACCESS_NETWORK_STATE` (Android
 14+ throws on `schedule()` for a job with a network constraint without it; no constraint would
-wake and fail offline).
+wake and fail offline). From 0.7.0 (user, 2026-10-28; O11): `FOREGROUND_SERVICE` and
+`FOREGROUND_SERVICE_SPECIAL_USE` for Keep running (normal, at install, no prompt, inert while
+it's off). `POST_NOTIFICATIONS` is still not declared.
 
 ## Next features
 
@@ -1365,7 +1405,10 @@ and the like, which no app setting gets past). Decided:
   it shows only in Quick Settings' Active apps, since the notification permission is never asked;
   on 10–12 in the shade. Permissions approved: `FOREGROUND_SERVICE`,
   `FOREGROUND_SERVICE_SPECIAL_USE` (at install, no prompt). Texts are placeholders until approved
-  from screenshots.
+  from screenshots. O7 and O8 passed on the tablet (2026-11-14: foreground, listed in Active
+  apps, alive after a Recents swipe and 30 min in Doze; spared by ZUI's cleaner while a cached
+  app and APODroid without it were force-stopped). **Built** (O11, 2026-11-14): Background
+  update, Keep running.
 - **The detector:** a page open that sets a wallpaper due at a change time 30 min or more ago,
   with no job run started since (not after a boot, an update or the switch turned on since, nor
   while job 2 is pending), **and the alarms found gone** (a force stop deletes them, a bucket

@@ -11,6 +11,8 @@ import android.util.Log
  * ([DailyJob.ensure]): after a boot (alarms don't survive one), a time zone or clock change (they
  * are absolute times, so "06:00" armed before it is wrong after it) and an update of the app
  * (alarms don't survive that either, and the first morning after it mustn't wait for a page open).
+ * A boot and an update also start "Keep running" ([KeepRunning.ensure], O11): both may start a
+ * foreground service from the background.
  * Not exported: the system's broadcasts reach it anyway, and the alarms are the app's own.
  */
 class AlarmReceiver : BroadcastReceiver() {
@@ -21,6 +23,8 @@ class AlarmReceiver : BroadcastReceiver() {
                 if (!Store(context).daily) return
                 Log.i("APODroid", "Daily job: ${intent.action}, arming again")
                 if (!DailyJob.ensure(context)) Log.w("APODroid", "Daily job: couldn't schedule the fallback")
+                // Keep running (O11): a boot and an update may start a foreground service from the background.
+                if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) KeepRunning.ensure(context)
             }
         }
     }

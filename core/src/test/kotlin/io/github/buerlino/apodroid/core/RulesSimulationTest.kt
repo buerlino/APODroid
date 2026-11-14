@@ -25,14 +25,17 @@ import kotlin.test.fail
  * fallback job's, page opens, pulls, Sets (now and then with a new setup), the daily switch off
  * and on, offline spans from minutes to two days, failed checks and sets, killed runs and the
  * phone switched off; since OR1 a Set draws the list's order now and then (alone, with other changes,
- * in APOD mode), moving the anchor as `Store.saveSetup` does. [SimPhone] does what `Store` and `DailyJob` do around `:core`'s
+ * in APOD mode), moving the anchor as `Store.saveSetup` does; since L6 a Set draws Size now and then,
+ * Set's picker trip ([opensPicker]) is answered (backed out, "Home screen", "Home screen and lock
+ * screen"), and Live is lost now and then (another wallpaper, Android's revert of home, a force
+ * stop), with `Store.setDue`'s [lostLive] and [stillOrLive]. [SimPhone] does what `Store` and `DailyJob` do around `:core`'s
  * rules; the invariants come from CLAUDE.md's rules (Background update; Turns and the picture
  * time), not from the code, and a failure names the seed, the invariant and the day's runs and
  * sets. A seed that finds a bug stays in [knownBugs] with its own `@Ignore`d test until a fix.
  */
 class RulesSimulationTest {
     @Test
-    fun theRulesHoldOverRandomMonths() = simulate(soon = false, invariants = (1..9) + (11..13))
+    fun theRulesHoldOverRandomMonths() = simulate(soon = false, invariants = (1..9) + (11..16))
 
     /**
      * The same seeds with "As soon as it's out" on (SO1), now and then turned off and on again by
@@ -41,10 +44,10 @@ class RulesSimulationTest {
      * newest after every run.
      */
     @Test
-    fun theRulesHoldOverRandomMonthsWithSoon() = simulate(soon = true, invariants = (1..13).toList())
+    fun theRulesHoldOverRandomMonthsWithSoon() = simulate(soon = true, invariants = (1..16).toList())
 
     private fun simulate(soon: Boolean, invariants: List<Int>) {
-        val checked = IntArray(14)
+        val checked = IntArray(17)
         val failures = (1..SEEDS).filter { it !in knownBugs }.mapNotNull { seed ->
             val phone = SimPhone(seed, soon)
             try {
@@ -129,7 +132,7 @@ private fun drawPosts(r: Random, from: LocalDate, to: LocalDate): List<Out> {
     return outs.sortedBy { it.at }
 }
 
-private enum class Event { PAGE, PULL, SET, DAILY_OFF, DAILY_ON, POWER_OFF, BOOT }
+private enum class Event { PAGE, PULL, SET, DAILY_OFF, DAILY_ON, POWER_OFF, BOOT, LOSE_LIVE }
 
 /**
  * One seed's phone: the store (`Store`'s posts, picture files, `afterGap` marks, `checkedAt` and
@@ -184,8 +187,34 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     private val kept = mutableMapOf<Screen, Pair<Post, Picture>>()
     private val log = mutableListOf<Pair<Instant, String>>()
 
-    /** How often each invariant was checked (index 1–13). */
-    val checked = IntArray(14)
+    /** How often each invariant was checked (index 1–16). */
+    val checked = IntArray(17)
+
+    // Live (L6): Size, what the system shows, the records' live notes; drawn by [liveR] apart
+    // from [r], so a seed that stays on Fill runs as before.
+    private val liveR = Random(seed * 32452843L + 7)
+    private var size = if (liveR.nextBoolean()) Size.LIVE else Size.FILL
+
+    /** APODroid's engine on home (`Store.liveOn(HOME)`). */
+    private var homeLive = false
+
+    /** The one engine on the lock screen too (`Store.liveShared`). */
+    private var shared = false
+
+    /** The engine on the lock screen alone (home reverted or replaced, Decision 12). */
+    private var stray = false
+
+    /** `live.shared`, noted at each run's start while home is live. */
+    private var sharedNote = false
+
+    /** The records noted live (`wallpaperLive`, `lock.wallpaperLive`). */
+    private val liveNoted = mutableSetOf<Screen>()
+
+    /** Live's copy (`live.jpg`): what the engine draws. */
+    private var copy: Picture? = null
+
+    /** The run's lost Live ([lostLive]) and whether the lock screen without a column took home's picture. */
+    private var lostNow = LostLive()
 
     // The run going through setDue
     private var kind = Kind.PAGE
@@ -217,6 +246,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             if (r.nextInt(7) == 0) schedule(day + Duration.ofMinutes(r.nextLong(1, 24 * 60)), Event.PULL)
             if (r.nextInt(16) == 0) schedule(day + Duration.ofMinutes(r.nextLong(1, 24 * 60)), Event.SET)
         }
+        // L6: Live lost now and then (it acts only while home's record is noted live).
+        for (d in 0 until 60) if (liveR.nextInt(8) == 0) schedule(start + Duration.ofDays(d.toLong()) + Duration.ofMinutes(liveR.nextLong(1, 24 * 60)), Event.LOSE_LIVE)
         repeat(r.nextInt(3)) {
             val off = randomTime()
             schedule(off, Event.DAILY_OFF)
@@ -315,6 +346,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
      * a set failed; null when the run was killed after its checks ([killAfterChecks]).
      */
     private fun update(now: Instant, kind: Kind, force: Boolean, page: Boolean, set: Boolean = false, killAfterChecks: Boolean = false): Boolean? {
+        // Store.noteShared: at each run's start while home is live.
+        if (homeLive) sharedNote = shared
         val show = if (page) offered() else emptySet()
         var failure = false
         for (source in Source.entries) {
@@ -334,7 +367,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     private fun lead(screen: Screen) = if (equalColumns()) recordsBefore[HOME] else recordsBefore[screen]
 
     /** A forgotten picture (Set) or a new screen: the owner's picture goes on at once (CLAUDE.md, Turns). */
-    private fun forgotten(screen: Screen) = recordsBefore[screen]?.picture == null || lead(screen)?.picture == null
+    private fun forgotten(screen: Screen) =
+        recordsBefore[screen]?.picture == null || lead(screen)?.picture == null || screen == LOCK && lostNow.lockTakesHome && columns[LOCK].orEmpty().isEmpty()
 
     /** `Store.setDue`: [Phone.check] with [setFails] and [setDone]; true when a set failed. */
     private fun setDue(now: Instant, kind: Kind, pull: Boolean): Boolean {
@@ -344,7 +378,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         setNow.clear()
         val stored = stored(now)
         storedNow = stored
-        check(now, pull = pull, stored = stored)
+        liveCheck(now, pull, stored)
         oneSource(now, stored)
         rotation(now, stored)
         turnsNewest(now, stored)
@@ -367,6 +401,166 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             setNow[screen] = picture
             everSet += screen
         }
+    }
+
+    /**
+     * `Store.setDue` with Live (L5, L6): [lostLive] forgets the records noted live whose screen
+     * isn't live (home's loss both, Decision 12) before the rules, [unnotedLive] those the engine
+     * is on and that aren't noted live; [stillOrLive] splits the plan's
+     * sets, the still ones first, then home's hand-over to the engine (Live's copy, the records
+     * noted live). As [Phone.check] otherwise: the records without a set written at once, each
+     * set's after it; a failed set leaves them (and their live notes).
+     * 14. With Size Live a still set never goes to home while home is live, and to the lock screen
+     * only when its picture differs from home's or the engine doesn't cover it.
+     * 15. Nothing is handed to the engine while home isn't live, nor with Size Fill.
+     * 16. A screen noted live that lost Live is due again in the same run (both when home lost it,
+     * the lock screen with a column); after the run a screen noted live shows the engine (but
+     * one whose set failed).
+     */
+    private fun liveCheck(now: Instant, pull: Boolean, stored: Stored) {
+        val lockColumn = columns[LOCK].orEmpty().isNotEmpty()
+        val lost = lostLive(HOME in liveNoted, LOCK in liveNoted, homeLive, shared, sharedNote, lockColumn)
+        lostNow = lost
+        if (lost.forget.isNotEmpty()) note(now, "Live lost, forgetting ${lost.forget}${if (lost.lockTakesHome) ", the lock screen takes home's picture" else ""}")
+        val unnoted = unnotedLive(size, homeLive, shared, HOME in liveNoted, LOCK in liveNoted, columns)
+        if (unnoted.isNotEmpty()) note(now, "the engine on $unnoted, not noted live: forgetting")
+        var view = lost.forgetting(records).mapValues { (screen, record) -> if (screen in unnoted) record.forget() else record }
+        fun plan() = lost.onPlan(dueWallpapers(columns, view, stored, time, zone, now, pull, soon, rotation), view)
+        fun split(plan: Plan) =
+            stillOrLive(size, homeLive, shared, columns[HOME].orEmpty().isNotEmpty(), plan.screens[HOME]?.record?.picture ?: view[HOME]?.picture, plan.sets)
+        var plan = plan()
+        val lock = view[LOCK]
+        if (lock != null && lockFollowsHome(split(plan), shared, lockColumn)) {
+            note(now, "home's hand-over would change the lock screen: forgetting it")
+            view = view + (LOCK to lock.forget())
+            plan = plan()
+        }
+        recordsBefore = view
+        val unset = plan.screens.filterValues { !it.set }
+        records = records + unset.mapValues { it.value.record }
+        liveNoted -= lost.forget.filter { it !in plan.screens || it in unset }.toSet()
+        if (HOME in lost.forget) {
+            checked[16]++
+            val home = plan.screens[HOME]
+            if (columns[HOME].orEmpty().isNotEmpty() && home != null && !home.set && home.record.picture != null) fail(now, 16, "home lost Live and isn't due again")
+            if (lockColumn && LOCK !in lost.forget) fail(now, 16, "home lost Live, the lock screen with a column isn't forgotten")
+        }
+        for (screen in lost.forget) {
+            val due = plan.screens[screen] ?: continue
+            checked[16]++
+            if (!due.set && due.record.picture != null) fail(now, 16, "$screen lost Live and isn't due again")
+        }
+        val homePicture = plan.screens[HOME]?.record?.picture ?: view[HOME]?.picture
+        val split = split(plan)
+        checked[16]++
+        if (lockFollowsHome(split, shared, lockColumn)) fail(now, 16, "home's hand-over changes the lock screen, which isn't due it")
+        for ((picture, screens) in split.still) {
+            if (size == Size.LIVE && homeLive) {
+                checked[14]++
+                if (HOME in screens) fail(now, 14, "a still set of ${picture.label()} on home, which is live")
+                if (shared && LOCK in screens && picture == homePicture) fail(now, 14, "a still set of home's ${picture.label()} on the lock screen the engine covers")
+            }
+            if (setFails(picture, screens, now)) continue
+            records = records + screens.associateWith { plan.screens.getValue(it).record }
+            liveNoted -= screens
+            sets += local(zone, now) + " " + picture.label() + if (screens.size == 1) " ${screens.single()}" else ""
+            setDone(picture, screens, now)
+            stillSet(screens)
+        }
+        split.engine?.let { (picture, screens) ->
+            checked[15]++
+            if (size != Size.LIVE || !homeLive) fail(now, 15, "${picture.label()} handed to the engine with Size $size, home ${if (homeLive) "live" else "not live"}")
+            if (setFails(picture, screens, now)) return@let
+            records = records + screens.associateWith { plan.screens.getValue(it).record }
+            liveNoted += screens
+            sets += local(zone, now) + " " + picture.label() + " live" + if (screens.size == 1) " ${screens.single()}" else ""
+            setDone(picture, screens, now)
+            copy = picture
+            note(now, "shown live: ${picture.label()} on ${screens.joinToString("+")}")
+            showCopy()
+        }
+        if (lost.dropShared && failedScreens.isEmpty()) sharedNote = false
+        for (screen in liveNoted) {
+            if (screen in failedScreens) continue
+            checked[16]++
+            val engine = if (screen == HOME) homeLive else homeLive && shared
+            if (!engine) fail(now, 16, "$screen noted live, but the engine isn't on it")
+        }
+    }
+
+    /** What a still set on [screens] does to APODroid's live wallpaper (M0, L1): it replaces the engine there. */
+    private fun stillSet(screens: Set<Screen>) {
+        if (HOME in screens && LOCK in screens) {
+            homeLive = false
+            shared = false
+            stray = false
+        } else if (HOME in screens) {
+            if (homeLive && shared) stray = true
+            homeLive = false
+            shared = false
+        } else {
+            shared = false
+            stray = false
+        }
+    }
+
+    /** The engine draws its copy on the screens it's on (nothing known without a copy: the picker's fallback). */
+    private fun showCopy() {
+        val on = listOfNotNull(HOME.takeIf { homeLive }, LOCK.takeIf { homeLive && shared || stray })
+        for (screen in on) copy?.let { wall[screen] = it } ?: wall.remove(screen)
+    }
+
+    /** Live lost by the system (L1): another wallpaper, Android's revert of home after two deaths in 10 s, a force stop. */
+    private fun loseLive(now: Instant) {
+        if (!homeLive || HOME !in liveNoted) return
+        val engineOnLock = shared || stray
+        when (liveR.nextInt(4)) {
+            0 -> {
+                note(now, "another wallpaper picked for home")
+                stray = engineOnLock
+            }
+            1 -> {
+                note(now, "another wallpaper picked for both screens")
+                stray = false
+                if (engineOnLock) wall.remove(LOCK)
+            }
+            2 -> {
+                note(now, "Android reverted home to the default (the engine kept on the lock screen)")
+                stray = engineOnLock
+            }
+            else -> {
+                note(now, "a force stop: both screens the default")
+                stray = false
+                if (engineOnLock) wall.remove(LOCK)
+            }
+        }
+        homeLive = false
+        shared = false
+        wall.remove(HOME)
+    }
+
+    /**
+     * Set's picker trip (L6, [opensPicker]) after the setup is saved, answered: backed out,
+     * "Home screen" (shared or not: ZUI made it shared over a shared still, Open over a home-only
+     * engine) or "Home screen and lock screen" (shared). The engine then draws its copy.
+     */
+    private fun picker(now: Instant, before: Map<Screen, List<Source>>) {
+        if (!opensPicker(size, before, columns, homeLive, shared, lockShares = true)) return
+        when (liveR.nextInt(3)) {
+            0 -> return note(now, "the picker: backed out")
+            1 -> {
+                homeLive = true
+                shared = liveR.nextBoolean()
+                note(now, "the picker: Home screen (${if (shared) "shared" else "home only"})")
+            }
+            else -> {
+                homeLive = true
+                shared = true
+                note(now, "the picker: Home screen and lock screen")
+            }
+        }
+        stray = false
+        showCopy()
     }
 
     /** The invariants of one set of [picture] on [screen]. */
@@ -399,7 +593,9 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             Picture.Own -> standIn == StandIn.OWN && own && video
             is Picture.Of -> picture.source in column || video && picture == stored.picture(APOD)
         }
-        if (!ticked) fail(now, 6, "${picture.label()} set on $screen, not ticked there (${column}) nor the stand-in")
+        // Decision 12: a lock screen without a column that the engine covered takes home's picture.
+        val tookHome = screen == LOCK && column.isEmpty() && lostNow.lockTakesHome
+        if (!ticked && !tookHome) fail(now, 6, "${picture.label()} set on $screen, not ticked there (${column}) nor the stand-in")
         val owner = records[screen]?.owner
         if (standIn == StandIn.SKIP && owner == APOD && !(picture is Picture.Of && picture.source == APOD)) {
             fail(now, 6, "\"Skip it\" put ${picture.label()} on $screen in APOD's turn")
@@ -647,9 +843,12 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         val list = new.allSources
         val newOrder = list && draftOrder != rotation.order
         anchorMayMove = list && (newOrder || rotation.from == null)
-        val orderOnly = newOrder && new == setup && !(toggleSoon && !alone)
+        // L6: Size now and then, not with the order alone (a changed Size is another change).
+        val toggleSize = !alone && liveR.nextInt(3) == 0
+        if (toggleSize) size = if (size == Size.FILL) Size.LIVE else Size.FILL
+        val orderOnly = newOrder && new == setup && !(toggleSoon && !alone) && !toggleSize
         val newRotation = if (!list) rotation else Rotation(draftOrder, if (anchorMayMove) new.time.anchorDate(now, zone) else rotation.from)
-        note(now, "Set: $new${if (soon) ", as soon as it's out" else ""}, order ${newRotation.order} from ${newRotation.from}${if (orderOnly) " (the order alone)" else ""}")
+        note(now, "Set: $new, Size $size${if (soon) ", as soon as it's out" else ""}, order ${newRotation.order} from ${newRotation.from}${if (orderOnly) " (the order alone)" else ""}")
         val before = columns
         val prior = records
         val leads = Screen.entries.associateWith { if (equalColumns()) prior[HOME] else prior[it] }
@@ -659,8 +858,11 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         val stored = stored(now)
         val restart = restartAndForget(before, new.columns, records, stored, new.time, zone, now, rotation, orderOnly, daily)
         records = records + restart.plan.screens.mapValues { it.value.record } - restart.drop
+        forgetNotes()
+        picker(now, before)
         update(now, Kind.SET, force = false, page = true, set = true)
-        if (orderOnly && daily) orderAlone(now, leads, stored)
+        // What the update stored (L6: the picker's hand-over may put the owner's newer picture on).
+        if (orderOnly && daily) orderAlone(now, leads, stored(now))
         if (daily) arm(now) else alarm = null.also { alarmFires = null; runPending = null }
     }
 
@@ -686,6 +888,11 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         }
     }
 
+    /** A forgotten or dropped record isn't on the engine any more (`Store.putRestart`, `putRecord`). */
+    private fun forgetNotes() {
+        liveNoted.retainAll { records[it]?.picture != null }
+    }
+
     private fun switchDaily(now: Instant, on: Boolean) {
         if (daily == on) return
         note(now, "the daily switch ${if (on) "on" else "off"}")
@@ -702,6 +909,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         // `Store.startAfresh`: the stored setup and anchor (OR1: kept what's on before it).
         val restart = restartAndForget(columns, columns, records, stored(now), time, zone, now, rotation)
         records = records + restart.plan.screens.mapValues { it.value.record } - restart.drop
+        forgetNotes()
         update(now, Kind.SWITCH_ON, force = false, page = true)
         arm(now)
         // A freshly scheduled fallback runs at once.
@@ -733,6 +941,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
                             alarmFires = null
                             runPending = null
                         }
+                        Event.LOSE_LIVE -> loseLive(next)
                         Event.BOOT -> {
                             note(next, "boot")
                             poweredOff = false
@@ -780,6 +989,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             "seed $seed, invariant $invariant at ${local(zone, now)} ($kind): $what\n" +
                 "  $zone, offset ${offset.seconds} s, from ${local(zone, start)} ${start.atZone(zone).toLocalDate()}; $setup${if (soon) ", as soon as it's out" else ""}, order ${rotation.order} from ${rotation.from}\n" +
                 "  records: $records\n" +
+                "  Size $size, home ${if (homeLive) "live" else "not live"}${if (shared) ", shared" else ""}${if (stray) ", a stray on the lock screen" else ""}, noted live $liveNoted, the copy ${copy?.label()}\n" +
                 "  the runs and sets of the day before and the day:\n$lines",
         )
     }

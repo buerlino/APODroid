@@ -391,4 +391,35 @@ class LiveTest {
         assertFalse(equalColumns(homeOnly))
         assertFalse(equalColumns(mapOf(HOME to emptyList(), LOCK to emptyList())))
     }
+
+    // The engine on a screen whose record isn't noted live (L6, SIM)
+
+    @Test
+    fun theEngineOnUnnotedScreensForgetsThemWithSizeLiveOnly() {
+        val columns = mapOf(HOME to listOf(APOD), LOCK to listOf(EARTH))
+        // Just picked: home live, nothing noted; shared, so the lock screen too.
+        assertEquals(setOf(HOME, LOCK), unnotedLive(Size.LIVE, homeLive = true, shared = true, homeNoted = false, lockNoted = false, columns = columns))
+        assertEquals(setOf(HOME), unnotedLive(Size.LIVE, homeLive = true, shared = false, homeNoted = false, lockNoted = false, columns = columns))
+        // Noted: nothing.
+        assertEquals(emptySet(), unnotedLive(Size.LIVE, homeLive = true, shared = true, homeNoted = true, lockNoted = true, columns = columns))
+        // Size Fill, or home not live: nothing (a still set replaces the engine when one is due).
+        assertEquals(emptySet(), unnotedLive(Size.FILL, homeLive = true, shared = true, homeNoted = false, lockNoted = false, columns = columns))
+        assertEquals(emptySet(), unnotedLive(Size.LIVE, homeLive = false, shared = false, homeNoted = false, lockNoted = false, columns = columns))
+        // A screen without a column is left alone.
+        assertEquals(setOf(HOME), unnotedLive(Size.LIVE, homeLive = true, shared = true, homeNoted = false, lockNoted = false, columns = mapOf(HOME to listOf(APOD), LOCK to emptyList())))
+    }
+
+    @Test
+    fun homesHandOverOverASharedLockScreenNotDueItMakesTheLockScreenFollow() {
+        // Home's new picture to the engine while it covers a lock screen of another column with nothing due there.
+        val handOver = LiveSets(emptyList(), x to setOf(HOME))
+        assertTrue(lockFollowsHome(handOver, shared = true, lockColumn = true))
+        assertFalse(lockFollowsHome(handOver, shared = false, lockColumn = true))
+        assertFalse(lockFollowsHome(handOver, shared = true, lockColumn = false))
+        // The lock screen has its own set this run, or goes with home: no.
+        assertFalse(lockFollowsHome(LiveSets(listOf(y to setOf(LOCK)), x to setOf(HOME)), shared = true, lockColumn = true))
+        assertFalse(lockFollowsHome(LiveSets(emptyList(), x to setOf(HOME, LOCK)), shared = true, lockColumn = true))
+        // Nothing for the engine: no.
+        assertFalse(lockFollowsHome(LiveSets(listOf(y to setOf(LOCK))), shared = true, lockColumn = true))
+    }
 }

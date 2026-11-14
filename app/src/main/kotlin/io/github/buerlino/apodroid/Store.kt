@@ -45,9 +45,11 @@ import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
 import io.github.buerlino.apodroid.core.Size as Sizing
 import io.github.buerlino.apodroid.core.livePosition
+import io.github.buerlino.apodroid.core.lockFollowsHome
 import io.github.buerlino.apodroid.core.lostLive
 import io.github.buerlino.apodroid.core.opensPicker
 import io.github.buerlino.apodroid.core.stillOrLive
+import io.github.buerlino.apodroid.core.unnotedLive
 import io.github.buerlino.apodroid.core.Lost
 import io.github.buerlino.apodroid.core.alarmsLost
 import io.github.buerlino.apodroid.core.missedChange
@@ -1043,8 +1045,28 @@ class Store(private val context: Context) {
         if (lost.forget.isNotEmpty()) {
             Log.i("APODroid", "Live: ${if (Screen.HOME in lost.forget) "home isn't live" else "the lock screen isn't live"}, Fill on ${lost.forget.joinToString("+")}")
         }
-        val records = lost.forgetting(records())
-        val plan = lost.onPlan(dueWallpapers(columns, records, stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation), records)
+        // L6: a screen the engine is on whose record isn't noted live (just picked in Set's picker,
+        // or Android's by hand) is forgotten too, so this run hands it over (`:core`'s unnotedLive).
+        val unnotedLive = unnotedLive(
+            setup.size, live.home, live.shared,
+            homeNoted = prefs.getBoolean(Screen.HOME.key("wallpaperLive"), false),
+            lockNoted = prefs.getBoolean(Screen.LOCK.key("wallpaperLive"), false),
+            columns = columns,
+        )
+        if (unnotedLive.isNotEmpty()) Log.i("APODroid", "Live: the engine is on ${unnotedLive.joinToString("+")}, not noted live")
+        var records = lost.forgetting(records()).mapValues { (screen, record) -> if (screen in unnotedLive) record.forget() else record }
+        val homeColumn = columns[Screen.HOME].orEmpty().isNotEmpty()
+        fun plan() = lost.onPlan(dueWallpapers(columns, records, stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation), records)
+        fun split(plan: Plan) = stillOrLive(setup.size, live.home, live.shared, homeColumn, plan.screens[Screen.HOME]?.record?.picture ?: records[Screen.HOME]?.picture, plan.sets)
+        var plan = plan()
+        // L6: home's hand-over would show its new picture on a lock screen the engine covers that
+        // isn't due it: the lock screen forgotten and planned again (`:core`'s lockFollowsHome).
+        val lock = records[Screen.LOCK]
+        if (lock != null && lockFollowsHome(split(plan), live.shared, columns[Screen.LOCK].orEmpty().isNotEmpty())) {
+            Log.i("APODroid", "Live: home's new picture would show on the lock screen, its own again")
+            records = records + (Screen.LOCK to lock.forget())
+            plan = plan()
+        }
         val unset = plan.screens.filterValues { !it.set }
         // A forgotten screen the rules leave out (no column) keeps its record, but not the live note.
         val unnoted = lost.forget - plan.screens.keys
@@ -1054,11 +1076,10 @@ class Store(private val context: Context) {
                 unnoted.forEach { remove(it.key("wallpaperLive")) }
             }
         }
-        // Size Live (L5: on while the picker put APODroid's engine on home): home's set goes to the
-        // engine, the lock screen's too while shared and due home's picture, else still (`:core`'s
+        // Size Live while the picker put APODroid's engine on home: home's set goes to the engine,
+        // the lock screen's too while shared and due home's picture, else still (`:core`'s
         // stillOrLive), the lock screen's still set first.
-        val homePicture = plan.screens[Screen.HOME]?.record?.picture ?: records[Screen.HOME]?.picture
-        val split = stillOrLive(size, live.home, live.shared, columns[Screen.HOME].orEmpty().isNotEmpty(), homePicture, plan.sets)
+        val split = split(plan)
         val steps = split.still.map { it to false } + listOfNotNull(split.engine?.let { it to true })
         val done = mutableListOf<String>()
         val shown = mutableListOf<String>()

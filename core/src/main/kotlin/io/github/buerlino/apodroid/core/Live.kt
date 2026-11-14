@@ -162,6 +162,38 @@ fun lostLive(homeNoted: Boolean, lockNoted: Boolean, homeLive: Boolean, shared: 
     else -> LostLive()
 }
 
+/**
+ * Whether home's hand-over in [split] ([stillOrLive]) would also change a lock screen the one
+ * engine covers ([shared]) that has a column ([lockColumn]) and has no set of its own in this run
+ * (L6, found by SIM): the engine would draw home's new picture there while the lock screen's
+ * record names its own. The caller then forgets the lock screen's record and plans again, so it
+ * gets its due picture this run: the engine's too when it's home's new one, else its still Fill
+ * first (Decision 10). With equal columns the lock screen is due home's picture with it, so never.
+ */
+fun lockFollowsHome(split: LiveSets, shared: Boolean, lockColumn: Boolean): Boolean {
+    val (_, screens) = split.engine ?: return false
+    return shared && lockColumn && Screen.HOME in screens && Screen.LOCK !in screens && split.still.none { Screen.LOCK in it.second }
+}
+
+/**
+ * The screens APODroid's engine is on whose records aren't noted live (L6), forgotten before the
+ * rules as [lostLive]'s are ([Record.forget]: owner and stamp kept), so the same run hands home's
+ * picture to the engine and gives the lock screen its own (the engine's too when it's home's,
+ * else its still Fill, Decision 10). Only with Size [Size.LIVE] and home [homeLive]: home when it
+ * has a column and isn't [homeNoted]; the lock screen while [shared] when it has a column and
+ * isn't [lockNoted]. Else the engine went on (Set's picker, or Android's picker by hand) and drew
+ * its old copy while the records named other pictures: a Set of the order alone, or one with
+ * nothing due, set nothing. With Size Fill a live screen waits for its next set (any still set
+ * replaces the engine).
+ */
+fun unnotedLive(size: Size, homeLive: Boolean, shared: Boolean, homeNoted: Boolean, lockNoted: Boolean, columns: Map<Screen, List<Source>>): Set<Screen> {
+    if (size != Size.LIVE || !homeLive) return emptySet()
+    return buildSet {
+        if (!homeNoted && columns[Screen.HOME].orEmpty().isNotEmpty()) add(Screen.HOME)
+        if (shared && !lockNoted && columns[Screen.LOCK].orEmpty().isNotEmpty()) add(Screen.LOCK)
+    }
+}
+
 /** The same sources on both screens, home's not empty: the rules' equal columns ([dueWallpapers]), whose lock screen takes home's record and picture. */
 fun equalColumns(columns: Map<Screen, List<Source>>): Boolean {
     val home = columns[Screen.HOME].orEmpty()

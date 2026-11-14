@@ -117,7 +117,8 @@ data class Setup(
 /**
  * What [Store.update] did: [done] for the log (null: nothing was set), whether a set failed
  * ([setFailed]), the first failure, a fetch's or a set's ([failure]; the job retries), and
- * whether it went on to set ([wentToSet]: the daily switch was on at its check, or `set`).
+ * whether it went on to set ([wentToSet]: the daily switch was on at its check, or `set`; false
+ * too when the switch went off between two sets and the second was left, O4c).
  */
 data class Updated(val done: String?, val setFailed: Boolean, val failure: Exception?, val wentToSet: Boolean)
 
@@ -734,9 +735,9 @@ class Store(private val context: Context) {
         }
         if (isStopped(stopped)) throw InterruptedException()
         if (!daily && !set) return Updated(null, false, failure, wentToSet = false)
-        val (done, setFailure) = setDue(pull = force, stopped)
+        val (done, setFailure, gaveUp) = setDue(pull = force, setAsked = set, stopped)
         if (failure != null && done != null) Log.i("APODroid", "Despite the failure: $done")
-        return Updated(done, setFailure != null, failure ?: setFailure, wentToSet = true)
+        return Updated(done, setFailure != null, failure ?: setFailure, wentToSet = !gaveUp)
     }
 
     /**
@@ -813,8 +814,12 @@ class Store(private val context: Context) {
      * get here. Returns what it set for the log (null when nothing) and the first failed set.
      * A [pull] (pull to refresh) sets a newer picture of each screen's source at once. A stop
      * ([isStopped]) ends it before the next set, the record of a set done still written.
+     * Without [setAsked] (not Set's), the daily switch turned off since ends it before the next set
+     * too (O4c: off is off, also between a switch-on run's two sets), not thrown: what was done
+     * is returned, and it gave up (the third value; [Updated.wentToSet] false, so B6's last on
+     * runs again).
      */
-    private fun setDue(pull: Boolean, stopped: () -> Boolean): Pair<String?, Exception?> = synchronized(wallpaperLock) {
+    private fun setDue(pull: Boolean, setAsked: Boolean, stopped: () -> Boolean): Triple<String?, Exception?, Boolean> = synchronized(wallpaperLock) {
         val now = Instant.now()
         val stored = stored()
         val plan = dueWallpapers(columns, records(), stored, setup.pictureTime, ZoneId.systemDefault(), now, pull)
@@ -822,8 +827,13 @@ class Store(private val context: Context) {
         if (unset.isNotEmpty()) commitBeforeStop(stopped) { putPlan(plan.copy(screens = unset)) }
         val done = mutableListOf<String>()
         var failure: Exception? = null
-        for ((picture, screens) in plan.sets) {
+        for ((index, entry) in plan.sets.withIndex()) {
+            val (picture, screens) = entry
             if (isStopped(stopped)) throw InterruptedException()
+            if (index > 0 && !setAsked && !daily) {
+                Log.i("APODroid", "Switched off after: ${done.joinToString().ifEmpty { "nothing" }}")
+                return@synchronized Triple(done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: "), failure, true)
+            }
             try {
                 set(picture, screens, stored)
             } catch (e: Exception) {
@@ -841,7 +851,7 @@ class Store(private val context: Context) {
                 throw e
             }
         }
-        done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: ") to failure
+        Triple(done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: "), failure, false)
     }
 
     private fun SharedPreferences.Editor.putSetAt(screen: Screen) = putLong(screen.key("wallpaperSetAt"), System.currentTimeMillis())

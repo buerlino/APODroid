@@ -392,6 +392,13 @@ what it leaves open.
 - The detector's box naming the day of an earlier miss (O14b, 2026-11-14; pipeline run 104, not
   run on a device for the same reason; `DetectorTest` only), and the day not moving at midnight
   while the page stays open (it is read when the box draws).
+- Live (L3, L5, L6, 2026-11-14; pipeline runs 105–107, no device check: run 106's serial was the
+  FP6 and adb was denied, run 107 found no device): all of L5's and L6's tablet bullets in
+  `live-0.7.0.md` (the engine, the pan, the hand-over, the copy not the source's file, lost Live
+  and Decision 12, no crash, Size and its row, Set's picker and its return, Decision 10, the
+  status line, " · Live"); `unnotedLive` and `lockFollowsHome` (`LiveTest` and SIM only); a
+  maker's picker refusing the start (`firstStarted`, unit-tested only); below 14 (`live.homeId`,
+  E); the FP6's picker (L2).
 
 **The update from 0.5.0:**
 - The migration race (the page and the job at once) with "Where" Home or Both (V4: Lock only).

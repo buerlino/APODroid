@@ -217,9 +217,10 @@ fields), and fail without touching the current wallpaper.
 JSON GET per source in use, plus the image when the post is new (`Store.isCurrent` skips a
 source whose stored post is today's). The job checks at each change time ("New picture at",
 with turns every "Change every" from it), 15 min after it and hourly for the 3 hours after it
-and at their end (06:00, 06:15, 07:15, 08:15, 09:00; B15), hourly while a screen with several sources waits, and after a
-failed run 15 min later, then hourly; the 6 h fallback job adds up to four more a day. So about
-4–8 checks a day with one source, more with turns or a waiting screen. Every phone of a time
+and at their end (06:00, 06:15, 07:15, 08:15, 09:00; B15), and after a
+failed run 15 min later, then hourly; the 6 h fallback job adds up to four more a day (no hourly
+checks while a screen waits since RO1, 2026-11-14: turns don't wait). So about 4–8 checks a day
+with one source, more with turns (each change time's own checks). Every phone of a time
 zone has the same change times; a per-device offset (0–10 min, drawn once) spreads each burst
 over 10 minutes. 1000 users ≈ 5000–10000 requests a day, spread over the day by the time
 zones. The risk is fragility, not load. Since 0.5.0 (WP7c, 2026-10-18) NASA and Earth have no
@@ -801,7 +802,7 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   (`Store.ranWell`) removes `failedRuns`; a failed, stopped or killed run writes nothing more,
   it's counted already. The daily switch either way removes `failedRuns` too. The alarms then
   come 15 min after the failed run's **start**, then hourly (`:core`'s `retryAfter`,
-  `Store.runRetry`; `nextAlarm(now, zone, failures, time, turns, offset, waiting, lastRun)`:
+  `Store.runRetry`; `nextAlarm(now, zone, failures, time, turns, offset, lastRun)`:
   the clock's next run, or with failures the earlier of it and `lastRun` + `retryAfter`, at the
   earliest now). Why from the start (user, 2026-11-14): one rule for a run that failed, was
   stopped, was killed or still goes; for a normal failure the two are seconds apart, a run
@@ -887,28 +888,49 @@ run that sets the same picture once more and arms the job (accepted, user, 2026-
 state is right).
 
 **Turns and the picture time** (per screen since 0.6.0; by the clock since 2026-10-23: the
-rules of Next features, 0.6.0: the picture time; in `:core`'s `PictureTime.kt` and
-`Screens.kt`, `PictureTimeTest`, `ScreensTest`). **The change times:**
+rules of Next features, 0.6.0: the picture time; turns as a plain rotation since RO1,
+2026-11-14: Next features, 0.7.0: turns as a plain rotation; in `:core`'s `PictureTime.kt` and
+`Screens.kt`, `PictureTimeTest`, `ScreensTest`, SIM's `RulesSimulationTest`). **The change times:**
 "New picture at" (`pictureAt`, an hour, 06:00 by default) and, for a column with two or more
 (turns), every "Change every" from it (`pictureAt` + k × `interval`); a column with one source
 changes at `pictureAt` only. Local time, on the clock's hours: a DST day has 23 or 25 hours
 between two 06:00s; an hour that doesn't exist comes at the gap's end (02:00 on 28 Mar 2027 in
 Zurich at 03:00), one that happens twice counts once, the first (`PictureTime.last`, `next`,
-`isChangeTime`). Each screen's record notes the change time it belongs to
-(`wallpaperStamp`) and, per source, the last post it showed (date and picture URL,
-`shownDate`/`shownUrl`, `lock.` for the lock screen). **The rules** (`dueWallpapers`, every run,
-page or job):
+`isChangeTime`). **Each change time has a number** (RO1, `PictureTime.turn`): the day's change
+times counted from "New picture at" (0, 1, …; one before it, 00:00 with 06:00 and 6 h, belongs
+to the day before), plus the days since 1970-01-01 × the change times a day; consecutive change
+times have consecutive numbers, also over DST days. Each screen's record notes the change time
+it belongs to (`wallpaperStamp`), whose turn it is (`wallpaperSource`) and, per source, the last
+post it showed (date and picture URL, `shownDate`/`shownUrl`, `lock.` for the lock screen; since
+RO1 the rules don't read the notes, only the page's video notice until RO2). **The rules**
+(`dueWallpapers`, every run, page or job):
 1. **A change time since the record's stamp:** with one source the screen takes the change
-   time and is due its newest picture by rule 2's publish time (no set when it's on already); with several the next
-   source after its owner (APOD → NASA → Earth, round to itself) among its ticked sources whose
-   newest post this screen hasn't shown (`Stored.isNew`), and takes the change time. Missed
-   change times (the phone off) make one change, not one each.
+   time and is due its newest picture by rule 2's publish time (no set when it's on already);
+   with several (turns, a plain rotation since RO1, user, 2026-11-11 and 14) the turn's source
+   by the clock, the change time's number mod the column's sources in order (APOD → NASA →
+   Earth), becomes the owner and its newest picture goes on, also one this screen has shown;
+   a source with nothing to show (nothing stored, APOD's video with "Skip it" or "Use my
+   picture" without one) passes the turn to the next with a picture (`nextSource`), and with
+   none the screen keeps its picture; it takes the change time either way. So with APOD and
+   NASA every 6 h from 06:00 APOD is on at 06:00 and 18:00, NASA at 12:00 and 00:00; every
+   24 h they take days in turn. A phone off, a Set or a pull never shifts the rotation; missed
+   change times (the phone off) make one change, by the current one's number. Repeats are
+   accepted (today's APOD twice a day with 6 h; Friday's NASA and Earth at their weekend
+   turns). **Replaced** (0.6.0's rule 1 and rule 3, 2026-10-23): the next source after the owner
+   with a picture the screen hasn't shown (`Stored.isNew`), and with nothing new the screen
+   waited, checked hourly (`waiting`), the first new picture going on as soon as a check saw it.
+   Why (user, 2026-11-11): on the FP6 (11 Nov, APOD and NASA, 6 h) APOD didn't come back at
+   18:00 (its picture shown that morning, NASA with nothing new on US Veterans Day), the screen
+   waited, and only the phone's history told why: the rule hung on a hidden state, so the
+   settings didn't predict the screen. By the clock (the user, 2026-11-14, Open 1 (b)) rather
+   than after the one on: one clock, as 2026-10-23 wanted. The FP6's day is
+   `ScreensTest.theFp6sDayOf11NovPutsApodOnAt1800` (it fails on 0.6.0's rules at 18:00).
 2. **The window, by the publish time** (B15, 2026-10-24): a newer picture of the owner
    published before the change time + 3 hours (`pictureWindow`; `Stored.publishedBefore`:
    `Post.publishedAt`, and a stand-in's own post too) replaces it whenever a run sees it, also
    after 09:00 (an offline morning, a 503, Doze, a set that failed and is retried later); one
    published later waits for the next change time (with turns the owner's next turn). The change
-   time kept. With one source this is the whole rule: from each change time T (the last one ≤
+   time kept; a post published later waits for its source's next turn. With one source this is the whole rule: from each change time T (the last one ≤
    now, taken by every run) the screen shows the newest stored picture published before T + 3 h,
    whenever a run sees it, a function of the clock and the posts (a failed or offline check
    moves nothing). **After a day offline** (B21, 2026-10-25, CR2's finding 3): with one source
@@ -929,53 +951,43 @@ page or job):
    whenever that run comes (accepted). A pull, Set, a forgotten picture and a new screen put the
    newest on at once, whenever it was published; the next change time's target then decides. **Never back:** a
    picture of the same source older (by date) than the one on the screen isn't set.
-3. **Nothing new** (several sources only): the picture and the stamp stay, so every check tries
-   again (the screen **waits**, `waiting`): the first new picture of a ticked source goes on as
-   soon as a check sees it (the next in order when two are), with the change time of then. A
-   screen with one source never waits.
 A stamp that isn't a change time (M2's migrated 0.5.0 clock, 0.6.0's own Set clock, a time zone
 changed since) or lies ahead (the clock set back) counts as the current change time: it takes
 it; with several sources nothing is set until the next one (but by a pull), with one rule 2's
 publish time decides (B15). **The stand-in** fills APOD's turn
 on an APOD video day on every screen where APOD is ticked, with turns too (NASA's, Earth's or
-the user's own picture; with "Skip it" APOD has nothing new, so a screen with APOD alone keeps
-its picture and one with turns goes to the next new source or waits); "new" is APOD's post
-being new, and the record keeps APOD as the owner, and only while the stand-in's picture isn't
-noted for its own source on that screen (else APOD's turn passes on, as with "Skip it"; B15).
-With one source too (B22, 2026-10-26, from V12b), and within a turn (kept, user, 2026-10-26
-evening, pass 26: APOD's older picture stays until the next change time, turns move only then): a stand-in noted shown on
-that screen doesn't go on by the window, so APOD has nothing new and the screen keeps its
-picture (once on, it stays: the day it went on doesn't change); Set, a pull, a forgotten picture
-and a new screen put it on as before, the user's own picture always stands in, a newer post of
-the standing-in source goes on by the usual rules (`Stored.standInShown`, the check `isNew`
-makes). A stand-in shown counts as shown for its own
-source too (and APOD's video post for APOD), so NASA isn't put on twice. When an owner is no
-longer ticked, or a forgotten picture's owner has nothing to show, it gives way to the next new
-source, else the next with any picture; with none the screen keeps its picture (an unticked
-source's picture never goes on). **Set** (`restartAndForget`, then `setDue`): the records of
+the user's own picture; with "Skip it" APOD has nothing to show, so a screen with APOD alone
+keeps its picture and one with turns passes the turn to the next with a picture); the record
+keeps APOD as the owner. It may repeat (RO1, the user, 2026-11-14, Open 2): NASA's picture in
+APOD's turn and again in NASA's, and with APOD alone a stand-in this screen has shown goes on
+again (B15's "the turn passes on" and B22's "not twice", 2026-10-26, went). When an owner is no
+longer ticked, or a forgotten picture's owner has nothing to show, it gives way to the turn's
+source by the clock, else the next with a picture; with none the screen keeps its picture (an
+unticked source's picture never goes on). **Set** (`restartAndForget`, then `setDue`): the records of
 the screens with a column are forgotten (the picture
-dropped, so it goes on again with the new setup, a changed whole picture or "my picture" too); a screen
-whose owner is still ticked keeps it, otherwise the next new source, else the next with any
-picture; each takes the current change time as its stamp, so the next run doesn't move it on
-and the next change comes at the next change time (a waiting screen stops waiting). The notes
+dropped, so it goes on again with the new setup, a changed whole picture or "my picture" too); each
+screen goes to the current change time's turn by the clock in its new column (RO1; the next with
+a picture when that source has none), so a Set never shifts the rotation, and takes the current
+change time as its stamp, so the next run doesn't move it on and the next change comes at the
+next change time. The notes
 stay; the change times don't move. Turning the daily switch on (`Store.startAfresh`) does
 the same with the stored columns, saving nothing else. A screen left alone (an empty column)
 keeps its record. A screen whose column was empty starts without a record (its owner is
 removed): it was left alone meanwhile, so its record is stale. A screen with no record (the
-lock screen after migrating "Home", a fresh install, such a column) starts on the other
-screen's owner if ticked there, else the first ticked source with a picture, with the current
+lock screen after migrating "Home", a fresh install, such a column) starts on the turn's source
+by the clock (RO1; was the other screen's owner), else the next with a picture, with the current
 change time, and is set at once. **Equal columns** (the same sources on both screens; user,
 2026-10-20 night): the lock screen takes home's record (owner, stamp, notes) and picture in
-every run, so both are due one picture and get one set; home with no record starts on the lock
-screen's owner. So they match again after a Set from columns that differed and after a failed
+every run, so both are due one picture and get one set. So they match again after a Set from columns that differed and after a failed
 set on one screen (its retry takes home's picture). Columns that differ: each screen its own
-owner, the same change times. A changed interval or picture time takes effect with Set.
-**The next run** (`nextRun(now, zone, time, turns, offset, waiting, lastRun)`, for the
+turn (the same number mod its own sources), the same change times. A changed interval or picture time takes effect with Set.
+**The next run** (`nextRun(now, zone, time, turns, offset, lastRun)`, for the
 alarms, with a failed run's retry added by `nextAlarm`): the earliest of the next change time; within the window 15 min after the change time,
 then hourly (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone), and the
 window's end (09:00, B15: a half-hour zone's post published within it, Tehran's 08:35; three
-real hours, so 02:00 CET on the EU's autumn DST night for a change at 00:00 CEST); hourly
-while a screen waits, until the next change time; after a failed or stopped run 15 min after
+real hours, so 02:00 CET on the EU's autumn DST night for a change at 00:00 CEST); no hourly
+checks after the window (0.6.0's for a waiting screen went with RO1; the loop stays behind
+`nextRun`'s `allDay`, default off, for "As soon as it's out", SO1); after a failed or stopped run 15 min after
 its start, then hourly (`nextAlarm`'s `failures`, the failed runs in a row, O4b). The clock's checks come a per-device offset
 later (`randomOffset`, 0–10 min in whole seconds, drawn once; kept in range); the retries
 count from the run's start. No model of each source's posting time. **In `Store`:** `pictureAt` (pref
@@ -1086,6 +1098,8 @@ out" is 21:05 in Los Angeles, 06:05 in Berlin, 15:05 in Sydney. Decided:
 **The rules** (user, 2026-10-23 night, after three reviews: the day's version had nine new
 controls and two turn clocks; simplified to three rules a user can read, one time, one clock,
 decided by the clock, not by what's on the screen):
+(Rule 1's "a picture it hasn't shown" and rule 3 replaced by a plain rotation by the clock,
+RO1, 2026-11-14: 0.7.0: turns as a plain rotation; Turns and the picture time.)
 1. **At [06:00], and with several sources every [24/12/6/3 h] from then, a screen changes: to
    its source's newest picture, or to the next source (APOD → NASA → Earth) with a picture it
    hasn't shown.**
@@ -1293,9 +1307,9 @@ the 3-hour window, stays. Why: on the FP6 (11 Nov, APOD and NASA, 6 h) APOD didn
 18:00, its picture already shown that morning and NASA with nothing new, so the screen waited;
 the user expected APOD ("this is very confusing"), and it took the phone's history to tell why.
 Repeats accepted (today's APOD twice a day with 6 h, Friday's NASA and Earth at their weekend
-turns). Open, the user's: the turn's source by the clock or after the one on, B22's stand-in
-not twice, an ⓘ for "Change every". Until it ships, 0.6.0's rules (Background update, Turns)
-stand.
+turns). Decided (user, 2026-11-14): the turn's source by the clock (Open 1 (b)), B22's
+stand-in not twice goes (Open 2), an ⓘ for "Change every" (Open 3, RO2). `:core`'s rules are
+the rotation since RO1 (2026-11-14; Background update, Turns); the page's texts follow in RO2.
 
 **0.7.0: as soon as it's out** (user, 2026-11-13; the FP6's day, the draft rules, the questions
 and the packages SO1–SO3 in [soon-0.7.0.md](.claude/skills/build-apodroid-android/soon-0.7.0.md)).

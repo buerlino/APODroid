@@ -802,7 +802,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
   that has a column and no set of its own this run (another column, its picture not due), its
   record is forgotten and the run planned again, so it gets its own picture first, still when
   it isn't home's (logged `Live: home's new picture would show on the lock screen, its own
-  again`). The darkening isn't the engine's yet (BR3).
+  again`). **A failed lock set holds the hand-over** (L6f1; `handOverWaits`): while the engine
+  covers the lock screen and a still set with the lock screen failed in this run, home's
+  hand-over is skipped and counts as a failed set (home's record unwritten), so the alarms'
+  retry plans both again (logged `Live: the lock screen's set failed, home's hand-over waits`).
+  The darkening isn't the engine's yet (BR3).
 - **Choosing the part (user, 2026-10-05):** a ⛶ at the bottom left of the picture (mirroring
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the

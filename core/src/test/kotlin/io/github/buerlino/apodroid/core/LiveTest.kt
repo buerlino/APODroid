@@ -423,6 +423,18 @@ class LiveTest {
         assertFalse(lockFollowsHome(LiveSets(listOf(y to setOf(LOCK))), shared = true, lockColumn = true))
     }
 
+    // L6f1: a failed lock still set while the engine covers the lock screen holds home's hand-over.
+    @Test
+    fun aFailedLockSetHoldsTheHandOverWhileShared() {
+        assertTrue(handOverWaits(shared = true, failedStill = listOf(setOf(LOCK))))
+        assertTrue(handOverWaits(shared = true, failedStill = listOf(setOf(HOME, LOCK))))
+        // Not shared: the engine is home's alone, the hand-over runs.
+        assertFalse(handOverWaits(shared = false, failedStill = listOf(setOf(LOCK))))
+        // No lock step failed (none, or home's alone): the hand-over runs.
+        assertFalse(handOverWaits(shared = true, failedStill = emptyList()))
+        assertFalse(handOverWaits(shared = true, failedStill = listOf(setOf(HOME))))
+    }
+
     // L6 fix round 1: a maker's picker that isn't exported throws SecurityException, which crashed Set.
     @Test
     fun aPickerThatRefusesFallsToTheNextAndNoneLeavesNull() {

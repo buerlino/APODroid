@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
  * The picture time (J1): the change times through the DST days, [nextRun], and the three rules
  * over whole days in real time zones, with the posts coming out when the sites post them (APOD
  * at 00:05 US Eastern, Earth Observatory at 00:00 US Eastern on weekdays, NASA at 16:30 UTC on
- * weekdays) and a run at each [nextRun], as J2's alarms will (the [Phone] in Phone.kt).
+ * weekdays) and a run at each [nextAlarm], as J2's alarms do (the [Phone] in Phone.kt).
  */
 class PictureTimeTest {
     private val zurich = ZoneId.of("Europe/Zurich")
@@ -139,11 +139,14 @@ class PictureTimeTest {
         now: String,
         time: PictureTime = PictureTime(),
         turns: Boolean = false,
-        failures: Int = 0,
         offset: Duration = Duration.ZERO,
         waiting: Boolean = false,
         zone: ZoneId = zurich,
-    ) = local(zone, nextRun(at(zone, now), zone, failures, time, turns, offset, waiting))
+    ) = local(zone, nextRun(at(zone, now), zone, time, turns, offset, waiting))
+
+    /** The alarms at the end of a run that started at [now] (and took no time), after [failures] failed runs in a row, this one included. */
+    private fun ended(now: String, failures: Int, offset: Duration = Duration.ZERO) =
+        local(zurich, nextAlarm(at(zurich, now), zurich, failures, PictureTime(), false, offset, false, at(zurich, now)))
 
     @Test
     fun theChecksAfterAChangeTime() {
@@ -180,40 +183,63 @@ class PictureTimeTest {
 
     @Test
     fun aFailedRunIsRetriedIn15MinutesThenHourly() {
-        assertEquals("15 10:15", next("2026-07-15T10:00", failures = 1))
-        assertEquals("15 11:00", next("2026-07-15T10:00", failures = 2))
-        assertEquals("15 11:15", next("2026-07-15T10:15", failures = 5))
+        assertEquals("15 10:15", ended("2026-07-15T10:00", failures = 1))
+        assertEquals("15 11:00", ended("2026-07-15T10:00", failures = 2))
+        assertEquals("15 11:15", ended("2026-07-15T10:15", failures = 5))
         // A failure at the change time: the window's own check is the retry.
-        assertEquals("15 06:15", next("2026-07-15T06:00", failures = 1))
+        assertEquals("15 06:15", ended("2026-07-15T06:00", failures = 1))
         // The next change or check comes first when it's earlier.
-        assertEquals("15 06:00", next("2026-07-15T05:30", failures = 2))
-        assertEquals("15 06:30", next("2026-07-15T06:15", failures = 1))
+        assertEquals("15 06:00", ended("2026-07-15T05:30", failures = 2))
+        assertEquals("15 06:30", ended("2026-07-15T06:15", failures = 1))
+        assertEquals(Duration.ofMinutes(15), retryAfter(1))
+        assertEquals(Duration.ofHours(1), retryAfter(2))
+        assertEquals(Duration.ofHours(1), retryAfter(6))
+        // None (a run that couldn't be scheduled, O4a): 15 min.
+        assertEquals(Duration.ofMinutes(15), retryAfter(0))
+    }
+
+    /**
+     * The retry counts from the run's start, not its end (O4b, the user's yes, 2026-11-14): a run
+     * Android stopped 10 min after its start at 10:00 is retried at 10:15, not 10:25.
+     */
+    @Test
+    fun aStoppedRunIsRetriedFromItsStart() {
+        assertEquals("15 10:15", alarm("2026-07-15T10:10", lastRun = "2026-07-15T10:00"))
+        assertEquals("15 11:00", alarm("2026-07-15T10:10", lastRun = "2026-07-15T10:00", failures = 2))
+        // An expedited job's 3 min stop (O10): 12 min after it.
+        assertEquals("15 10:15", alarm("2026-07-15T10:03", lastRun = "2026-07-15T10:00"))
+        // A run longer than its retry (none on Android: a job's limit is 10 min): at once.
+        assertEquals("15 10:20", alarm("2026-07-15T10:20", lastRun = "2026-07-15T10:00"))
     }
 
     // The alarms armed outside a run's end (J2)
 
     private fun alarm(
         now: String,
-        failedAt: String? = null,
+        lastRun: String? = null,
         failures: Int = 1,
         time: PictureTime = PictureTime(),
         turns: Boolean = false,
         offset: Duration = Duration.ZERO,
         waiting: Boolean = false,
-    ) = local(zurich, nextAlarm(at(zurich, now), zurich, failures, failedAt?.let { at(zurich, it) }, time, turns, offset, waiting))
+    ) = local(zurich, nextAlarm(at(zurich, now), zurich, failures, time, turns, offset, waiting, lastRun?.let { at(zurich, it) }))
 
-    /** At a run's end the alarms come at [nextRun]'s time, with or without failures. */
+    /**
+     * At the end of a run that started at [now]: the clock's next run ([nextRun]), or after failed
+     * runs the earlier of it and the retry from the start.
+     */
     @Test
-    fun theAlarmAtARunsEndIsTheNextRun() {
+    fun theAlarmAtARunsEndIsTheNextRunOrTheRetry() {
         for (now in listOf("2026-07-15T05:00", "2026-07-15T06:00", "2026-07-15T06:40", "2026-07-15T10:00", "2026-07-15T23:59")) {
             for (failures in 0..3) {
                 for (turns in listOf(false, true)) {
                     val t = at(zurich, now)
                     val time = PictureTime(6, 3)
                     val seven = Duration.ofMinutes(7)
+                    val clock = nextRun(t, zurich, time, turns, seven, waiting = turns, lastRun = t)
                     assertEquals(
-                        nextRun(t, zurich, failures, time, turns, seven, waiting = turns),
-                        nextAlarm(t, zurich, failures, t, time, turns, seven, waiting = turns),
+                        if (failures == 0) clock else minOf(clock, t + retryAfter(failures)),
+                        nextAlarm(t, zurich, failures, time, turns, seven, waiting = turns, lastRun = t),
                         "$now $failures $turns",
                     )
                 }
@@ -221,17 +247,17 @@ class PictureTimeTest {
         }
     }
 
-    /** A Set or a page open after a failed run keeps its retry: armed from the run, not from now. */
+    /** A Set or a page open after a failed run keeps its retry: armed from the run's start, not from now. */
     @Test
     fun aLaterArmingKeepsTheRetry() {
-        assertEquals("15 10:15", alarm("2026-07-15T10:05", failedAt = "2026-07-15T10:00"))
-        assertEquals("15 11:00", alarm("2026-07-15T10:30", failedAt = "2026-07-15T10:00", failures = 2))
+        assertEquals("15 10:15", alarm("2026-07-15T10:05", lastRun = "2026-07-15T10:00"))
+        assertEquals("15 11:00", alarm("2026-07-15T10:30", lastRun = "2026-07-15T10:00", failures = 2))
         // Without a failure: by the clock.
         assertEquals("16 06:00", alarm("2026-07-15T10:05", failures = 0))
-        assertEquals("16 06:00", alarm("2026-07-15T10:05", failedAt = "2026-07-15T10:00", failures = 0))
-        assertEquals("16 06:00", alarm("2026-07-15T10:05", failedAt = null))
+        assertEquals("16 06:00", alarm("2026-07-15T10:05", lastRun = "2026-07-15T10:00", failures = 0))
+        assertEquals("16 06:00", alarm("2026-07-15T10:05", lastRun = null))
         // The clock's check first when it's earlier.
-        assertEquals("15 06:00", alarm("2026-07-15T05:50", failedAt = "2026-07-15T05:00", failures = 2))
+        assertEquals("15 06:00", alarm("2026-07-15T05:50", lastRun = "2026-07-15T05:00", failures = 2))
     }
 
     // A passed check kept (B16)
@@ -245,9 +271,8 @@ class PictureTimeTest {
         time: PictureTime = PictureTime(),
         turns: Boolean = false,
         waiting: Boolean = false,
-        failedAt: String? = null,
         failures: Int = 0,
-    ) = local(zurich, nextAlarm(at(zurich, now), zurich, failures, failedAt?.let { at(zurich, it) }, time, turns, sevenMinutes, waiting, lastRun?.let { at(zurich, it) }))
+    ) = local(zurich, nextAlarm(at(zurich, now), zurich, failures, time, turns, sevenMinutes, waiting, lastRun?.let { at(zurich, it) }))
 
     /**
      * A page open (or a Set, a clock change) between the 06:07 check and its alarm's delivery
@@ -277,15 +302,13 @@ class PictureTimeTest {
 
     /**
      * A page open (or a Set, the switch on, a TIME_SET) while a run goes keeps the pair the run's
-     * start armed, 15 min after it, so a process killed mid-run is retried (B16f1). Before, a
-     * fallback run at 12:00 and a page open at 12:01 armed tomorrow's 06:07 check.
+     * start armed, 15 min after it, so a process killed mid-run is retried (B16f1): the run counts
+     * as failed from its start (O4b). Before, a fallback run at 12:00 and a page open at 12:01
+     * armed tomorrow's 06:07 check.
      */
     @Test
     fun aReArmDuringARunKeepsItsRetry() {
-        fun during(now: String, lastRun: String) = local(
-            zurich,
-            nextAlarm(at(zurich, now), zurich, 0, null, PictureTime(), false, sevenMinutes, false, at(zurich, lastRun), running = true),
-        )
+        fun during(now: String, lastRun: String) = owed(now, lastRun, failures = 1)
         assertEquals("15 12:15", during("2026-07-15T12:01", "2026-07-15T12:00"))
         // Not running: the clock's next check, as before.
         assertEquals("16 06:07", owed("2026-07-15T12:01", lastRun = "2026-07-15T12:00"))
@@ -297,40 +320,28 @@ class PictureTimeTest {
 
     /**
      * A run that started and never ended (killed by `install -r`, `kill -9`, the low-memory killer
-     * or a Recents swipe) counts as going in a new process too, so an arming there keeps its retry
-     * (B19; V11a armed the clock's next check, 05:24 for a 04:27 run). The cap is 15 min after the
-     * start with no failure before, an hour with one or more: the next run's start counts the
-     * killed one ([failedAt] its start), so a crash on every run is retried 15 min later, then
-     * hourly. Before B19 the counted failure's retry made it 15 min every time.
+     * or a Recents swipe) stays counted as failed (O4b: it never reached its good end), so an
+     * arming in a new process keeps its retry (B19; V11a armed the clock's next check, 05:24 for a
+     * 04:27 run): 15 min after the start with no failure before, an hour with one or more. The
+     * next run's start counts itself on top, so a crash on every run is retried 15 min later,
+     * then hourly. Before B19 the counted failure's retry made it 15 min every time.
      */
     @Test
     fun aKilledRunKeepsItsRetryAndCounts() {
-        fun during(now: String, lastRun: String, failures: Int = 0, failedAt: String? = null) = local(
-            zurich,
-            nextAlarm(
-                at(zurich, now), zurich, failures, failedAt?.let { at(zurich, it) }, PictureTime(), false, sevenMinutes, false,
-                at(zurich, lastRun), running = true,
-            ),
-        )
-        // No failure before: 15 min after the start (the page open after a kill at 04:28).
-        assertEquals("15 04:42", during("2026-07-15T04:29", "2026-07-15T04:27"))
-        // The next run's start counted the killed one (failedAt = its start): an hour after it.
-        assertEquals("15 05:42", during("2026-07-15T04:42", "2026-07-15T04:42", failures = 1, failedAt = "2026-07-15T04:42"))
-        assertEquals("15 05:42", during("2026-07-15T04:50", "2026-07-15T04:42", failures = 1, failedAt = "2026-07-15T04:42"))
-        assertEquals("15 13:00", during("2026-07-15T12:01", "2026-07-15T12:00", failures = 3, failedAt = "2026-07-15T12:00"))
+        fun during(now: String, lastRun: String, failures: Int) = owed(now, lastRun, failures = failures)
+        // No failure before (the killed run's own count): 15 min after the start (the page open after a kill at 04:28).
+        assertEquals("15 04:42", during("2026-07-15T04:29", "2026-07-15T04:27", failures = 1))
+        // The next run's start counts itself on top of the killed one: an hour after it.
+        assertEquals("15 05:42", during("2026-07-15T04:42", "2026-07-15T04:42", failures = 2))
+        assertEquals("15 05:42", during("2026-07-15T04:50", "2026-07-15T04:42", failures = 2))
+        assertEquals("15 13:00", during("2026-07-15T12:01", "2026-07-15T12:00", failures = 4))
         // The clock's earlier check stays the alarm; one long passed: at once.
-        assertEquals("15 06:07", during("2026-07-15T05:30", "2026-07-15T05:20", failures = 1, failedAt = "2026-07-15T05:20"))
-        assertEquals("15 14:00", during("2026-07-15T14:00", "2026-07-15T12:00", failures = 2, failedAt = "2026-07-15T12:00"))
-        // The retry while no run goes stays as before: 15 min after the first failure, then hourly.
-        assertEquals("15 04:57", alarmAt("2026-07-15T04:43", failures = 1, failedAt = "2026-07-15T04:42"))
-        assertEquals("15 05:42", alarmAt("2026-07-15T04:43", failures = 2, failedAt = "2026-07-15T04:42"))
-        assertEquals(Duration.ofMinutes(15), runRetry(0))
-        assertEquals(Duration.ofHours(1), runRetry(1))
-        assertEquals(Duration.ofHours(1), runRetry(5))
+        assertEquals("15 06:07", during("2026-07-15T05:30", "2026-07-15T05:20", failures = 2))
+        assertEquals("15 14:00", during("2026-07-15T14:00", "2026-07-15T12:00", failures = 3))
+        // After a failed end: 15 min after the first failure's start, then hourly.
+        assertEquals("15 04:57", during("2026-07-15T04:43", "2026-07-15T04:42", failures = 1))
+        assertEquals("15 05:42", during("2026-07-15T04:43", "2026-07-15T04:42", failures = 2))
     }
-
-    private fun alarmAt(now: String, failures: Int, failedAt: String) =
-        local(zurich, nextAlarm(at(zurich, now), zurich, failures, at(zurich, failedAt), PictureTime(), false, sevenMinutes, false))
 
     /** Network time moves the clock past a check (TIME_SET): at once. The clock set back: nothing owed. */
     @Test
@@ -358,18 +369,18 @@ class PictureTimeTest {
     /** An owed check comes before a retry not yet due. */
     @Test
     fun anOwedCheckBeforeTheRetry() {
-        assertEquals("15 06:10", owed("2026-07-15T06:10", lastRun = "2026-07-15T06:00", failedAt = "2026-07-15T06:02", failures = 1))
+        assertEquals("15 06:10", owed("2026-07-15T06:10", lastRun = "2026-07-15T06:00", failures = 1))
         // Before the check: the check, then the retry.
-        assertEquals("15 06:07", owed("2026-07-15T06:05", lastRun = "2026-07-15T06:00", failedAt = "2026-07-15T06:02", failures = 1))
+        assertEquals("15 06:07", owed("2026-07-15T06:05", lastRun = "2026-07-15T06:00", failures = 1))
     }
 
     /** A retry whose time passed without a run (the process died, a boot): at once. */
     @Test
     fun aRetryDueComesAtOnce() {
-        assertEquals("15 10:40", alarm("2026-07-15T10:40", failedAt = "2026-07-15T10:00"))
-        assertEquals("15 13:00", alarm("2026-07-15T13:00", failedAt = "2026-07-15T10:00", failures = 4))
+        assertEquals("15 10:40", alarm("2026-07-15T10:40", lastRun = "2026-07-15T10:00"))
+        assertEquals("15 13:00", alarm("2026-07-15T13:00", lastRun = "2026-07-15T10:00", failures = 4))
         // The clock set back: a failure "after" now retries no later than the clock's next check.
-        assertEquals("16 06:00", alarm("2026-07-15T10:00", failedAt = "2026-07-17T10:00"))
+        assertEquals("16 06:00", alarm("2026-07-15T10:00", lastRun = "2026-07-17T10:00"))
     }
 
     @Test
@@ -380,7 +391,7 @@ class PictureTimeTest {
         assertEquals("15 07:22", next("2026-07-15T06:22", offset = seven))
         // A page's run at 06:03 doesn't skip the alarm at 06:07.
         assertEquals("15 06:07", next("2026-07-15T06:03", offset = seven))
-        assertEquals("15 10:15", next("2026-07-15T10:00", failures = 1, offset = seven))
+        assertEquals("15 10:15", ended("2026-07-15T10:00", failures = 1, offset = seven))
         // Kept in range.
         assertEquals("15 06:10", next("2026-07-15T05:00", offset = Duration.ofMinutes(25)))
         assertEquals("15 06:00", next("2026-07-15T05:00", offset = Duration.ofMinutes(-5)))
@@ -470,7 +481,7 @@ class PictureTimeTest {
         assertEquals(listOf("25 02:00 APOD 10-24", "26 02:00 APOD 10-25"), phone.sets)
         // The first check of the night: 02:00 CEST, 02:15 CEST, 02:15 CET, 03:15, the window's end 04:00 CET.
         assertEquals(listOf("25 01:30", "25 02:00", "25 02:15", "25 02:15", "25 03:15", "25 04:00"), phone.runs.take(6))
-        assertEquals(Instant.parse("2026-10-25T03:00:00Z"), nextRun(at(zurich, "2026-10-25T03:15"), zurich, 0, PictureTime(2), false, Duration.ZERO, false))
+        assertEquals(Instant.parse("2026-10-25T03:00:00Z"), nextRun(at(zurich, "2026-10-25T03:15"), zurich, PictureTime(2), false, Duration.ZERO, false))
     }
 
     @Test

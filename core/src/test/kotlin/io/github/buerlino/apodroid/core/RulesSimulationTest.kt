@@ -121,7 +121,7 @@ private enum class Event { PAGE, PULL, SET, DAILY_OFF, DAILY_ON, POWER_OFF, BOOT
 
 /**
  * One seed's phone: the store (`Store`'s posts, picture files, `afterGap` marks, `checkedAt` and
- * problems), the job's bookkeeping (`DailyJob`, `Store.runStarts`, `ranJob`, `nextAlarm`), the
+ * problems), the job's bookkeeping (`DailyJob`, `Store.runStarts`, `ranWell`, `nextAlarm`), the
  * wallpaper actually on each screen ([wall]), and the invariants checked around every set.
  */
 private class SimPhone(val seed: Int) : Phone(
@@ -146,10 +146,9 @@ private class SimPhone(val seed: Int) : Phone(
 
     // The job
     private var daily = false
+    /** Failed runs in a row, a run going counted from its start until it ends well (O4b). */
     private var failedRuns = 0
-    private var failedAt: Instant? = null
     private var lastRunAt: Instant? = null
-    private var runGoing = false
     private var alarm: Instant? = null
     private var alarmFires: Instant? = null
     private var fallback: Instant? = null
@@ -466,42 +465,35 @@ private class SimPhone(val seed: Int) : Phone(
 
     // The job and the alarms, as DailyJob runs them
 
-    /** A job run (either id): its start's notes and alarm, the update, then its end's notes and alarms (B24's order). */
+    /**
+     * A job run (either id): its start counts it as failed (`Store.runStarts`) and arms its retry,
+     * the update, then a good end forgets the failures (`ranWell`, B24's order) and its end arms
+     * the alarms. A failed, stopped or killed run stays counted (O4b).
+     */
     private fun jobRun(now: Instant, kind: Kind) {
         if (!daily) return
-        if (runGoing) {
-            failedRuns++
-            failedAt = now
-        }
+        failedRuns++
         lastRunAt = now
-        runGoing = true
-        armAt(now + runRetry(failedRuns))
+        armAt(now + retryAfter(failedRuns))
         val kill = if (r.nextInt(30) == 0) r.nextInt(3) else -1
         if (kill == 0) return note(now, "killed at its start")
         val failed = update(now, kind, force = false, page = false, killAfterChecks = kill == 1) ?: return note(now, "killed after its checks")
         if (kill == 2) return note(now, "killed before its end")
-        runGoing = false
-        if (failed) {
-            failedRuns++
-            failedAt = now
-        } else {
-            failedRuns = 0
-            failedAt = null
-        }
+        if (!failed) failedRuns = 0
         arm(now, runEnd = true)
     }
 
     /**
      * `DailyJob.runNow`, an alarm fired: schedules id 2 unless it's pending; it starts at once when
      * online, else when the offline span ends. A `schedule()` fails now and then (1 in 50, O4a):
-     * the pair `runRetry` ahead, so an alarm stays armed (invariant 9).
+     * the pair `Store.runRetry` ahead, so an alarm stays armed (invariant 9).
      */
     private fun runNow(now: Instant) {
         if (!daily) return
         if (runPending != null) return note(now, "alarm, a run is pending")
         if (r.nextInt(50) == 0) {
             note(now, "alarm, couldn't schedule the run")
-            return armAt(now + runRetry(failedRuns))
+            return armAt(now + retryAfter(failedRuns))
         }
         var starts = now
         while (true) starts = offlineSpans.firstOrNull { starts in it }?.endInclusive?.plusSeconds(1) ?: break
@@ -517,15 +509,15 @@ private class SimPhone(val seed: Int) : Phone(
     /** `DailyJob.ensure`'s alarms: [nextAlarm], checked against CLAUDE.md's checks (invariant 7). */
     private fun arm(now: Instant, runEnd: Boolean = false) {
         val waiting = waiting(columns, records, time, zone, now)
-        val at = nextAlarm(now, zone, failedRuns, failedAt, time, turns, offset, waiting, lastRunAt, runGoing)
+        val at = nextAlarm(now, zone, failedRuns, time, turns, offset, waiting, lastRunAt)
         checked[7]++
         if (at < now) fail(now, 7, "the alarm at ${local(zone, at)} is in the past")
         val nextChange = changeTimes(now, turns).first { it + offset > now } + offset
         if (at > nextChange) fail(now, 7, "the alarm at ${local(zone, at)} is after the next change time + the offset, ${local(zone, nextChange)}")
         val clockCheck = clockCheck(now, waiting)
+        // A run counts as failed from its start until it ends well (O4b): its retry from its start.
         val expected = when {
-            runGoing && lastRunAt != null -> minOf(clockCheck, maxOf(lastRunAt!! + retry(failedRuns + 1), now))
-            failedAt != null && failedRuns > 0 -> minOf(clockCheck, maxOf(failedAt!! + retry(failedRuns), now))
+            failedRuns > 0 && lastRunAt != null -> minOf(clockCheck, maxOf(lastRunAt!! + retry(failedRuns), now))
             else -> clockCheck
         }
         if (at != expected) fail(now, 7, "the alarm at ${local(zone, at)}, the checks say ${local(zone, expected)} (waiting $waiting, ${failedRuns} failed runs)")
@@ -582,8 +574,6 @@ private class SimPhone(val seed: Int) : Phone(
         note(now, "the daily switch ${if (on) "on" else "off"}")
         daily = on
         failedRuns = 0
-        failedAt = null
-        runGoing = false
         lastRunAt = if (on) now else null
         if (!on) {
             alarm = null

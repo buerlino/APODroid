@@ -27,12 +27,13 @@ import kotlin.concurrent.thread
  * - **The fallback** ([PERIODIC]): every 6 hours with a 6 hour flex, a timing that never changes,
  *   so after the first start's [ensure] nothing schedules it again while it runs.
  *
- * Every run's start notes when (`lastRunAt`) and that it goes, and arms the alarms 15 min ahead (an
- * hour after a failed run), so a run that never reaches its end (a frozen or killed process) is
- * retried by them (B16), also when a new process arms them before the next run, and the next run's
- * start counts it as failed (B19). Every run notes how it went before [jobFinished] (B24), and its end arms the
- * alarms again: by the clock after a good run (at once for a check that passed during the run),
- * 15 min later after a failed or stopped one, then hourly. So no run asks Android for a retry
+ * A run counts as failed from its start until it ends well (O4b): its start counts it (`failedRuns`)
+ * and notes when (`lastRunAt`), and arms the alarms 15 min ahead (an hour after a failed run), so
+ * a run that never reaches its end (a frozen or killed process) is retried by them (B16), also
+ * when a new process arms them before the next run (B19). A good run forgets the failures before
+ * [jobFinished] (B24), and its end arms the alarms again: by the clock after a good run (at once
+ * for a check that passed during the run), 15 min after a failed or stopped one's start, then
+ * hourly. So no run asks Android for a retry
  * (`jobFinished(…, false)`, [onStopJob] `false`): in Doze a backoff retry waits for a maintenance
  * window, and while it's pending the alarms can't start a run. One run at a time (B16): a job of
  * either id that starts while a run goes ends at once ([JobRuns.start]); the going run's end arms
@@ -79,10 +80,10 @@ class DailyJob : JobService() {
                     .onFailure { Log.w("APODroid", "Daily job's saves ended: $it") }
             }
             // A stop leaves the thread interrupted (Store.update), and an interrupted thread's
-            // commit() skips the prefs listeners (B16): the page wouldn't see ranJob's note.
+            // commit() skips the prefs listeners (B16): the page wouldn't see ranWell's note.
             Thread.interrupted()
-            // The bookkeeping before jobFinished (B24): a death between them left runGoing after a
-            // good run, and the next start counted a failure that didn't happen.
+            // The bookkeeping before jobFinished (B24): a death between them left a good run
+            // counted as failed, its retry an hour ahead at the next start.
             noted(this, generation, failed = failure != null || stoppedBySystem)
             // The alarms retry, not Android (it would hold a retry back in Doze).
             jobFinished(params, false)
@@ -146,11 +147,11 @@ class DailyJob : JobService() {
 
         /**
          * The pair of alarms for [Store.nextAlarm]'s time, replacing the pair armed before; while a
-         * run goes no later than its start's pair ([started], B16f1): a page open, a Set or a
-         * clock change mid-run would else arm the next change time, and a process killed before
-         * the run's end would wait for it.
+         * run goes no later than its start's pair ([started], B16f1: the run counts as failed from
+         * its start, O4b): a page open, a Set or a clock change mid-run would else arm the next
+         * change time, and a process killed before the run's end would wait for it.
          */
-        private fun arm(context: Context) = arm(context, Store(context).nextAlarm(running = runs.going).toEpochMilli())
+        private fun arm(context: Context) = arm(context, Store(context).nextAlarm().toEpochMilli())
 
         /** The pair of alarms for [at] (epoch ms), replacing the pair armed before. */
         private fun arm(context: Context, at: Long) {
@@ -244,37 +245,36 @@ class DailyJob : JobService() {
         }
 
         /**
-         * A run's start, on its thread: unless an off came since or the switch is off, notes it
-         * ([Store.runStarts], which counts a run before it that never ended as failed, B19) and
-         * arms the alarms [Store.runRetry] ahead (15 min, an hour after a failed run), so a run
-         * that never reaches its end (the process frozen or killed) is retried by them; its end
-         * arms them again.
+         * A run's start, on its thread: unless an off came since or the switch is off, counts it as
+         * failed until it ends well and notes when ([Store.runStarts], O4b) and arms the alarms
+         * [Store.runRetry] ahead (15 min, an hour after a failed run), so a run that never reaches
+         * its end (the process frozen or killed) is retried by them; its end arms them again.
          */
         private fun started(context: Context, store: Store, generation: Int): Unit = synchronized(lock) {
             if (!runs.counts(generation) || !store.daily) return
-            if (store.runStarts()) Log.w("APODroid", "Daily job: the run before never ended (killed), counted as failed")
+            store.runStarts()
             armRetry(context, store)
         }
 
         /**
-         * A run's bookkeeping, before [jobFinished] (B24: a death between them must not leave
-         * `runGoing` after a good run): unless an off came since it started or the switch is off,
-         * notes how it went ([Store.ranJob]: `runGoing` removed, the failures counted or cleared).
-         * A death after it and before [jobFinished] counts the run as ended; Android may re-run
-         * job 1 (it finds nothing new).
+         * A run's bookkeeping, before [jobFinished] (B24: a death between them must not leave a
+         * good run counted as failed): unless it [failed], an off came since it started or the
+         * switch is off, forgets the failed runs ([Store.ranWell]); a failed or stopped run stays
+         * counted from its start. A death after it and before [jobFinished] counts the run as
+         * ended; Android may re-run job 1 (it finds nothing new).
          */
         private fun noted(context: Context, generation: Int, failed: Boolean): Unit = synchronized(lock) {
-            if (!runs.counts(generation)) return
+            if (failed || !runs.counts(generation)) return
             val store = Store(context)
             if (!store.daily) return
-            store.ranJob(failed)
+            store.ranWell()
         }
 
         /**
          * A run's end, after [jobFinished] (scheduling an id Android still counts as running would
          * stop it): unless an off came since it started or the switch is off, arms the alarms
-         * again ([ensure]: by the clock after a good run, 15 min later after a failed or stopped
-         * one, then hourly).
+         * again ([ensure]: by the clock after a good run, 15 min after a failed or stopped one's
+         * start, then hourly).
          */
         private fun ended(context: Context, generation: Int): Unit = synchronized(lock) {
             if (!runs.finished(generation)) return

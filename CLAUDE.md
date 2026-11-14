@@ -103,7 +103,11 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   the record copied to `lock.*` with Both and Lock, home's cleared with Lock (unknown: set by the
   first run that needs it); the owner APOD in APOD mode, the picture "own" for 0.5.0's APOD with
   no URL on an APOD video date, the stamp `turnStartedAt`. Drop it two releases after F-Droid
-  ships past 0.6.0.
+  ships past 0.6.0. 0.6.0 → 0.7.0 (O4b, 2026-11-14; night default, the alternative: accept one
+  lost retry per phone): `Store.foldRunGoing`, in `migrateOnce` under the same lock, at every
+  `Store` use while `runGoing` or `failedAt` is there: a `runGoing` left by 0.6.0 (the update's
+  `install -r` killed a run) adds one to `failedRuns`, so its retry stays; both keys removed, in
+  one commit. Drop it two releases after F-Droid ships past 0.7.0.
 
 ## Setup and distribution (copied from gridload)
 
@@ -745,7 +749,8 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   alarms; B16, 2026-10-24, from a review of J2) is replaced. **A failed schedule arms the retry**
   (O4a, 2026-11-14, from the review of 0.7.0's runs): when `schedule()` returns
   `RESULT_FAILURE` or throws (caught, logged), the pair is armed `runRetry` ahead (15 min, an
-  hour after a failed run), as a run's start and an alarm landing in a going run do (`armRetry`),
+  hour after two or more failed runs in a row, O4b), as a run's start and an alarm landing in a
+  going run do (`armRetry`),
   so while the switch is on an alarm is armed or id 2 is pending (SIM's invariant 9). Expect about T + 10 min when Unrestricted;
   Optimized: the alarm on time, the network only at Doze's next maintenance window (accepted).
 - **A passed check kept** (B16): each run's start (either id) notes `lastRunAt` (also the
@@ -784,38 +789,46 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   `jobFinished(params, false)` and `onStopJob` returns false, for both ids, so Android keeps no
   backoff retry (in Doze it waits for a maintenance window and, pending, blocks the alarms). A
   failed run (a fetch's or a set's failure in `Updated`), one `onStopJob` stopped
-  (`stoppedBySystem`) and one killed before its end count: `Store.ranJob` keeps `failedRuns`
-  (in a row) and `failedAt`; a good run clears them, the daily switch either way too. The
-  alarms then come 15 min after the run, then hourly (`nextAlarm` keeps that retry when armed
-  again before it, by a Set or a page open; a retry whose time passed without a run, after a
-  boot or the process dying, comes at once). A run that waits for the network (id 2 pending)
-  arms nothing until it runs. **A run that never ends** (a frozen or killed process:
-  `install -r`, `kill -9`, the low-memory killer, a Recents swipe; B16, B19): its start notes
-  `lastRunAt` and `runGoing` (removed by `ranJob` and by the daily switch either way) and arms
-  the alarms `runRetry` ahead (15 min, an hour after one or more failed runs in a row).
-  `nextAlarm` counts `runGoing` as a run going in every process, so an arming during the run or
-  after its process died (a page open, a Set, the daily switch on, `TIME_SET`,
-  `TIMEZONE_CHANGED`, an update's `MY_PACKAGE_REPLACED`, a boot) keeps that retry: the earlier
-  of the clock's next check and `lastRunAt` + `runRetry`, at the earliest now (the last
-  failure's retry doesn't count then, the run going is it; a run left from before an off and on
-  costs one spare check). Android re-runs a killed job 1 itself, a killed id 2 not. The next
-  run's start finds the note and counts the killed run in `failedRuns` and `failedAt` before its
-  own work, so a crash on every run (out of memory decoding a huge picture, downloaded again
-  each time) is retried 15 min later, then hourly. An alarm that lands in a going run arms the
+  (`stoppedBySystem`) and one killed before its end count. **A run counts as failed from its
+  start until it ends well** (O4b, the user's yes, 2026-11-14; was two notes, `runGoing` and
+  `failedAt`, and a third kind of outcome for a killed run): its start (`Store.runStarts`) adds
+  one to `failedRuns` (in a row) and notes `lastRunAt`, in one commit; a good end
+  (`Store.ranWell`) removes `failedRuns`; a failed, stopped or killed run writes nothing more,
+  it's counted already. The daily switch either way removes `failedRuns` too. The alarms then
+  come 15 min after the failed run's **start**, then hourly (`:core`'s `retryAfter`,
+  `Store.runRetry`; `nextAlarm(now, zone, failures, time, turns, offset, waiting, lastRun)`:
+  the clock's next run, or with failures the earlier of it and `lastRun` + `retryAfter`, at the
+  earliest now). Why from the start (user, 2026-11-14): one rule for a run that failed, was
+  stopped, was killed or still goes; for a normal failure the two are seconds apart, a run
+  Android stops at its 10 min limit is retried 5 min after the stop instead of 15 (an expedited
+  job's 3 min stop, O10: 12 min after it). `nextAlarm` keeps that retry when armed again before
+  it, by a Set or a page open; a retry whose time passed without a run, after a boot or the
+  process dying, comes at once. A run that waits for the network (id 2 pending) arms nothing
+  until it runs. **A run that never ends** (a frozen or killed process: `install -r`,
+  `kill -9`, the low-memory killer, a Recents swipe; B16, B19): its start arms the alarms
+  `runRetry` ahead (15 min, an hour after one or more failed runs in a row). It stays counted,
+  so an arming during the run or after its process died (a page open, a Set, the daily switch
+  on, `TIME_SET`, `TIMEZONE_CHANGED`, an update's `MY_PACKAGE_REPLACED`, a boot) keeps that
+  retry: the earlier of the clock's next check and `lastRunAt` + `runRetry`, at the earliest
+  now, in every process (no in-process flag: `nextAlarm()` takes no argument, so Live's engine
+  can call it, finding 5 of `review-0.7.0-runs.md`). Android re-runs a killed job 1 itself, a
+  killed id 2 not. The next run's start counts itself on top, so a crash on every run (out of
+  memory decoding a huge picture, downloaded again each time) is retried 15 min later, then
+  hourly. A killed run is no longer told apart in the log. An alarm that lands in a going run arms the
   pair `runRetry` ahead again, as the run's start did (B18: else a process killed before the
   run's end had no alarm left). A run the daily switch off dropped logs "Daily job: stopped
   (the switch off)", not a failure; a stop by Android stays a failure. A stop leaves the thread
   interrupted (`Store.update`), and an interrupted thread's `commit()` skips the prefs
-  listeners, so the run clears the flag (`Thread.interrupted()`) before `ranJob` (B16). Such a
+  listeners, so the run clears the flag (`Thread.interrupted()`) before `ranWell` (B16). Such a
   `commit()` also clears the flag, so a stop doesn't rest on it alone (B18): `update` and
   `saveInUse` also read the job's `stoppedBySystem` before each source, each set and each save,
   a commit on the job's thread clears the flag first and then ends the run (the record of a set
   done is written, the page hears it), and a run `onStopJob` stopped saves nothing. **The
-  order at a run's end** (B24, 2026-10-26): the flag cleared, `ranJob` (under the lock, unless
-  an off came since or the switch is off), then `jobFinished`, then `ensure`: a death between
-  `jobFinished` and `ranJob` left `runGoing` after a good run, and the next start counted a
-  failure that didn't happen (its pair an hour ahead). A death after `ranJob` and before
-  `jobFinished` counts the run as ended; Android may re-run job 1 (it finds nothing new).
+  order at a run's end** (B24, 2026-10-26): the flag cleared, `ranWell` after a good run (under
+  the lock, unless an off came since or the switch is off), then `jobFinished`, then `ensure`:
+  with `jobFinished` first, a death between them left a good run counted as failed, and the
+  next start's pair came an hour ahead. A death after `ranWell` and before `jobFinished` counts
+  the run as ended; Android may re-run job 1 (it finds nothing new).
   `ensure` stays after `jobFinished`: scheduling an id Android still counts as running stops it.
 - **Off is off** (`DailyJob.cancel`): both jobs and both alarms cancelled, a running run too;
   `JobRuns.drop` bumps a generation each run takes at its start, so a run from before an off

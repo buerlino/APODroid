@@ -402,6 +402,14 @@ what it leaves open.
   status line, " · Live"); `unnotedLive` and `lockFollowsHome` (`LiveTest` and SIM only), `handOverWaits` (L6f1, `LiveTest`); a
   maker's picker refusing the start (`firstStarted`, unit-tested only); below 14 (`live.homeId`,
   E); the FP6's picker (L2).
+- ⛶'s preview (L7, 2026-11-14; pipeline run 109, no device found): the Live frame by the clock
+  (no drag, the minute tick, TalkBack offering no drag action), a lock-only source dragging as
+  Fill, the whole picture's preview beside the wallpaper set (black and blur).
+- D, the screen-on check (L8, 2026-11-14; pipeline run 110, no device found): a WAKEUP after a
+  passed change time starting job 2 (`Live: screen on, run owed`), none within 15 min, with
+  nothing owed, with the daily switch off or from the picker's preview; the stray's run; whether
+  `RUN_ANY_IN_BACKGROUND ignore` can stand in for a maker's lost alarms (`screenOnRunOwed`,
+  `LiveTest` only).
 
 **The update from 0.5.0:**
 - The migration race (the page and the job at once) with "Where" Home or Both (V4: Lock only).

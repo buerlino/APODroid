@@ -699,6 +699,27 @@ on the tablet, as on 28 Oct, and they lose their alarms until opened: the user's
   decides about O11).
 - **Done when:** the report names every app the cleaner stopped (the user reopens them), the
   probes uninstalled, the tablet set back.
+- **Result** (rosie, pipeline run 94, 2026-11-14, the tablet, Android 15; the full report, both
+  sweeps' logcats and the screenshots in `.coord/runs/094-o8/`): **PASS**.
+  - **Read-only:** no auto-start, background-running or app-management setting anywhere (App info
+    has Android's rows only, App battery usage › "Allow background usage"; Settings › Apps and ›
+    Battery none). Recents' long-press menu: Lock, Split screen, App info.
+  - **Sweep 1:** at about 350 MB available, `ZuiMemoryCleaner[Aggressive-MemFreeCritical]`
+    (`minAdj: 701`) force-stopped 13 apps in 9 s, APODroid (adj 910, both alarms gone) and the
+    cached `.ej` (900, sentinel gone) among them, and **spared `.reg` with Keep** (adj 50–200).
+    7.8 s later, the hog still holding about 2 GB, the low-memory killer killed `.reg` (adj 200,
+    exit `LOW_MEMORY`): its alarm kept, the service back by itself in 2 s (a sticky restart,
+    foreground again).
+  - **The Recents lock spares nothing:** with `.ej`'s task locked (its adj unchanged, 910) the
+    cleaner force-stopped it first, before APODroid and `.reg` without its service.
+  - **For O14, the cleaner's force stop differs from `am force-stop`:** the package isn't left
+    stopped (`stopped=false`), the next start gets no `BOOT_COMPLETED` and
+    `wasForceStopped()` is **false**. Only the alarm's `PendingIntent` gone and the exit reason
+    (`USER_REQUESTED`, subreason `FORCE STOP`, "… due to ZuiMemoryCleaner[…]") tell it, so the
+    detector's "the alarms found gone" is the sign to use.
+  - So Keep running helps on ZUI (below the cleaner's floor); the low-memory killer can still
+    kill the service's process under extreme pressure, but that keeps the alarms and the
+    service comes back.
 
 ### [ ] O9. Android check on the FP6: the expedited run and the service on Android 16 (Opus, medium)
 

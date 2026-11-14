@@ -100,6 +100,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -155,6 +156,7 @@ import io.github.buerlino.apodroid.core.Size as Sizing
 import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.firstStarted
+import io.github.buerlino.apodroid.core.livePosition
 import io.github.buerlino.apodroid.core.maker
 import io.github.buerlino.apodroid.core.missedWhen
 import io.github.buerlino.apodroid.core.orderOf
@@ -169,6 +171,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -338,6 +341,9 @@ class MainActivity : ComponentActivity() {
 
     /** Crop mode's "Whole picture" toggle (A4): ✓ keeps it in the draft with the part, Back drops it. */
     private var cropWhole by mutableStateOf(false)
+
+    /** The clock ⛶'s Live frame follows (L7): moved on by a minute tick while it's open. */
+    private var liveNow by mutableStateOf(Instant.now())
     private val screen by lazy { store.screen }
 
     private companion object {
@@ -1468,6 +1474,16 @@ class MainActivity : ComponentActivity() {
         val chip = if (sources.size > 1) chipText(post) else null
         // Only the shown page crops; the pager doesn't move meanwhile.
         val crop = cropping && source == shown
+        // ⛶ with Live (L7): the frame where the clock has it, no drag; a minute tick moves it.
+        val live = crop && livesOnHome(source)
+        if (live) {
+            LaunchedEffect(Unit) {
+                while (true) {
+                    liveNow = Instant.now()
+                    delay(60_000 - liveNow.toEpochMilli() % 60_000)
+                }
+            }
+        }
         Box(contentAlignment = Alignment.BottomEnd) {
             Image(
                 painter = remember(picture) { PicturePainter(picture) },
@@ -1479,12 +1495,15 @@ class MainActivity : ComponentActivity() {
                     .then(
                         when {
                             crop && cropWhole -> Modifier
+                            live -> Modifier.shadeFrame(picture) { livePreviewPosition() }
                             crop -> Modifier.cropFrame(picture, post)
                             else -> Modifier.clickable { openPage(post.pageUrl) }
                         },
                     ),
                 contentScale = ContentScale.FillWidth,
             )
+            // "Whole picture" on (L7): the screen-shaped preview in the picture's place, as the wallpaper draws it.
+            if (crop && cropWhole) WholePreview(source, picture, Modifier.matchParentSize())
             // Not over the crop frame.
             if (chip != null && !crop) {
                 Text(
@@ -1741,23 +1760,72 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
+     * Whether ⛶ shows [source]'s frame as Live moves it (L7): the draft's Size Live and [source] in
+     * the draft's home column. A source only on the lock screen crops as Fill (the lock screen is
+     * Fill, Decision 10).
+     */
+    private fun livesOnHome(source: Source) = size == Sizing.LIVE && source in columns[Screen.HOME].orEmpty()
+
+    /** Where the engine's frame is at [liveNow] (`:core`'s [livePosition]) by the draft's home column and change times. */
+    private fun livePreviewPosition(): Float =
+        livePosition(liveNow, ZoneId.systemDefault(), draft().pictureTime, turns = columns[Screen.HOME].orEmpty().size >= 2)
+
+    /**
+     * "Whole picture"'s preview (L7, Decision 7): [source]'s stored picture drawn whole on a
+     * bitmap of the screen's portrait size by the wallpaper's own code ([wholePicture]: on black
+     * or blurred), shown in the screen's shape, centred on black in the picture's place (so the
+     * page doesn't move). Drawn off the main thread, again when the page's [picture] changes;
+     * a spinner meanwhile, the picture alone when it fails. Not darkened (the page shows the
+     * picture as it is).
+     */
+    @Composable
+    private fun WholePreview(source: Source, picture: ImageBitmap, modifier: Modifier) {
+        val file = store.imageFile(source)
+        val screen = screen
+        val preview by produceState<ImageBitmap?>(null, picture) {
+            val drawn = withContext(Dispatchers.IO) {
+                runCatching { wholePicture(file, screen) }
+                    .onFailure { Log.w("APODroid", "Part: couldn't draw the whole picture's preview: $it", it) }
+                    .getOrNull()
+            }
+            value = drawn?.asImageBitmap()
+            awaitDispose {
+                value = null
+                drawn?.recycle()
+            }
+        }
+        Box(modifier.background(Color.Black), contentAlignment = Alignment.Center) {
+            preview?.let {
+                Image(
+                    painter = remember(it) { PicturePainter(it) },
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxHeight().aspectRatio(screen.width.toFloat() / screen.height),
+                )
+            } ?: CircularProgressIndicator()
+        }
+    }
+
+    /** Dims what the wallpaper leaves out of [picture] at the frame's [position] (0–1), framed in white. */
+    private fun Modifier.shadeFrame(picture: ImageBitmap, position: () -> Float): Modifier = drawWithContent {
+        drawContent()
+        val scale = size.width / picture.width
+        val frame = wallpaperFrame(picture.width, picture.height, screen, position())
+        val topLeft = Offset(frame.left * scale, frame.top * scale)
+        val frameSize = Size(frame.width() * scale, frame.height() * scale)
+        clipRect(topLeft.x, topLeft.y, topLeft.x + frameSize.width, topLeft.y + frameSize.height, ClipOp.Difference) {
+            drawRect(Color.Black.copy(alpha = 0.6f))
+        }
+        drawRect(Color.White, topLeft, frameSize, style = Stroke(1.dp.toPx()))
+    }
+
+    /**
      * Dims what the wallpaper leaves out; dragging moves the frame along the picture's longer
      * side (relative to the screen's shape), the other drags still scroll the page.
      */
     private fun Modifier.cropFrame(picture: ImageBitmap, post: Post): Modifier {
         val full = wallpaperFrame(picture.width, picture.height, screen, 0f)
         val horizontal = full.width() < picture.width
-        return drawWithContent {
-            drawContent()
-            val scale = size.width / picture.width
-            val frame = wallpaperFrame(picture.width, picture.height, screen, cropPosition)
-            val topLeft = Offset(frame.left * scale, frame.top * scale)
-            val frameSize = Size(frame.width() * scale, frame.height() * scale)
-            clipRect(topLeft.x, topLeft.y, topLeft.x + frameSize.width, topLeft.y + frameSize.height, ClipOp.Difference) {
-                drawRect(Color.Black.copy(alpha = 0.6f))
-            }
-            drawRect(Color.White, topLeft, frameSize, style = Stroke(1.dp.toPx()))
-        }.pointerInput(picture, post) {
+        return shadeFrame(picture) { cropPosition }.pointerInput(picture, post) {
             // The distance the frame can travel, in pixels on the page.
             val travel = if (horizontal) {
                 size.width * (1 - full.width().toFloat() / picture.width)

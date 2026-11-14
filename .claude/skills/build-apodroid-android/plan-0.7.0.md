@@ -73,6 +73,36 @@ name carried it (`APOD_2026-10-29_APOD_29_October_2026_…`).
 
 ## Before the tag
 
+### [ ] T1. SIM on the combined rules (Opus, high)
+
+(User, 2026-11-14: everything queued.) `RulesSimulationTest` on the tree with the rotation (RO1),
+as soon as it's out (SO1, the switch on and off at random), O4b's retry model and O10's run:
+`SimPhone`'s rules and arming mirror the merged code; every invariant kept, rewritten where RO1 or
+SO1 changed what it states (say which in the report); 240 seeds as 0.6.0's SIM, more if fast.
+- **Files:** `RulesSimulationTest.kt` (test code only; a bug found is a `BUG:` line and a
+  failing test marked `@Ignore` with its seed, not a fix).
+- **Done when:** the simulation passes, or every failure is a `BUG:` line with its seed.
+
+### [ ] R1. The release's texts (Sonnet, medium)
+
+(User, 2026-11-14.) `app/build.gradle.kts` versionCode 11, versionName "0.7.0";
+`fastlane/metadata/android/en-US/changelogs/11.txt` in 10.txt's form (one line a feature, the
+features that merged: Live, the rotation, as soon as it's out, bright pictures darker, Keep
+running with its two permissions, the expedited run, the detector, the pause hint per maker; only
+what `git log` shows merged), the fastlane `full_description.txt` and `short_description.txt`
+where a feature changes what they say; `CLAUDE.md`'s Releases line for 0.7.0 left to the tag (T).
+- **Done when:** the files written; `./gradlew :app:assembleRelease` builds; no tag, no push.
+
+### [ ] T2. Final tablet pass on the combined tree (Opus, high)
+
+(User, 2026-11-14; this file's first bullet below.) rosie, the tablet: dev's debug build, then R8
+(signed as the skill says); the update from 0.6.0's build with a real setup (M2's way: nothing
+changes but what 0.7.0 adds); then each track's tablet checks again, quickly: O15's list, L9's
+list, RO3's faked day, SO3's afternoon, BR2's bright and dark pictures; the regression's APOD
+mode and "More NASA pictures" lists; screenshots of every new text in one folder for the user.
+- **Done when:** every check ran on R8 too; no `BUG:` line, or each drafted for the morning.
+
+
 A skeleton (2026-11-13, from a review of the queue); each item becomes a package when the tracks
 are in. Why now: O15 and L9 run before RO, SO and BR are merged, and RO1 and SO1 change the rules,
 so nothing in the tracks checks the combined tree; 0.6.0's lesson was a real week after any change

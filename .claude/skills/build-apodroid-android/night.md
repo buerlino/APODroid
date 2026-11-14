@@ -89,11 +89,13 @@ pascaline's six agents (three workers by area, an advisor, a verifier, the coord
 0.7.0's packages (`plan-0.7.0.md`: the tracks, the order, the rules every package keeps), in the table's order
 unless the last Opus pass's QUEUE line reorders them. "Model, effort" is the track's. Spec names the sections the
 bundle takes: `plan <key>` is `plan-0.7.0.md`'s `### [ ] <key>.`, `<file>.md <key>` a track file's (beside the
-plan; O4a–O4c are O4's packages in `review-0.7.0-runs.md`, queued by the user 2026-11-14, O4d left out), `features <key>` is `features.md`'s. A device package (Agent rosie: O15, RO3, SO3) has rosie as its worker,
+plan; O4a–O4c are O4's packages in `review-0.7.0-runs.md`, queued by the user 2026-11-14, O4d left out), `features <key>` is `features.md`'s. A device package (Agent rosie: O6, O7, O8, L1, O15, L9, RO3, SO3, T2) has rosie as its worker,
 Tablet no since she is the check; one that isn't PASS stays unmerged with its results on its branch, and the rows
 after it still run unless their After names it. An After that names `the user` waits for a step by day (in the
 brackets: the probe, the check by hand or the user's answers; `plan-0.7.0.md`, The order); the user takes the words
-out once it's done. The regression after the last row reruns dev's debug build; let it run. Only APODroid's nights
+out once it's done. Since 2026-11-14 (user: everything queued) no row waits for the user: the probes
+run as rosie's rows, L6 builds on L1 (L2 on the FP6 checks it later), O12 decides from O7's report;
+left by hand: O6's real night, O9, L2, O16, O17, L9's two days, L10, E, the FP6's week, the tag. The regression after the last row reruns dev's debug build; let it run. Only APODroid's nights
 use the tablet (pascaline's leave HA24BZ2Y alone). Done rows stay in the table: `scripts/pipeline.test.sh` resolves
 every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-android/night.md`, before 2026-11-13).
 
@@ -109,25 +111,33 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 8 | O4a | The alarms never lost while the switch is on | winston | opus, medium | yes | O4 | review-0.7.0-runs.md O4a |
 | 9 | O4b | A run counts as failed from its start until it ends well | winston | opus, high | yes | O4a | review-0.7.0-runs.md O4b |
 | 10 | O4c | The switch-on run stops between sets once the switch is off | winston | opus, medium | yes | O4b | review-0.7.0-runs.md O4c |
-| 11 | O10 | The alarms' run as an expedited job | winston | opus, medium | yes | O4a, O4b, O4c, the user (O6) | on-time-0.7.0.md O10 |
-| 12 | O11 | Keep running: the service, the setting, its starts | winston | opus, high | yes | O4a, O4b, O4c, the user (O7, O8) | on-time-0.7.0.md O11 |
-| 13 | O12 | The page lets its pictures go while stopped | winston | opus, medium | yes | O11, the user (only if O7 asks for it) | on-time-0.7.0.md O12 |
-| 14 | O14 | The detector | winston | opus, high | yes | O11, O13 | on-time-0.7.0.md O14 |
-| 15 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O13, O14, the user (O12 merged, or its row dropped) | on-time-0.7.0.md O15 |
-| 16 | L3 | `:core`: the position by the clock, the decode size, still or engine | winston | opus, medium | no | O1, the user (L1) | live-0.7.0.md L3 |
-| 17 | L5 | The engine, and `setDue` leaves a live screen to it | winston | opus, high | yes | L3, L4 | live-0.7.0.md L5 |
-| 18 | L6 | Size Fill or Live, Set opens Android's picker, the texts | winston | opus, high | yes | L5, the user (L2) | live-0.7.0.md L6 |
-| 19 | L7 | The preview in ⛶ mode | winston | opus, medium | yes | L6 | live-0.7.0.md L7 |
-| 20 | L8 | D: the screen-on check starts the alarms' run | winston | opus, medium | yes | L5, O4a, O4b, O4c | live-0.7.0.md L8 |
-| 21 | RO1 | `:core`: turns as a plain rotation | winston | opus, high | no | O1 | rotation-0.7.0.md RO1 |
-| 22 | RO2 | `Store`, the page's texts, `CLAUDE.md` for the rotation | winston | opus, medium | yes | RO1 | rotation-0.7.0.md RO2 |
-| 23 | RO3 | Tablet check: the rotation on a faked day | rosie | opus, medium | no | RO2 | rotation-0.7.0.md RO3 |
-| 24 | SO1 | `:core`: as soon as it's out, the rule and the hourly checks | winston | opus, high | no | RO1 | soon-0.7.0.md SO1 |
-| 25 | SO2 | The switch in Setup, `Store`, `CLAUDE.md` | winston | opus, medium | yes | SO1 | soon-0.7.0.md SO2 |
-| 26 | SO3 | Tablet check: a NASA post in the afternoon | rosie | opus, medium | no | SO2 | soon-0.7.0.md SO3 |
-| 27 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | — | bright-0.7.0.md BR1 |
-| 28 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, O3, L4 | bright-0.7.0.md BR2 |
-| 29 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L7 | bright-0.7.0.md BR3 |
+| 11 | O6 | Android check: the expedited run (session 1 by day; session 2, the real night, by hand) | rosie | opus, medium | no | — | on-time-0.7.0.md O6 |
+| 12 | O7 | Android check: a foreground service's life, look and memory | rosie | opus, medium | no | O6 | on-time-0.7.0.md O7 |
+| 13 | O8 | Android check: ZUI's cleaner against a foreground service | rosie | opus, medium | no | O7 | on-time-0.7.0.md O8 |
+| 14 | L1 | Android check: the live wallpaper on the tablet | rosie | opus, medium | no | O8 | live-0.7.0.md L1 |
+| 15 | O10 | The alarms' run as an expedited job | winston | opus, medium | yes | O4a, O4b, O4c, O6 | on-time-0.7.0.md O10 |
+| 16 | O11 | Keep running: the service, the setting, its starts | winston | opus, high | yes | O4a, O4b, O4c, O7, O8 | on-time-0.7.0.md O11 |
+| 17 | O12 | The page lets its pictures go while stopped (only if O7's report asks for it: else a report commit saying so, no code) | winston | opus, medium | yes | O11, O7 | on-time-0.7.0.md O12 |
+| 18 | O14 | The detector | winston | opus, high | yes | O11, O13 | on-time-0.7.0.md O14 |
+| 19 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O12, O13, O14 | on-time-0.7.0.md O15 |
+| 20 | L3 | `:core`: the position by the clock, the decode size, still or engine | winston | opus, medium | no | O1, L1 | live-0.7.0.md L3 |
+| 21 | L5 | The engine, and `setDue` leaves a live screen to it | winston | opus, high | yes | L3, L4 | live-0.7.0.md L5 |
+| 22 | L6 | Size Fill or Live, Set opens Android's picker, the texts | winston | opus, high | yes | L5 | live-0.7.0.md L6 |
+| 23 | L7 | The preview in ⛶ mode | winston | opus, medium | yes | L6 | live-0.7.0.md L7 |
+| 24 | L8 | D: the screen-on check starts the alarms' run | winston | opus, medium | yes | L5, O4a, O4b, O4c | live-0.7.0.md L8 |
+| 25 | RO1 | `:core`: turns as a plain rotation | winston | opus, high | no | O1 | rotation-0.7.0.md RO1 |
+| 26 | RO2 | `Store`, the page's texts, `CLAUDE.md` for the rotation | winston | opus, medium | yes | RO1 | rotation-0.7.0.md RO2 |
+| 27 | RO3 | Tablet check: the rotation on a faked day | rosie | opus, medium | no | RO2 | rotation-0.7.0.md RO3 |
+| 28 | SO1 | `:core`: as soon as it's out, the rule and the hourly checks | winston | opus, high | no | RO1 | soon-0.7.0.md SO1 |
+| 29 | SO2 | The switch in Setup, `Store`, `CLAUDE.md` | winston | opus, medium | yes | SO1 | soon-0.7.0.md SO2 |
+| 30 | SO3 | Tablet check: a NASA post in the afternoon | rosie | opus, medium | no | SO2 | soon-0.7.0.md SO3 |
+| 31 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | — | bright-0.7.0.md BR1 |
+| 32 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, O3, L4 | bright-0.7.0.md BR2 |
+| 33 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L7 | bright-0.7.0.md BR3 |
+| 34 | L9 | Tablet pass of track L (the two real days by hand) | rosie | opus, high | no | L8, BR3 | live-0.7.0.md L9 |
+| 35 | T1 | SIM on the combined rules | winston | opus, high | no | RO2, SO2, O4b, O10 | plan T1 |
+| 36 | R1 | The release's texts: versionCode 11, the changelog | winston | sonnet, medium | no | O14, O15, L8, L9, RO3, SO3, BR3 | plan R1 |
+| 37 | T2 | Final tablet pass on the combined tree | rosie | opus, high | no | T1, R1 | plan T2 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

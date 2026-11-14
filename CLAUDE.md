@@ -834,7 +834,14 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   hour after two or more failed runs in a row, O4b), as a run's start and an alarm landing in a
   going run do (`armRetry`),
   so while the switch is on an alarm is armed or id 2 is pending (SIM's invariant 9). Expect about T + 10 min when Unrestricted;
-  Optimized: the alarm on time, the network only at Doze's next maintenance window (accepted).
+  Optimized: the alarm on time; on Android 12+ id 2 is an **expedited job** (O10, 2026-11-14:
+  `setExpedited`, no permission, no notification), which runs in Doze and battery saver with
+  the network, so an Optimized phone gets the picture on time while the app isn't in
+  RESTRICTED (about 8 days after the last open); `RESULT_FAILURE` (no expedited quota left)
+  schedules it again as a plain job ("Daily job: alarm, run scheduled, not expedited"), and the
+  run's start logs "expedited" or "not expedited". A stop at the expedited job's limit is a stop
+  (B7, retried by the alarms). Android 10–11: a plain job, the network only at Doze's next
+  maintenance window (accepted).
 - **A passed check kept** (B16): each run's start (either id) notes `lastRunAt` (also the
   daily switch on, whose own update sets; off removes it). A check time after it that has
   passed is armed at once, not dropped (`:core`'s `nextRun`/`nextAlarm`, `lastRun`): arming
@@ -1336,6 +1343,9 @@ RO1, 2026-11-14: 0.7.0: turns as a plain rotation; Turns and the picture time.)
   so the new picture can come hours after the picture time (the same morning on the tablet:
   06:29 for 06:00, but up to 2½ h in J0). The pause hint's "Unrestricted" line says so (J3's
   text). Not tried: fetching inside the alarm's 10 s allowance (`temporaryAppAllowlistDuration`).
+  Since 0.7.0 (O10) on Android 12+ only while the app is in RESTRICTED or out of expedited quota:
+  the alarms' run is expedited and has the network in Doze (Background update, The alarms);
+  10–11 as before. The pause hint's text stays.
 - **The job simplified with it** (user, 2026-10-23 night): the periodic job a plain fallback
   whose timing never changes; 0.6.0's notes during a run, retry due and failing series removed:
   fitting the alarm's run into them would have been more new logic than removing them, and

@@ -236,6 +236,9 @@ class MainActivity : ComponentActivity() {
     /** "As soon as it's out" ([Store.soon]): a newer picture goes on within the hour, not only in the window. */
     private var soon by mutableStateOf(false)
 
+    /** "Darken bright pictures" ([Store.darken], BR2): each set darkens a bright picture a little. */
+    private var darken by mutableStateOf(true)
+
     /** ⛶'s part per source ([Store.parts]); ✓ notes the shown post's. */
     private var parts by mutableStateOf(emptyMap<Source, Part>())
 
@@ -416,7 +419,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -427,6 +430,7 @@ class MainActivity : ComponentActivity() {
         parts = setup.parts
         pictureAt = setup.pictureAt
         soon = setup.soon
+        darken = setup.darken
     }
 
     /** The draft's columns: APOD mode's from "Where", else the list. A column with two or more takes turns every [interval]. */
@@ -1630,6 +1634,11 @@ class MainActivity : ComponentActivity() {
                         change = { change.launch(request) },
                     )
                 }
+                // Shown with the daily switch off too: a one-off Set darkens as well.
+                DraftSwitch(
+                    "Darken bright pictures", darken, stored.darken, about = "About Darken bright pictures",
+                    info = "Darkens a bright picture a little, so the clock and widgets stay readable.",
+                ) { darken = it }
             }
             // One button, both modes, the daily switch on or off: it applies the whole draft.
             Button(
@@ -1680,35 +1689,43 @@ class MainActivity : ComponentActivity() {
         Dropdown("New picture at", pictureHours, pictureAt, ::hourLabel, changed = changed) { pictureAt = it }
     }
 
+    /** "As soon as it's out" (SO2), under "New picture at": part of the draft ([DraftSwitch]). */
+    @Composable
+    private fun SoonSwitch() = DraftSwitch(
+        "As soon as it's out", soon, stored.soon, about = "About As soon as it's out",
+        info = "A new picture goes on within the hour after it's out, not only at the change time.",
+    ) { soon = it }
+
     /**
-     * "As soon as it's out" (SO2), under "New picture at": part of the draft, with a small ⓘ beside
-     * the label (as "Save every picture"'s) and the highlight while it differs from the stored one.
+     * A switch of the draft ([label], [checked]), with a small ⓘ beside the label (as "Save every
+     * picture"'s; [about] for screen readers) whose dialog says [info], and the highlight while it
+     * differs from the [stored] one: "As soon as it's out" (SO2), "Darken bright pictures" (BR2).
      */
     @Composable
-    private fun SoonSwitch() {
-        var info by rememberSaveable { mutableStateOf(false) }
-        val changed = soon != stored.soon
+    private fun DraftSwitch(label: String, checked: Boolean, stored: Boolean, about: String, info: String, onChange: (Boolean) -> Unit) {
+        var showInfo by rememberSaveable { mutableStateOf(false) }
+        val changed = checked != stored
         Row(
             Modifier
                 .fillMaxWidth()
-                .toggleable(soon, role = Role.Switch, onValueChange = { soon = it })
-                .semantics { if (changed) stateDescription = "${if (soon) "On" else "Off"}, not set yet" },
+                .toggleable(checked, role = Role.Switch, onValueChange = onChange)
+                .semantics { if (changed) stateDescription = "${if (checked) "On" else "Off"}, not set yet" },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                Text("As soon as it's out", Modifier.weight(1f, fill = false), color = highlight(changed))
+                Text(label, Modifier.weight(1f, fill = false), color = highlight(changed))
                 Text(
                     "ⓘ",
                     Modifier
-                        .clickable(role = Role.Button, onClick = { info = true })
+                        .clickable(role = Role.Button, onClick = { showInfo = true })
                         .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .clearAndSetSemantics { contentDescription = "About As soon as it's out" },
+                        .clearAndSetSemantics { contentDescription = about },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             val colors = MaterialTheme.colorScheme
             Switch(
-                checked = soon,
+                checked = checked,
                 onCheckedChange = null,
                 colors = if (!changed) SwitchDefaults.colors() else SwitchDefaults.colors(
                     checkedTrackColor = colors.tertiary,
@@ -1718,11 +1735,11 @@ class MainActivity : ComponentActivity() {
                 ),
             )
         }
-        if (info) {
+        if (showInfo) {
             AlertDialog(
-                onDismissRequest = { info = false },
-                confirmButton = { TextButton(onClick = { info = false }) { Text("OK") } },
-                text = { Text("A new picture goes on within the hour after it's out, not only at the change time.") },
+                onDismissRequest = { showInfo = false },
+                confirmButton = { TextButton(onClick = { showInfo = false }) { Text("OK") } },
+                text = { Text(info) },
             )
         }
     }
@@ -1764,7 +1781,8 @@ class MainActivity : ComponentActivity() {
     private fun setupChanged(): Boolean =
         allSources != stored.allSources ||
             (if (allSources) Source.entries.any(::rowChanged) else where != stored.where) ||
-            interval != stored.interval || pictureAt != stored.pictureAt || soon != stored.soon || videoDaysChanged()
+            interval != stored.interval || pictureAt != stored.pictureAt || soon != stored.soon ||
+            darken != stored.darken || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
     private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
@@ -2190,6 +2208,7 @@ private fun Setup.toBundle() = Bundle().apply {
     putString("videoDays", videoDays.name)
     putInt("pictureAt", pictureAt)
     putBoolean("soon", soon)
+    putBoolean("darken", darken)
     parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.whole}|${part.url.orEmpty()}") }
 }
 
@@ -2206,6 +2225,7 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         videoDays = VideoDays.valueOf(bundle.getString("videoDays")!!),
         pictureAt = pictureAtOrDefault(bundle.getInt("pictureAt", DEFAULT_PICTURE_AT)),
         soon = bundle.getBoolean("soon"),
+        darken = bundle.getBoolean("darken", true),
         parts = Source.entries.mapNotNull { source ->
             bundle.getString("part.${source.name}")?.split('|', limit = 4)?.let { (date, position, whole, url) ->
                 source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict())

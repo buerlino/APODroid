@@ -55,6 +55,8 @@ packages unattended): `night.md`.
   order, any `RuntimeException` of a start logged and the next tried: L6 fix round 1), `unnotedLive(size, homeLive, shared, homeNoted, lockNoted,
   columns)` (the screens the engine is on not noted live, forgotten before the rules) and `lockFollowsHome(split,
   shared, lockColumn)` (home's hand-over would change a shared lock screen not due it: forget it, plan again).
+  L8: `screenOnQuiet` (15 min) and `screenOnRunOwed(now, daily, nextAlarm, lastRun, stray, notedLive)` (D: whether
+  an engine that became visible starts the alarms' run; `Store.screenOnRunOwed(stray)` with `Store.liveNoted`).
   `core/.../Turn.kt`: `nextSource(ticked, after, hasPicture, order)` (the next ticked source in
   the list's order for which a test holds, from `after`'s place, ticked or not), `Rotation(order,
   from)` (OR1: the list's order and the anchor's date, `orderFrom`; `ordered(column)`; the
@@ -146,7 +148,8 @@ packages unattended): `night.md`.
   panned at `liveDecodeSize`, a quarter of the bytes after an out of memory, twice; whole by `wholePicture`; colours
   by `colorsOf`), `show` (swap, recycle, `notifyColorsChanged`, draw), `draw` (software canvas: black, then
   `drawPanned` at `Store.liveAt`, or the whole bitmap's middle; the minute's `tick` only when the frame moved),
-  `checkStray` (14+, at a visibility), `safely` (everything caught, `Live: couldn't …`).
+  `checkStray` (14+, at a visibility), `runIfOwed` (L8, D: at a visibility, not the preview,
+  `Store.screenOnRunOwed` → `Live: screen on, run owed` and `DailyJob.runNow`), `safely` (everything caught, `Live: couldn't …`).
 - `app/.../MainActivity.kt`: the page, one instance (`launchMode="singleTop"` in `AndroidManifest.xml`, B4; `onNewIntent` does nothing) (`PictureSide`: `SourceTitle`, the shown source's name with its dropdown, and `PicturePage`, each source's picture, in a `HorizontalPager` whose settled page is `shown` (`chosenSource`, `showSource`), then `Caption`, the boxes and the caption of the shown `post`; `show()` loads `posts` and `pictures` of every offered source (`sources`; `apod` decides them in APOD mode), `saved` per source; `onStop` recycles `pictures`, keeping `stoppedSizes` for the pages' height until `onResume`'s `load()` shows them again (`restore`; O12), drawn by `PicturePainter`, which skips a recycled one;
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture (its battery line `batteryLine()` by `phoneMaker`, O13; the buttons App info, `openBatteryOptimisation` and "Don't show again" in a `FlowRow`); the detector's `MissNotice` before it (O14: `missedAt`, `missedKeep`, `missDismissed` from `readStatus`; "Keep running" → `openKeepRunning`, Advanced open and the switch's `BringIntoViewRequester` once, `showKeepRunning`; with it on `stopLines()` by `phoneMaker`; `dismissMiss`);
   the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob(context)` (`DailyJob.ensure`: the alarms and the fallback) after its set, as Set's; Set's and the switch-on's runs go in the companion's process-wide `runs` scope with `setting`, `switching` and `switchRuns`, so a rotation or Back keeps their end, and `redrawAfterRun` goes to the page in `live` under the starter's `id`, kept by a rotation, B13; on while a load, Set or switch-on runs: owed in `switchRuns` (`core/.../SwitchRuns.kt`, `SwitchRunsTest`), run by `runNext` after it, as `loadAgain`, unless the switch-on run went on to set, `Updated.wentToSet`: B6); the draft (S4: `where`, `list`, `interval`, `videoDays`, `parts`, `draftFallback`,

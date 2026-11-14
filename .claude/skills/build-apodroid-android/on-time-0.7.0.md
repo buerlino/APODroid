@@ -406,7 +406,7 @@ Honor guide (MagicOS paths).
 ## Open
 
 - What puts an app on ZUI's whitelist, and whether a lock in Recents spares a cached app (O8).
-- Whether a sticky restart may go foreground on 15 and 16 (O7, O9).
+- Whether a sticky restart may go foreground on 16 (O9; yes on 15, O7 on the tablet).
 - Huawei's PowerGenie and Xiaomi without Autostart against a foreground service: no such device;
   dontkillmyapp says nothing. The detector's maker lines cover them.
 - Android 10–14 with Keep running and the expedited run (no device; E, the emulator, stays the
@@ -645,6 +645,30 @@ short, 1–4 and 8 first.
 - **Verdict:** PASS when 1, 2 and 7 hold (foreground from the page, listed in Active apps, alive
   after a swipe and 30 min); STOP otherwise (the user decides whether Keep running is worth it).
 - **Done when:** the steps ran, the report written, the probe uninstalled, the tablet set back.
+- **Result** (rosie, pipeline run 93, 2026-11-14, the tablet, Android 15; the full report and the
+  screenshots in `.coord/runs/093-o7/`): **PASS** (1, 2 and 7 hold).
+  1. `startForeground ok`, `isForeground=true`, type `0x40000000`; oom adj 50 just after the
+     start, 200 in the background. ZUI lists it in Quick Settings' Active apps (a round count
+     button in QS's top row, not a footer) with Stop. The shade with the permission **not run**:
+     the probe doesn't declare `POST_NOTIFICATIONS`, so `pm grant` does nothing.
+  2. A Recents swipe: `onTaskRemoved`, the same pid, still foreground.
+  3. `kill -9`: back within about 1 s as a sticky restart (null intent) and foreground again
+     (the Open below: yes on 15).
+  4. Task Manager's Stop (`stop-app`): process and service gone, not in the stopped state, the
+     alarms kept and fired (job `http=200`), the service not back by itself; exit
+     `USER_REQUESTED` "[STOP APP]", `wasForceStopped=false`. A force stop: the alarms gone (the
+     sentinel too), exit `USER_REQUESTED` "[FORCE STOP]", `wasForceStopped=true` (for O14).
+  5. Optimized, from the alarm's receiver and the job: refused
+     (`ForegroundServiceStartNotAllowedException`); from `MY_PACKAGE_REPLACED`: allowed and
+     foreground. Not run: Unrestricted, `BOOT_COMPLETED`.
+  6. Not run as written; bucket ACTIVE before and after 30 min with the service; in deep Doze the
+     pair's alarm was held until the screen woke (10.8 min late) despite the service.
+  7. 30 min on battery, screen off, deep Doze (IDLE): the same pid, still foreground.
+  8. The real app (dev's debug build, both switches on): the page used then Home 134.4 MB PSS
+     (Native Heap 32.0, Graphics 27.5), after Back 105.2 MB (Native Heap 30.7, Graphics 0), a bare
+     job process 53.7 MB (Native Heap 2.4); the probe with Keep 48.4 MB. Home − Back 29.2 MB, so
+     **O12 doesn't run by the rule**; but the native heap shows the decoded pictures stay after
+     Back (about 51 MB above a bare process): the user decides.
 
 ### [ ] O8. Android check: ZUI's cleaner against a foreground service (Opus, medium)
 

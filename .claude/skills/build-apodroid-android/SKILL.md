@@ -330,9 +330,11 @@ what it leaves open.
 - A reboot during a real run of days, a page open or pull that sets, the job on mobile data, a
   real APOD video day (W saw none of them, 27 Oct to 2 Nov).
 - A download that isn't a picture (`badUrl`, WP7c's made-up feed): not rerun since 0.5.0.
-- The darkening (BR2, built 2026-11-14 by reading, no device yet): `decodeFrame`'s crop on an
-  EXIF photo (upright coordinates by AOSP's reading, Android 10's codec unchecked), a wide
-  panorama's frame, the wallpaper colours from a darkened set, and the FP6.
+- The darkening (BR2, 2026-11-14; the tablet, Android 15, pipeline run 92: Fill at the middle and
+  at ⛶'s part, the whole picture on blur, an EXIF-6 "my picture" upright, the switch off, by
+  `debug-set.png`'s pixels, synthetic pictures only): Android 10–14's codec on an EXIF crop, a
+  real wide panorama's frame, the lock screen by eye, the wallpaper colours from a darkened set,
+  screen readers' "not set yet", and the FP6.
 
 **The update from 0.5.0:**
 - The migration race (the page and the job at once) with "Where" Home or Both (V4: Lock only).

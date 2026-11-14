@@ -110,15 +110,15 @@ class DetectorTest {
 
 
     @Test fun missedTodayHasNoDate() =
-        assertEquals("06:00", missedWhen(at("2026-11-16T06:00:00"), at("2026-11-16T20:00:00"), zurich, "06:00"))
+        assertEquals("06:00 change", missedWhen(at("2026-11-16T06:00:00"), at("2026-11-16T20:00:00"), zurich, "06:00"))
 
     @Test fun missedYesterdayNamesTheDay() =
-        assertEquals("06:00 on 16 Nov", missedWhen(at("2026-11-16T06:00:00"), at("2026-11-17T09:00:00"), zurich, "06:00"))
+        assertEquals("06:00 change on 16 Nov", missedWhen(at("2026-11-16T06:00:00"), at("2026-11-17T09:00:00"), zurich, "06:00"))
 
     @Test fun acrossMidnightInTheZone() {
         // 23:30 UTC on the 16th is 00:30 on the 17th in Zurich: today's when now is the 17th there
         val missed = Instant.parse("2026-11-16T23:30:00Z")
-        assertEquals("12:30 AM", missedWhen(missed, at("2026-11-17T08:00:00"), zurich, "12:30 AM"))
-        assertEquals("12:30 AM on 17 Nov", missedWhen(missed, at("2026-11-18T08:00:00"), zurich, "12:30 AM"))
+        assertEquals("12:30 AM change", missedWhen(missed, at("2026-11-17T08:00:00"), zurich, "12:30 AM"))
+        assertEquals("12:30 AM change on 17 Nov", missedWhen(missed, at("2026-11-18T08:00:00"), zurich, "12:30 AM"))
     }
 }

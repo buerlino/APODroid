@@ -2303,13 +2303,13 @@ class MainActivity : ComponentActivity() {
             NoticeBox({
                 TextButton(onClick = ::openKeepRunning) { Text("Keep running") }
                 TextButton(onClick = ::dismissMiss) { Text("Dismiss") }
-            }) { Text("Your phone stopped APODroid: the $time change came late.", style = MaterialTheme.typography.bodyMedium) }
+            }) { Text("Your phone stopped APODroid: the $time came late.", style = MaterialTheme.typography.bodyMedium) }
         } else {
             NoticeBox({
                 TextButton(onClick = ::openAppInfo) { Text("App info") }
                 TextButton(onClick = ::dismissMiss) { Text("Dismiss") }
             }) {
-                Text("Your phone still stops APODroid: the $time change came late.", style = MaterialTheme.typography.bodyMedium)
+                Text("Your phone still stops APODroid: the $time came late.", style = MaterialTheme.typography.bodyMedium)
                 stopLines().forEach {
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

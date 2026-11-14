@@ -40,6 +40,7 @@ import io.github.buerlino.apodroid.core.Stored
 import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
 import io.github.buerlino.apodroid.core.apodColumns
+import io.github.buerlino.apodroid.core.columnsInOneOrder
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.darkening
 import io.github.buerlino.apodroid.core.download
@@ -49,6 +50,7 @@ import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.nextAlarm as coreNextAlarm
 import io.github.buerlino.apodroid.core.randomOffset
 import io.github.buerlino.apodroid.core.retryAfter
+import io.github.buerlino.apodroid.core.orderAlone
 import io.github.buerlino.apodroid.core.orderOf
 import io.github.buerlino.apodroid.core.originalUrl
 import io.github.buerlino.apodroid.core.pictureAtOrDefault
@@ -124,8 +126,11 @@ data class Setup(
     val pictureTime: PictureTime
         get() = PictureTime(pictureAt, interval.hours)
 
-    /** The same setup with each list column in one order, for comparing ([Store.saveSetup]'s "the order alone"). */
-    fun normalized(): Setup = copy(list = Screen.entries.associateWith { screen -> Source.entries.filter { it in list[screen].orEmpty() } })
+    /** The same setup with each list column in one order, for comparing ([orderAlone]). */
+    fun normalized(): Setup = copy(list = columnsInOneOrder(list))
+
+    /** Whether this setup differs from [was] in the list's order alone ([Store.saveSetup]'s "the order alone"; `:core`'s [orderAlone]). */
+    fun onlyOrderDiffers(was: Setup): Boolean = orderAlone(was, this, Setup::order, { setup, order -> setup.copy(order = order) }, Setup::normalized)
 }
 
 /**
@@ -336,7 +341,7 @@ class Store(private val context: Context) {
         val anchor = orderFrom
         val newOrder = setup.allSources && (order != was.order || anchor == null)
         val from = if (newOrder) setup.pictureTime.anchorDate(now, zone) else anchor
-        val orderOnly = !pick && order != was.order && setup.copy(order = order).normalized() == was.normalized()
+        val orderOnly = !pick && setup.copy(order = order).onlyOrderDiffers(was)
         // The new setup's stand-in, not the stored one (RO2's fix round): else a Set that changed
         // "If APOD is a video" picked each screen's owner by the old choice ("Skip it" passed APOD's
         // turn to NASA, so Earth went on only at the second Set).

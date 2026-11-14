@@ -1057,7 +1057,7 @@ stored one, or none stored: `orderFrom` becomes the local date of the next "New 
 after the Set (`PictureTime.anchorDate`, the saved setup's hour), so the top comes at the next
 "New picture at" and the change times before it go on, phased to it. **Before A** a Set and the
 daily switch on keep what's on (`keepUntilAnchor`): a Set of the order alone (`saveSetup`'s
-`orderOnly`: the whole `Setup` equal but the order, the parts included, the list's columns
+`orderOnly`, `:core`'s `orderAlone`: the whole `Setup` equal but the order, the parts included, the list's columns
 compared as sets, no newly picked "my picture") keeps each record with the current change time
 as its stamp and sets nothing ("Setup saved. Nothing to set yet."); anything else (other
 changes too, a Set that changed nothing, the switch on) keeps each screen's owner and sets its

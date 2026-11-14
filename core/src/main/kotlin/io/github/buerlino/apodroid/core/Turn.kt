@@ -41,3 +41,17 @@ fun orderOf(pref: String?): List<Source> {
     val named = pref.orEmpty().split(',').mapNotNull { name -> Source.entries.firstOrNull { it.name == name.trim() } }.distinct()
     return named + Source.entries.filter { it !in named }
 }
+
+/** The list's [columns] with each in the default order (APOD → NASA → Earth), so two lists compare as sets. */
+fun columnsInOneOrder(columns: Map<Screen, List<Source>>): Map<Screen, List<Source>> =
+    Screen.entries.associateWith { screen -> Source.entries.filter { it in columns[screen].orEmpty() } }
+
+/**
+ * Whether [now] differs from [was] in the list's order alone (OR2, `Store.saveSetup`'s
+ * `orderOnly`): the orders ([order]) differ, and [now] with [was]'s order put in ([withOrder])
+ * equals [was] once both are [normalized] (the list's columns as sets). Any other change, ⛶'s parts
+ * included, makes it false. Generic, so the app's `Setup` (an Android-free data class) is compared
+ * here without `:core` knowing it.
+ */
+fun <S> orderAlone(was: S, now: S, order: (S) -> List<Source>, withOrder: (S, List<Source>) -> S, normalized: (S) -> S): Boolean =
+    order(now) != order(was) && normalized(withOrder(now, order(was))) == normalized(was)

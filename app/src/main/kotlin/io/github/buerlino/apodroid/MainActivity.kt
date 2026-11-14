@@ -201,7 +201,6 @@ class MainActivity : ComponentActivity() {
 
     /** On an APOD video day: the stand-in is stored ([Store.sourcePicture] of APOD), for the video notice. */
     private var standInReady by mutableStateOf(false)
-    private var standInSkipped by mutableStateOf(false)
 
     /** The offered sources whose stored post ★ saved ([Store.isSaved]). */
     private var saved by mutableStateOf(emptySet<Source>())
@@ -596,7 +595,6 @@ class MainActivity : ComponentActivity() {
         pageScreen = store.pageScreen
         screens = Screen.entries.associateWith(store::screenState)
         standInReady = apod?.isVideo == true && store.sourcePicture(Source.APOD) != null
-        standInSkipped = apod?.isVideo == true && store.standInSkipped
         readProblem()
     }
 
@@ -1469,8 +1467,8 @@ class MainActivity : ComponentActivity() {
      * Says what a video day does to the wallpaper, short (U0, 2026-11-02), by the stored settings:
      * what takes APOD's place ("…: NASA's Image of the Day instead." once its picture is stored,
      * B17), with the switch on also with turns; with APOD ticked nowhere only that it's a video.
-     * A stand-in every screen with APOD has shown already (B22): "Skip it"'s first part. Where to
-     * change it ("Change: Setup › If APOD is a video") only when nothing takes APOD's place.
+     * The stand-in says "instead" also when the screen has shown it before (RO2: it may repeat).
+     * Where to change it ("Change: Setup › If APOD is a video") only when nothing takes APOD's place.
      */
     @Composable
     private fun VideoNotice() {
@@ -1486,8 +1484,6 @@ class MainActivity : ComponentActivity() {
             !daily || (stored.allSources && !apodTicked) -> "$video."
             // B15: "instead", not "is the wallpaper": the wallpaper changes at the next check or change time.
             // B17: by the stand-in's stored picture, not by what the screen shows yet.
-            // B22: shown on the screen before, it doesn't go on again: the wallpaper stays.
-            other != null && standInSkipped -> "$skipped."
             other != null && standInReady -> "$video: ${other.possessive} instead."
             other != null -> "$video: ${other.possessive} instead, once loaded."
             mine && hasFallback -> "$video: your picture instead."
@@ -1614,7 +1610,7 @@ class MainActivity : ComponentActivity() {
                 // Hiding it moves the page only after a tick.
                 if (allSources && showsInterval) {
                     val changed = interval != stored.interval
-                    Heading("Change every", changed)
+                    ChangeEveryHeading(changed)
                     Segments(Interval.entries.map { it to it.label }, interval, changed) { interval = it }
                 }
                 if (daily) {
@@ -1674,6 +1670,35 @@ class MainActivity : ComponentActivity() {
         val changed = pictureAt != stored.pictureAt
         Heading("New picture at", changed)
         Dropdown("New picture at", pictureHours, pictureAt, ::hourLabel, changed = changed) { pictureAt = it }
+    }
+
+    /**
+     * "Change every" with a small ⓘ beside it (RO2, the user's Open 3, 2026-11-14: the rotation's
+     * effect is what confused), whose dialog says it in one sentence with the draft's values.
+     */
+    @Composable
+    private fun ChangeEveryHeading(changed: Boolean) {
+        var info by rememberSaveable { mutableStateOf(false) }
+        Row(verticalAlignment = Alignment.Bottom) {
+            Heading("Change every", changed)
+            Text(
+                "ⓘ",
+                Modifier
+                    .clickable(role = Role.Button, onClick = { info = true })
+                    .padding(horizontal = 8.dp)
+                    .clearAndSetSemantics { contentDescription = "About Change every" },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (info) {
+            AlertDialog(
+                onDismissRequest = { info = false },
+                confirmButton = { TextButton(onClick = { info = false }) { Text("OK") } },
+                text = {
+                    Text("Every ${interval.label} from ${hourLabel(pictureAt)}, each screen switches to its next source's newest picture.")
+                },
+            )
+        }
     }
 
     /** An hour as the system's clock shows it: "06:00" or "6:00 AM". */

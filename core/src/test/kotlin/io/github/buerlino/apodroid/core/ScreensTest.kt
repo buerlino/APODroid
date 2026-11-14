@@ -702,6 +702,27 @@ class ScreensTest {
         assertEquals(NASA, set(cols(all, emptyList()), cols(all, emptyList()), late, t0 + h3 + h1).plan.screens.getValue(HOME).record.owner)
     }
 
+    /**
+     * RO2's fix round (the tablet, 2026-11-14): a Set that changes "If APOD is a video" from
+     * "Skip it" to Earth on APOD's video day, at APOD's turn. [restartAndForget] picks the owner by
+     * the stand-in of the [Stored] it's given, so `Store.saveSetup` gives it the new setup's: with
+     * the stored "Skip it" the turn passed to NASA again and NASA's picture went on, Earth's only
+     * at the second Set.
+     */
+    @Test
+    fun setWithANewStandInPicksTheOwnerByTheNewChoice() {
+        val video = posts + (APOD to post(APOD, video = true))
+        val records = mapOf(HOME to Record(NASA, pic(NASA), t0, shown(pic(NASA))))
+        val columns = cols(all, emptyList())
+        val skip = set(columns, columns, records, t0 + h1, stored(video, StandIn.SKIP))
+        assertEquals(NASA, skip.plan.screens.getValue(HOME).record.owner)
+        val earth = stored(video, StandIn.EARTH)
+        val restart = set(columns, columns, records, t0 + h1, earth)
+        assertEquals(APOD, restart.plan.screens.getValue(HOME).record.owner)
+        val plan = due(columns, apply(records, restart.plan), earth, now = t0 + h1)
+        assertEquals(listOf(pic(EARTH) to setOf(HOME)), plan.sets)
+    }
+
     @Test
     fun setPutsTheSamePictureOnAgainSoAChangedWholePictureOrOwnPictureShows() {
         val record = Record(APOD, pic(APOD), t0, shown(pic(APOD)))
@@ -875,38 +896,6 @@ class ScreensTest {
         assertEquals(listOf(pic(NASA) to setOf(HOME)), due(columns, apodOn, video, now = t0 + h1).sets)
     }
 
-
-    // The page's video notice: the stand-in skipped (B22)
-
-    @Test
-    fun aStandInShownBeforeAndNotOnIsSkipped() {
-        val video = stored(videoDay, StandIn.NASA)
-        val notes = shown(pic(APOD), pic(NASA))
-        assertTrue(standInSkipped(listOf(APOD), Record(APOD, pic(APOD), t0, notes), video))
-        // With turns, the turn passed on to Earth.
-        assertTrue(standInSkipped(listOf(APOD, EARTH), Record(EARTH, pic(EARTH), t0, notes + shown(pic(EARTH))), video))
-    }
-
-    @Test
-    fun aStandInOnOrNotShownIsNotSkipped() {
-        val video = stored(videoDay, StandIn.NASA)
-        val notes = shown(pic(APOD), pic(NASA))
-        // Not shown yet: it takes APOD's place at the next run.
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, pic(APOD), t0, shown(pic(APOD))), video))
-        // On the screen now.
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, pic(NASA), t0, notes), video))
-        // It filled APOD's turn this video day and the turn moved on since.
-        val filled = notes + shown(post(APOD, d2, video = true).picture(), pic(EARTH))
-        assertFalse(standInSkipped(listOf(APOD, EARTH), Record(EARTH, pic(EARTH), t0 + h3, filled), video))
-        // Forgotten by Set, or no record: the next run puts it on.
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, null, t0, notes), video))
-        assertFalse(standInSkipped(listOf(APOD), null, video))
-        // APOD not ticked there, an image day, "Skip it", the user's own picture.
-        assertFalse(standInSkipped(listOf(EARTH), Record(EARTH, pic(EARTH), t0, notes), video))
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, pic(APOD), t0, notes), stored(standIn = StandIn.NASA)))
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, pic(APOD), t0, notes), stored(videoDay, StandIn.SKIP)))
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, pic(APOD), t0, notes), stored(videoDay, StandIn.OWN)))
-    }
 
     // The page's "video day, wallpaper kept"
 

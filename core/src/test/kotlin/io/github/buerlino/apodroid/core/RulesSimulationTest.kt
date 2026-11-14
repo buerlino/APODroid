@@ -585,8 +585,10 @@ private class SimPhone(val seed: Int) : Phone(
     private fun tapSet(now: Instant) {
         val new = if (r.nextBoolean()) drawSetup(r).let { if (r.nextBoolean()) it.copy(columns = columns, allSources = allSources) else it } else setup
         note(now, "Set: $new")
-        val restart = restartAndForget(columns, new.columns, records, stored(now), new.time, zone, now)
+        val before = columns
         apply(new)
+        // The new setup's stand-in, as Store.saveSetup (RO2's fix round): not the one before it.
+        val restart = restartAndForget(before, new.columns, records, stored(now), new.time, zone, now)
         records = records + restart.plan.screens.mapValues { it.value.record } - restart.drop
         update(now, Kind.SET, force = false, page = true, set = true)
         if (daily) arm(now) else alarm = null.also { alarmFires = null; runPending = null }

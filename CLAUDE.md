@@ -419,7 +419,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
     (comma lists, `Store.list`; `Store.columns` is the list with the switch on, else APOD on the
     screens "Where" names, `apodColumns`). With a column of two or more, while the daily switch
     is on, **Change every** [24 h | 12 h | 6 h | 3 h] (`Store.interval`, the pref `interval`,
-    default `DAY`, 24 h) below the list; hiding it moves the page only after a tick. While the
+    default `DAY`, 24 h) below the list, with an ⓘ ("About Change every", RO2, 2026-11-14; the
+    user's Open 3: the rotation is what confused) whose dialog says "Every 6 h from 06:00, each
+    screen switches to its next source's newest picture." with the draft's values (a placeholder
+    until the user approves it); hiding it moves the page only after a tick. While the
     daily switch is off "Where" or the list still shows, so a one-off Set uses settings the user
     can see.
   - **Weekday dialog** (user, 2026-10-17): ticking NASA or Earth where it wasn't ticked on
@@ -451,7 +454,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice and the ⓘ (Save every picture, Save).
+    update), the video-day notice and the ⓘs (Save every picture, Save; Change every, RO2).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. A neutral box below the
   tile (`surfaceVariant` fill, `outline` border) says what the video day does to the wallpaper;
@@ -465,10 +468,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   Change: Setup › If APOD is a video" with the switch on; "Use my picture" without one "…:
   wallpaper unchanged (no picture chosen). Change: …" (with the switch on "…: skipped (no
   picture chosen). …"); with the daily switch off, or APOD ticked nowhere, only "This APOD is a
-  video.". A stand-in that every screen with APOD ticked has shown before and doesn't show now
-  (B22, `:core`'s `standInSkipped`, `Store.standInSkipped`; not when it filled APOD's turn there
-  this video day and the turn moved on) gets "Skip it"'s first part, without the pointer: "This
-  APOD is a video: wallpaper unchanged." in APOD mode, "…: skipped." with the switch on.
+  video.". A stand-in says "instead" also when the screen has shown it before (RO2, 2026-11-14:
+  it may repeat since RO1; B22's "wallpaper unchanged."/"skipped." for it and `standInSkipped`
+  went).
   "Instead" (was "takes its place"), not "is the wallpaper" (user, 2026-10-24): the wallpaper
   changes at the next check or change time, e.g. all evening after a 21:05 video in Los
   Angeles. "Dismiss" hides it for that date (`videoNoticeDate`), "Don't show again" for good
@@ -548,8 +550,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   " · My picture" for the user's own, in both modes; or "Video day, previous kept" (the user's
   words; `:core`'s
   `videoDayKept`: APOD ticked there, its turn, and nothing will take APOD's place there (B23,
-  user, 2026-10-26): "Skip it", "Use my picture" without one, or the stand-in shown there before
-  and not on it now (B22's check); a stand-in that will go on, stored and not set yet (until the
+  user, 2026-10-26): "Skip it" or "Use my picture" without one (B22's "the stand-in shown there
+  before" went with RO1: it goes on again); a stand-in that will go on, stored and not set yet (until the
   next check or change time) or still loading, isn't "kept": the line stays the screen's last
   change, or none before the first set; with turns "Skip it" passes
   the turn, so nothing is kept; a record without a picture, as Set leaves it, counts when the
@@ -902,7 +904,7 @@ to the day before), plus the days since 1970-01-01 × the change times a day; co
 times have consecutive numbers, also over DST days. Each screen's record notes the change time
 it belongs to (`wallpaperStamp`), whose turn it is (`wallpaperSource`) and, per source, the last
 post it showed (date and picture URL, `shownDate`/`shownUrl`, `lock.` for the lock screen; since
-RO1 the rules don't read the notes, only the page's video notice until RO2). **The rules**
+RO1 the rules don't read the notes, and since RO2 nothing does: still written, no migration). **The rules**
 (`dueWallpapers`, every run, page or job):
 1. **A change time since the record's stamp:** with one source the screen takes the change
    time and is due its newest picture by rule 2's publish time (no set when it's on already);
@@ -967,7 +969,7 @@ unticked source's picture never goes on). **Set** (`restartAndForget`, then `set
 the screens with a column are forgotten (the picture
 dropped, so it goes on again with the new setup, a changed whole picture or "my picture" too); each
 screen goes to the current change time's turn by the clock in its new column (RO1; the next with
-a picture when that source has none), so a Set never shifts the rotation, and takes the current
+a picture when that source has none, by the new setup's "If APOD is a video": RO2's fix round), so a Set never shifts the rotation, and takes the current
 change time as its stamp, so the next run doesn't move it on and the next change comes at the
 next change time. The notes
 stay; the change times don't move. Turning the daily switch on (`Store.startAfresh`) does
@@ -1309,7 +1311,9 @@ the user expected APOD ("this is very confusing"), and it took the phone's histo
 Repeats accepted (today's APOD twice a day with 6 h, Friday's NASA and Earth at their weekend
 turns). Decided (user, 2026-11-14): the turn's source by the clock (Open 1 (b)), B22's
 stand-in not twice goes (Open 2), an ⓘ for "Change every" (Open 3, RO2). `:core`'s rules are
-the rotation since RO1 (2026-11-14; Background update, Turns); the page's texts follow in RO2.
+the rotation since RO1 (2026-11-14; Background update, Turns). **Built** (RO1 and RO2,
+2026-11-14): the page's video notice lost B22's "skipped" for a stand-in shown before, and
+"Change every" has its ⓘ (The app, Settings); RO3, the tablet's faked day, checks it.
 
 **0.7.0: as soon as it's out** (user, 2026-11-13; the FP6's day, the draft rules, the questions
 and the packages SO1–SO3 in [soon-0.7.0.md](.claude/skills/build-apodroid-android/soon-0.7.0.md)).

@@ -38,12 +38,16 @@ packages unattended): `night.md`.
   `core/.../Maker.kt` (O13): `Maker` and `maker(manufacturer)`, the maker family from
   `Build.MANUFACTURER` (sub-brands, any case; else `STOCK`), for the pause hint's battery line and
   the detector (O14) (tests in `MakerTest`).
-  `core/.../Turn.kt`: `nextSource` (the next ticked source in order for which a test holds;
-  tests in `TurnTest`; the Set clock, `isTurnOver` and `turnSlack`, went in J1).
+  `core/.../Turn.kt`: `nextSource(ticked, after, hasPicture, order)` (the next ticked source in
+  the list's order for which a test holds, from `after`'s place, ticked or not), `Rotation(order,
+  from)` (OR1: the list's order and the anchor's date, `orderFrom`; `ordered(column)`; the
+  defaults are RO1's) and `orderOf(pref)` (the pref `order` read tolerantly) (tests in `TurnTest`;
+  the Set clock, `isTurnOver` and `turnSlack`, went in J1).
   `core/.../PictureTime.kt` (0.6.0, J1): `DEFAULT_PICTURE_AT` (6), `pictureHours` (0..23) and
   `pictureAtOrDefault` (O1), `PictureTime(pictureAt, everyHours)` with `hours`,
   `last`, `next`, `isChangeTime` (the change times in a zone, on the clock's hours through DST),
   `turn(now, zone)` (RO1: the current change time's number with turns, consecutive through DST; a column's turn is it mod its sources),
+  `turn(date)` (OR1: N(A), the anchor date's first change time's number), `at(date, zone)` (A's instant) and `anchorDate(now, zone)` (a Set of a new order's `orderFrom`: the date of the next "New picture at"),
   `pictureWindow` (3 h), `checkGap` (24 h) and `afterGap(lastCheck, now)` (a new post stored after more than a day without a successful check, B21), `firstCheck` (15 min), `nextRun(now, zone, time, turns,
   offset, lastRun, allDay)` (when the clock's next check comes; at `now` for a check passed since
   `lastRun`, B16; `allDay`, default off, "As soon as it's out" (SO1): the checks hourly to the next change time), `nextAlarm(now, zone, failures, time, turns, offset, lastRun, allDay)` (the alarms, armed at any time: `nextRun`, or with `failures` the earlier of it and `lastRun` + `retryAfter(failures)`, at the earliest now; a run counts as failed from its start, so a run going or killed keeps its retry, O4b, B16f1, B19), `retryAfter(failures)` (15 min after the first failed run's start, an hour after more; 15 min with none), `randomOffset` and `maxOffset`
@@ -55,11 +59,13 @@ packages unattended): `night.md`.
   `picture(source)`, `publishedBefore(source, limit, orAfterGap)`, B15, B21), `Record` (owner, picture, stamp: the change time,
   `shown`: the last post shown per source; `forget()`), and the pure functions returning a
   `Plan` (records, `sets` grouped by picture): `dueWallpapers(columns, records, stored, time,
-  zone, now, pull, soon)` (each run, the rules; turns a plain rotation by the clock since RO1; equal columns: the lock screen follows home's
+  zone, now, pull, soon, rotation)` (each run, the rules; turns a plain rotation by the clock since RO1, in the list's order from the anchor since OR1, S[(N(c) − N(A)) mod n]; equal columns: the lock screen follows home's
   record and picture, B2; `soon`, default off, "As soon as it's out" (SO1): rule 2 without the window, the owner's newer picture whenever a run sees it; `Store.setDue` passes the stored `soon`, SO2),
-  `restartAndForget(before, after, records, stored, time, zone, now)` (S4, Set: the pictures of
+  `restartAndForget(before, after, records, stored, time, zone, now, rotation, orderOnly, daily)` (S4, Set and the switch on: the pictures of
   the screens with a column forgotten, each stamped with the current change time; a `Restart`
-  with the plan and the screens whose record to `drop`, a column that was empty), and
+  with the plan and the screens whose record to `drop`, a column that was empty; OR1, before the
+  anchor `keepUntilAnchor`: the record kept with `orderOnly`, else the owner kept and set again,
+  the top when keep can't hold or `daily` is off), and
   `videoDayKept` for the page's status line (B23: not while a stand-in will go on; `Stored.standsIn`) (tests in `ScreensTest`, with the FP6's days of 11 Nov and 13 Nov, the latter with `soon` on and off; B22's `standInShown` and `standInSkipped` went with RO2).
   The rules over random months (SIM, test code only): `RulesSimulationTest`, 240 seeded phones of
   60 days (seven zones, both DST changes, random setups, posts, runs, pulls, Sets, offline spans,
@@ -68,7 +74,7 @@ packages unattended): `night.md`.
   `CLAUDE.md`'s rules (3 and 5 the rotation's since RO1) checked around every set and arming (9, O4a: while the switch and the phone
   are on, an alarm is armed or id 2 is pending, after every event); a failure names the seed, the
   invariant and the day's runs and sets; a seed that finds a bug goes into `knownBugs` with an
-  `@Ignore`d test of its own. The same seeds again with "As soon as it's out" on (SO1, flipped now and then by a Set; invariant 10: the turn's source's newest after every run). The phone of `PictureTimeTest` and the simulation, with the posts'
+  `@Ignore`d test of its own. The same seeds again with "As soon as it's out" on (SO1, flipped now and then by a Set; invariant 10: the turn's source's newest after every run). Since OR1 a Set draws the list's order now and then (alone, with other changes, in APOD mode; `orderR`, apart from the other draws) and mirrors `Store.saveSetup`'s anchor; invariants 11 (the owner by the order and the anchor, was 5's), 12 (a Set of the order alone keeps every owner that can hold and sets only owners' pictures) and 13 (the anchor moves only at a Set with the list shown and a new order or none stored). The phone of `PictureTimeTest` and the simulation, with the posts'
   times (`apod`, `week`, …): `core/src/test/.../Phone.kt`.
   `core/.../Saving.kt` (0.6.0, F5): `sourcesInUse` (what the job fetches and saves) and
   `toSave` (Save every picture's choice; tests in `SavingTest`).

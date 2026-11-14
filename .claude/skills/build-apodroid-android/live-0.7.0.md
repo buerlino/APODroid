@@ -437,6 +437,12 @@ black or on the blurred background: A3's `whole()` today). Its three users:
   goes to the lock screen only when its picture differs from home's or it isn't shared; nothing
   is handed to the engine while home isn't live; a screen noted live that lost Live is due again
   in the same run, both screens when home lost it.
+- **Found by SIM in L6** (2026-11-14, built; `CLAUDE.md`, The app, Wallpaper: Live): a screen the
+  engine is on whose record isn't noted live is forgotten before the rules (`unnotedLive`: after
+  the picker a Set of the order alone, or one with nothing due, left the engine drawing its old
+  copy), and home's hand-over while the one engine covers a lock screen of another column not due
+  it forgets the lock screen and plans again (`lockFollowsHome`: else home's new picture showed
+  there too).
 
 ### The preview in ⛶ mode (L7)
 

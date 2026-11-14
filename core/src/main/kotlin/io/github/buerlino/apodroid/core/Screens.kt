@@ -241,7 +241,7 @@ fun dueWallpapers(
     val rules = Rules(stored, time, zone, now, soon, rotation)
     val due = mutableMapOf<Screen, Due>()
     val home = columns[Screen.HOME].orEmpty()
-    if (home.isNotEmpty() && home.toSet() == columns[Screen.LOCK].orEmpty().toSet()) {
+    if (equalColumns(columns)) {
         val lead = rules.dueOn(home, records[Screen.HOME] ?: rules.start(home), pull)
         due[Screen.HOME] = lead
         due[Screen.LOCK] = rules.show(lead.record.copy(picture = records[Screen.LOCK]?.picture), lead.record.picture)

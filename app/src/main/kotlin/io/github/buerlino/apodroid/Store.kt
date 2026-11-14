@@ -45,8 +45,11 @@ import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
 import io.github.buerlino.apodroid.core.Size as Sizing
 import io.github.buerlino.apodroid.core.livePosition
+import io.github.buerlino.apodroid.core.lockFollowsHome
 import io.github.buerlino.apodroid.core.lostLive
+import io.github.buerlino.apodroid.core.opensPicker
 import io.github.buerlino.apodroid.core.stillOrLive
+import io.github.buerlino.apodroid.core.unnotedLive
 import io.github.buerlino.apodroid.core.Lost
 import io.github.buerlino.apodroid.core.alarmsLost
 import io.github.buerlino.apodroid.core.missedChange
@@ -117,7 +120,9 @@ fun Map<Source, Part>.forPost(post: Post): Part? = this[post.source]?.takeIf { p
  * source goes on whenever a check sees it, with hourly checks all day); [darken] "Darken bright
  * pictures" (BR2: each set darkens a picture brighter than `:core`'s target, [Store.set]); [order]
  * the list's order (OR2: the turns' order, all three sources, the top first; saved only while
- * the list shows). Not the daily switch: it acts at once ([Store.switchDaily]).
+ * the list shows); [size] Size (L6: Fill, a still set as 0.6.0, or Live, home's picture drawn by
+ * APODroid's live wallpaper while Android's picker put it on home). Not the daily switch: it acts
+ * at once ([Store.switchDaily]).
  */
 data class Setup(
     val allSources: Boolean,
@@ -130,6 +135,7 @@ data class Setup(
     val soon: Boolean = false,
     val darken: Boolean = true,
     val order: List<Source> = Source.entries,
+    val size: Sizing = Sizing.FILL,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
     val columns: Map<Screen, List<Source>>
@@ -301,7 +307,7 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order)
+        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size)
 
     /**
      * The list's order (OR2, the pref `order`, a comma list of all three; read tolerantly by
@@ -372,6 +378,7 @@ class Store(private val context: Context) {
             putInt("pictureAt", setup.pictureAt)
             putBoolean("soon", setup.soon)
             putBoolean("darken", setup.darken)
+            putString("size", setup.size.name)
             if (setup.allSources) putString("order", order.joinToString(",") { it.name })
             if (newOrder) putString("orderFrom", from.toString())
             putString("videoDays", setup.videoDays.name)
@@ -1038,8 +1045,28 @@ class Store(private val context: Context) {
         if (lost.forget.isNotEmpty()) {
             Log.i("APODroid", "Live: ${if (Screen.HOME in lost.forget) "home isn't live" else "the lock screen isn't live"}, Fill on ${lost.forget.joinToString("+")}")
         }
-        val records = lost.forgetting(records())
-        val plan = lost.onPlan(dueWallpapers(columns, records, stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation), records)
+        // L6: a screen the engine is on whose record isn't noted live (just picked in Set's picker,
+        // or Android's by hand) is forgotten too, so this run hands it over (`:core`'s unnotedLive).
+        val unnotedLive = unnotedLive(
+            setup.size, live.home, live.shared,
+            homeNoted = prefs.getBoolean(Screen.HOME.key("wallpaperLive"), false),
+            lockNoted = prefs.getBoolean(Screen.LOCK.key("wallpaperLive"), false),
+            columns = columns,
+        )
+        if (unnotedLive.isNotEmpty()) Log.i("APODroid", "Live: the engine is on ${unnotedLive.joinToString("+")}, not noted live")
+        var records = lost.forgetting(records()).mapValues { (screen, record) -> if (screen in unnotedLive) record.forget() else record }
+        val homeColumn = columns[Screen.HOME].orEmpty().isNotEmpty()
+        fun plan() = lost.onPlan(dueWallpapers(columns, records, stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation), records)
+        fun split(plan: Plan) = stillOrLive(setup.size, live.home, live.shared, homeColumn, plan.screens[Screen.HOME]?.record?.picture ?: records[Screen.HOME]?.picture, plan.sets)
+        var plan = plan()
+        // L6: home's hand-over would show its new picture on a lock screen the engine covers that
+        // isn't due it: the lock screen forgotten and planned again (`:core`'s lockFollowsHome).
+        val lock = records[Screen.LOCK]
+        if (lock != null && lockFollowsHome(split(plan), live.shared, columns[Screen.LOCK].orEmpty().isNotEmpty())) {
+            Log.i("APODroid", "Live: home's new picture would show on the lock screen, its own again")
+            records = records + (Screen.LOCK to lock.forget())
+            plan = plan()
+        }
         val unset = plan.screens.filterValues { !it.set }
         // A forgotten screen the rules leave out (no column) keeps its record, but not the live note.
         val unnoted = lost.forget - plan.screens.keys
@@ -1049,11 +1076,10 @@ class Store(private val context: Context) {
                 unnoted.forEach { remove(it.key("wallpaperLive")) }
             }
         }
-        // Size Live (L5: on while the picker put APODroid's engine on home): home's set goes to the
-        // engine, the lock screen's too while shared and due home's picture, else still (`:core`'s
+        // Size Live while the picker put APODroid's engine on home: home's set goes to the engine,
+        // the lock screen's too while shared and due home's picture, else still (`:core`'s
         // stillOrLive), the lock screen's still set first.
-        val homePicture = plan.screens[Screen.HOME]?.record?.picture ?: records[Screen.HOME]?.picture
-        val split = stillOrLive(size, live.home, live.shared, columns[Screen.HOME].orEmpty().isNotEmpty(), homePicture, plan.sets)
+        val split = split(plan)
         val steps = split.still.map { it to false } + listOfNotNull(split.engine?.let { it to true })
         val done = mutableListOf<String>()
         val shown = mutableListOf<String>()
@@ -1180,12 +1206,50 @@ class Store(private val context: Context) {
     // wallpaper (LiveWallpaper.kt) draws home's picture from its own copy; the rules decide it.
 
     /**
-     * Size in Setup ([Sizing], `:core`'s FILL or LIVE). Until L6 adds the setting it's Live: a
-     * still set as 0.6.0 while home isn't live ([liveOn]), the engine while Android's picker put
-     * APODroid's live wallpaper on home.
+     * Size in Setup (L6, the pref `size`, [Sizing]'s FILL or LIVE; default Fill, so an update
+     * from 0.6.0 changes nothing): Fill sets every picture still (`:core`'s [stillOrLive]; a
+     * still set replaces APODroid's live wallpaper like any other), Live hands home's picture to
+     * the engine while Android's picker put it on home ([liveOn]), else still as Fill.
      */
-    private val size: Sizing
-        get() = Sizing.LIVE
+    val size: Sizing
+        get() = prefs.getString("size", null)?.let { name -> Sizing.entries.firstOrNull { it.name == name } } ?: Sizing.FILL
+
+    /**
+     * After [saveSetup]: whether Set opens Android's live wallpaper picker (`:core`'s
+     * [opensPicker]): Size Live and home with a column not live, or (14+) this Set made the
+     * stored columns, [before] it different, equal while the engine doesn't cover the lock screen.
+     */
+    fun opensPicker(before: Map<Screen, List<Source>>): Boolean {
+        val live = liveState()
+        return opensPicker(size, before, columns, live.home, live.shared, lockShares = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    }
+
+    /**
+     * The status line "Live isn't on" (L6): Size Live and home with a column, and APODroid's
+     * live wallpaper not on home (never picked, backed out of the picker, another wallpaper
+     * picked, a force stop, Android's revert). The page shows it while the daily switch is on.
+     */
+    val liveMissing: Boolean
+        get() = size == Sizing.LIVE && columns[Screen.HOME].orEmpty().isNotEmpty() && !liveOn(Screen.HOME)
+
+    /** Both screens' wallpaper ids (`getWallpaperId`, no permission; any set or clear changes one), noted before Set opens the picker ([awaitLive]). */
+    fun wallpaperIds(): List<Int> {
+        val manager = WallpaperManager.getInstance(context)
+        return listOf(WallpaperManager.FLAG_SYSTEM, WallpaperManager.FLAG_LOCK).map { runCatching { manager.getWallpaperId(it) }.getOrDefault(-2) }
+    }
+
+    /**
+     * Blocking. Back from the picker: when a wallpaper id changed since [before] ([wallpaperIds]),
+     * waits up to 3 s for [liveOn] home (below 14 the engine notes its id asynchronously, at its
+     * start), so Set's update doesn't set a still picture over the live wallpaper just picked.
+     * An id that didn't change (a back-out) waits for nothing; not live by then: Fill.
+     */
+    fun awaitLive(before: List<Int>) {
+        val changed = wallpaperIds() != before
+        val until = SystemClock.elapsedRealtime() + 3000
+        while (changed && !liveOn(Screen.HOME) && SystemClock.elapsedRealtime() < until) Thread.sleep(100)
+        Log.i("APODroid", "Live: back from the picker, ${if (changed) "a wallpaper changed" else "nothing changed"}, home ${if (liveOn(Screen.HOME)) "live" else "not live"}${if (liveShared) ", shared" else ""}")
+    }
 
     /** Live's copy of home's picture, the only picture the engine draws (not the source's file, which changes with every stored post). */
     val liveFile = File(context.filesDir, "live.jpg")

@@ -297,9 +297,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
   home screen" or "… · lock screen" while only one has any, else "Home: APOD, Earth · Lock:
   NASA, Earth" (the sources in the list's order, OR2: "NASA, APOD · both screens"); then, while
   the daily switch is on, " · every 6 h from 06:00" while a screen
-  takes turns, else " · 06:00", 12/24 h as the system says. At its top the switch **More NASA pictures**
+  takes turns, else " · 06:00", 12/24 h as the system says; then " · Live" with Size Live (L6).
+  At its top the switch **More NASA pictures**
   (Setup is the draft, Advanced acts at once), then in APOD mode **Where**, with the switch on
-  **Pictures from** (the list); while the daily switch is on **New picture at**, "As soon as
+  **Pictures from** (the list); then, always, **Size**; while the daily switch is on **New picture at**, "As soon as
   it's out" under it, then, while a column takes turns, "Change every", and "If APOD is a video";
   then, always, "Darken bright pictures". Closed at a fresh start; it
   opens by itself while the draft differs from the store in it, when "More NASA pictures" is
@@ -332,7 +333,21 @@ set it as wallpaper, and on video days kept the old wallpaper.
     out" (the highlight, the saved state), but shown also while the daily switch is off (night
     default: a one-off Set darkens too, so the page shows what it uses; never hidden, so never
     put back). Set sets each screen afresh, so a change shows at once. Setup's summary doesn't
-    name it (as "As soon as it's out"). Before L6's Size row; L6 puts Size before it.
+    name it (as "As soon as it's out"). After Size (L6's row stands after "Where" or the list).
+  - **Size** (L6, 2026-11-14; `live-0.7.0.md`, "Store, Size and Set"; the heading "Size" and
+    the segments "Fill" and "Live" placeholders until the user approves them from the tablet's
+    screenshots): a segmented row [Fill | Live] after "Where" or the list, always shown (never
+    put back), the pref `size` (`FILL`, `LIVE`; default Fill, so an update from 0.6.0 changes
+    nothing, no migration). Part of the draft (`Setup.size`, `saveSetup`, the saved state, the
+    highlight, "Selected, not set yet"); a changed Size is another change for "the order alone"
+    (OR2). Fill: every set still (Wallpaper), a still set replacing APODroid's live wallpaper
+    like any other. Live: home's picture goes to the engine while Android's picker put it on
+    home (Wallpaper: Live), else still as Fill; Set opens the picker when home isn't covered
+    (Set as wallpaper). Setup's summary ends " · Live". **The status line** "Live isn't on. Set
+    as wallpaper turns it on." (placeholder; under the others, while the daily switch is on)
+    while the stored Size is Live, home has a column and APODroid's live wallpaper isn't on home
+    (`Store.liveMissing`: never picked, backed out of the picker, another wallpaper picked, a
+    force stop, Android's revert).
   - **The highlight**: each draft setting that differs from the stored setup shows in the
     theme's `tertiary` until Set: its heading, a segmented row's chosen segment
     (`tertiaryContainer` / `onTertiaryContainer`) and the row's borders (`tertiary`), the
@@ -343,14 +358,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
     (not ⛶ since U0: ✓ saves the part at once), the
     "Setup" row's title while anything in it differs (the shown mode's "Where" or list and its
     order, the
-    mode switch, "New picture at", "As soon as it's out", "Change every", "If APOD is a
+    mode switch, Size, "New picture at", "As soon as it's out", "Change every", "If APOD is a
     video", "Darken bright pictures"; not ⛶). Not the daily
     switch, nor Advanced (they act at once). Screen readers: a highlighted control's state adds
     "not set yet" ("Selected, not set yet", "Checked, not set yet", "On, not set yet"; the rows
     "collapsed, not set yet").
   - **Set applies the setup** (user, 2026-10-20 evening; why: a change took effect at once,
     "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks, dropdowns and
-    order),
+    order), Size,
     "New picture at", "As soon as it's out", "Change every", "If APOD is a video", "Darken
     bright pictures", a newly picked "my picture" and the switch "More NASA pictures" change only the page
     (`MainActivity`'s draft state; no pref is written, no set, no scheduling). **A hidden
@@ -424,6 +439,29 @@ set it as wallpaper, and on video days kept the old wallpaper.
     to the page that started the run or the one a rotation made of it, and Set stays disabled in
     every page while either runs. After Back Android suppresses the toast (the app is in the
     background and has no notification permission).
+    **The picker** (L6, 2026-11-14; `live-0.7.0.md`, Set with Live): after `saveSetup` and
+    before its update, Set opens Android's live wallpaper picker when `:core`'s `opensPicker`
+    says so: Size Live and home with a column not live (also after a back-out or a lost Live:
+    each such Set offers it again), or, on 14+ only, when this Set made the stored columns,
+    different before it, equal while home is live and the engine doesn't cover the lock screen
+    (once per split: the next Set finds them equal before it). Never with Fill, never below 14
+    for the lock screen, never for the lock screen alone (no home column: Live is home's), never
+    for a lock column that differs (the lock screen Fill, Decision 10). Both screens'
+    `getWallpaperId`s are noted first; the picker is `ACTION_CHANGE_LIVE_WALLPAPER` for
+    `LiveWallpaper`, started directly (L1's `resolveActivity` is null without `<queries>`), else
+    `ACTION_LIVE_WALLPAPER_CHOOSER`, else the toast "This phone can't show live wallpapers."
+    (placeholder) and Fill; any refusal of a start (`ActivityNotFoundException`, a maker's
+    picker not exported or behind a permission, `SecurityException`) is logged and tries the
+    next (`:core`'s `firstStarted`), and any failure of the picker's trip ends as Fill, so Set
+    never crashes after its setup is saved (L6 fix round 1); only from a page
+    in the foreground (a start from the background is blocked silently), with
+    `registerForActivityResult`, so a page a rotation made gets the return too (a page's
+    `onResume` ends the wait as a fallback). On the return, when an id changed, up to 3 s for
+    `liveOn(HOME)` (`Store.awaitLive`; below 14 the engine notes its id asynchronously), then
+    Set's update: home live, its picture to the engine and the lock screen's still Fill when its
+    picture differs (Decision 10); backed out, Fill. A page's load waits while the picker is
+    open (`picking`), so it can't set a still picture first. Logged `Set: Android's live
+    wallpaper picker` and `Live: back from the picker, …`.
   - **More NASA pictures** (the pref `allSources`, default off: APOD mode; the name the user's,
     2026-10-20: the mockup's "Extended API mode" is a developer's word). Part of the draft:
     "Where" and the list swap at once and the page offers the new mode's sources; Set saves it
@@ -712,9 +750,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `FLAG_SYSTEM` alone first moves the shared one to the lock screen and sets home anew;
   `FLAG_LOCK` alone replaces only the lock one; both flags again leave one shared wallpaper and
   no lock one. No screen went blank.
-  **Live** (L5, 2026-11-14; `live-0.7.0.md`, The engine; no setting yet: until L6's Size row
-  the app treats Live as on while Android's picker put APODroid's engine on home, else every
-  set is still, as 0.6.0). `LiveWallpaper.kt`, a `WallpaperService` in the app's one process
+  **Live** (L5, 2026-11-14; `live-0.7.0.md`, The engine; with Size Live, L6: Fill sets every
+  picture still, as 0.6.0). `LiveWallpaper.kt`, a `WallpaperService` in the app's one process
   (exported, guarded by `BIND_WALLPAPER`, `res/xml/live_wallpaper.xml`: the launcher icon, the
   description "Today's picture, moving across the screen over the day." (`strings.xml`,
   placeholder), the page as its settings). The engine draws **home's picture** whatever screens
@@ -755,7 +792,17 @@ set it as wallpaper, and on video days kept the old wallpaper.
   engine covered, `live.shared`, takes home's picture), so the same run sets both still, a
   stray replaced; the lock screen's alone noted live and not shared forgets it alone. Logged
   `Live: home isn't live, Fill on HOME+LOCK`. `live.shared` goes after such a run without a
-  failed set. The darkening isn't the engine's yet (BR3).
+  failed set. **The engine on a screen not noted live** (L6, from SIM; `:core`'s `unnotedLive`,
+  before the rules, with Size Live and home live): home with a column and not noted live, and
+  the lock screen with one while shared and not noted, are forgotten too, so the same run hands
+  them over (else after the picker a Set of the order alone, or one with nothing due, left the
+  engine drawing its old copy while the record named another picture). Logged `Live: the
+  engine is on <screens>, not noted live`. **A shared lock screen follows home** (L6, from SIM;
+  `lockFollowsHome`): when home's hand-over would change a lock screen the one engine covers
+  that has a column and no set of its own this run (another column, its picture not due), its
+  record is forgotten and the run planned again, so it gets its own picture first, still when
+  it isn't home's (logged `Live: home's new picture would show on the lock screen, its own
+  again`). The darkening isn't the engine's yet (BR3).
 - **Choosing the part (user, 2026-10-05):** a ⛶ at the bottom left of the picture (mirroring
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the
@@ -1502,7 +1549,10 @@ in [live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md)):
 - The engine draws only Live's own copy of home's picture (`live.jpg`, written when home is
   handed to it), never the source's file; a software canvas, at most 50 MB a decoded picture
   (L1). No new permission. **Built** (L5, 2026-11-14): The app, Wallpaper: Live (the engine,
-  is it on, the hand-over, lost Live); Size, Set's picker and the status line are L6's.
+  is it on, the hand-over, lost Live); (L6, 2026-11-14) The app, Settings: Size and its status
+  line, Set as wallpaper: the picker. The texts "Size", "Fill", "Live", " · Live", "Live isn't
+  on. Set as wallpaper turns it on." and "This phone can't show live wallpapers." are
+  placeholders; L2 (the FP6's picker) may still give a fix package (user, 2026-11-14).
 
 **0.7.0: on time on any phone** (user, 2026-10-25, after a friend's Chinese phone had no
 "Unrestricted"; planned again 2026-10-28 after W's tablet day; after 0.6.0 ships, the freeze; the

@@ -251,3 +251,22 @@ fun <T> firstStarted(options: List<T>, failed: (T, RuntimeException) -> Unit, st
     }
     return null
 }
+
+/** D (L8): a screen-on starts no run within this long after the last run's start (`lastRunAt`). */
+val screenOnQuiet: Duration = Duration.ofMinutes(15)
+
+/**
+ * D, the screen-on check (L8; live-0.7.0.md, D): whether a non-preview engine that becomes
+ * visible starts the alarms' run (job 2, `DailyJob.runNow`). Only while [daily] is on and no run
+ * started in the last [screenOnQuiet] ([lastRun], `lastRunAt`; one ahead of [now], the clock set
+ * back, doesn't hold it back); then when a check is owed ([nextAlarm] ≤ [now]: a check time passed
+ * since the last run, or a failed run's retry due), or the engine is a [stray] (14+, home not live)
+ * while a record is still [notedLive], so Decision 12's Fill on both screens comes at this
+ * screen-on. The run removes the notes, so a stray left on a lock screen doesn't start a run at
+ * every screen-on.
+ */
+fun screenOnRunOwed(now: Instant, daily: Boolean, nextAlarm: Instant, lastRun: Instant?, stray: Boolean, notedLive: Boolean): Boolean {
+    if (!daily) return false
+    if (lastRun != null && !lastRun.isAfter(now) && Duration.between(lastRun, now) < screenOnQuiet) return false
+    return !nextAlarm.isAfter(now) || (stray && notedLive)
+}

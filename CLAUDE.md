@@ -1064,6 +1064,18 @@ sticky restart's `startForeground`): caught, logged ("Keep running: couldn't sta
 "Keep running: refused: …"), the service stops; nothing on the page. With it on the process
 stays resident (O7: about 105 MB PSS after Back, the decoded pictures still in the native heap; O12: the page lets them go when it stops).
 
+**D, the screen-on check** (L8, 2026-11-14; live-0.7.0.md, D; on-time-0.7.0.md, Seams 1): a
+non-preview Live engine that becomes visible (`onVisibilityChanged(true)`) starts the alarms'
+run, `DailyJob.runNow`, as an alarm does (job 2: `lastRunAt`, `failedRuns`, one run at a time,
+the retries and, on 12+, expedited; no second run path), while `daily` is on and no run started
+in the last 15 min (`lastRunAt`; one ahead of now, the clock set back, doesn't hold it back:
+night default), when a check is owed (`Store.nextAlarm()` ≤ now) or the engine is a stray (14+,
+home not live) while a record is still noted live (`wallpaperLive` on either screen), so
+Decision 12's Fill on both comes at that screen-on; the run removes the notes, so a stray left
+on a lock screen doesn't start one at every screen-on. `:core`'s `screenOnRunOwed`
+(`LiveTest`), `Store.screenOnRunOwed`. Logged `Live: screen on, run owed`. So a phone whose
+maker holds the alarms gets the picture when the user first looks at it, Live on.
+
 **The detector** (O14, 2026-11-14; on-time-0.7.0.md, The detector; the texts placeholders until
 the user approves them from the tablet's screenshots): the page notices that the phone stopped
 the app, so the change came only when something started it again. `:core`'s `Detector.kt`
@@ -1611,7 +1623,7 @@ and the like, which no app setting gets past). Decided:
   button opens Android's Battery optimisation list (`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`,
   no permission). The detection (`isIgnoringBatteryOptimizations`) already works there.
 - **Live (D)** checks for a new picture when the screen turns on (the system keeps the current
-  live wallpaper running).
+  live wallpaper running). **Built** (L8, 2026-11-14): Background update, D, the screen-on check.
 - Rejected: "Exact timing" (`SCHEDULE_EXACT_ALARM` and a `dataSync` service per run; the
   expedited job gives the network without them, user, 2026-10-28), Keep running always on (every
   phone would pay), `setAlarmClock`, `USE_EXACT_ALARM`.

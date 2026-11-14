@@ -63,6 +63,7 @@ import io.github.buerlino.apodroid.core.dueWallpapers
 import io.github.buerlino.apodroid.core.fetchLatest
 import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.nextAlarm as coreNextAlarm
+import io.github.buerlino.apodroid.core.screenOnRunOwed as coreScreenOnRunOwed
 import io.github.buerlino.apodroid.core.randomOffset
 import io.github.buerlino.apodroid.core.retryAfter
 import io.github.buerlino.apodroid.core.orderAlone
@@ -1323,6 +1324,19 @@ class Store(private val context: Context) {
      * The engine's own flags aren't asked (a stray on the lock screen says 3).
      */
     fun liveOn(screen: Screen): Boolean = if (screen == Screen.HOME) liveState().home else liveState().shared
+
+    /** A screen's record noted live (`wallpaperLive`, either screen): a stray engine is then owed a run at screen-on (D, L8). */
+    val liveNoted: Boolean
+        get() = Screen.entries.any { prefs.getBoolean(it.key("wallpaperLive"), false) }
+
+    /**
+     * D, the screen-on check (L8): whether an engine that became visible starts the alarms' run
+     * (`:core`'s [screenOnRunOwed]: the daily switch on, no run started in the last 15 min, and a
+     * check owed by [nextAlarm] or a [stray] engine while a record is noted live). On the main
+     * thread: prefs only, no lock.
+     */
+    fun screenOnRunOwed(stray: Boolean): Boolean =
+        coreScreenOnRunOwed(Instant.now(), daily, nextAlarm(), instant("lastRunAt"), stray, liveNoted)
 
     /** The one engine on the lock screen too: home live and no lock wallpaper of its own (`getWallpaperId(FLAG_LOCK)` -1; 14+ only, L1). */
     val liveShared: Boolean

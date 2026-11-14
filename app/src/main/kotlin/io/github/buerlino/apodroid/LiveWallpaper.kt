@@ -125,6 +125,7 @@ class LiveWallpaper : WallpaperService() {
             // The re-read covers a commit from an interrupted thread (no listeners, B16) and a rebind.
             reload()
             checkStray()
+            runIfOwed()
             draw()
             handler.postDelayed(tick, TICK_MS)
         }
@@ -146,6 +147,23 @@ class LiveWallpaper : WallpaperService() {
             val now = safely("check home") { store?.liveOn(Screen.HOME) == false } == true
             if (now && !stray) Log.i(TAG, "Live: home isn't live (stray on the lock screen)")
             stray = now
+        }
+
+        /**
+         * D, the screen-on check (L8): a non-preview engine that becomes visible starts the alarms'
+         * run (job 2, as an alarm does) when [Store.screenOnRunOwed] says so: a check owed, or this
+         * engine a [stray] while a record is noted live, and no run started in the last 15 min.
+         * Nothing else: the run, its bookkeeping and its retries are the job's.
+         */
+        private fun runIfOwed() {
+            if (isPreview) return
+            safely("check the run") {
+                val store = store ?: return@safely
+                if (store.screenOnRunOwed(stray)) {
+                    Log.i(TAG, "Live: screen on, run owed")
+                    DailyJob.runNow(applicationContext)
+                }
+            }
         }
 
         /**

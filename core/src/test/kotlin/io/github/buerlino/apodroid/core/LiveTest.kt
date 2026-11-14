@@ -456,4 +456,44 @@ class LiveTest {
 
         assertEquals("direct", firstStarted(listOf("direct", "chooser"), { _, _ -> }) {})
     }
+
+    // D, the screen-on check (L8).
+
+    private val wake = Instant.parse("2026-11-14T07:00:00Z")
+    private fun owed(daily: Boolean = true, nextAlarm: Instant = wake.plusSeconds(3600), lastRun: Instant? = wake.minus(Duration.ofHours(2)), stray: Boolean = false, notedLive: Boolean = false) =
+        screenOnRunOwed(wake, daily, nextAlarm, lastRun, stray, notedLive)
+
+    @Test
+    fun screenOnStartsTheRunWhenACheckIsOwed() {
+        assertTrue(owed(nextAlarm = wake.minusSeconds(60)))
+        assertTrue(owed(nextAlarm = wake), "due this very moment")
+        assertTrue(owed(nextAlarm = wake.minusSeconds(60), lastRun = null))
+    }
+
+    @Test
+    fun screenOnStartsNothingWhenNothingIsOwed() {
+        assertFalse(owed())
+        assertFalse(owed(stray = true), "a stray with nothing noted live: the run removed the notes")
+        assertFalse(owed(notedLive = true), "noted live, but not a stray")
+    }
+
+    @Test
+    fun screenOnStartsNothingWithTheDailySwitchOff() {
+        assertFalse(owed(daily = false, nextAlarm = wake.minusSeconds(60)))
+        assertFalse(owed(daily = false, stray = true, notedLive = true))
+    }
+
+    @Test
+    fun screenOnStartsNothingWithin15MinOfARun() {
+        assertFalse(owed(nextAlarm = wake.minusSeconds(60), lastRun = wake.minus(Duration.ofMinutes(14))))
+        assertFalse(owed(stray = true, notedLive = true, lastRun = wake.minusSeconds(1)))
+        assertTrue(owed(nextAlarm = wake.minusSeconds(60), lastRun = wake.minus(Duration.ofMinutes(15))))
+        assertTrue(owed(nextAlarm = wake.minusSeconds(60), lastRun = wake.plus(Duration.ofHours(3))), "the clock set back")
+    }
+
+    @Test
+    fun aStrayWithARecordNotedLiveIsOwedARun() {
+        assertTrue(owed(stray = true, notedLive = true))
+        assertTrue(owed(stray = true, notedLive = true, lastRun = null))
+    }
 }

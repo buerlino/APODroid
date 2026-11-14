@@ -159,3 +159,46 @@ change time.
   more runs a day for Keep running's phones (no change to its design).
 - **Track L** (`live-0.7.0.md`): a picture that goes on in the afternoon starts its pan where
   the clock is (the route by the time of day), not at the left edge.
+
+## SO3's results
+
+(rosie, pipeline run 90, 2026-11-14, Saturday 12:35–12:42 CET; the tablet HA24BZ2Y, Android 15,
+dev's debug build after SO2, md5 `11ce7658…`, already installed. Evidence in
+`.coord/runs/090-so3/tablet/`.) **PASS**, no `BUG:` line.
+
+- **The setup, by the page:** the daily switch on, "More NASA pictures" on, APOD on Home screen,
+  NASA on Lock screen, "New picture at" 14:00, "As soon as it's out" on, Set. Why 14:00: on a
+  Saturday at 12:35 NASA's newest post (13 Nov, "Outbursts from a Massive Star", out 17:41 CET)
+  lies inside today's 06:00 window, so with 06:00 the switch off would set it too and the check
+  would tell nothing. With 14:00 the current change time is 13 Nov 14:00 (the stamp
+  1794574800000), its window ends 17:00, and the 17:41 post is an afternoon post outside it.
+  Set: `Set: wallpaper set: … APOD … on HOME, … NASA, date=2026-11-13 … on LOCK` (wallpaper ids
+  home 1204, lock 1205); alarms for 13:22:14 CET, the hourly check (the window's 14:15 + n h plus
+  the phone's 434 s offset).
+- **Switch on:** after `am kill`, `nasa.date` and `lock.wallpaperDate` set back to 2026-11-12,
+  `nasa.published` back a day (`checkedAt` left, so no B21 gap); `run -f 1`: NASA refreshed (13 Nov,
+  published 17:41), `Daily job: wallpaper set: Of(source=NASA, date=2026-11-13, …) on LOCK`; lock
+  1205 → 1206, home stays 1204 (`wallpaperSetAt` unchanged), the stamp unchanged. Alarms after
+  the run: 13:22:14 CET (hourly).
+- **Switch off** (the page, the switch off, Set: home 1207, lock 1208; the switch's row and Setup
+  highlighted before Set, `04-draft-soon-off-highlight.png`): alarms for 14:07:14 CET, the next
+  change time plus the offset, nothing hourly before it. The same fake, `run -f 1`: NASA refreshed
+  to 13 Nov (`nasa.afterGap` false), nothing set (the log silent between the alarms and
+  `jobFinished`), lock stays 1208, `lock.wallpaperDate` stays 2026-11-12.
+- **The next change time, switch off:** the clock stepped forward to 14:08:00 CET (`auto_time` 0):
+  `TIME_SET, arming again`, the alarm's run (job 2) `wallpaper set: … NASA, date=2026-11-13 … on
+  LOCK`, lock 1208 → 1209, home stays 1207; next alarms 14:22:14 CET (the window's check).
+  `auto_time` back to 1, the clock checked against the desktop's.
+- No crash (`E AndroidRuntime` 0; `exit-info` only rosie's `am kill`s).
+- **Not checked:** a real afternoon post (the FP6, the user's step); the switch on across a real
+  hour's alarm (the hourly alarm seen armed, not fired); the smoke list (a device package).
+- **Screenshots for the user:** `01-draft-apod-home-nasa-lock-14h-soon-on.png` (the switch on in
+  the draft, highlighted), `02-soon-info-dialog.png` (the ⓘ: "A new picture goes on within the
+  hour after it's out, not only at the change time."), `03-page-after-run-on.png` (the status
+  lines "Home: 14 Nov, 12:37 · APOD", "Lock: 14 Nov, 12:38 · NASA"; Setup's summary "Home: APOD ·
+  Lock: NASA · 14:00", without the switch, as decided), `04-draft-soon-off-highlight.png`.
+- **Set back:** the app's prefs and files from the backup (`app-data-before.tar`, byte-identical
+  after), the wallpaper APOD on both screens (a Set in APOD mode, Both, before the restore),
+  no alarm or job left (the daily switch off, as found), APODroid's task swiped from Recents
+  (the page's saved draft), the tablet's settings as noted (`settings-before.txt`,
+  `settings-after.txt`).

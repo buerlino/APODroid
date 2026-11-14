@@ -49,7 +49,7 @@ packages unattended): `night.md`.
   shared, homeColumn, homePicture, sets)` → `LiveSets(still, engine)` (a run's `Plan.sets` split: the still sets
   first, then home's hand-over), `lostLive(homeNoted, lockNoted, homeLive, shared, sharedNote, lockColumn)` →
   `LostLive(forget, lockTakesHome, dropShared)` with `forgetting(records)` and `onPlan(plan, records)` (Decision 12;
-  tests in `LiveTest`). Not used by `:app` yet (L5, L6).
+  tests in `LiveTest`). Used by `Store.setDue`, `setPart` and the engine (L5); Size by L6.
   `core/.../Turn.kt`: `nextSource(ticked, after, hasPicture, order)` (the next ticked source in
   the list's order for which a test holds, from `after`'s place, ticked or not), `Rotation(order,
   from)` (OR1: the list's order and the anchor's date, `orderFrom`; `ordered(column)`; the
@@ -116,7 +116,12 @@ packages unattended): `night.md`.
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
   is APOD mode's screen), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
-  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `sourcePicture(source)`, `set(picture, screens)` (the flags per screen; a photo with
+  wallpaper lock; L5: `lostLive` forgets before the rules, `stillOrLive` splits the sets, home's to the engine by
+  `copyForLive`, the records noted `wallpaperLive`), Live (L5): `size` (Live until L6), `liveFile` (`files/live.jpg`),
+  `liveWhole`, `livePicture` and `putLive` (the notes beside it), `copyForLive` (via `live.part`; returns the whole
+  flag), `liveFallback()` (no copy: home's first source's file, else APOD's), `liveAt(now)` (`livePosition` for
+  home's column), `liveOn(screen)`/`liveShared`/`liveState()` (L1's table; `live.homeId` below 14, `noteHomeId`),
+  `noteShared()` (`live.shared` at `update`'s start while home is live), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `sourcePicture(source)`, `set(picture, screens)` (the flags per screen; a photo with
   an EXIF orientation goes upright through `setBitmap`; with ⛶'s whole picture (`Part.whole`, A3) `Drawing.kt`'s `wholePicture` bitmap, written to `files/debug-whole.png` too in a debuggable build (`dumpWhole`, L4, for comparing the pixels); the frame's place and the whole picture from `parts.forPost(post)`, O2; with `darken` (BR2) what the screen shows measured first (`frameGrey`, or `topThirdGrey` of the whole picture) and a bright one, `:core`'s `darkening` below 1, set as a screen-sized bitmap through `darkeningPaint` (Fill's frame by `decodeFrame` and `drawPanned`, the whole picture by `darkened`), the bitmap set written to `files/debug-set.png` in a debuggable build (`dumpSet`; a `setStream` set deletes it); returns the log's note ", darker ×0.78 (grey 141)", which `setDue`'s line and `setPart`'s "Part: wallpaper set: …" carry), `parts` with `forPost` (the one lookup of a source's `Part` for a post, date and picture URL; the page's draft and highlight use it too), `save` (the original, else the stored picture; the job's `limit`; returns `Saved`; its temp file `cache/original.part`, leftovers dropped by `dropSaveLeftovers` at the page's first start and by each save, B13), `imageBounds`
   (`wallpaperFrame` is in `Drawing.kt`).
 - `app/.../Drawing.kt` (L4): the one drawing of a picture onto a `Canvas` of a given size, for
@@ -128,6 +133,14 @@ packages unattended): `night.md`.
   `frameGrey` (that small, measured), `drawWhole` (a file all of it, `fitFrame`, on black
   when `hasBlackEdges`, else on `blurred`; decoded straight to the frame's size, A3),
   `wholePicture` (that on a bitmap of the screen's size), `wallpaperFrame` (`:core`'s as a `Rect`).
+- `app/.../LiveWallpaper.kt` (L5): APODroid's live wallpaper (`WallpaperService`, in the manifest exported with
+  `BIND_WALLPAPER`, `res/xml/live_wallpaper.xml`, `res/values/strings.xml`'s `live_description`). `LiveEngine`:
+  `onCreate` (a `Store`, `Live: engine … created`, `noteHomeId` below 14, `Store.watch` → `reload`), `reload` (the
+  copy or `liveFallback`, keyed by path, time, length and whole; decoded on the `live-decode` thread by `decode`:
+  panned at `liveDecodeSize`, a quarter of the bytes after an out of memory, twice; whole by `wholePicture`; colours
+  by `colorsOf`), `show` (swap, recycle, `notifyColorsChanged`, draw), `draw` (software canvas: black, then
+  `drawPanned` at `Store.liveAt`, or the whole bitmap's middle; the minute's `tick` only when the frame moved),
+  `checkStray` (14+, at a visibility), `safely` (everything caught, `Live: couldn't …`).
 - `app/.../MainActivity.kt`: the page, one instance (`launchMode="singleTop"` in `AndroidManifest.xml`, B4; `onNewIntent` does nothing) (`PictureSide`: `SourceTitle`, the shown source's name with its dropdown, and `PicturePage`, each source's picture, in a `HorizontalPager` whose settled page is `shown` (`chosenSource`, `showSource`), then `Caption`, the boxes and the caption of the shown `post`; `show()` loads `posts` and `pictures` of every offered source (`sources`; `apod` decides them in APOD mode), `saved` per source; `onStop` recycles `pictures`, keeping `stoppedSizes` for the pages' height until `onResume`'s `load()` shows them again (`restore`; O12), drawn by `PicturePainter`, which skips a recycled one;
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture (its battery line `batteryLine()` by `phoneMaker`, O13; the buttons App info, `openBatteryOptimisation` and "Don't show again" in a `FlowRow`); the detector's `MissNotice` before it (O14: `missedAt`, `missedKeep`, `missDismissed` from `readStatus`; "Keep running" → `openKeepRunning`, Advanced open and the switch's `BringIntoViewRequester` once, `showKeepRunning`; with it on `stopLines()` by `phoneMaker`; `dismissMiss`);
   the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob(context)` (`DailyJob.ensure`: the alarms and the fallback) after its set, as Set's; Set's and the switch-on's runs go in the companion's process-wide `runs` scope with `setting`, `switching` and `switchRuns`, so a rotation or Back keeps their end, and `redrawAfterRun` goes to the page in `live` under the starter's `id`, kept by a rotation, B13; on while a load, Set or switch-on runs: owed in `switchRuns` (`core/.../SwitchRuns.kt`, `SwitchRunsTest`), run by `runNext` after it, as `loadAgain`, unless the switch-on run went on to set, `Updated.wentToSet`: B6); the draft (S4: `where`, `list`, `interval`, `videoDays`, `parts`, `draftFallback`,
@@ -184,7 +197,12 @@ packages unattended): `night.md`.
   **With APODroid's live wallpaper on** (0.7.0, Live): `am force-stop` and `pm clear` also make
   Android drop the live wallpaper to the system's default (AOSP), and `am kill` doesn't kill the
   process (the system keeps it bound): use `run-as … kill -9 <pid>`, after which Android rebinds
-  it (`live-0.7.0.md`).
+  it (`live-0.7.0.md`); never a second kill within 10 s (Android then reverts home, Decision 12).
+  **Prefs edits with Live on:** the rebound process reads the prefs 1.5 s after the kill and would
+  write its old copy back over an edit made after that: `kill -9`, edit, then after 10 s from the
+  kill (the rebind's `Live: engine … created` in the log) `kill -9` once more, so the next process
+  reads the edited file. Or edit while the system's wallpaper is on (Live off). After a `force-stop`
+  with Live on, the next run (`run -f 1` or the page) sets Fill on both screens (lost Live).
 - The hint about Android pausing the app: undo "Don't show again" with
   `adb shell run-as io.github.buerlino.apodroid sed -i '/pauseHintHidden/d' shared_prefs/apodroid.xml`
   (after `am kill`). The two settings by adb: `keep-running.md`, How to test.

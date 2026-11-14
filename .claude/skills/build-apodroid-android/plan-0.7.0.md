@@ -119,6 +119,11 @@ changes but what 0.7.0 adds); then each track's tablet checks again, quickly: O1
 list, RO3's faked day, SO3's afternoon, BR2's bright and dark pictures, OR2's checks (the drag, the order-only Set, "APOD stays", the faked night); the regression's APOD
 mode and "More NASA pictures" lists; screenshots of every new text in one folder for the user.
 - **Done when:** every check ran on R8 too; no `BUG:` line, or each drafted for the morning.
+- **Run 118** (2026-11-14, 22:37–23:37 on dev 4b5f44b): rosie's session hit the pipeline's 1 h limit
+  for a device worker (exit 124): no reply, no commit on `wp/t2`. What she got to is only in
+  `.coord/runs/118-t2/tablet/` (BR2's pictures, the update from 0.6.0, the R8 build, RO3's alarms at a
+  faked 17–18 Nov, `texts/` with 32 screenshots); her backup of the tablet's start is in its `backup/`.
+  The tablet may be left mid-check (a stepped clock, `auto_time` was 1 at the start).
 
 
 A skeleton (2026-11-13, from a review of the queue); each item becomes a package when the tracks

@@ -1149,6 +1149,11 @@ change the run's bookkeeping; with O10 the run is expedited.)
   (`dumpsys wallpaper`'s colours for the engine). The picker's preview the same. Then the smoke
   list.
 - **Done when:** the tablet passes; no `drew black` between the decode and the picture.
+- **Result** (pipeline run 117, 2026-11-14, merged 4b5f44b, tablet PASS; `.coord/runs/117-l9a/tablet-0/`):
+  the picture 46–160 ms after the decode (was 0.7–1 s), the colours still told (read from SystemUI's
+  dump, not `dumpsys wallpaper`). 3–4 `drew black (nothing)` frames by the surface callbacks remain in
+  those ms, so the Done when's letter isn't met; rosie passed it under the 0.2 s. `install -r` and a boot
+  untested.
 
 ### [ ] L10. Phone pass: Live on the FP6 for a few days (Opus, high)
 

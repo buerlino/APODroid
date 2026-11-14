@@ -42,28 +42,29 @@ packages unattended): `night.md`.
   `core/.../PictureTime.kt` (0.6.0, J1): `DEFAULT_PICTURE_AT` (6), `pictureHours` (0..23) and
   `pictureAtOrDefault` (O1), `PictureTime(pictureAt, everyHours)` with `hours`,
   `last`, `next`, `isChangeTime` (the change times in a zone, on the clock's hours through DST),
+  `turn(now, zone)` (RO1: the current change time's number with turns, consecutive through DST; a column's turn is it mod its sources),
   `pictureWindow` (3 h), `checkGap` (24 h) and `afterGap(lastCheck, now)` (a new post stored after more than a day without a successful check, B21), `firstCheck` (15 min), `nextRun(now, zone, time, turns,
-  offset, waiting, lastRun)` (when the clock's next check comes; at `now` for a check passed since
-  `lastRun`, B16), `nextAlarm(now, zone, failures, time, turns, offset, waiting, lastRun)` (the alarms, armed at any time: `nextRun`, or with `failures` the earlier of it and `lastRun` + `retryAfter(failures)`, at the earliest now; a run counts as failed from its start, so a run going or killed keeps its retry, O4b, B16f1, B19), `retryAfter(failures)` (15 min after the first failed run's start, an hour after more; 15 min with none), `randomOffset` and `maxOffset`
+  offset, lastRun, allDay)` (when the clock's next check comes; at `now` for a check passed since
+  `lastRun`, B16; `allDay`, default off, the hourly checks to the next change time kept for SO1), `nextAlarm(now, zone, failures, time, turns, offset, lastRun)` (the alarms, armed at any time: `nextRun`, or with `failures` the earlier of it and `lastRun` + `retryAfter(failures)`, at the earliest now; a run counts as failed from its start, so a run going or killed keeps its retry, O4b, B16f1, B19), `retryAfter(failures)` (15 min after the first failed run's start, an hour after more; 15 min with none), `randomOffset` and `maxOffset`
   (tests in `PictureTimeTest`, also whole days in Zurich, Helsinki, Los Angeles, Sydney, Tehran,
   New York and UTC with a run at each `nextRun`, offline spells and pulls, B15).
   `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
   `screensOf` and `placing` (S2: the list's change, a source on exactly its screens),
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in, the posts after a gap:
-  `picture(source)`, `isNew(source, shown)`, `standInShown(source, shown)` (B22), `publishedBefore(source, limit, orAfterGap)`, B15, B21), `Record` (owner, picture, stamp: the change time,
+  `picture(source)`, `standInShown(source, shown)` (B22, only for `standInSkipped` until RO2), `publishedBefore(source, limit, orAfterGap)`, B15, B21), `Record` (owner, picture, stamp: the change time,
   `shown`: the last post shown per source; `forget()`), and the pure functions returning a
   `Plan` (records, `sets` grouped by picture): `dueWallpapers(columns, records, stored, time,
-  zone, now, pull)` (each run, J1's three rules; equal columns: the lock screen follows home's
-  record and picture, B2), `waiting` (a screen with turns that found nothing new, for `nextRun`),
+  zone, now, pull)` (each run, the rules; turns a plain rotation by the clock since RO1; equal columns: the lock screen follows home's
+  record and picture, B2),
   `restartAndForget(before, after, records, stored, time, zone, now)` (S4, Set: the pictures of
   the screens with a column forgotten, each stamped with the current change time; a `Restart`
   with the plan and the screens whose record to `drop`, a column that was empty), and
-  `videoDayKept` for the page's status line (B23: not while a stand-in will go on; `Stored.standsIn`), `standInSkipped` for its video notice (B22; tests in `ScreensTest`).
+  `videoDayKept` for the page's status line (B23: not while a stand-in will go on; `Stored.standsIn`), `standInSkipped` for its video notice (B22, the rules no longer skip; RO2 removes it; tests in `ScreensTest`, with the FP6's day of 11 Nov).
   The rules over random months (SIM, test code only): `RulesSimulationTest`, 240 seeded phones of
   60 days (seven zones, both DST changes, random setups, posts, runs, pulls, Sets, offline spans,
   failed sets, killed runs, the alarms' id 2 pending while offline and its `schedule()` failing
   now and then) doing what `Store` and `DailyJob` do, nine invariants from
-  `CLAUDE.md`'s rules checked around every set and arming (9, O4a: while the switch and the phone
+  `CLAUDE.md`'s rules (3 and 5 the rotation's since RO1) checked around every set and arming (9, O4a: while the switch and the phone
   are on, an alarm is armed or id 2 is pending, after every event); a failure names the seed, the
   invariant and the day's runs and sets; a seed that finds a bug goes into `knownBugs` with an
   `@Ignore`d test of its own. The phone of `PictureTimeTest` and the simulation, with the posts'

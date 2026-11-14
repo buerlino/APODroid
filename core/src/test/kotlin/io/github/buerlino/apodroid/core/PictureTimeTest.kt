@@ -16,7 +16,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * The picture time (J1): the change times through the DST days, [nextRun], and the three rules
+ * The picture time (J1): the change times through the DST days, [nextRun], and the rules
  * over whole days in real time zones, with the posts coming out when the sites post them (APOD
  * at 00:05 US Eastern, Earth Observatory at 00:00 US Eastern on weekdays, NASA at 16:30 UTC on
  * weekdays) and a run at each [nextAlarm], as J2's alarms do (the [Phone] in Phone.kt).
@@ -140,13 +140,13 @@ class PictureTimeTest {
         time: PictureTime = PictureTime(),
         turns: Boolean = false,
         offset: Duration = Duration.ZERO,
-        waiting: Boolean = false,
+        allDay: Boolean = false,
         zone: ZoneId = zurich,
-    ) = local(zone, nextRun(at(zone, now), zone, time, turns, offset, waiting))
+    ) = local(zone, nextRun(at(zone, now), zone, time, turns, offset, allDay = allDay))
 
     /** The alarms at the end of a run that started at [now] (and took no time), after [failures] failed runs in a row, this one included. */
     private fun ended(now: String, failures: Int, offset: Duration = Duration.ZERO) =
-        local(zurich, nextAlarm(at(zurich, now), zurich, failures, PictureTime(), false, offset, false, at(zurich, now)))
+        local(zurich, nextAlarm(at(zurich, now), zurich, failures, PictureTime(), false, offset, at(zurich, now)))
 
     @Test
     fun theChecksAfterAChangeTime() {
@@ -167,18 +167,72 @@ class PictureTimeTest {
         assertEquals("15 12:00", next("2026-07-15T09:00", PictureTime(6, 6), turns = true))
     }
 
+    // The change times' numbers (RO1: turns by the clock)
+
     @Test
-    fun aWaitingScreenIsCheckedHourly() {
+    fun theChangeTimesAreNumberedByTheClock() {
         val time = PictureTime(6, 6)
-        assertEquals("15 09:00", next("2026-07-15T08:15", time, turns = true, waiting = true))
-        assertEquals("15 09:15", next("2026-07-15T09:00", time, turns = true, waiting = true))
-        assertEquals("15 11:15", next("2026-07-15T10:15", time, turns = true, waiting = true))
-        assertEquals("15 12:00", next("2026-07-15T11:15", time, turns = true, waiting = true))
-        // Without a waiting screen: the window's end, then the next change time.
+        val d = LocalDate.parse("2026-11-11").toEpochDay()
+        assertEquals(d * 4, time.turn(at(zurich, "2026-11-11T06:00"), zurich))
+        assertEquals(d * 4 + 1, time.turn(at(zurich, "2026-11-11T17:59"), zurich))
+        assertEquals(d * 4 + 2, time.turn(at(zurich, "2026-11-11T18:00"), zurich))
+        // 00:00 and the hours to 06:00 belong to the day before's count.
+        assertEquals(d * 4 + 3, time.turn(at(zurich, "2026-11-12T05:59"), zurich))
+        assertEquals(d * 4 + 4, time.turn(at(zurich, "2026-11-12T06:00"), zurich))
+        // Two sources every 6 h: APOD's turn at 06:00 and 18:00, every day, also over the DST days.
+        for (day in 0L..400L) {
+            for (hour in listOf(6, 18)) {
+                val t = LocalDate.ofEpochDay(d + day).atTime(hour, 0).atZone(zurich).toInstant()
+                assertEquals(0L, Math.floorMod(time.turn(t, zurich), 2L), local(zurich, t))
+            }
+        }
+        // Every 24 h: a day each.
+        val daily = PictureTime(6, 24)
+        assertEquals(1L, daily.turn(at(zurich, "2026-11-12T06:00"), zurich) - daily.turn(at(zurich, "2026-11-11T06:00"), zurich))
+        assertEquals(daily.turn(at(zurich, "2026-11-11T06:00"), zurich), daily.turn(at(zurich, "2026-11-12T05:59"), zurich))
+    }
+
+    @Test
+    fun theNumbersAreConsecutiveThroughTheDstDays() {
+        // Zurich's autumn night (03:00 four real hours after 00:00), its spring night of 2027 and
+        // Sydney's (02:00 at 03:00), Los Angeles' autumn night (01:00 twice).
+        val cases = listOf(
+            Triple(zurich, "2026-10-24T00:00", PictureTime(0, 3)),
+            Triple(zurich, "2027-03-27T00:00", PictureTime(2, 3)),
+            Triple(sydney, "2026-10-03T00:00", PictureTime(2, 3)),
+            Triple(la, "2026-10-31T00:00", PictureTime(1, 6)),
+        )
+        for ((zone, from, time) in cases) {
+            var t = at(zone, from)
+            var last = time.turn(t, zone)
+            while (t < at(zone, from) + Duration.ofDays(3)) {
+                t = time.next(t, zone, true)
+                val number = time.turn(t, zone)
+                assertEquals(last + 1, number, "$zone ${local(zone, t)}")
+                last = number
+            }
+        }
+    }
+
+    /** No hourly checks after the window since RO1 (0.6.0's waiting screen went): the window's end, then the next change time. */
+    @Test
+    fun turnsAreNotCheckedAfterTheWindow() {
+        val time = PictureTime(6, 6)
         assertEquals("15 09:00", next("2026-07-15T08:15", time, turns = true))
         assertEquals("15 12:00", next("2026-07-15T09:00", time, turns = true))
-        // Every 24 h: hourly all day.
-        assertEquals("15 21:15", next("2026-07-15T20:15", PictureTime(6, 24), turns = true, waiting = true))
+        assertEquals("15 12:00", next("2026-07-15T10:15", time, turns = true))
+        assertEquals("16 06:00", next("2026-07-15T20:15", PictureTime(6, 24), turns = true))
+    }
+
+    /** The hourly loop kept for "As soon as it's out" (SO1): with [nextRun]'s allDay, hourly until the next change time. */
+    @Test
+    fun allDayChecksHourlyUntilTheNextChangeTime() {
+        val time = PictureTime(6, 6)
+        assertEquals("15 09:00", next("2026-07-15T08:15", time, turns = true, allDay = true))
+        assertEquals("15 09:15", next("2026-07-15T09:00", time, turns = true, allDay = true))
+        assertEquals("15 11:15", next("2026-07-15T10:15", time, turns = true, allDay = true))
+        assertEquals("15 12:00", next("2026-07-15T11:15", time, turns = true, allDay = true))
+        assertEquals("15 21:15", next("2026-07-15T20:15", PictureTime(6, 24), turns = true, allDay = true))
     }
 
     @Test
@@ -221,8 +275,7 @@ class PictureTimeTest {
         time: PictureTime = PictureTime(),
         turns: Boolean = false,
         offset: Duration = Duration.ZERO,
-        waiting: Boolean = false,
-    ) = local(zurich, nextAlarm(at(zurich, now), zurich, failures, time, turns, offset, waiting, lastRun?.let { at(zurich, it) }))
+    ) = local(zurich, nextAlarm(at(zurich, now), zurich, failures, time, turns, offset, lastRun?.let { at(zurich, it) }))
 
     /**
      * At the end of a run that started at [now]: the clock's next run ([nextRun]), or after failed
@@ -236,10 +289,10 @@ class PictureTimeTest {
                     val t = at(zurich, now)
                     val time = PictureTime(6, 3)
                     val seven = Duration.ofMinutes(7)
-                    val clock = nextRun(t, zurich, time, turns, seven, waiting = turns, lastRun = t)
+                    val clock = nextRun(t, zurich, time, turns, seven, lastRun = t)
                     assertEquals(
                         if (failures == 0) clock else minOf(clock, t + retryAfter(failures)),
-                        nextAlarm(t, zurich, failures, time, turns, seven, waiting = turns, lastRun = t),
+                        nextAlarm(t, zurich, failures, time, turns, seven, lastRun = t),
                         "$now $failures $turns",
                     )
                 }
@@ -270,9 +323,8 @@ class PictureTimeTest {
         lastRun: String?,
         time: PictureTime = PictureTime(),
         turns: Boolean = false,
-        waiting: Boolean = false,
         failures: Int = 0,
-    ) = local(zurich, nextAlarm(at(zurich, now), zurich, failures, time, turns, sevenMinutes, waiting, lastRun?.let { at(zurich, it) }))
+    ) = local(zurich, nextAlarm(at(zurich, now), zurich, failures, time, turns, sevenMinutes, lastRun?.let { at(zurich, it) }))
 
     /**
      * A page open (or a Set, a clock change) between the 06:07 check and its alarm's delivery
@@ -362,8 +414,8 @@ class PictureTimeTest {
     @Test
     fun theChangeTimeBeforeWithinTheOffset() {
         val time = PictureTime(0, 3)
-        assertEquals("15 06:03", owed("2026-07-15T06:03", lastRun = "2026-07-15T05:20", time = time, turns = true, waiting = true))
-        assertEquals("15 06:07", owed("2026-07-15T06:03", lastRun = "2026-07-15T05:23", time = time, turns = true, waiting = true))
+        assertEquals("15 06:03", owed("2026-07-15T06:03", lastRun = "2026-07-15T05:20", time = time, turns = true))
+        assertEquals("15 06:07", owed("2026-07-15T06:03", lastRun = "2026-07-15T05:23", time = time, turns = true))
     }
 
     /** An owed check comes before a retry not yet due. */
@@ -481,7 +533,7 @@ class PictureTimeTest {
         assertEquals(listOf("25 02:00 APOD 10-24", "26 02:00 APOD 10-25"), phone.sets)
         // The first check of the night: 02:00 CEST, 02:15 CEST, 02:15 CET, 03:15, the window's end 04:00 CET.
         assertEquals(listOf("25 01:30", "25 02:00", "25 02:15", "25 02:15", "25 03:15", "25 04:00"), phone.runs.take(6))
-        assertEquals(Instant.parse("2026-10-25T03:00:00Z"), nextRun(at(zurich, "2026-10-25T03:15"), zurich, PictureTime(2), false, Duration.ZERO, false))
+        assertEquals(Instant.parse("2026-10-25T03:00:00Z"), nextRun(at(zurich, "2026-10-25T03:15"), zurich, PictureTime(2), false, Duration.ZERO))
     }
 
     @Test
@@ -637,8 +689,9 @@ class PictureTimeTest {
         Phone(zone, mapOf(HOME to sources, LOCK to sources), PictureTime(6, every), posts, mapOf(HOME to record, LOCK to record))
 
     @Test
-    fun aMondayInZurichEvery6Hours() {
-        // Mon 19 Oct 2026 (CEST): APOD at 06:05, Earth at 06:00:30, NASA at 18:30.
+    fun aMondayInZurichEvery6HoursIsAPlainRotation() {
+        // Mon 19 Oct 2026 (CEST): APOD at 06:05, Earth at 06:00:30, NASA at 18:30. By the clock
+        // (RO1): Mon 00:00 is Earth's turn, 06:00 APOD's, 12:00 NASA's, 18:00 Earth's, Tue 00:00 APOD's.
         val posts = week("2026-10-16", "2026-10-20")
         val sunday = Record(APOD, pic(apod("2026-10-18")), at(zurich, "2026-10-18T18:00"),
             notes(apod("2026-10-18"), nasa("2026-10-16"), earth("2026-10-16")))
@@ -646,29 +699,39 @@ class PictureTimeTest {
         phone.run(at(zurich, "2026-10-19T00:00"), at(zurich, "2026-10-20T05:00"))
         assertEquals(
             listOf(
-                // 06:15: APOD and Earth are new; Earth is next after APOD.
-                "19 06:15 EARTH 10-19",
-                // 12:00: APOD is next after Earth.
-                "19 12:00 APOD 10-19",
-                // 18:00: nothing new yet, the screens wait; NASA at 18:30, seen at 19:15.
-                "19 19:15 NASA 10-19",
+                // Friday's Earth again: shown before, repeats accepted.
+                "19 00:00 EARTH 10-16",
+                // APOD's turn starts with yesterday's, today's replaces it in the window (rule 2).
+                "19 06:00 APOD 10-18",
+                "19 06:15 APOD 10-19",
+                // NASA's newest is Friday's: today's comes at 18:30, after the window.
+                "19 12:00 NASA 10-16",
+                "19 18:00 EARTH 10-19",
+                "20 00:00 APOD 10-19",
             ),
             phone.sets,
         )
-        // Waiting from 00:00 to 06:00: hourly checks.
-        assertTrue(phone.runs.containsAll(listOf("19 00:15", "19 01:15", "19 05:15", "19 18:15", "19 19:15")))
-        // Tue 00:00: nothing new, waiting again.
-        assertTrue(waiting(phone.columns, phone.records, phone.time, zurich, at(zurich, "2026-10-20T00:30")))
+        // No hourly checks after the window: 03:00 is the window's end, then 06:00.
+        assertTrue(phone.runs.containsAll(listOf("19 00:15", "19 01:15", "19 02:15", "19 03:00", "19 06:00", "19 18:15", "19 21:00")))
+        assertFalse(phone.runs.any { it in listOf("19 04:15", "19 05:15", "19 22:15", "19 23:15") })
     }
 
     @Test
-    fun aWeekendKeepsApodAndSetsNothingAtNasasAndEarthsTimes() {
+    fun aWeekendRepeatsFridaysNasaAndEarthAtTheirTurns() {
+        // Sat 17 and Sun 18 Oct 2026, every 6 h: each change time goes to the turn's source, APOD
+        // with its newest, NASA and Earth with Friday's.
         val posts = week("2026-10-16", "2026-10-19")
         val friday = Record(NASA, pic(nasa("2026-10-16")), at(zurich, "2026-10-16T18:00"),
             notes(apod("2026-10-16"), nasa("2026-10-16"), earth("2026-10-16")))
         val phone = turnsPhone(zurich, 6, posts, friday)
         phone.run(at(zurich, "2026-10-17T00:00"), at(zurich, "2026-10-19T00:00"))
-        assertEquals(listOf("17 06:15 APOD 10-17", "18 06:15 APOD 10-18"), phone.sets)
+        assertEquals(
+            listOf(
+                "17 00:00 APOD 10-16", "17 06:00 NASA 10-16", "17 12:00 EARTH 10-16", "17 18:00 APOD 10-17",
+                "18 00:00 NASA 10-16", "18 06:00 EARTH 10-16", "18 12:00 APOD 10-18", "18 18:00 NASA 10-16",
+            ),
+            phone.sets,
+        )
     }
 
     @Test
@@ -679,8 +742,9 @@ class PictureTimeTest {
         val monday = Record(NASA, pic(nasa("2026-11-30")), at(zurich, "2026-11-30T18:00"), notes(apod("2026-11-30"), nasa("2026-11-30")))
         val phone = turnsPhone(zurich, 12, posts, monday, sources)
         phone.run(at(zurich, "2026-12-01T05:00"), at(zurich, "2026-12-02T05:00"))
-        // Today's APOD at about 06:15, not a day late; NASA at 18:00.
-        assertEquals(listOf("01 06:15 APOD 12-01", "01 18:00 NASA 12-01"), phone.sets)
+        // APOD's turn at 06:00 (by the clock: 06:00 and 18:00 alternate) starts with yesterday's
+        // APOD, today's at about 06:15, not a day late; NASA at 18:00.
+        assertEquals(listOf("01 06:00 APOD 11-30", "01 06:15 APOD 12-01", "01 18:00 NASA 12-01"), phone.sets)
     }
 
     @Test
@@ -698,15 +762,16 @@ class PictureTimeTest {
 
     @Test
     fun aDstNightEvery3HoursChangesOnTheClocksHours() {
-        // 25 Oct 2026, Zurich, every 3 h from 00:00, all three; nothing new: the change after
-        // 00:00 is at the clock's 03:00 (four real hours), waiting checks hourly in between.
+        // 25 Oct 2026, Zurich, every 3 h from 00:00, all three: the change after 00:00 (APOD's
+        // turn, its picture on already) is at the clock's 03:00 (four real hours), NASA's turn.
         val posts = week("2026-10-23", "2026-10-24")
         val record = Record(APOD, pic(apod("2026-10-24")), at(zurich, "2026-10-24T21:00"),
             notes(apod("2026-10-24"), nasa("2026-10-23"), earth("2026-10-23")))
         val phone = Phone(zurich, mapOf(HOME to Source.entries, LOCK to Source.entries), PictureTime(0, 3), posts, mapOf(HOME to record, LOCK to record))
         phone.run(at(zurich, "2026-10-25T01:50"), at(zurich, "2026-10-25T04:00"))
-        assertEquals(emptyList(), phone.sets)
-        // 02:00 CET (01:00 UTC) is the window's end, three real hours after 00:00 CEST.
-        assertEquals(listOf("25 01:50", "25 02:15", "25 02:00", "25 02:15", "25 03:00", "25 03:15"), phone.runs)
+        assertEquals(listOf("25 03:00 NASA 10-23"), phone.sets)
+        // 02:00 CET (01:00 UTC) is the window's end, three real hours after 00:00 CEST; no
+        // hourly checks after it (02:15 CET).
+        assertEquals(listOf("25 01:50", "25 02:15", "25 02:00", "25 03:00", "25 03:15"), phone.runs)
     }
 }

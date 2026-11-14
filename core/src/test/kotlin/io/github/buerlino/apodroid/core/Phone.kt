@@ -146,7 +146,7 @@ internal open class Phone(
             check(now)
             // An offline run fails: the alarms retry it (Background update).
             failures = if (isOffline(now)) failures + 1 else 0
-            now = nextAlarm(now, zone, failures, time, turns, Duration.ZERO, waiting(columns, records, time, zone, now), now)
+            now = nextAlarm(now, zone, failures, time, turns, Duration.ZERO, now)
         }
     }
 }

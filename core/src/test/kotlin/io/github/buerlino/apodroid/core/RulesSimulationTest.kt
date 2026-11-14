@@ -159,7 +159,6 @@ private class SimPhone(val seed: Int) : Phone(
 
     // What the screens show, and what the invariants keep
     private val wall = mutableMapOf<Screen, Picture>()
-    private val history = Screen.entries.associateWith { mutableSetOf<Picture.Of>() }
     private val everSet = mutableSetOf<Screen>()
     private val kept = mutableMapOf<Screen, Pair<Post, Picture>>()
     private val log = mutableListOf<Pair<Instant, String>>()
@@ -170,7 +169,6 @@ private class SimPhone(val seed: Int) : Phone(
     // The run going through setDue
     private var kind = Kind.PAGE
     private var recordsBefore: Map<Screen, Record> = emptyMap()
-    private var storedBefore: Stored? = null
     private var storedNow: Stored? = null
     private val failedScreens = mutableSetOf<Screen>()
     private val setNow = mutableMapOf<Screen, Picture>()
@@ -296,7 +294,6 @@ private class SimPhone(val seed: Int) : Phone(
      * a set failed; null when the run was killed after its checks ([killAfterChecks]).
      */
     private fun update(now: Instant, kind: Kind, force: Boolean, page: Boolean, set: Boolean = false, killAfterChecks: Boolean = false): Boolean? {
-        storedBefore = stored(now)
         val show = if (page) offered() else emptySet()
         var failure = false
         for (source in Source.entries) {
@@ -328,7 +325,7 @@ private class SimPhone(val seed: Int) : Phone(
         storedNow = stored
         check(now, pull = pull, stored = stored)
         oneSource(now, stored)
-        waitingScreens(now, stored)
+        rotation(now, stored)
         keptChecks(now, stored)
         return failedScreens.isNotEmpty()
     }
@@ -347,7 +344,6 @@ private class SimPhone(val seed: Int) : Phone(
             wall[screen] = picture
             setNow[screen] = picture
             everSet += screen
-            if (picture is Picture.Of) history.getValue(screen) += picture
         }
     }
 
@@ -366,10 +362,12 @@ private class SimPhone(val seed: Int) : Phone(
             checked[2]++
             if (on == picture) fail(now, 2, "${picture.label()} set again on $screen, which shows it")
         }
-        // 3. No post twice on one screen (a stand-in counts for its own source), but by Set, a pull or a forgotten picture.
-        if (counts && picture is Picture.Of) {
+        // 3. A job or page run puts on only the newest picture of the source whose turn it is (on
+        // APOD's video day the stand-in), also one the screen has shown before (RO1: repeats accepted).
+        if (counts) {
             checked[3]++
-            if (picture in history.getValue(screen)) fail(now, 3, "${picture.label()} set on $screen a second time")
+            val owner = records[screen]?.owner
+            if (owner == null || picture != stored.picture(owner)) fail(now, 3, "${picture.label()} set on $screen, not the newest of the turn's $owner")
         }
         // 6. An unticked source's picture never goes on; "Skip it" never puts a stand-in on.
         checked[6]++
@@ -428,24 +426,51 @@ private class SimPhone(val seed: Int) : Phone(
         }
     }
 
-    /** 5. Rule 3: a waiting screen takes the first new post of a ticked source at the first run that stores it (the next in order when two are). */
-    private fun waitingScreens(now: Instant, stored: Stored) {
+    /**
+     * The change times with turns around [t], each with its number (RO1, by the clock): counted
+     * from "New picture at" each day (0, 1, …), plus the days since 1970-01-01 × the change times
+     * a day, on the clock's hours (an hour that doesn't exist comes at the gap's end).
+     */
+    private fun numbered(t: Instant): List<Pair<Instant, Long>> {
+        val perDay = 24 / time.everyHours
+        val day = t.atZone(zone).toLocalDate()
+        return (-2L..2L).flatMap { d ->
+            val ofDay = day.plusDays(d)
+            (0 until perDay).map { k ->
+                val hour = time.pictureAt + k * time.everyHours
+                ZonedDateTime.of(ofDay.plusDays(hour / 24L), LocalTime.of(hour % 24, 0), zone).toInstant() to ofDay.toEpochDay() * perDay + k
+            }
+        }.distinctBy { it.first }.sortedBy { it.first }
+    }
+
+    /**
+     * 5. The rotation (RO1): at a change time a screen with turns goes to the source whose turn it
+     * is by the clock (the change time's number mod the column, APOD → NASA → Earth), or, when that
+     * one has nothing to show, the next in order with a picture, and shows its newest picture
+     * (also one shown before; never back). Missed change times make one change, by the current one.
+     */
+    private fun rotation(now: Instant, stored: Stored) {
         if (kind.free) return
-        val before = storedBefore ?: return
         for (screen in Screen.entries) {
             val column = columns[screen].orEmpty()
             if (column.size < 2 || screen in failedScreens || forgotten(screen)) continue
-            val record = lead(screen) ?: continue
-            val stamp = record.stamp ?: continue
-            if (stamp !in changeTimes(stamp, true) || stamp >= lastChange(now, true)) continue
-            if (column.any { before.isNew(it, record.shown) }) continue
-            val new = column.filter { stored.isNew(it, record.shown) }
-            if (new.isEmpty()) continue
+            val stamp = lead(screen)?.stamp ?: continue
+            val change = lastChange(now, true)
+            if (stamp !in changeTimes(stamp, true) || stamp >= change) continue
             checked[5]++
-            val next = nextSource(column, record.owner) { it in new }!!
-            if (wall[screen] != stored.picture(next)) {
-                fail(now, 5, "$screen waited and shows ${wall[screen]?.label()}, not ${stored.picture(next)?.label()} ($next, new: $new)")
-            }
+            val number = numbered(now).last { it.first <= now }.second
+            val order = Source.entries.filter { it in column }
+            val first = Math.floorMod(number, order.size)
+            val turn = order[first]
+            val withPicture = order.indices.map { order[(first + it) % order.size] }.firstOrNull { stored.picture(it) != null }
+            val record = records[screen]
+            if (record?.stamp != change) fail(now, 5, "$screen kept the stamp ${record?.stamp?.let { local(zone, it) }} at the change ${local(zone, change)}")
+            val owner = withPicture ?: turn
+            if (record.owner != owner) fail(now, 5, "$screen went to ${record.owner} at ${local(zone, change)}, the turn is $turn's (number $number), with a picture $withPicture")
+            val due = withPicture?.let { stored.picture(it) } ?: continue
+            val on = wall[screen]
+            val older = due is Picture.Of && on is Picture.Of && due.source == on.source && due.date < on.date
+            if (!older && on != due) fail(now, 5, "$screen shows ${on?.label()}, not $owner's ${due.label()} after the change ${local(zone, change)}")
         }
     }
 
@@ -508,19 +533,18 @@ private class SimPhone(val seed: Int) : Phone(
 
     /** `DailyJob.ensure`'s alarms: [nextAlarm], checked against CLAUDE.md's checks (invariant 7). */
     private fun arm(now: Instant, runEnd: Boolean = false) {
-        val waiting = waiting(columns, records, time, zone, now)
-        val at = nextAlarm(now, zone, failedRuns, time, turns, offset, waiting, lastRunAt)
+        val at = nextAlarm(now, zone, failedRuns, time, turns, offset, lastRunAt)
         checked[7]++
         if (at < now) fail(now, 7, "the alarm at ${local(zone, at)} is in the past")
         val nextChange = changeTimes(now, turns).first { it + offset > now } + offset
         if (at > nextChange) fail(now, 7, "the alarm at ${local(zone, at)} is after the next change time + the offset, ${local(zone, nextChange)}")
-        val clockCheck = clockCheck(now, waiting)
+        val clockCheck = clockCheck(now)
         // A run counts as failed from its start until it ends well (O4b): its retry from its start.
         val expected = when {
             failedRuns > 0 && lastRunAt != null -> minOf(clockCheck, maxOf(lastRunAt!! + retry(failedRuns), now))
             else -> clockCheck
         }
-        if (at != expected) fail(now, 7, "the alarm at ${local(zone, at)}, the checks say ${local(zone, expected)} (waiting $waiting, ${failedRuns} failed runs)")
+        if (at != expected) fail(now, 7, "the alarm at ${local(zone, at)}, the checks say ${local(zone, expected)} (${failedRuns} failed runs)")
         if (runEnd && failedRuns > 0 && at > now + retry(failedRuns)) fail(now, 7, "after $failedRuns failed runs the retry at ${local(zone, at)}")
         armAt(at)
     }
@@ -530,17 +554,17 @@ private class SimPhone(val seed: Int) : Phone(
 
     /**
      * The clock's next check (CLAUDE.md, Turns, the next run): of the change time of now less the
-     * offset, the change time, 15 min after it, then hourly within the window (until the next
-     * change time while a screen waits), the window's end, and the next change time, each the
+     * offset, the change time, 15 min after it, then hourly within the window (no waiting since
+     * RO1), the window's end, and the next change time, each the
      * offset later; at once when one passed since the last run's start.
      */
-    private fun clockCheck(now: Instant, waiting: Boolean): Instant {
+    private fun clockCheck(now: Instant): Instant {
         val times = changeTimes(now - offset, turns)
         val last = times.last { it <= now - offset }
         val next = times.first { it > now - offset }
         val checks = mutableListOf(last, next, last + window)
         var check = last + firstCheck
-        while (check < next && (waiting || check < last + window)) {
+        while (check < next && check < last + window) {
             checks += check
             check += hour
         }
@@ -562,7 +586,6 @@ private class SimPhone(val seed: Int) : Phone(
         val new = if (r.nextBoolean()) drawSetup(r).let { if (r.nextBoolean()) it.copy(columns = columns, allSources = allSources) else it } else setup
         note(now, "Set: $new")
         val restart = restartAndForget(columns, new.columns, records, stored(now), new.time, zone, now)
-        if (new.columns != columns) history.values.forEach { it.clear() }
         apply(new)
         records = records + restart.plan.screens.mapValues { it.value.record } - restart.drop
         update(now, Kind.SET, force = false, page = true, set = true)

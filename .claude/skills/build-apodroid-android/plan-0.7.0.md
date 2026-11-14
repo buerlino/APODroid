@@ -16,6 +16,7 @@ names a track file's section (`on-time-0.7.0.md O1`) or one of this file's (`pla
 | Turns as a plain rotation (RO) | `rotation-0.7.0.md` | RO1–RO3 | Open 1–3 first |
 | As soon as it's out (SO) | `soon-0.7.0.md` | SO1–SO3 | Open 1–4 first |
 | Bright pictures darker (BR) | `bright-0.7.0.md` | BR1–BR3 | BR0 (the picking page), Open 1–5 first |
+| The list's order (OR) | `order-0.7.0.md` | OR1–OR2 | — |
 | Android 10–14 (E) | `emulator.md` | — | E0 first (the pipeline on an emulator), then E1–E4 |
 | Leaner texts | `lean-ui-0.7.0.md` | — (its rest is in O13, O14, L6) | — |
 
@@ -33,8 +34,8 @@ names a track file's section (`on-time-0.7.0.md O1`) or one of this file's (`pla
   day, never beside a night.
 - **No permission** beyond O11's two (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`),
   no dependency, `:core` plain Kotlin.
-- **0.6.0's rules stand** (Background update, Turns) until RO1 and SO1 change them as their
-  files say.
+- **0.6.0's rules stand** (Background update, Turns) until RO1, SO1 and OR1 change them as
+  their files say.
 
 ## The order
 
@@ -48,7 +49,8 @@ the user takes the words out once it's done (night.md, Commands, 3).
 3. **After the day steps:** O10 (O6), O11 (O7, O8), then O12 (if O7 asks), O14, O15; L3 (L1), L5,
    L6 (L2), L7, L8; RO1 (rotation's Open 1–2), RO2 (Open 3), RO3; SO1 after RO1 (the same
    functions: `dueWallpapers`, `nextRun`'s hourly loop; and soon's draft rules checked by the user),
-   SO2 (soon's Open 1–3), SO3; BR1 (BR0, Open 1–5), BR2, BR3 (after L7's preview).
+   SO2 (soon's Open 1–3), SO3; BR1 (BR0, Open 1–5), BR2, BR3 (after L7's preview); OR1
+   after RO3 and SO3, then OR2.
    O15 waits for O12 or for the user dropping O12's row (O7 didn't ask for it).
 4. **Before the tag:** [Before the tag](#before-the-tag).
 
@@ -76,7 +78,7 @@ name carried it (`APOD_2026-10-29_APOD_29_October_2026_…`).
 ### [ ] T1. SIM on the combined rules (Opus, high)
 
 (User, 2026-11-14: everything queued.) `RulesSimulationTest` on the tree with the rotation (RO1),
-as soon as it's out (SO1, the switch on and off at random), O4b's retry model and O10's run:
+as soon as it's out (SO1, the switch on and off at random), O4b's retry model, O10's run and OR1's order and anchor (invariants 11–13, `order-0.7.0.md`):
 `SimPhone`'s rules and arming mirror the merged code; every invariant kept, rewritten where RO1 or
 SO1 changed what it states (say which in the report); 240 seeds as 0.6.0's SIM, more if fast.
 - **Files:** `RulesSimulationTest.kt` (test code only; a bug found is a `BUG:` line and a
@@ -88,7 +90,7 @@ SO1 changed what it states (say which in the report); 240 seeds as 0.6.0's SIM, 
 (User, 2026-11-14.) `app/build.gradle.kts` versionCode 11, versionName "0.7.0";
 `fastlane/metadata/android/en-US/changelogs/11.txt` in 10.txt's form (one line a feature, the
 features that merged: Live, the rotation, as soon as it's out, bright pictures darker, Keep
-running with its two permissions, the expedited run, the detector, the pause hint per maker; only
+running with its two permissions, the expedited run, the detector, the pause hint per maker, the list's order (drag to sort); only
 what `git log` shows merged), the fastlane `full_description.txt` and `short_description.txt`
 where a feature changes what they say; `CLAUDE.md`'s Releases line for 0.7.0 left to the tag (T).
 - **Done when:** the files written; `./gradlew :app:assembleRelease` builds; no tag, no push.
@@ -98,7 +100,7 @@ where a feature changes what they say; `CLAUDE.md`'s Releases line for 0.7.0 lef
 (User, 2026-11-14; this file's first bullet below.) rosie, the tablet: dev's debug build, then R8
 (signed as the skill says); the update from 0.6.0's build with a real setup (M2's way: nothing
 changes but what 0.7.0 adds); then each track's tablet checks again, quickly: O15's list, L9's
-list, RO3's faked day, SO3's afternoon, BR2's bright and dark pictures; the regression's APOD
+list, RO3's faked day, SO3's afternoon, BR2's bright and dark pictures, OR2's checks (the drag, the order-only Set, "APOD stays", the faked night); the regression's APOD
 mode and "More NASA pictures" lists; screenshots of every new text in one folder for the user.
 - **Done when:** every check ran on R8 too; no `BUG:` line, or each drafted for the morning.
 

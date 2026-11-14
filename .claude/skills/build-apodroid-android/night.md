@@ -131,13 +131,15 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 28 | SO1 | `:core`: as soon as it's out, the rule and the hourly checks | winston | opus, high | no | RO1 | soon-0.7.0.md SO1 |
 | 29 | SO2 | The switch in Setup, `Store`, `CLAUDE.md` | winston | opus, medium | yes | SO1 | soon-0.7.0.md SO2 |
 | 30 | SO3 | Tablet check: a NASA post in the afternoon | rosie | opus, medium | no | SO2 | soon-0.7.0.md SO3 |
-| 31 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | — | bright-0.7.0.md BR1 |
-| 32 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, O3, L4 | bright-0.7.0.md BR2 |
-| 33 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L7 | bright-0.7.0.md BR3 |
-| 34 | L9 | Tablet pass of track L (the two real days by hand) | rosie | opus, high | no | L8, BR3 | live-0.7.0.md L9 |
-| 35 | T1 | SIM on the combined rules | winston | opus, high | no | RO2, SO2, O4b, O10 | plan T1 |
-| 36 | R1 | The release's texts: versionCode 11, the changelog | winston | sonnet, medium | no | O14, O15, L8, L9, RO3, SO3, BR3 | plan R1 |
-| 37 | T2 | Final tablet pass on the combined tree | rosie | opus, high | no | T1, R1 | plan T2 |
+| 31 | OR1 | `:core`: the list's order in the turns, the anchor, Set keeping what's on until it | winston | opus, high | no | RO3, SO3 | order-0.7.0.md OR1 |
+| 32 | OR2 | The drag list, its actions, the order in the draft and Set, `CLAUDE.md` | winston | opus, high | yes | OR1 | order-0.7.0.md OR2 |
+| 33 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | — | bright-0.7.0.md BR1 |
+| 34 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, O3, L4 | bright-0.7.0.md BR2 |
+| 35 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L7 | bright-0.7.0.md BR3 |
+| 36 | L9 | Tablet pass of track L (the two real days by hand) | rosie | opus, high | no | L8, BR3 | live-0.7.0.md L9 |
+| 37 | T1 | SIM on the combined rules | winston | opus, high | no | RO2, SO2, O4b, O10, OR2 | plan T1 |
+| 38 | R1 | The release's texts: versionCode 11, the changelog | winston | sonnet, medium | no | O14, O15, L8, L9, RO3, SO3, BR3, OR2 | plan R1 |
+| 39 | T2 | Final tablet pass on the combined tree | rosie | opus, high | no | T1, R1 | plan T2 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

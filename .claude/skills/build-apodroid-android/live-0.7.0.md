@@ -566,6 +566,7 @@ FP6**.
 | L7 | The preview in ⛶ mode | Opus, medium | winston, tablet | L6 |
 | L8 | D: the screen-on check starts the alarms' run | Opus, medium | winston, tablet | L5, O4 (and its packages) |
 | L9 | Tablet pass of the track, and two real days with Live | Opus, high | rosie, tablet | L6–L8 |
+| L9a | The engine's first frame without the black (L9's `BUG:`; the user queues it or leaves it for 0.7.1) | Opus, medium | winston, tablet | L9 |
 | L10 | Phone pass: Live on the FP6 for a few days | Opus, high | a day session, **FP6, the user** | L9 |
 
 ```
@@ -1067,6 +1068,87 @@ change the run's bookkeeping; with O10 the run is expedited.)
 - The texts' screenshots in one folder for the user.
 - **Done when:** every check ran on R8 too; no `BUG:` line, or each drafted as
   a package.
+- **Result** (rosie, pipeline run 116, 2026-11-14, 21:59–22:23 on the tablet; dev 2706a27,
+  `app-debug.apk`, then R8 zipaligned and signed with the debug key; evidence in
+  `.coord/runs/116-l9/tablet/`): **one `BUG:` line, drafted as L9a**; the rest as the plan says.
+  - **Debug:** APOD mode, Size Live, Set: the picker, "Home screen and lock screen": `shown live
+    … on HOME+LOCK`, flags 3, p=0.89 at 22:00 (16 h of 18). `kill -9`: rebound, the same copy,
+    the same p. Decision 10 (home APOD, lock Earth): no picker, `wallpaper set: EARTH … on
+    LOCK; shown live: APOD … on HOME`, flags 1. BR3 (a bright 2400×1340 test picture as
+    `apod.jpg`, Set): `shown live … darker ×0.70 (grey 231)`, the engine `drew … ×0.70`; ⛶ with
+    Live: a drag moves nothing (the screenshots identical), "Whole picture" shows the preview
+    darkened on blur (`texts/debug-crop-whole-preview-bright-darkened.png`); ✓: `Part: wallpaper
+    shown live … darker ×0.70 (grey 151)`, the engine decodes 800×1340 and draws still (p=0.50).
+    Decision 12: two `kill -9` 3 s apart, `Reverting to built-in wallpaper!`, `run -f 1`: `Live:
+    home isn't live, Fill on HOME+LOCK`, both still. B27 with turns every 6 h (home APOD + NASA,
+    lock APOD, the picker for both, shared): APOD faked as a 15 Nov video day ("Skip it") by
+    the kill protocol (the engine kept its APOD copy through both kills), the clock to 06:08 on
+    15 Nov: job 2 expedited, `the lock screen keeps APOD … still`, flags 1, `shown live: NASA …
+    on HOME`. The pan in that 6 h turn: p=0.34 at 08:00, p=0.84 at 11:01. "My picture" (a
+    faked video day, "Use my picture", "Where" Lock → Both): the picker again (the split rule),
+    `shown live: Own on HOME+LOCK`, `drew Own p=0.91`; "NASA Image of the Day" instead: `shown
+    live: NASA … on HOME+LOCK`.
+  - **R8:** `install -r` over the live debug build: still live (`PACKAGE_UPDATE_FINISHED`),
+    `MY_PACKAGE_REPLACED, arming again`, the engine drew the same p. Decision 12 by two `am
+    crash` 1.7 s apart (`run-as` doesn't work on R8): `Reverting to built-in wallpaper!`, `run
+    -f 1`: `home isn't live, Fill on HOME+LOCK`. Size Live and Set: the status line "Live isn't
+    on. Set as wallpaper turns it on."; the picker, both: B27 again (the lock screen, APOD alone
+    on the video day, keeps the engine's NASA, still). `am force-stop`: Android cleared home,
+    the page's load `home isn't live, Fill on HOME+LOCK`. A reboot: still live
+    (`SWITCH_WALLPAPER_UNLOCK_USER`), `BOOT_COMPLETED, arming again`, the detector excused by
+    the boot. A video day with "Earth Observatory" (home APOD + NASA at NASA's turn, lock APOD):
+    `wallpaper set: EARTH … on LOCK; shown live: NASA … on HOME`, no picker. Size Fill and Set:
+    `Live: engine home destroyed`, both still, no live component, the summary without " ·
+    Live". From the backup's state with the bright picture: the picker backed out (`back from
+    the picker, nothing changed, home not live`, Fill `darker ×0.70`, the status line), then
+    confirmed: `shown live … darker ×0.70`, `p=0.91 ×0.70` at 22:18; ⛶: no drag, the whole
+    preview darkened (`texts/r8-crop-whole-preview-bright-darkened.png`); "Where" Lock: no
+    picker, `wallpaper set: … on LOCK`, home's engine left alone.
+  - **The update from 0.6.0:** not run again: no app or `:core` file changed since O15's run
+    (dev 67e841d → 2706a27 changed only docs), whose R8 update from 0.6.0's R8 build set
+    nothing and kept the summary (no " · Live"; `on-time-0.7.0.md`, O15).
+  - **D** (L8): a WAKEUP with nothing owed started no run. The owed case wasn't provoked:
+    `appops RUN_ANY_IN_BACKGROUND ignore` doesn't hold the alarms while the live wallpaper's
+    process is bound (the step past 12:00 ran job 2 at once), and a force stop drops Live.
+  - **Not checked:** landscape (Olauncher keeps the home screen portrait: the engine drew
+    portrait); L6f1 (no way found to make the lock screen's still set fail); L5's "a post
+    stored but not due" after `kill -9` (only the "Skip it" video day); D's owed case and its
+    stray; the two real days (the user's, after the tag).
+  - **No crash:** the only `FATAL EXCEPTION`s were the shell's own `am crash`
+    (`CrashedByAdbException`); `exit-info` before the reboot: that crash, PACKAGE UPDATED,
+    SIGNALED (the `kill -9`s); none after. `dumpsys meminfo` (R8, Live on): 84 MB PSS with the
+    page open, 47 MB after Home; debug, page closed: 85 MB.
+  - **BUG:** a newly created engine (a rebind after a process death, after `install -r`, the
+    picker's first preview) draws black for 0.7–1 s with the screen on, although its picture
+    is decoded within 50 ms: `Live: decoded 1327×1340 in 42 ms` at 22:01:37.528, `drew black
+    (nothing)` ×4, `drew Of(APOD …)` at 22:01:38.500; the same after each kill (0.7 s) and in
+    the picker (0.7 s). Likely `colorsOf` (`WallpaperColors.fromBitmap`) on the decoder
+    thread before `show()`. L9a.
+  - **A log oddity, no BUG:** the hand-over's first draw can log the previous picture's name
+    (`drew Own p=0.91` right after `shown live: NASA …`, `decoded 1340×1340`, NASA's size):
+    the engine read `live.picture` before the hand-over's commit; the key has no name, so it
+    doesn't reload. The picture drawn is right.
+  - **Texts** (screenshots in `.coord/runs/116-l9/tablet/texts/`): Size [Fill | Live]
+    (`debug-setup-size-live-draft.png`), the status line (`r8-page-live-isnt-on-status.png`,
+    `r8-page-after-picker-back-out.png`), Setup's summary with " · Live"
+    (`debug-page-live-status.png`, `debug-page-d10-home-apod-lock-earth.png`), the video-day
+    choices with Size Live (`r8-setup-live-video-earth-draft.png`,
+    `debug-video-day-use-my-picture-draft.png`).
+
+### [ ] L9a. The engine's first frame without the black (Opus, medium)
+
+(From L9's `BUG:` line, 2026-11-14; for the user to queue, or to leave for 0.7.1.)
+- **The bug:** an engine created with the screen on (a rebind after a process death, `install
+  -r`, the picker's preview) draws black for 0.7–1 s before its picture, though the decode takes
+  under 50 ms (L9's result).
+- **The fix (to check first):** in `LiveWallpaper.kt`'s load, show the decoded picture at once
+  and compute its colours afterwards (`colorsOf` then `notifyColorsChanged` from the decoder
+  thread's second step), so the first frame is the picture; the colours still once per picture.
+- **Tablet:** `kill -9` with the home screen on: the log's first `drew` after `engine … created`
+  names the picture (no `drew black`), within about 0.2 s of the decode; the colours still told
+  (`dumpsys wallpaper`'s colours for the engine). The picker's preview the same. Then the smoke
+  list.
+- **Done when:** the tablet passes; no `drew black` between the decode and the picture.
 
 ### [ ] L10. Phone pass: Live on the FP6 for a few days (Opus, high)
 

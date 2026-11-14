@@ -302,6 +302,13 @@ packages unattended): `night.md`.
 - A phone's width on the tablet (for font scale 2.0 checks): `wm density 344` (the FP6's 372 dp:
   1116 px at 480 dpi, measured 2026-10-18; 425 dp, used until then, was too wide and hid the
   chips wrapping), `wm density reset` after; the tablet's font scale is 1.1 (2026-10-17).
+- A process death on R8 with Live on (L9; `run-as` needs a debug build): `adb shell am crash
+  <pid>` (shell-induced, `CrashedByAdbException` in logcat, APP CRASH in `exit-info`). The first
+  one may hold ZUI's "APODroid has stopped" dialog with the process alive until "Close app";
+  two within 10 s (crash, wait for the rebind's new pid, crash) revert home (Decision 12).
+  `cmd appops set … RUN_ANY_IN_BACKGROUND ignore` doesn't hold the alarms while the live
+  wallpaper's process is bound (a clock step ran job 2 at once). Olauncher keeps the home
+  screen portrait, so the engine's landscape can't be seen on the tablet.
 - Keep running's notification on 13+ (O15): `pm grant … POST_NOTIFICATIONS` refuses (the app
   doesn't declare it) and `appops set … POST_NOTIFICATION allow` doesn't post it either; Quick
   Settings' Active apps (its "N apps are active" button) lists APODroid. `run-as … kill -9` works

@@ -313,8 +313,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     The pref `pictureAt` (Turns and the picture time), default 06:00. Part of the draft (Set
     arms the alarms afresh); shown only while the daily switch is on, and while hidden it goes
     back to the stored one (as "If APOD is a video").
-  - **As soon as it's out** (SO2, 2026-11-14; the label and the ⓘ placeholders until the user
-    approves them from screenshots; `soon-0.7.0.md`): a switch under "New picture at" with a
+  - **As soon as it's out** (SO2, 2026-11-14; the label and the ⓘ approved by the user from
+    SO3's screenshots, 2026-11-14; `soon-0.7.0.md`): a switch under "New picture at" with a
     small ⓘ ("About As soon as it's out"; its dialog "A new picture goes on within the hour
     after it's out, not only at the change time."), the pref `soon`, default off (0.6.0's
     window). On: a newer picture of the source a screen shows goes on whenever a check sees
@@ -322,8 +322,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "New picture at": shown only while the daily switch is on, back to the stored one while
     hidden, the highlight (label and switch in `tertiary`, "On, not set yet"). Setup's summary
     doesn't name it (user, 2026-11-14: the row stays short).
-  - **Darken bright pictures** (BR2, 2026-11-14; the label and the ⓘ placeholders until the user
-    approves them from screenshots; `bright-0.7.0.md`): a switch after "If APOD is a video" with
+  - **Darken bright pictures** (BR2, 2026-11-14; the label and the ⓘ approved by the user from
+    BR2's screenshots, 2026-11-14; `bright-0.7.0.md`): a switch after "If APOD is a video" with
     a small ⓘ ("About Darken bright pictures"; its dialog "Darkens a bright picture a little, so
     the clock and widgets stay readable."), the pref `darken`, default on (user, 2026-11-14:
     most people never open Setup; also for an update from 0.6.0, no migration). On: each set
@@ -1381,8 +1381,8 @@ window), with hourly checks all day; turns still change only at the change times
 posts 15:00–23:00 in Central Europe, after a 06:00 window, so a screen with NASA alone was a
 weekday behind all day (FP6, 13 Nov: lock on 12 Nov's NASA while the page showed 13 Nov's from
 17:41); Los Angeles' APOD at 21:05 is the same case, which 2026-10-23 wanted at 06:00, so users
-would disagree. Decided (user, 2026-11-14): the draft rules checked, the label and the ⓘ the
-placeholders until approved from screenshots, Setup's summary doesn't name it, the pause hint's
+would disagree. Decided (user, 2026-11-14): the draft rules checked, the label and the ⓘ (approved
+from SO3's screenshots, 2026-11-14), Setup's summary doesn't name it, the pause hint's
 Optimized line unchanged. **Built** (SO1 `:core`, SO2 the switch, `Store` and this file,
 2026-11-14): The app, Settings; Turns and the picture time; Traffic. SO3, the tablet's faked
 afternoon post, checks it.

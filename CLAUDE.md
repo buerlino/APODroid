@@ -806,7 +806,17 @@ set it as wallpaper, and on video days kept the old wallpaper.
   covers the lock screen and a still set with the lock screen failed in this run, home's
   hand-over is skipped and counts as a failed set (home's record unwritten), so the alarms'
   retry plans both again (logged `Live: the lock screen's set failed, home's hand-over waits`).
-  The darkening isn't the engine's yet (BR3).
+  **The darkening with Live** (BR3, 2026-11-14): one factor per picture, measured once at the
+  hand-over (`copyForLive`, while the stored `darken` is on) on what crosses the screen, not the
+  moving frame: the whole picture's top third (`Drawing.kt`'s `pictureGrey`, 200 px high), or
+  for a whole one its drawing on its background at the screen's shape 200 px high
+  (`wholeGrey`); `:core`'s `darkening` noted as `live.darken` beside `live.whole` in the
+  hand-over's commit (1 with the switch off, a dark picture, a failed measure, logged, and a
+  copy from before BR3). So the frame is darkened alike all day. The engine keys its picture by
+  it too and draws through `drawPanned`'s factor (its colours from a darkened copy; the
+  fallback without a copy as it is); the hand-over's log line ends ", darker ×0.78 (grey
+  141)", the engine's `Live: drew … p=0.40 ×0.78 …`. A changed switch takes effect with
+  Set, whose hand-over measures again.
 - **Choosing the part (user, 2026-10-05):** a ⛶ at the bottom left of the picture (mirroring
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the
@@ -850,7 +860,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   picture in the screen's shape as the wallpaper draws it (L7, Fill or Live): `Drawing.kt`'s
   `wholePicture` at the screen's portrait size, on black or the blurred background, drawn off
   the main thread (a spinner meanwhile) and shown centred on black in the picture's place (the
-  page doesn't move); not darkened (the page shows pictures as they are). ✓ saves and
+  page doesn't move); darkened as the wallpaper will be while the draft's "Darken bright
+  pictures" is on (BR3: its top third measured as drawn, as `Store.set`'s whole picture; the
+  page's picture itself and Live's moving frame in ⛶ mode stay as they are). ✓ saves and
   sets it with the part (`Part.whole`, U0), Back drops it, reopening ⛶ shows the stored one; a
   Set from open crop mode stores it too, per source for that post only, as the part. The toggle
   shows in `tertiary` while it differs from the stored one (until ✓); screen readers: "Whole
@@ -1644,8 +1656,9 @@ grey by `gray`'s weights on a small grey copy), the factor 1 up to a target of 1
 step; floors 0.6 and 0.5 fitted worse); a switch in Setup, default on; "my picture" and a whole
 picture with its background too. **Built** (BR1): `:core`'s `Brightness.kt` (`topThirdMean`,
 `darkening`, `BrightnessTest`); BR2 (2026-11-14): `Store.set` darkens (The app, Wallpaper:
-the darkening) and the switch "Darken bright pictures" in Setup (The app, Settings); Live (BR3)
-follows.
+the darkening) and the switch "Darken bright pictures" in Setup (The app, Settings); BR3
+(2026-11-14): Live's engine and ⛶'s whole preview (The app, Wallpaper: the darkening with Live;
+Choosing the part).
 
 **0.7.0: turns as a plain rotation** (user, 2026-11-11; the rules' draft, the questions and the
 packages RO1–RO3 in [rotation-0.7.0.md](.claude/skills/build-apodroid-android/rotation-0.7.0.md)).

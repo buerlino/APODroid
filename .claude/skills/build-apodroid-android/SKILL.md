@@ -125,8 +125,8 @@ packages unattended): `night.md`.
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
   wallpaper lock; L5: `lostLive` forgets before the rules, `stillOrLive` splits the sets, home's to the engine by
   `copyForLive`, the records noted `wallpaperLive`; L6: `unnotedLive` forgets too, `lockFollowsHome` plans again), Live (L5): `size` (L6: the pref `size`, Fill by default), `liveFile` (`files/live.jpg`),
-  `liveWhole`, `livePicture` and `putLive` (the notes beside it), `copyForLive` (via `live.part`; returns the whole
-  flag), `liveFallback()` (no copy: home's first source's file, else APOD's), `liveAt(now)` (`livePosition` for
+  `liveWhole`, `liveDarken`, `livePicture` and `putLive` (the notes beside it), `copyForLive` (via `live.part`; returns
+  a `LiveCopy`: the whole flag and, with `darken`, the factor and the grey measured once, BR3), `liveFallback()` (no copy: home's first source's file, else APOD's), `liveAt(now)` (`livePosition` for
   home's column), `liveOn(screen)`/`liveShared`/`liveState()` (L1's table; `live.homeId` below 14, `noteHomeId`),
   `noteShared()` (`live.shared` at `update`'s start while home is live), L6's `opensPicker(before)`, `liveMissing`
   (the status line "Live isn't on…"), `wallpaperIds()` and `awaitLive(ids)` (Set's picker trip), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `sourcePicture(source)`, `set(picture, screens)` (the flags per screen; a photo with
@@ -138,13 +138,15 @@ packages unattended): `night.md`.
   `darkeningPaint(factor)` (a `ColorMatrix` scale of R, G and B), `darkened` (a bitmap copied
   through it), `topThirdGrey` (a bitmap's top-third mean grey on a copy `MEASURE_HEIGHT` 200 high),
   `decodeFrame` (a file's frame alone, upright, `ImageDecoder`'s crop, straight to a height) and
-  `frameGrey` (that small, measured), `drawWhole` (a file all of it, `fitFrame`, on black
+  `frameGrey` (that small, measured), `pictureGrey` and `wholeGrey` (Live's one measure per picture
+  at the hand-over, BR3: the file whole, or drawn whole at the screen's shape, 200 px high), `drawWhole` (a file all of it, `fitFrame`, on black
   when `hasBlackEdges`, else on `blurred`; decoded straight to the frame's size, A3),
   `wholePicture` (that on a bitmap of the screen's size), `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../LiveWallpaper.kt` (L5): APODroid's live wallpaper (`WallpaperService`, in the manifest exported with
   `BIND_WALLPAPER`, `res/xml/live_wallpaper.xml`, `res/values/strings.xml`'s `live_description`). `LiveEngine`:
   `onCreate` (a `Store`, `Live: engine … created`, `noteHomeId` below 14, `Store.watch` → `reload`), `reload` (the
-  copy or `liveFallback`, keyed by path, time, length and whole; decoded on the `live-decode` thread by `decode`:
+  copy or `liveFallback`, keyed by path, time, length, whole and `Store.liveDarken` (BR3: `live.darken`, the
+  factor `copyForLive` measured; `draw` passes it to `drawPanned`, `colorsOf` darkens its copy by it); decoded on the `live-decode` thread by `decode`:
   panned at `liveDecodeSize`, a quarter of the bytes after an out of memory, twice; whole by `wholePicture`; colours
   by `colorsOf`), `show` (swap, recycle, `notifyColorsChanged`, draw), `draw` (software canvas: black, then
   `drawPanned` at `Store.liveAt`, or the whole bitmap's middle; the minute's `tick` only when the frame moved),
@@ -154,7 +156,7 @@ packages unattended): `night.md`.
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture (its battery line `batteryLine()` by `phoneMaker`, O13; the buttons App info, `openBatteryOptimisation` and "Don't show again" in a `FlowRow`); the detector's `MissNotice` before it (O14: `missedAt`, `missedKeep`, `missDismissed` from `readStatus`; "Keep running" → `openKeepRunning`, Advanced open and the switch's `BringIntoViewRequester` once, `showKeepRunning`; with it on `stopLines()` by `phoneMaker`; `dismissMiss`);
   the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob(context)` (`DailyJob.ensure`: the alarms and the fallback) after its set, as Set's; Set's and the switch-on's runs go in the companion's process-wide `runs` scope with `setting`, `switching` and `switchRuns`, so a rotation or Back keeps their end, and `redrawAfterRun` goes to the page in `live` under the starter's `id`, kept by a rotation, B13; on while a load, Set or switch-on runs: owed in `switchRuns` (`core/.../SwitchRuns.kt`, `SwitchRunsTest`), run by `runNext` after it, as `loadAgain`, unless the switch-on run went on to set, `Updated.wentToSet`: B6); the draft (S4: `where`, `list`, `interval`, `videoDays`, `parts`, `draftFallback`,
   `allSources`, `size` (L6, Size's row after "Where" or the list, `Sizing.label`); `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`; `pages`, the live pages: a start deletes `fallback-draft.jpg` only without a saved draft and with no other page, B8;
-  ⛶ `startCrop`, ✓ `setPart` (U0: `keepPart`, then `Store.setPart` in `runs`; ⛶ disabled while Set or the switch-on runs), the draft's and the stored part by `forPost`; A4's toggle `cropWhole`; L7: `cropFrame` drags, `shadeFrame` dims, with Live `livesOnHome` and `livePreviewPosition` by `liveNow`'s minute tick, `WholePreview` the whole picture's screen-shaped preview); the settings (`Settings`: `Header`, the Settings row for "Setup" and "Advanced settings" (U0; `bleed` widens it into the column's padding), `setupOpen`/`advancedOpen`
+  ⛶ `startCrop`, ✓ `setPart` (U0: `keepPart`, then `Store.setPart` in `runs`; ⛶ disabled while Set or the switch-on runs), the draft's and the stored part by `forPost`; A4's toggle `cropWhole`; L7: `cropFrame` drags, `shadeFrame` dims, with Live `livesOnHome` and `livePreviewPosition` by `liveNow`'s minute tick, `WholePreview` the whole picture's screen-shaped preview, darkened by the draft's `darken`, BR3); the settings (`Settings`: `Header`, the Settings row for "Setup" and "Advanced settings" (U0; `bleed` widens it into the column's padding), `setupOpen`/`advancedOpen`
   in the saved state, `setupSummary` of the stored setup; the highlight: `setupChanged`, `rowChanged`, `rowMoved` (OR2: a row's place against the stored order), `videoDaysChanged`, `highlight`, `Segments`
   (the segmented rows), `Dropdown` (C5, O3: every outlined dropdown, its button, menu, ✓, highlight and label; not the title's menu, `SourceTitle`); with the switch "More NASA pictures" `PictureList` (OR2: the rows in the draft's `order`, keyed by source, the handle "≡" with `detectVerticalDragGestures`, `move(source, by)` for the drag and the actions "Move up"/"Move down"); `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
@@ -405,6 +407,9 @@ what it leaves open.
 - ⛶'s preview (L7, 2026-11-14; pipeline run 109, no device found): the Live frame by the clock
   (no drag, the minute tick, TalkBack offering no drag action), a lock-only source dragging as
   Fill, the whole picture's preview beside the wallpaper set (black and blur).
+- The darkening with Live (BR3, 2026-11-14; until rosie's check): the engine's frame equally
+  darkened at 06:00, 12:00 and 23:30, a dark picture untouched, `live.darken` after a hand-over,
+  the colours from the darkened copy, ⛶'s whole preview darkened with the draft's switch.
 - D, the screen-on check (L8, 2026-11-14; pipeline run 110, no device found): a WAKEUP after a
   passed change time starting job 2 (`Live: screen on, run owed`), none within 15 min, with
   nothing owed, with the daily switch off or from the picker's preview; the stray's run; whether

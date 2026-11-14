@@ -434,10 +434,10 @@ class Store(private val context: Context) {
             prefs.edit(commit = true) { screens.forEach { putSetAt(it); remove(it.key("wallpaperLive")) } }
         }
         split.engine?.let { (shown, screens) ->
-            val whole = copyForLive(shown, stored)
-            Log.i("APODroid", "Part: wallpaper shown live: $shown on ${screens.joinToString("+")}")
+            val copy = copyForLive(shown, stored)
+            Log.i("APODroid", "Part: wallpaper shown live: $shown on ${screens.joinToString("+")}${darker(copy.factor, copy.grey)}")
             prefs.edit(commit = true) {
-                putLive(shown, whole)
+                putLive(shown, copy)
                 screens.forEach { putSetAt(it); putBoolean(it.key("wallpaperLive"), true) }
             }
         }
@@ -1108,11 +1108,10 @@ class Store(private val context: Context) {
                 continue
             }
             // The engine's hand-over writes Live's copy, no WallpaperManager call; a failed copy is a failed set.
-            var whole = false
+            var copy: LiveCopy? = null
             val darker = try {
                 if (toEngine) {
-                    whole = copyForLive(picture, stored)
-                    ""
+                    copyForLive(picture, stored).also { copy = it }.let { darker(it.factor, it.grey) }
                 } else {
                     set(picture, screens, stored)
                 }
@@ -1127,7 +1126,7 @@ class Store(private val context: Context) {
             // A stop during the set (seconds with the whole picture) ends the run here.
             try {
                 commitBeforeStop(stopped) {
-                    if (toEngine) putLive(picture, whole)
+                    copy?.let { putLive(picture, it) }
                     screens.forEach {
                         putRecord(it, plan.screens.getValue(it).record)
                         putSetAt(it)
@@ -1270,23 +1269,38 @@ class Store(private val context: Context) {
     val liveWhole: Boolean
         get() = prefs.getBoolean("live.whole", false)
 
+    /**
+     * The darkening of Live's copy (BR3), `:core`'s [darkening] of its one measure at the
+     * hand-over ([copyForLive]), noted beside it (`live.darken`); 1 while "Darken bright pictures"
+     * is off, for a dark picture, a failed measure and a copy from before BR3.
+     */
+    val liveDarken: Float
+        get() = prefs.getFloat("live.darken", 1f).coerceIn(0f, 1f)
+
     /** What Live's copy is, for the engine's log (`live.picture`). */
     val livePicture: String?
         get() = prefs.getString("live.picture", null)
 
-    /** Writes the notes beside Live's copy of [picture] ([copyForLive]): its whole flag and its name. */
-    private fun SharedPreferences.Editor.putLive(picture: Picture, whole: Boolean) {
-        putBoolean("live.whole", whole)
+    /** What [copyForLive] noted of Live's copy: its whole flag, its darkening and the measure (null: not measured). */
+    private data class LiveCopy(val whole: Boolean, val factor: Float, val grey: Double?)
+
+    /** Writes the notes beside Live's copy of [picture] ([copyForLive]): its whole flag, its darkening and its name. */
+    private fun SharedPreferences.Editor.putLive(picture: Picture, copy: LiveCopy) {
+        putBoolean("live.whole", copy.whole)
+        putFloat("live.darken", copy.factor)
         putString("live.picture", picture.toString())
     }
 
     /**
      * Blocking, under [wallpaperLock]. The engine's hand-over: [picture]'s file (the source's or
      * the user's own) copied to [liveFile] via a `.part` and renamed, so the engine never reads
-     * half a copy. Returns the whole flag of its post's stored part, for [putLive]. Throws
-     * [StorageFailed] (a full disk): a failed set.
+     * half a copy. Returns the whole flag of its post's stored part and, with [darken], the
+     * darkening (BR3), measured once per picture so it doesn't change as the frame moves: the
+     * whole picture's top third ([pictureGrey]), or a whole one's on its background ([wholeGrey]),
+     * for [putLive]; a failed measure leaves it at 1 (logged). Throws [StorageFailed] (a full
+     * disk): a failed set.
      */
-    private fun copyForLive(picture: Picture, stored: Stored): Boolean {
+    private fun copyForLive(picture: Picture, stored: Stored): LiveCopy {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
         val part = File(context.filesDir, "live.part")
         try {
@@ -1296,7 +1310,10 @@ class Store(private val context: Context) {
             part.delete()
             throw StorageFailed(e)
         }
-        return (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)?.whole == true
+        val whole = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)?.whole == true
+        val grey = if (!darken) null else runCatching { if (whole) wholeGrey(liveFile, screen) else pictureGrey(liveFile) }
+            .onFailure { Log.w("APODroid", "Live: couldn't measure the brightness: $it") }.getOrNull()
+        return LiveCopy(whole, grey?.let(::darkening) ?: 1f, grey)
     }
 
     /**

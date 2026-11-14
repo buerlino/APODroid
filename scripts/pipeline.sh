@@ -109,10 +109,11 @@ fi
 if [[ "${1:-}" == "regression" ]]; then
   dry=0; [[ "${2:-}" == "--dry-run" ]] && dry=1
   ensure_integ
-  k="$(next_regression "$coord/log.md")"; lock_owner="regression-$k"
+  k="$(next_regression "$coord/log.md")"
   since="$(merged_since_regression "$coord/log.md" | paste -sd';' | sed 's/;/; /g')"
   [[ -n "$since" ]] || { result "regression $k: NOTHING (nothing merged since the last regression)"; exit 0; }
   if [[ $dry -eq 1 ]]; then echo "DRY RUN: regression $k, rosie on dev's debug build, after: $since"; echo "RESULT regression $k: DRY RUN"; exit 0; fi
+  lock_owner="regression-$k"  # after the dry run: its exit must not free a running regression's locks
   state="$("$adb" -s "$TABLET" get-state 2>/dev/null || true)"
   [[ "$state" == device ]] || { result "regression $k: NOT RUN (the tablet $TABLET is ${state:-not attached}; on the morning list)"; exit 0; }
   run="$coord/regressions/regression-$k"; mkdir -p "$run/tablet"
@@ -362,7 +363,7 @@ if [[ $nowork -eq 0 && "$agent" == rosie ]]; then
   (cd "$wt" && timeout -k 60 1800 ./gradlew --console=plain :app:assembleDebug) > "$run/debug.log" 2>&1 && cp "$wt/app/build/outputs/apk/debug/app-debug.apk" "$apk" || true
   lock release host-cpu "pipeline-$n" || true
   prompt="You are rosie in pipeline run $n for the device package $id, the worker this time. The bundle is on stdin (also at $bundle). Run the package's steps on the tablet $TABLET as its text and \"For rosie: the tablet checks\" say, with what is installed there, or with $apk (the debug build of dev) when the package needs our app and none is installed. Put screenshots, dumps and the backup in $run/tablet/. Then, in your worktree $wt on branch $branch, write the results where the package's Done when says, commit them with your model's trailer, and end with the report commit (\"Your report\"). Never switch branches. Reply with PASS, FIX, STOP or NOT RUN alone on the first line, then the lines that section asks for."
-  run_worker "pl-$n-rosie" "$run/worker-0.log" "$bundle" 3600 "$prompt"
+  run_worker "pl-$n-rosie" "$run/worker-0.log" "$bundle" 14400 "$prompt"  # a device package waits on the tablet: 4 h (O6 hit 1 h, 2026-11-14)
   wverdict="$(grep -m1 -oE '^(PASS|FIX|STOP|NOT RUN)' "$run/worker-0.log" || true)"
   log "pipeline #$n $id: rosie ${wverdict:-unclear}, $(git -C "$wt" log -1 --format=%h) — $(grep -vE '^(PASS|FIX|STOP|NOT RUN)?$' "$run/worker-0.log" | head -n 1 | cut -c1-140)"
   if [[ "$wverdict" != PASS ]]; then

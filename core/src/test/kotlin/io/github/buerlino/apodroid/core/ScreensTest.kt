@@ -1073,4 +1073,364 @@ class ScreensTest {
         val late = stored(posts + (APOD to post(APOD, d2, published = t0 + h3 + h1)))
         assertEquals(listOf(pic(APOD, d2) to setOf(HOME, LOCK)), due(apodColumns(setOf(HOME, LOCK)), records, late, now = t0 + h3 + h3, soon = true).sets)
     }
+
+    // The list's order (OR1, order-0.7.0.md): the turns in the list's order, the anchor A (the
+    // "New picture at" of `orderFrom`), Set and the switch on keeping what's on until it.
+
+    private val d3 = LocalDate.parse("2026-10-21")
+    private val nae = listOf(NASA, APOD, EARTH)
+
+    /** [date] at [hour]:00 UTC. */
+    private fun on(date: LocalDate, hour: Int, minute: Int = 0): Instant = date.atTime(hour, minute).toInstant(zone)
+
+    /**
+     * Two screens running the rules with a [rotation]: [run] is a job or page run ([dueWallpapers]),
+     * [set] Set or the daily switch on ([restartAndForget], then the update). Every set works.
+     */
+    private inner class Turns(
+        var columns: Map<Screen, List<Source>>,
+        var time: PictureTime,
+        var rotation: Rotation,
+        var records: Map<Screen, Record>,
+        var stored: Stored = stored(),
+        val zone: ZoneId = this@ScreensTest.zone,
+        var soon: Boolean = false,
+    ) {
+        fun run(now: Instant): List<Pair<Picture, Set<Screen>>> {
+            val plan = dueWallpapers(columns, records, stored, time, zone, now, soon = soon, rotation = rotation)
+            records = apply(records, plan)
+            return plan.sets
+        }
+
+        fun set(
+            now: Instant,
+            after: Map<Screen, List<Source>> = columns,
+            time: PictureTime = this.time,
+            rotation: Rotation = this.rotation,
+            orderOnly: Boolean = false,
+            daily: Boolean = true,
+        ): List<Pair<Picture, Set<Screen>>> {
+            val restart = restartAndForget(columns, after, records, stored, time, zone, now, rotation, orderOnly, daily)
+            records = records + restart.plan.screens.mapValues { it.value.record } - restart.drop
+            columns = after
+            this.time = time
+            this.rotation = rotation
+            return run(now)
+        }
+
+        fun owner(screen: Screen = HOME) = records.getValue(screen).owner
+    }
+
+    /** APOD on both screens since [date]'s 06:00 (its stamp), all three ticked, every 24 h, the default order without an anchor. */
+    private fun apodOn(date: LocalDate, columns: Map<Screen, List<Source>> = cols(all), time: PictureTime = PictureTime(6, 24)) = Turns(
+        columns, time, Rotation(),
+        mapOf(HOME to Record(APOD, pic(APOD), on(date, 6)), LOCK to Record(APOD, pic(APOD), on(date, 6))),
+    )
+
+    @Test
+    fun theUsersExampleKeepsApodUntilTheAnchorThenTheList() {
+        // NASA, APOD, Earth sorted, Set at 20:00: nothing set, APOD stays; at the next 06:00 NASA,
+        // then APOD, then Earth (RO1's clock would put NASA on at once, then Earth, APOD, NASA).
+        val phone = apodOn(d2)
+        assertEquals(emptyList(), phone.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true))
+        assertEquals(Record(APOD, pic(APOD), on(d2, 6)), phone.records.getValue(HOME).bare())
+        assertEquals(Record(APOD, pic(APOD), on(d2, 6)), phone.records.getValue(LOCK).bare())
+        assertEquals(emptyList(), phone.run(on(d2, 23)))
+        assertEquals(emptyList(), phone.run(on(d3, 5, 59)))
+        for ((k, source) in listOf(NASA, APOD, EARTH, NASA).withIndex()) {
+            val change = on(d3.plusDays(k.toLong()), 6)
+            val sets = phone.run(change)
+            assertEquals(source, phone.owner(), "day $k")
+            assertEquals(listOf(pic(source) to setOf(HOME, LOCK)), sets, "day $k")
+        }
+    }
+
+    @Test
+    fun apodStaysAtASetWithoutANewOrderBeforeTheAnchor() {
+        val phone = apodOn(d2)
+        phone.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        // At 21:00 a Set changing only "If APOD is a video": APOD again (forgotten, set once), not
+        // Earth (the clock's turn before the anchor, N − N(A) = −1), nor RO1's NASA.
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), phone.set(on(d2, 21)))
+        assertEquals(APOD, phone.owner())
+        assertEquals(APOD, phone.owner(LOCK))
+        assertEquals(on(d2, 6), phone.records.getValue(HOME).stamp)
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), phone.run(on(d3, 6)))
+    }
+
+    @Test
+    fun apodStaysAtTheDailySwitchOnBeforeTheAnchor() {
+        // The daily switch off and on at 21:00 (`Store.startAfresh`: the stored setup, the anchor
+        // as stored): the same as a Set without a new order.
+        val phone = apodOn(d2)
+        phone.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        val restart = restartAndForget(phone.columns, phone.columns, phone.records, phone.stored, phone.time, zone, on(d2, 21), phone.rotation)
+        assertEquals(emptySet(), restart.drop)
+        phone.records = phone.records + restart.plan.screens.mapValues { it.value.record }
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), phone.run(on(d2, 21)))
+        assertEquals(APOD, phone.owner())
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), phone.run(on(d3, 6)))
+    }
+
+    @Test
+    fun fromTheAnchorOnASetIsRo1sWithTheFormula() {
+        // The next day at 07:00, APOD on (a record as a pull could leave it): a Set without a new
+        // order goes to the formula's turn at once, NASA (the top at A); before A it kept APOD.
+        val phone = apodOn(d2)
+        phone.rotation = Rotation(nae, d3)
+        phone.records = phone.records.mapValues { it.value.copy(stamp = on(d3, 6)) }
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), phone.set(on(d3, 7)))
+        assertEquals(NASA, phone.owner())
+        assertEquals(on(d3, 6), phone.records.getValue(HOME).stamp)
+        // The day after, APOD's turn by the formula.
+        val next = apodOn(d2).apply { rotation = Rotation(nae, d3) }
+        next.records = next.records.mapValues { Record(EARTH, pic(EARTH), on(d3.plusDays(1), 6)) }
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), next.set(on(d3.plusDays(1), 7)))
+    }
+
+    @Test
+    fun anOrderSetBeforeAMissedRunTakesTheChangeTime() {
+        // 24 h, an offset of 7 min: APOD on since yesterday's 06:00; the order Set at 06:03 (A is
+        // tomorrow's 06:00), then the 06:07 run: today's 06:00 is the anchor's −1 (Earth), but the
+        // Set took it, so nothing from the order goes on; APOD's own newer picture by rule 2 does.
+        val phone = apodOn(d1)
+        assertEquals(emptyList(), phone.set(on(d2, 6, 3), rotation = Rotation(nae, d3), orderOnly = true))
+        assertEquals(on(d2, 6), phone.records.getValue(HOME).stamp)
+        assertEquals(APOD, phone.owner())
+        phone.stored = stored(posts + (APOD to post(APOD, d2, published = on(d2, 6, 5))))
+        assertEquals(listOf(pic(APOD, d2) to setOf(HOME, LOCK)), phone.run(on(d2, 6, 7)))
+        assertEquals(APOD, phone.owner())
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), phone.run(on(d3, 6, 7)))
+    }
+
+    @Test
+    fun theFirstSetWithNoAnchorKeepsTheOwnerAndSetsItAgain() {
+        // An update from 0.6.0 (no `orderFrom`), Set tapped with the order unchanged: `Store` writes
+        // the anchor (the next "New picture at"), and the owner is kept and set again, not RO1's NASA.
+        val phone = apodOn(d2)
+        val anchor = phone.time.anchorDate(on(d2, 20), zone)
+        assertEquals(d3, anchor)
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), phone.set(on(d2, 20), rotation = Rotation(all, anchor)))
+        assertEquals(APOD, phone.owner())
+        // At the anchor the top of the default order, APOD (kept), then NASA.
+        assertEquals(emptyList(), phone.run(on(d3, 6)))
+        assertEquals(APOD, phone.owner())
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), phone.run(on(d3.plusDays(1), 6)))
+    }
+
+    @Test
+    fun everySixHoursTheTopLandsAtTheAnchor() {
+        // The plan's table: NASA, APOD, Earth set at 20:00, every 6 h.
+        val three = apodOn(d2, time = PictureTime(6, 6))
+        three.records = three.records.mapValues { it.value.copy(stamp = on(d2, 18)) }
+        assertEquals(emptyList(), three.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true))
+        val expected = listOf(EARTH, NASA, APOD, EARTH, NASA, APOD)
+        for ((k, source) in expected.withIndex()) {
+            three.run(on(d3, 0) + Duration.ofHours(6L * k))
+            assertEquals(source, three.owner(), "change $k")
+        }
+        // NASA and APOD: the top at every 06:00 and 18:00.
+        val two = apodOn(d2, cols(listOf(APOD, NASA)), PictureTime(6, 6))
+        two.records = two.records.mapValues { it.value.copy(stamp = on(d2, 18)) }
+        assertEquals(emptyList(), two.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true))
+        for ((k, source) in listOf(APOD, NASA, APOD, NASA, APOD, NASA).withIndex()) {
+            two.run(on(d3, 0) + Duration.ofHours(6L * k))
+            assertEquals(source, two.owner(), "change $k")
+        }
+    }
+
+    @Test
+    fun aPhoneOffOverTheAnchorTakesTheCurrentTurn() {
+        // 24 h: off from 05:00 to 08:00, the top at 08:00.
+        val daily = apodOn(d2)
+        daily.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), daily.run(on(d3, 8)))
+        // 6 h: off until 13:00, 12:00's source, the second, APOD.
+        val six = apodOn(d2, time = PictureTime(6, 6))
+        six.records = six.records.mapValues { it.value.copy(stamp = on(d2, 18)) }
+        six.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        six.records = six.records.mapValues { it.value.copy(owner = EARTH, picture = pic(EARTH), stamp = on(d3, 0)) }
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), six.run(on(d3, 13)))
+        assertEquals(APOD, six.owner())
+    }
+
+    @Test
+    fun theTopWithNothingToShowPassesToTheNextInTheList() {
+        // Earth, NASA, APOD with nothing of Earth's: at the anchor NASA, the next in the list's
+        // order (APOD → NASA → Earth would give APOD).
+        val phone = apodOn(d2)
+        phone.stored = stored(posts - EARTH)
+        phone.set(on(d2, 20), rotation = Rotation(listOf(EARTH, NASA, APOD), d3), orderOnly = true)
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), phone.run(on(d3, 6)))
+        assertEquals(NASA, phone.owner())
+    }
+
+    @Test
+    fun beforeTheAnchorKeepCantHoldGivesTheTop() {
+        val rotation = Rotation(nae, d3)
+        // The owner unticked: the top, NASA.
+        val unticked = apodOn(d2)
+        unticked.set(on(d2, 20), rotation = rotation, orderOnly = true)
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), unticked.set(on(d2, 21), after = cols(listOf(NASA, EARTH))))
+        assertEquals(NASA, unticked.owner())
+        // The owner with nothing to show (APOD's video, "Skip it"), the top too: Earth, NASA, APOD
+        // with nothing of Earth's gives NASA.
+        val video = apodOn(d2)
+        video.stored = stored(posts - EARTH + (APOD to post(APOD, d2, video = true)))
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), video.set(on(d2, 20), rotation = Rotation(listOf(EARTH, NASA, APOD), d3)))
+        assertEquals(NASA, video.owner())
+        // No record (a fresh install, the switch on): the top.
+        val fresh = Turns(cols(all), PictureTime(6, 24), rotation, emptyMap())
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), fresh.set(on(d2, 20)))
+        assertEquals(Record(NASA, pic(NASA), on(d2, 6)), fresh.records.getValue(LOCK).bare())
+        // A screen whose column was empty: its stale record goes, it starts on the top.
+        val stale = apodOn(d2, cols(all, emptyList()))
+        stale.records = stale.records + (LOCK to Record(EARTH, pic(EARTH), on(d1, 6)))
+        assertEquals(listOf(pic(APOD) to setOf(HOME), pic(NASA) to setOf(LOCK)), stale.set(on(d2, 20), after = cols(all, listOf(NASA, EARTH)), rotation = rotation))
+        assertEquals(NASA, stale.owner(LOCK))
+    }
+
+    @Test
+    fun beforeTheAnchorASetWithTheDailySwitchOffPutsTheTopOn() {
+        // Night default 2: nothing turns with the switch off, so Set puts the top on at once.
+        val phone = apodOn(d2)
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), phone.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true, daily = false))
+        assertEquals(NASA, phone.owner())
+        // Also a Set without a new order before A.
+        val other = apodOn(d2).apply { rotation = Rotation(nae, d3) }
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), other.set(on(d2, 21), daily = false))
+        // From A on RO1's Set: the formula's turn (the day after A, APOD).
+        val later = apodOn(d2).apply { rotation = Rotation(nae, d3) }
+        later.records = later.records.mapValues { Record(EARTH, pic(EARTH), on(d3.plusDays(1), 6)) }
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), later.set(on(d3.plusDays(1), 7), daily = false))
+    }
+
+    @Test
+    fun columnsThatDifferEachGetTheirTopAtTheAnchor() {
+        val phone = Turns(
+            cols(listOf(APOD, NASA), listOf(APOD, EARTH)), PictureTime(6, 24), Rotation(),
+            mapOf(HOME to Record(APOD, pic(APOD), on(d2, 6)), LOCK to Record(APOD, pic(APOD), on(d2, 6))),
+        )
+        assertEquals(emptyList(), phone.set(on(d2, 20), rotation = Rotation(listOf(EARTH, NASA, APOD), d3), orderOnly = true))
+        assertEquals(listOf(pic(NASA) to setOf(HOME), pic(EARTH) to setOf(LOCK)), phone.run(on(d3, 6)))
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), phone.run(on(d3.plusDays(1), 6)))
+    }
+
+    @Test
+    fun fromTheAnchorAChangedChangeEveryKeepsTheAnchorsDate() {
+        // NASA, APOD, Earth from 21 Oct; at 07:00 that day "Change every" 24 h → 6 h: the
+        // formula with 4 change times a day, S[(N(c) − N(A)) mod 3], each 06:00 k days after the
+        // anchor S[4k mod 3].
+        val phone = apodOn(d2)
+        phone.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        phone.run(on(d3, 6))
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), phone.set(on(d3, 7), time = PictureTime(6, 6)))
+        assertEquals(NASA, phone.owner())
+        val expected = listOf(APOD, EARTH, NASA, APOD, EARTH, NASA, APOD, EARTH)
+        for ((k, source) in expected.withIndex()) {
+            val change = on(d3, 12) + Duration.ofHours(6L * k)
+            phone.run(change)
+            assertEquals(source, phone.owner(), "change $k at $change")
+        }
+    }
+
+    @Test
+    fun fromTheAnchorAChangedNewPictureAtKeepsTheDaysPositions() {
+        // 06:00 → 08:00, the anchor's date kept: the day after A at 08:00 APOD, then Earth.
+        val phone = apodOn(d2)
+        phone.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        phone.run(on(d3, 6))
+        val d4 = d3.plusDays(1)
+        phone.run(on(d4, 6))
+        assertEquals(APOD, phone.owner())
+        phone.records = phone.records.mapValues { Record(EARTH, pic(EARTH), on(d4, 6)) }
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), phone.set(on(d4, 9), time = PictureTime(8, 24)))
+        assertEquals(emptyList(), phone.run(on(d4.plusDays(1), 7, 59)))
+        assertEquals(listOf(pic(EARTH) to setOf(HOME, LOCK)), phone.run(on(d4.plusDays(1), 8)))
+        // A change of hour can move A after now: 06:00 → 08:00 at 07:00 on A's day keeps what's on.
+        val early = apodOn(d2)
+        early.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        early.run(on(d3, 6))
+        early.records = early.records.mapValues { Record(EARTH, pic(EARTH), on(d3, 6)) }
+        assertEquals(listOf(pic(EARTH) to setOf(HOME, LOCK)), early.set(on(d3, 7), time = PictureTime(8, 24)))
+        assertEquals(EARTH, early.owner())
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), early.run(on(d3, 8)))
+    }
+
+    @Test
+    fun fromTheAnchorATickUsesTheFormulaWithTheNewCount() {
+        // NASA and APOD from 21 Oct; on 23 Oct (k = 2) Earth ticked: S[2 mod 3] = Earth at once
+        // (with two, NASA).
+        val phone = apodOn(d2, cols(listOf(APOD, NASA)))
+        phone.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        val d5 = d3.plusDays(2)
+        phone.run(on(d5, 6))
+        assertEquals(NASA, phone.owner())
+        assertEquals(listOf(pic(EARTH) to setOf(HOME, LOCK)), phone.set(on(d5, 7), after = cols(all)))
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), phone.run(on(d5.plusDays(1), 6)))
+    }
+
+    @Test
+    fun withSoonAKeptOwnersNewerPictureGoesOnAnothersWaits() {
+        val phone = apodOn(d2)
+        phone.soon = true
+        phone.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        // Out at 20:30, after the window: APOD's goes on, NASA's waits for its turn.
+        phone.stored = stored(posts + (APOD to post(APOD, d2, published = on(d2, 20, 30))) + (NASA to post(NASA, d2, published = on(d2, 20, 30))))
+        assertEquals(listOf(pic(APOD, d2) to setOf(HOME, LOCK)), phone.run(on(d2, 21)))
+        assertEquals(APOD, phone.owner())
+        assertEquals(listOf(pic(NASA, d2) to setOf(HOME, LOCK)), phone.run(on(d3, 6)))
+        // Off: APOD's waits too.
+        val off = apodOn(d2)
+        off.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        off.stored = phone.stored
+        assertEquals(emptyList(), off.run(on(d2, 21)))
+    }
+
+    @Test
+    fun theStandInFillsApodsPlaceInTheOrder() {
+        // NASA, APOD, Earth every 6 h, APOD a video with Earth for video days: 12:00 after the
+        // anchor is APOD's turn, Earth's picture with APOD as the owner.
+        val phone = apodOn(d2, time = PictureTime(6, 6))
+        phone.records = phone.records.mapValues { it.value.copy(stamp = on(d2, 18)) }
+        phone.set(on(d2, 20), rotation = Rotation(nae, d3), orderOnly = true)
+        phone.stored = stored(posts + (APOD to post(APOD, d3, video = true)), StandIn.EARTH)
+        phone.run(on(d3, 6))
+        assertEquals(NASA, phone.owner())
+        assertEquals(listOf(pic(EARTH) to setOf(HOME, LOCK)), phone.run(on(d3, 12)))
+        assertEquals(APOD, phone.owner())
+    }
+
+    @Test
+    fun aDstDayAsTheAnchor() {
+        // Zurich, "New picture at" 02:00: on 28 Mar 2027 it comes at 03:00 (the gap's end).
+        val zurich = ZoneId.of("Europe/Zurich")
+        val time = PictureTime(2, 24)
+        val set = at(zurich, "2027-03-27T20:00")
+        val anchor = time.anchorDate(set, zurich)
+        assertEquals(LocalDate.parse("2027-03-28"), anchor)
+        val records = mapOf(HOME to Record(APOD, pic(APOD), at(zurich, "2027-03-27T02:00")), LOCK to Record(APOD, pic(APOD), at(zurich, "2027-03-27T02:00")))
+        val phone = Turns(cols(all), time, Rotation(), records, zone = zurich)
+        assertEquals(emptyList(), phone.set(set, rotation = Rotation(nae, anchor), orderOnly = true))
+        assertEquals(emptyList(), phone.run(at(zurich, "2027-03-28T01:59")))
+        assertEquals(listOf(pic(NASA) to setOf(HOME, LOCK)), phone.run(at(zurich, "2027-03-28T03:00")))
+        assertEquals(listOf(pic(APOD) to setOf(HOME, LOCK)), phone.run(at(zurich, "2027-03-29T02:00")))
+    }
+
+    @Test
+    fun withoutAnAnchorTheDefaultOrderIsRo1s() {
+        // Rotation() is RO1's rotation: the same plan as without it.
+        val records = mapOf(HOME to Record(EARTH, pic(EARTH), t0 - h3))
+        for (k in 0..5L) {
+            val now = t0 + h3.multipliedBy(k)
+            assertEquals(
+                dueWallpapers(cols(all, emptyList()), records, stored(), time, zone, now),
+                dueWallpapers(cols(all, emptyList()), records, stored(), time, zone, now, rotation = Rotation()),
+            )
+            assertEquals(
+                restartAndForget(cols(all), cols(all), records, stored(), time, zone, now),
+                restartAndForget(cols(all), cols(all), records, stored(), time, zone, now, Rotation(), orderOnly = true, daily = false),
+            )
+        }
+    }
 }

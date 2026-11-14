@@ -24,14 +24,15 @@ import kotlin.test.fail
  * runs (the alarm's id 2 pending while offline, its `schedule()` failing now and then) and the
  * fallback job's, page opens, pulls, Sets (now and then with a new setup), the daily switch off
  * and on, offline spans from minutes to two days, failed checks and sets, killed runs and the
- * phone switched off. [SimPhone] does what `Store` and `DailyJob` do around `:core`'s
+ * phone switched off; since OR1 a Set draws the list's order now and then (alone, with other changes,
+ * in APOD mode), moving the anchor as `Store.saveSetup` does. [SimPhone] does what `Store` and `DailyJob` do around `:core`'s
  * rules; the invariants come from CLAUDE.md's rules (Background update; Turns and the picture
  * time), not from the code, and a failure names the seed, the invariant and the day's runs and
  * sets. A seed that finds a bug stays in [knownBugs] with its own `@Ignore`d test until a fix.
  */
 class RulesSimulationTest {
     @Test
-    fun theRulesHoldOverRandomMonths() = simulate(soon = false, invariants = 1..9)
+    fun theRulesHoldOverRandomMonths() = simulate(soon = false, invariants = (1..9) + (11..13))
 
     /**
      * The same seeds with "As soon as it's out" on (SO1), now and then turned off and on again by
@@ -40,10 +41,10 @@ class RulesSimulationTest {
      * newest after every run.
      */
     @Test
-    fun theRulesHoldOverRandomMonthsWithSoon() = simulate(soon = true, invariants = 1..10)
+    fun theRulesHoldOverRandomMonthsWithSoon() = simulate(soon = true, invariants = (1..13).toList())
 
-    private fun simulate(soon: Boolean, invariants: IntRange) {
-        val checked = IntArray(11)
+    private fun simulate(soon: Boolean, invariants: List<Int>) {
+        val checked = IntArray(14)
         val failures = (1..SEEDS).filter { it !in knownBugs }.mapNotNull { seed ->
             val phone = SimPhone(seed, soon)
             try {
@@ -142,6 +143,12 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
 
     /** Draws "As soon as it's out" at a Set ([soonDrawn] only), apart from [r], so the seeds without it run as before. */
     private val soonR = Random(seed * 104729L + 3)
+
+    /** Draws the list's order at a Set (OR1), apart from [r] and [soonR], so the seeds' other draws stay as they were. */
+    private val orderR = Random(seed * 15485863L + 5)
+
+    /** The last event was a Set that may move the anchor (invariant 13). */
+    private var anchorMayMove = false
     private val start: Instant
     private val end: Instant
     private val offset: Duration
@@ -177,8 +184,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     private val kept = mutableMapOf<Screen, Pair<Post, Picture>>()
     private val log = mutableListOf<Pair<Instant, String>>()
 
-    /** How often each invariant was checked (index 1–10). */
-    val checked = IntArray(11)
+    /** How often each invariant was checked (index 1–13). */
+    val checked = IntArray(14)
 
     // The run going through setDue
     private var kind = Kind.PAGE
@@ -459,10 +466,13 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     }
 
     /**
-     * 5. The rotation (RO1): at a change time a screen with turns goes to the source whose turn it
-     * is by the clock (the change time's number mod the column, APOD → NASA → Earth), or, when that
-     * one has nothing to show, the next in order with a picture, and shows its newest picture
-     * (also one shown before; never back). Missed change times make one change, by the current one.
+     * 5. The rotation (RO1): at a change time a screen with turns takes the change time and shows
+     * its new owner's newest picture (also one shown before; never back). Missed change times make
+     * one change, by the current one.
+     * 11. The owner (OR1; was 5's, by APOD → NASA → Earth from 1970-01-01): the column's ticked
+     * sources in the list's order, S[(N(c) − N(A)) mod n] with the anchor stored then (N(A) its
+     * date's epoch day × the change times a day, 0 without one), or, when that one has nothing to
+     * show, the next in the list's order with a picture.
      */
     private fun rotation(now: Instant, stored: Stored) {
         if (kind.free) return
@@ -473,15 +483,17 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             val change = lastChange(now, true)
             if (stamp !in changeTimes(stamp, true) || stamp >= change) continue
             checked[5]++
-            val number = numbered(now).last { it.first <= now }.second
-            val order = Source.entries.filter { it in column }
+            val anchor = rotation.from?.let { it.toEpochDay() * (24 / time.everyHours) } ?: 0L
+            val number = numbered(now).last { it.first <= now }.second - anchor
+            val order = rotation.order.filter { it in column }
             val first = Math.floorMod(number, order.size)
             val turn = order[first]
             val withPicture = order.indices.map { order[(first + it) % order.size] }.firstOrNull { stored.picture(it) != null }
             val record = records[screen]
             if (record?.stamp != change) fail(now, 5, "$screen kept the stamp ${record?.stamp?.let { local(zone, it) }} at the change ${local(zone, change)}")
             val owner = withPicture ?: turn
-            if (record.owner != owner) fail(now, 5, "$screen went to ${record.owner} at ${local(zone, change)}, the turn is $turn's (number $number), with a picture $withPicture")
+            checked[11]++
+            if (record.owner != owner) fail(now, 11, "$screen went to ${record.owner} at ${local(zone, change)}, the turn is $turn's (number $number from the anchor ${rotation.from}, order ${rotation.order}), with a picture $withPicture")
             val due = withPicture?.let { stored.picture(it) } ?: continue
             val on = wall[screen]
             val older = due is Picture.Of && on is Picture.Of && due.source == on.source && due.date < on.date
@@ -615,18 +627,63 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         if (daily) arm(now)
     }
 
-    /** "Set as wallpaper": the draft saved (now and then a new setup), the records forgotten, then Set's update. */
+    /**
+     * "Set as wallpaper": the draft saved (now and then a new setup, now and then a new order: alone,
+     * with other changes, or hidden in APOD mode), the records forgotten or kept until the anchor,
+     * then Set's update.
+     */
     private fun tapSet(now: Instant) {
-        val new = if (r.nextBoolean()) drawSetup(r).let { if (r.nextBoolean()) it.copy(columns = columns, allSources = allSources) else it } else setup
-        if (soonDrawn && soonR.nextInt(4) == 0) soon = !soon
-        note(now, "Set: $new${if (soon) ", as soon as it's out" else ""}")
+        val drawn = if (r.nextBoolean()) drawSetup(r).let { if (r.nextBoolean()) it.copy(columns = columns, allSources = allSources) else it } else setup
+        val toggleSoon = soonDrawn && soonR.nextInt(4) == 0
+        // OR1: half the Sets draw an order, half of those change the order alone.
+        val drawOrder = orderR.nextBoolean()
+        val alone = drawOrder && orderR.nextBoolean()
+        val draftOrder = if (drawOrder) Source.entries.shuffled(orderR) else rotation.order
+        val new = if (alone) setup else drawn
+        if (toggleSoon && !alone) soon = !soon
+        // Store.saveSetup (OR2, Night default 3): the order and the anchor only while the list shows;
+        // the anchor moves with a new order, or when none is stored; "only the order" compares the
+        // whole setup but the order (no newly picked "my picture", "As soon as it's out" the same).
+        val list = new.allSources
+        val newOrder = list && draftOrder != rotation.order
+        anchorMayMove = list && (newOrder || rotation.from == null)
+        val orderOnly = newOrder && new == setup && !(toggleSoon && !alone)
+        val newRotation = if (!list) rotation else Rotation(draftOrder, if (anchorMayMove) new.time.anchorDate(now, zone) else rotation.from)
+        note(now, "Set: $new${if (soon) ", as soon as it's out" else ""}, order ${newRotation.order} from ${newRotation.from}${if (orderOnly) " (the order alone)" else ""}")
         val before = columns
+        val prior = records
+        val leads = Screen.entries.associateWith { if (equalColumns()) prior[HOME] else prior[it] }
         apply(new)
+        rotation = newRotation
         // The new setup's stand-in, as Store.saveSetup (RO2's fix round): not the one before it.
-        val restart = restartAndForget(before, new.columns, records, stored(now), new.time, zone, now)
+        val stored = stored(now)
+        val restart = restartAndForget(before, new.columns, records, stored, new.time, zone, now, rotation, orderOnly, daily)
         records = records + restart.plan.screens.mapValues { it.value.record } - restart.drop
         update(now, Kind.SET, force = false, page = true, set = true)
+        if (orderOnly && daily) orderAlone(now, leads, stored)
         if (daily) arm(now) else alarm = null.also { alarmFires = null; runPending = null }
+    }
+
+    /**
+     * 12. At a Set of the order alone with the daily switch on (OR1, Night default 1): every screen
+     * whose owner can hold (ticked there and with something to show; with equal columns home's)
+     * keeps it, and Set's own update puts on no other source's picture (rule 2, "As soon as it's
+     * out" or a retry may still set the owner's newer picture).
+     */
+    private fun orderAlone(now: Instant, leads: Map<Screen, Record?>, stored: Stored) {
+        for (screen in Screen.entries) {
+            val column = columns[screen].orEmpty()
+            if (column.isEmpty()) continue
+            val owner = records[screen]?.owner
+            setNow[screen]?.let { picture ->
+                checked[12]++
+                if (owner == null || picture != stored.picture(owner)) fail(now, 12, "the order alone put ${picture.label()} on $screen, not $owner's")
+            }
+            val lead = leads[screen] ?: continue
+            if (lead.owner !in column || stored.picture(lead.owner) == null) continue
+            checked[12]++
+            if (owner != lead.owner) fail(now, 12, "the order alone moved $screen from ${lead.owner} to $owner")
+        }
     }
 
     private fun switchDaily(now: Instant, on: Boolean) {
@@ -642,7 +699,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             runPending = null
             return
         }
-        val restart = restartAndForget(columns, columns, records, stored(now), time, zone, now)
+        // `Store.startAfresh`: the stored setup and anchor (OR1: kept what's on before it).
+        val restart = restartAndForget(columns, columns, records, stored(now), time, zone, now, rotation)
         records = records + restart.plan.screens.mapValues { it.value.record } - restart.drop
         update(now, Kind.SWITCH_ON, force = false, page = true)
         arm(now)
@@ -655,6 +713,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             val scripted = if (events.isEmpty()) null else events.firstKey()
             val next = listOfNotNull(scripted, alarmFires?.takeIf { !poweredOff }, runPending?.takeIf { !poweredOff }, fallback?.takeIf { !poweredOff }).min()
             if (next >= end) return
+            val anchorBefore = rotation.from
+            anchorMayMove = false
             when (next) {
                 scripted -> {
                     val event = events.remove(scripted)!!
@@ -697,6 +757,9 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
                     jobRun(next, Kind.FALLBACK)
                 }
             }
+            // Invariant 13 (OR1): the anchor moves only at a Set with the list shown and a new order or none stored.
+            checked[13]++
+            if (rotation.from != anchorBefore && !anchorMayMove) fail(next, 13, "the anchor moved from $anchorBefore to ${rotation.from}")
             // Invariant 9 (O4a): while the switch is on and the phone is on, an alarm is armed or id 2 is pending.
             if (daily && !poweredOff) {
                 checked[9]++
@@ -715,7 +778,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         throw SimFailure(
             seed, invariant,
             "seed $seed, invariant $invariant at ${local(zone, now)} ($kind): $what\n" +
-                "  $zone, offset ${offset.seconds} s, from ${local(zone, start)} ${start.atZone(zone).toLocalDate()}; $setup${if (soon) ", as soon as it's out" else ""}\n" +
+                "  $zone, offset ${offset.seconds} s, from ${local(zone, start)} ${start.atZone(zone).toLocalDate()}; $setup${if (soon) ", as soon as it's out" else ""}, order ${rotation.order} from ${rotation.from}\n" +
                 "  records: $records\n" +
                 "  the runs and sets of the day before and the day:\n$lines",
         )

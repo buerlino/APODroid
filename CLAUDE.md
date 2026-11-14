@@ -295,7 +295,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   summary is of the **stored** setup, grouped by screen (U0): "APOD, NASA · both screens"
   while both screens have the same sources (APOD mode with Both: "APOD · both screens"), "APOD ·
   home screen" or "… · lock screen" while only one has any, else "Home: APOD, Earth · Lock:
-  NASA, Earth"; then, while the daily switch is on, " · every 6 h from 06:00" while a screen
+  NASA, Earth" (the sources in the list's order, OR2: "NASA, APOD · both screens"); then, while
+  the daily switch is on, " · every 6 h from 06:00" while a screen
   takes turns, else " · 06:00", 12/24 h as the system says. At its top the switch **More NASA pictures**
   (Setup is the draft, Advanced acts at once), then in APOD mode **Where**, with the switch on
   **Pictures from** (the list); while the daily switch is on **New picture at**, "As soon as
@@ -335,18 +336,21 @@ set it as wallpaper, and on video days kept the old wallpaper.
   - **The highlight**: each draft setting that differs from the stored setup shows in the
     theme's `tertiary` until Set: its heading, a segmented row's chosen segment
     (`tertiaryContainer` / `onTertiaryContainer`) and the row's borders (`tertiary`), the
-    list's row (tick box, name, dropdown) where that source's screens differ, the video
+    list's row (tick box, name, dropdown) where that source's screens differ, a list row's "≡"
+    where its place differs from the stored order (OR2), the video
     dropdown's border and text (another choice, or a newly picked "my picture" while it's
     chosen), the mode switch and its label, crop mode's "Whole picture" toggle while it differs
     (not ⛶ since U0: ✓ saves the part at once), the
-    "Setup" row's title while anything in it differs (the shown mode's "Where" or list, the
+    "Setup" row's title while anything in it differs (the shown mode's "Where" or list and its
+    order, the
     mode switch, "New picture at", "As soon as it's out", "Change every", "If APOD is a
     video", "Darken bright pictures"; not ⛶). Not the daily
     switch, nor Advanced (they act at once). Screen readers: a highlighted control's state adds
     "not set yet" ("Selected, not set yet", "Checked, not set yet", "On, not set yet"; the rows
     "collapsed, not set yet").
   - **Set applies the setup** (user, 2026-10-20 evening; why: a change took effect at once,
-    "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks and dropdowns),
+    "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks, dropdowns and
+    order),
     "New picture at", "As soon as it's out", "Change every", "If APOD is a video", "Darken
     bright pictures", a newly picked "my picture" and the switch "More NASA pictures" change only the page
     (`MainActivity`'s draft state; no pref is written, no set, no scheduling). **A hidden
@@ -440,14 +444,31 @@ set it as wallpaper, and on video days kept the old wallpaper.
     last (`<source>.lastScreens`, written with the list by Set; the draft's while unsaved; Both
     when it never had any); ticking it puts the source there. The last ticked row can't be
     unticked (greyed out); its dropdown still moves it. Screen readers: the row "NASA" (a
-    checkbox), the dropdown "NASA on: Home screen". The prefs are the columns `home` and `lock`
+    checkbox), the dropdown "NASA on: Home screen". **The order** (OR2, 2026-11-14, user: "must
+    be sortable using an icon to drag up and down"; `order-0.7.0.md`): the rows stand in the
+    list's order, the turns' order (Turns and the picture time), and each has a handle "≡" at its
+    start, before the tick box (a text glyph in `onSurfaceVariant`, `tertiary` while the row's
+    place differs from the stored order; a 48 dp target; on all three rows, ticked or not, also
+    the last ticked one): a vertical drag on it (no long press; `detectVerticalDragGestures`)
+    lifts the row (`zIndex`, `graphicsLayer`'s `translationY`, a shadow) and swaps it with its
+    neighbour once it has passed half that row's height; the handle consumes the drag, so the pane
+    doesn't scroll while a row moves and still scrolls from anywhere else. Screen readers: the
+    handle is hidden, the tick box has the actions "Move up" (not on the first row) and "Move
+    down" (not on the last), which move it as the drag does; ", not set yet" when the row's
+    place or screens differ. Part of the draft (the saved state, `setupChanged` while the list
+    shows), kept when "More NASA pictures" is turned off and on in the draft, written by Set only
+    while the list shows (in APOD mode it changes nothing). The prefs `order` (a comma list of
+    all three, `NASA,APOD,EARTH`; default APOD, NASA, Earth; read tolerantly, `:core`'s
+    `orderOf`) and `orderFrom` (the anchor, a local date; Turns and the picture time). The
+    title's dropdown, the swipe, the problem box and "Save every picture" keep APOD, NASA, Earth
+    (the sources the page offers, not the turns). The prefs are the columns `home` and `lock`
     (comma lists, `Store.list`; `Store.columns` is the list with the switch on, else APOD on the
     screens "Where" names, `apodColumns`). With a column of two or more, while the daily switch
     is on, **Change every** [24 h | 12 h | 6 h | 3 h] (`Store.interval`, the pref `interval`,
     default `DAY`, 24 h) below the list, with an ⓘ ("About Change every", RO2, 2026-11-14; the
     user's Open 3: the rotation is what confused) whose dialog says "Every 6 h from 06:00, each
-    screen switches to its next source's newest picture." with the draft's values (a placeholder
-    until the user approves it); hiding it moves the page only after a tick. While the
+    screen switches to its next source in the list; a new order starts with the top one at
+    06:00." with the draft's values (OR2; a placeholder until the user approves it); hiding it moves the page only after a tick. While the
     daily switch is off "Where" or the list still shows, so a one-off Set uses settings the user
     can see.
   - **Weekday dialog** (user, 2026-10-17): ticking NASA or Earth where it wasn't ticked on
@@ -991,9 +1012,11 @@ RO1 the rules don't read the notes, and since RO2 nothing does: still written, n
    time and is due its newest picture by rule 2's publish time (no set when it's on already);
    with several (turns, a plain rotation since RO1, user, 2026-11-11 and 14) the turn's source
    by the clock, the change time's number mod the column's sources in order (APOD → NASA →
-   Earth), becomes the owner and its newest picture goes on, also one this screen has shown;
+   Earth; since OR2 the list's order from the anchor, below), becomes the owner and its newest
+   picture goes on, also one this screen has shown;
    a source with nothing to show (nothing stored, APOD's video with "Skip it" or "Use my
-   picture" without one) passes the turn to the next with a picture (`nextSource`), and with
+   picture" without one) passes the turn to the next with a picture in the list's order
+   (`nextSource`), and with
    none the screen keeps its picture; it takes the change time either way. So with APOD and
    NASA every 6 h from 06:00 APOD is on at 06:00 and 18:00, NASA at 12:00 and 00:00; every
    24 h they take days in turn. A phone off, a Set or a pull never shifts the rotation; missed
@@ -1059,7 +1082,26 @@ a picture when that source has none, by the new setup's "If APOD is a video": RO
 change time as its stamp, so the next run doesn't move it on and the next change comes at the
 next change time. The notes
 stay; the change times don't move. Turning the daily switch on (`Store.startAfresh`) does
-the same with the stored columns, saving nothing else. A screen left alone (an empty column)
+the same with the stored columns, saving nothing else. **The list's order and its anchor**
+(OR1 `:core`, OR2 `Store` and the page, 2026-11-14; `order-0.7.0.md`): a column's ticked
+sources in the list's order (`Store.order`), S₀ … Sₙ₋₁, the turn at change time c is
+S[(N(c) − N(A)) mod n] (`Rotation`, `Rules.turnOf`): A the anchor, the "New picture at" of the
+date `orderFrom`, N(A) that date's epoch day × the change times a day, from the current setup
+(never stored; without `orderFrom` 0: RO1's rotation exactly, the update from 0.6.0 needs no
+migration). **A Set moves the anchor** only with the list shown and an order other than the
+stored one, or none stored: `orderFrom` becomes the local date of the next "New picture at"
+after the Set (`PictureTime.anchorDate`, the saved setup's hour), so the top comes at the next
+"New picture at" and the change times before it go on, phased to it. **Before A** a Set and the
+daily switch on keep what's on (`keepUntilAnchor`): a Set of the order alone (`saveSetup`'s
+`orderOnly`, `:core`'s `orderAlone`: the whole `Setup` equal but the order, the parts included, the list's columns
+compared as sets, no newly picked "my picture") keeps each record with the current change time
+as its stamp and sets nothing ("Setup saved. Nothing to set yet."); anything else (other
+changes too, a Set that changed nothing, the switch on) keeps each screen's owner and sets its
+picture again ("APOD stays", user, 2026-11-14); keep can't hold (no record, the owner unticked
+or with nothing to show) or the daily switch off: the top ticked source, the next in the list's
+order with a picture, at once. **From A on** they are RO1's Set above (the turn by the formula,
+a Set never shifts it); `orderFrom` stays. Rule 2, "As soon as it's out", the stand-in, equal
+columns and the change times as before. A screen left alone (an empty column)
 keeps its record. A screen whose column was empty starts without a record (its owner is
 removed): it was left alone meanwhile, so its record is stale. A screen with no record (the
 lock screen after migrating "Home", a fresh install, such a column) starts on the turn's source
@@ -1232,7 +1274,8 @@ RO1, 2026-11-14: 0.7.0: turns as a plain rotation; Turns and the picture time.)
   one NASA 503 at 06:00 lost the morning. No model of each source's posting time (user,
   2026-10-23).
 - **Opening the app** sets only what's due (no setting; user, 2026-10-23: one timing story).
-- **Dropped** (user, 2026-10-23 night): "Turns start at" with "When I tap Set", the ↑ ↓ order,
+- **Dropped** (user, 2026-10-23 night): "Turns start at" with "When I tap Set", the ↑ ↓ order
+  (back as the list's drag order, 2026-11-14, OR2: Next features, 0.7.0: the list's order),
   "When nothing is new" (always keep), the "Opening the app" setting, "As soon as it's out",
   each source's expected posting time.
 - **Android first** (J0, the night of 2026-10-22/23 on the tablet, on battery, deep Doze;
@@ -1427,6 +1470,22 @@ from SO3's screenshots, 2026-11-14), Setup's summary doesn't name it, the pause 
 Optimized line unchanged. **Built** (SO1 `:core`, SO2 the switch, `Store` and this file,
 2026-11-14): The app, Settings; Turns and the picture time; Traffic. SO3, the tablet's faked
 afternoon post, checks it.
+
+**0.7.0: the list's order** (user, 2026-11-14: "The list of the sources, APOD, NASA, Earth,
+must be sortable using an icon to drag up and down; once they are in the arrangement you want,
+upon setting it, the wallpaper that is on top will be set at 06:00."; the rules, the night
+defaults and the packages OR1–OR2 in
+[order-0.7.0.md](.claude/skills/build-apodroid-android/order-0.7.0.md)). Decided (user,
+2026-11-14, with susanna's review): the order is the turns' order for both screens, part of the
+draft; a Set of a new order keeps what's on and the top goes on at the next "New picture at",
+the change times in between still turning, phased to it; only a new order (or the first Set
+with the list and no anchor) moves the anchor; "APOD stays": until then a Set without a new
+order and the switch on keep the owner; with the daily switch off a Set of a new order puts the
+top on at once; "Move up" / "Move down" for screen readers. This changes RO1's "a Set never
+shifts the rotation" once per new order. **Built** (OR1 `:core`, OR2 `Store`, the page and this
+file, 2026-11-14): The app, Settings (the list); Turns and the picture time. The texts "≡",
+"Move up", "Move down" and "Change every"'s ⓘ are placeholders; whether TalkBack offers the
+actions on the greyed-out last ticked row is the user's FP6 check.
 
 **0.8.0: Fill's frame on the subject** (user, 2026-11-02, from issue #3: "for 0.8.0";
 [subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md)). A saliency map

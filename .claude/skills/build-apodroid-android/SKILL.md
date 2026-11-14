@@ -38,12 +38,16 @@ packages unattended): `night.md`.
   `core/.../Maker.kt` (O13): `Maker` and `maker(manufacturer)`, the maker family from
   `Build.MANUFACTURER` (sub-brands, any case; else `STOCK`), for the pause hint's battery line and
   the detector (O14) (tests in `MakerTest`).
-  `core/.../Turn.kt`: `nextSource` (the next ticked source in order for which a test holds;
-  tests in `TurnTest`; the Set clock, `isTurnOver` and `turnSlack`, went in J1).
+  `core/.../Turn.kt`: `nextSource(ticked, after, hasPicture, order)` (the next ticked source in
+  the list's order for which a test holds, from `after`'s place, ticked or not), `Rotation(order,
+  from)` (OR1: the list's order and the anchor's date, `orderFrom`; `ordered(column)`; the
+  defaults are RO1's) and `orderOf(pref)` (the pref `order` read tolerantly) (tests in `TurnTest`;
+  the Set clock, `isTurnOver` and `turnSlack`, went in J1).
   `core/.../PictureTime.kt` (0.6.0, J1): `DEFAULT_PICTURE_AT` (6), `pictureHours` (0..23) and
   `pictureAtOrDefault` (O1), `PictureTime(pictureAt, everyHours)` with `hours`,
   `last`, `next`, `isChangeTime` (the change times in a zone, on the clock's hours through DST),
   `turn(now, zone)` (RO1: the current change time's number with turns, consecutive through DST; a column's turn is it mod its sources),
+  `turn(date)` (OR1: N(A), the anchor date's first change time's number), `at(date, zone)` (A's instant) and `anchorDate(now, zone)` (a Set of a new order's `orderFrom`: the date of the next "New picture at"),
   `pictureWindow` (3 h), `checkGap` (24 h) and `afterGap(lastCheck, now)` (a new post stored after more than a day without a successful check, B21), `firstCheck` (15 min), `nextRun(now, zone, time, turns,
   offset, lastRun, allDay)` (when the clock's next check comes; at `now` for a check passed since
   `lastRun`, B16; `allDay`, default off, "As soon as it's out" (SO1): the checks hourly to the next change time), `nextAlarm(now, zone, failures, time, turns, offset, lastRun, allDay)` (the alarms, armed at any time: `nextRun`, or with `failures` the earlier of it and `lastRun` + `retryAfter(failures)`, at the earliest now; a run counts as failed from its start, so a run going or killed keeps its retry, O4b, B16f1, B19), `retryAfter(failures)` (15 min after the first failed run's start, an hour after more; 15 min with none), `randomOffset` and `maxOffset`
@@ -55,11 +59,13 @@ packages unattended): `night.md`.
   `picture(source)`, `publishedBefore(source, limit, orAfterGap)`, B15, B21), `Record` (owner, picture, stamp: the change time,
   `shown`: the last post shown per source; `forget()`), and the pure functions returning a
   `Plan` (records, `sets` grouped by picture): `dueWallpapers(columns, records, stored, time,
-  zone, now, pull, soon)` (each run, the rules; turns a plain rotation by the clock since RO1; equal columns: the lock screen follows home's
+  zone, now, pull, soon, rotation)` (each run, the rules; turns a plain rotation by the clock since RO1, in the list's order from the anchor since OR1, S[(N(c) − N(A)) mod n]; equal columns: the lock screen follows home's
   record and picture, B2; `soon`, default off, "As soon as it's out" (SO1): rule 2 without the window, the owner's newer picture whenever a run sees it; `Store.setDue` passes the stored `soon`, SO2),
-  `restartAndForget(before, after, records, stored, time, zone, now)` (S4, Set: the pictures of
+  `restartAndForget(before, after, records, stored, time, zone, now, rotation, orderOnly, daily)` (S4, Set and the switch on: the pictures of
   the screens with a column forgotten, each stamped with the current change time; a `Restart`
-  with the plan and the screens whose record to `drop`, a column that was empty), and
+  with the plan and the screens whose record to `drop`, a column that was empty; OR1, before the
+  anchor `keepUntilAnchor`: the record kept with `orderOnly`, else the owner kept and set again,
+  the top when keep can't hold or `daily` is off), and
   `videoDayKept` for the page's status line (B23: not while a stand-in will go on; `Stored.standsIn`) (tests in `ScreensTest`, with the FP6's days of 11 Nov and 13 Nov, the latter with `soon` on and off; B22's `standInShown` and `standInSkipped` went with RO2).
   The rules over random months (SIM, test code only): `RulesSimulationTest`, 240 seeded phones of
   60 days (seven zones, both DST changes, random setups, posts, runs, pulls, Sets, offline spans,
@@ -68,7 +74,7 @@ packages unattended): `night.md`.
   `CLAUDE.md`'s rules (3 and 5 the rotation's since RO1) checked around every set and arming (9, O4a: while the switch and the phone
   are on, an alarm is armed or id 2 is pending, after every event); a failure names the seed, the
   invariant and the day's runs and sets; a seed that finds a bug goes into `knownBugs` with an
-  `@Ignore`d test of its own. The same seeds again with "As soon as it's out" on (SO1, flipped now and then by a Set; invariant 10: the turn's source's newest after every run). The phone of `PictureTimeTest` and the simulation, with the posts'
+  `@Ignore`d test of its own. The same seeds again with "As soon as it's out" on (SO1, flipped now and then by a Set; invariant 10: the turn's source's newest after every run). Since OR1 a Set draws the list's order now and then (alone, with other changes, in APOD mode; `orderR`, apart from the other draws) and mirrors `Store.saveSetup`'s anchor; invariants 11 (the owner by the order and the anchor, was 5's), 12 (a Set of the order alone keeps every owner that can hold and sets only owners' pictures) and 13 (the anchor moves only at a Set with the list shown and a new order or none stored). The phone of `PictureTimeTest` and the simulation, with the posts'
   times (`apod`, `week`, …): `core/src/test/.../Phone.kt`.
   `core/.../Saving.kt` (0.6.0, F5): `sourcesInUse` (what the job fetches and saves) and
   `toSave` (Save every picture's choice; tests in `SavingTest`).
@@ -88,11 +94,11 @@ packages unattended): `night.md`.
   `lastRunAt` and `allDay` = the stored `soon`, not under a lock, no argument, O4b), `runStarts()` (a job run's start: `failedRuns` + 1 and `lastRunAt` in one commit, O4b, B16, B19), `runRetry()` (`retryAfter(failedRuns)`) and
   `ranWell()` (a good run's end: removes `failedRuns`; a failed, stopped or killed run stays counted), `foldRunGoing()` (in `migrateOnce`: 0.6.0's `runGoing` counted once in `failedRuns`, `runGoing` and `failedAt` removed, O4b),
   `setup` (the stored `Setup`: mode, "Where", list, interval, video days, `parts`, ⛶'s
-  `Part` per source with its `whole`, `pictureAt`, `soon`, `darken`; `setDue` passes its `soon` to `dueWallpapers`) and
+  `Part` per source with its `whole`, `pictureAt`, `soon`, `darken`, `order` (OR2: the list's order, `Store.order`, the pref `order`); `normalized()` and `onlyOrderDiffers(was)` (`:core`'s `orderAlone` with `columnsInOneOrder`, `TurnTest`) for `saveSetup`'s `orderOnly`; `setDue` passes its `soon` and the `rotation` (`order` and `orderFrom`, the anchor's date) to `dueWallpapers`) and
   `setPart(post, part)` (U0, ⛶'s ✓: the part saved with `putPart` and the screens with a column whose record shows that post set again; only `wallpaperSetAt` moves),
   `saveSetup(setup, pick)` (S4, Set: one commit with the settings, `putColumns`, the parts (`putPart`) and
-  `restartAndForget`'s plan; returns whether the commit was written, B20; `draftFallbackFile` renamed to `fallbackFile` first, only with `pick`, the page's own `draftFallback` (B11); not `daily`), `setsSinceSetup()` (after Set's update: whether any run set a screen since `saveSetup`, and whether one's last set failed; Set's toast, B14),
-  `switchDaily(on)` (S4f2: writes `daily` at once, clears the job's failures) and `startAfresh()` (the switch on:
+  `restartAndForget`'s plan; returns whether the commit was written, B20; `draftFallbackFile` renamed to `fallbackFile` first, only with `pick`, the page's own `draftFallback` (B11); not `daily`; OR2: `order` written only while the list shows, `orderFrom` only for a new order or none stored, `restartAndForget` told `orderOnly` and the stored `daily`), `setsSinceSetup()` (after Set's update: whether any run set a screen since `saveSetup`, and whether one's last set failed; Set's toast, B14),
+  `switchDaily(on)` (S4f2: writes `daily` at once, clears the job's failures) and `startAfresh()` (the anchor kept, OR2; the switch on:
   `restartAndForget` with the stored columns),
   `lastScreens(source)` (S2: an unticked row's screens, `<source>.lastScreens`, written with the list), `record(screen)` (home unprefixed, lock `lock.`;
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
@@ -115,8 +121,8 @@ packages unattended): `night.md`.
   the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob(context)` (`DailyJob.ensure`: the alarms and the fallback) after its set, as Set's; Set's and the switch-on's runs go in the companion's process-wide `runs` scope with `setting`, `switching` and `switchRuns`, so a rotation or Back keeps their end, and `redrawAfterRun` goes to the page in `live` under the starter's `id`, kept by a rotation, B13; on while a load, Set or switch-on runs: owed in `switchRuns` (`core/.../SwitchRuns.kt`, `SwitchRunsTest`), run by `runNext` after it, as `loadAgain`, unless the switch-on run went on to set, `Updated.wentToSet`: B6); the draft (S4: `where`, `list`, `interval`, `videoDays`, `parts`, `draftFallback`,
   `allSources`; `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`; `pages`, the live pages: a start deletes `fallback-draft.jpg` only without a saved draft and with no other page, B8;
   ⛶ `startCrop`, ✓ `setPart` (U0: `keepPart`, then `Store.setPart` in `runs`; ⛶ disabled while Set or the switch-on runs), the draft's and the stored part by `forPost`; A4's toggle `cropWhole`); the settings (`Settings`: `Header`, the Settings row for "Setup" and "Advanced settings" (U0; `bleed` widens it into the column's padding), `setupOpen`/`advancedOpen`
-  in the saved state, `setupSummary` of the stored setup; the highlight: `setupChanged`, `rowChanged`, `videoDaysChanged`, `highlight`, `Segments`
-  (the segmented rows), `Dropdown` (C5, O3: every outlined dropdown, its button, menu, ✓, highlight and label; not the title's menu, `SourceTitle`); with the switch "More NASA pictures" `PictureList`; `VideoDaysChoice`, the
+  in the saved state, `setupSummary` of the stored setup; the highlight: `setupChanged`, `rowChanged`, `rowMoved` (OR2: a row's place against the stored order), `videoDaysChanged`, `highlight`, `Segments`
+  (the segmented rows), `Dropdown` (C5, O3: every outlined dropdown, its button, menu, ✓, highlight and label; not the title's menu, `SourceTitle`); with the switch "More NASA pictures" `PictureList` (OR2: the rows in the draft's `order`, keyed by source, the handle "≡" with `detectVerticalDragGestures`, `move(source, by)` for the drag and the actions "Move up"/"Move down"); `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
   all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, `setsSinceSetup()`, then the alarms and the fallback armed (`scheduleJob`) or cancelled by the stored `daily`; `draft()` with the draft's `pictureAt` (J3); `ModeSwitch` at Setup's top, `PictureAtChoice` and `hourLabel` (J3), `SoonSwitch` ("As soon as it's out" under it with its ⓘ, the draft's `soon`, SO2), `DraftSwitch` (a draft switch with an ⓘ and the highlight: `SoonSwitch` and "Darken bright pictures" after "If APOD is a video", the draft's `darken`, BR2; also "Keep running" in Advanced, at once, its stored state as `stored` so never highlighted, `switchKeepRunning`, O11), `ChangeEveryHeading` ("Change every" with its ⓘ and dialog, RO2));
   `zone` and `hours24` (the status line's and the problem box's times) from `readClock`, on resume and by `clockChanged` while resumed, B13; `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post, not while a load, a Set or the switch-on runs, once more when called during one (`followAgain`, B14); `saveFallback` copies a pick in `runs` (B14); `dropVideoDays()` and two `LaunchedEffect`s in `Settings()` put a hidden draft value back (B14).
@@ -189,16 +195,17 @@ packages unattended): `night.md`.
   (e.g. with a moved position), fake only `wallpaperDate`, then `run -f`; faking all dates moves
   `cropDate` too, which is right.
 - End a turn (debug builds; since J1, 2026-10-23, the turns follow the change times, so
-  `turnStartedAt` and `private/wp7-handoff/turn.sh` no longer do anything): either fake the
-  clock past the next change time (`settings put global auto_time 0`, `cmd alarm set-time
-  <ms>`, then `run -f`; set `auto_time` back to 1 at the end and check the clock against the
-  desktop's `date`), or move a screen's record back one change: after `am kill`, read
-  `wallpaperStamp` (`lock.wallpaperStamp` for the lock screen; equal columns follow home's) and
-  `sed -i -e '/wallpaperStamp/s,<value>,<value - interval in ms>,'`, then `run -f`. A stamp
-  that isn't a change time counts as the current one and changes nothing, so subtract exactly
-  the interval (10800000 for 3 h, 86400000 for one source). A screen changes only to a source
-  whose newest post it hasn't shown: delete its `shownDate`/`shownUrl` keys (`nasa.`, `earth.`
-  for the others, `lock.` before them for the lock screen) to make a post count as new.
+  `turnStartedAt` and `private/wp7-handoff/turn.sh` no longer do anything): fake the clock
+  past the next change time (`settings put global auto_time 0`, `cmd alarm set-time <ms>`,
+  then `run -f`; set `auto_time` back to 1 at the end and check the clock against the
+  desktop's `date`). Since RO1 (2026-11-14) the turn is the clock's, so moving a record's
+  `wallpaperStamp` back one interval no longer ends a turn (the screen takes the current
+  change time's turn, the source it already has), and the `shownDate`/`shownUrl` notes decide
+  nothing (still written, read by no rule since RO2).
+  The list's order (OR2) is in the prefs too: `order` (`NASA,APOD,EARTH`) and `orderFrom` (the
+  anchor's local date, `2026-11-15`); a turn is S[(N(c) − N(A)) mod n] over the column in that
+  order, so with `orderFrom` the turn at a change time isn't RO1's APOD → NASA → Earth from
+  1970; remove both keys (after `am kill`) for RO1's rotation.
   `swap.sh debug|r8 [sed args]` (install a build, fake prefs) and `ui.sh` (the page's nodes with
   their tap coordinates: rows move when a tick changes) in `private/wp7-handoff/` still work.
   Each `run -f 1` pushes the fallback's next window a period further; since J2 nothing

@@ -30,6 +30,7 @@ import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Problem
 import io.github.buerlino.apodroid.core.Record
 import io.github.buerlino.apodroid.core.Restart
+import io.github.buerlino.apodroid.core.Rotation
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.SiteChanged
 import io.github.buerlino.apodroid.core.StandIn
@@ -39,6 +40,7 @@ import io.github.buerlino.apodroid.core.Stored
 import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
 import io.github.buerlino.apodroid.core.apodColumns
+import io.github.buerlino.apodroid.core.columnsInOneOrder
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.darkening
 import io.github.buerlino.apodroid.core.download
@@ -48,6 +50,8 @@ import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.nextAlarm as coreNextAlarm
 import io.github.buerlino.apodroid.core.randomOffset
 import io.github.buerlino.apodroid.core.retryAfter
+import io.github.buerlino.apodroid.core.orderAlone
+import io.github.buerlino.apodroid.core.orderOf
 import io.github.buerlino.apodroid.core.originalUrl
 import io.github.buerlino.apodroid.core.pictureAtOrDefault
 import io.github.buerlino.apodroid.core.restartAndForget
@@ -98,8 +102,9 @@ fun Map<Source, Part>.forPost(post: Post): Part? = this[post.source]?.takeIf { p
  * [list] is the list's columns, kept in APOD mode too; [parts] ⛶'s part per source; [pictureAt]
  * "New picture at", an hour; [soon] "As soon as it's out" (SO2: a newer picture of a screen's
  * source goes on whenever a check sees it, with hourly checks all day); [darken] "Darken bright
- * pictures" (BR2: each set darkens a picture brighter than `:core`'s target, [Store.set]). Not
- * the daily switch: it acts at once ([Store.switchDaily]).
+ * pictures" (BR2: each set darkens a picture brighter than `:core`'s target, [Store.set]); [order]
+ * the list's order (OR2: the turns' order, all three sources, the top first; saved only while
+ * the list shows). Not the daily switch: it acts at once ([Store.switchDaily]).
  */
 data class Setup(
     val allSources: Boolean,
@@ -111,6 +116,7 @@ data class Setup(
     val pictureAt: Int = DEFAULT_PICTURE_AT,
     val soon: Boolean = false,
     val darken: Boolean = true,
+    val order: List<Source> = Source.entries,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
     val columns: Map<Screen, List<Source>>
@@ -119,6 +125,12 @@ data class Setup(
     /** Its change times ([PictureTime]): at [pictureAt], with turns every [interval] from it. */
     val pictureTime: PictureTime
         get() = PictureTime(pictureAt, interval.hours)
+
+    /** The same setup with each list column in one order, for comparing ([orderAlone]). */
+    fun normalized(): Setup = copy(list = columnsInOneOrder(list))
+
+    /** Whether this setup differs from [was] in the list's order alone ([Store.saveSetup]'s "the order alone"; `:core`'s [orderAlone]). */
+    fun onlyOrderDiffers(was: Setup): Boolean = orderAlone(was, this, Setup::order, { setup, order -> setup.copy(order = order) }, Setup::normalized)
 }
 
 /**
@@ -276,7 +288,26 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken)
+        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order)
+
+    /**
+     * The list's order (OR2, the pref `order`, a comma list of all three; read tolerantly by
+     * `:core`'s [orderOf]; default APOD → NASA → Earth): the turns' order, part of the [setup].
+     */
+    val order: List<Source>
+        get() = orderOf(prefs.getString("order", null))
+
+    /**
+     * The anchor (OR2, the pref `orderFrom`, a local date): the "New picture at" of that date is
+     * the list's top's turn ([Rotation]). Written by a Set of a new order with the list shown, or
+     * the first Set with it shown while none is stored ([saveSetup]); null before: RO1's rotation.
+     */
+    val orderFrom: LocalDate?
+        get() = prefs.getString("orderFrom", null)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+
+    /** The turns' order and anchor of the stored setup, for the rules. */
+    private val rotation: Rotation
+        get() = Rotation(order, orderFrom)
 
     /**
      * Blocking. "Set as wallpaper": saves [setup] in one commit (the list with [putColumns], so
@@ -290,14 +321,34 @@ class Store(private val context: Context) {
      * [update] with `set` and arms the alarms ([DailyJob.ensure]) or cancels them as the stored
      * [daily] says. Returns whether the commit was written to disk (B20: on a full disk it
      * isn't, and the setup lives only in the process's memory; Set's toast says so).
+     *
+     * **The list's order** (OR2, `order-0.7.0.md`): the order and the anchor are written only
+     * while the list shows ([Setup.allSources]; in APOD mode both stay as stored). The anchor
+     * (`orderFrom`, the date of the next "New picture at" by the saved setup's hour) moves only
+     * for a new order, or when none is stored. Before it, [restartAndForget] keeps what's on: a
+     * Set of the order alone ([Setup] equal to the stored one but for the order, no [pick])
+     * keeps each record and sets nothing; anything else keeps the owner and sets it again; with
+     * the daily switch off the top goes on.
      */
     fun saveSetup(setup: Setup, pick: Boolean): Boolean = synchronized(wallpaperLock) {
         if (pick && draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
-        val before = columns
+        val now = Instant.now()
+        val zone = ZoneId.systemDefault()
+        val was = this.setup
+        val before = was.columns
+        // The order only while the list shows (Night default 3): APOD mode keeps the stored one.
+        val order = if (setup.allSources) setup.order else was.order
+        val anchor = orderFrom
+        val newOrder = setup.allSources && (order != was.order || anchor == null)
+        val from = if (newOrder) setup.pictureTime.anchorDate(now, zone) else anchor
+        val orderOnly = !pick && setup.copy(order = order).onlyOrderDiffers(was)
         // The new setup's stand-in, not the stored one (RO2's fix round): else a Set that changed
         // "If APOD is a video" picked each screen's owner by the old choice ("Skip it" passed APOD's
         // turn to NASA, so Earth went on only at the second Set).
-        val restart = restartAndForget(before, setup.columns, records(), stored(setup.videoDays.standIn), setup.pictureTime, ZoneId.systemDefault(), Instant.now())
+        val restart = restartAndForget(
+            before, setup.columns, records(), stored(setup.videoDays.standIn), setup.pictureTime, zone, now,
+            Rotation(order, from), orderOnly, daily,
+        )
         // edit(commit = true) { } drops commit()'s result (B20), so not the KTX edit lint suggests.
         @SuppressLint("UseKtx") val saved = with(prefs.edit()) {
             putBoolean("allSources", setup.allSources)
@@ -308,6 +359,8 @@ class Store(private val context: Context) {
             putInt("pictureAt", setup.pictureAt)
             putBoolean("soon", setup.soon)
             putBoolean("darken", setup.darken)
+            if (setup.allSources) putString("order", order.joinToString(",") { it.name })
+            if (newOrder) putString("orderFrom", from.toString())
             putString("videoDays", setup.videoDays.name)
             for ((source, part) in setup.parts) putPart(source, part)
             putRestart(restart)
@@ -383,10 +436,11 @@ class Store(private val context: Context) {
     /**
      * Blocking. The stored setup afresh, as Set does without saving anything (the daily switch
      * turned on): [restartAndForget] with the stored columns, so the records of the screens with a
-     * column are forgotten; the next [setDue] sets each screen anew.
+     * column are forgotten; the next [setDue] sets each screen anew. The anchor (`orderFrom`)
+     * stays (OR2): before it each screen keeps its owner and sets it again, from it on RO1's.
      */
     fun startAfresh(): Unit = synchronized(wallpaperLock) {
-        val restart = restartAndForget(columns, columns, records(), stored(), setup.pictureTime, ZoneId.systemDefault(), Instant.now())
+        val restart = restartAndForget(columns, columns, records(), stored(), setup.pictureTime, ZoneId.systemDefault(), Instant.now(), rotation, daily = daily)
         prefs.edit(commit = true) { putRestart(restart) }
     }
 
@@ -860,7 +914,7 @@ class Store(private val context: Context) {
         val now = Instant.now()
         val stored = stored()
         val setup = setup
-        val plan = dueWallpapers(setup.columns, records(), stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon)
+        val plan = dueWallpapers(setup.columns, records(), stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation)
         val unset = plan.screens.filterValues { !it.set }
         if (unset.isNotEmpty()) commitBeforeStop(stopped) { putPlan(plan.copy(screens = unset)) }
         val done = mutableListOf<String>()

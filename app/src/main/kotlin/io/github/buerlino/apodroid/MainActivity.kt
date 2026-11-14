@@ -53,6 +53,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
@@ -93,12 +94,14 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
@@ -109,12 +112,17 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
@@ -134,6 +142,7 @@ import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.maker
+import io.github.buerlino.apodroid.core.orderOf
 import io.github.buerlino.apodroid.core.pictureAtOrDefault
 import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
@@ -241,6 +250,12 @@ class MainActivity : ComponentActivity() {
 
     /** "Darken bright pictures" ([Store.darken], BR2): each set darkens a bright picture a little. */
     private var darken by mutableStateOf(true)
+
+    /**
+     * The list's order ([Store.order], OR2): all three sources, the top first, sorted by drag.
+     * Kept in APOD mode too (as the list), saved only while the list shows.
+     */
+    private var order by mutableStateOf(Source.entries.toList())
 
     /** ⛶'s part per source ([Store.parts]); ✓ notes the shown post's. */
     private var parts by mutableStateOf(emptyMap<Source, Part>())
@@ -423,7 +438,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -435,6 +450,7 @@ class MainActivity : ComponentActivity() {
         pictureAt = setup.pictureAt
         soon = setup.soon
         darken = setup.darken
+        order = setup.order
     }
 
     /** The draft's columns: APOD mode's from "Where", else the list. A column with two or more takes turns every [interval]. */
@@ -1792,7 +1808,10 @@ class MainActivity : ComponentActivity() {
                 onDismissRequest = { info = false },
                 confirmButton = { TextButton(onClick = { info = false }) { Text("OK") } },
                 text = {
-                    Text("Every ${interval.label} from ${hourLabel(pictureAt)}, each screen switches to its next source's newest picture.")
+                    Text(
+                        "Every ${interval.label} from ${hourLabel(pictureAt)}, each screen switches to its next source in the list; " +
+                            "a new order starts with the top one at ${hourLabel(pictureAt)}.",
+                    )
                 },
             )
         }
@@ -1805,12 +1824,23 @@ class MainActivity : ComponentActivity() {
     /** Anything in "Setup" the draft changed: what the shown mode's settings differ in from the stored setup. */
     private fun setupChanged(): Boolean =
         allSources != stored.allSources ||
-            (if (allSources) Source.entries.any(::rowChanged) else where != stored.where) ||
+            (if (allSources) Source.entries.any(::rowChanged) || order != stored.order else where != stored.where) ||
             interval != stored.interval || pictureAt != stored.pictureAt || soon != stored.soon ||
             darken != stored.darken || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
     private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
+
+    /** The list's row for [source] has another place than in the stored order (OR2): its "≡" in `tertiary`. */
+    private fun rowMoved(source: Source) = order.indexOf(source) != stored.order.indexOf(source)
+
+    /** The draft's order with [source] moved [by] places (−1 up, 1 down): the drag and the actions "Move up" / "Move down". */
+    private fun move(source: Source, by: Int) {
+        val from = order.indexOf(source)
+        val to = from + by
+        if (from < 0 || to !in order.indices) return
+        order = order.toMutableList().apply { add(to, removeAt(from)) }
+    }
 
     /** Another video-day choice, or a newly picked "my picture" while it's chosen. */
     private fun videoDaysChanged() = videoDays != stored.videoDays || (videoDays == VideoDays.MINE && draftFallback)
@@ -1820,11 +1850,12 @@ class MainActivity : ComponentActivity() {
      * 2026-11-02): "APOD, NASA · both screens" while both screens have the same sources, "APOD ·
      * home screen" while only one has any, else "Home: APOD, Earth · Lock: NASA, Earth"; while
      * the daily switch is on " · every 6 h from 06:00" when a screen takes turns, else " · 06:00".
+     * The sources in the list's order (OR2): "NASA, APOD · both screens".
      */
     private fun setupSummary(): String {
         val home = stored.columns[Screen.HOME].orEmpty()
         val lock = stored.columns[Screen.LOCK].orEmpty()
-        fun names(sources: List<Source>) = sources.joinToString(", ") { it.shortLabel }
+        fun names(sources: List<Source>) = stored.order.filter { it in sources }.joinToString(", ") { it.shortLabel }
         val sources = when {
             lock.isEmpty() -> "${names(home)} · home screen"
             home.isEmpty() -> "${names(lock)} · lock screen"
@@ -1960,49 +1991,124 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * "Pictures from": a row per source, a tick box with its short name and a dropdown Home screen
-     * / Lock screen / Both ([place]). An unticked row's dropdown is greyed out and shows the
-     * screens the source had last ([lastScreens]); a tick puts it there. The last ticked row
-     * can't be unticked.
+     * "Pictures from": a row per source in the list's order ([order], OR2), a drag handle "≡", a
+     * tick box with its short name and a dropdown Home screen / Lock screen / Both ([place]). An
+     * unticked row's dropdown is greyed out and shows the screens the source had last
+     * ([lastScreens]); a tick puts it there. The last ticked row can't be unticked.
+     *
+     * The drag (OR2): the handle takes a vertical drag (no long press) and consumes it, so the
+     * pane doesn't scroll while a row moves (it still scrolls from anywhere else); the row is
+     * drawn lifted under the finger and swaps with its neighbour once it has passed half that
+     * row's height. Screen readers get "Move up" and "Move down" on the tick box instead; the
+     * handle is hidden from them. A moved row's "≡" shows in `tertiary`.
      */
     @Composable
     private fun PictureList() {
         val tickedCount = Source.entries.count { s -> columns.values.any { s in it } }
         Heading("Pictures from")
-        Source.entries.forEach { source ->
-            val on = columns.screensOf(source)
-            val shown = on.ifEmpty { lastScreens[source] ?: Screen.entries.toSet() }
-            val checked = on.isNotEmpty()
-            val at = Where.of(shown)!!
-            // The row differs from the stored list: its tick box, name and dropdown in tertiary.
-            val changed = rowChanged(source)
-            val tertiary = MaterialTheme.colorScheme.tertiary
-            // Wraps the dropdown under the name when both don't fit on one line (a large font, a narrow pane).
-            FlowRow(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                itemVerticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    Modifier.toggleable(
-                        checked,
-                        // The last tick stays.
-                        enabled = !(checked && tickedCount == 1),
-                        role = Role.Checkbox,
-                        onValueChange = { place(source, if (it) shown else emptySet()) },
-                    ).semantics { if (changed) stateDescription = "${if (checked) "Checked" else "Not checked"}, not set yet" },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(
-                        checked = checked,
-                        onCheckedChange = null,
-                        enabled = !(checked && tickedCount == 1),
-                        colors = if (changed) CheckboxDefaults.colors(checkedColor = tertiary, uncheckedColor = tertiary) else CheckboxDefaults.colors(),
-                    )
-                    Text(source.shortLabel, Modifier.padding(start = 8.dp, end = 16.dp), color = highlight(changed), softWrap = false)
-                }
-                Dropdown("${source.shortLabel} on", Where.entries, at, Where::label, enabled = checked, changed = changed) {
-                    place(source, it.screens)
+        // The dragged row, how far it is from its place in the layout, each row's height (onSizeChanged).
+        var dragged by remember { mutableStateOf<Source?>(null) }
+        var dragOffset by remember { mutableFloatStateOf(0f) }
+        val heights = remember { mutableStateMapOf<Source, Int>() }
+        val gap = with(LocalDensity.current) { 8.dp.toPx() }
+        val colors = MaterialTheme.colorScheme
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            order.forEachIndexed { index, source ->
+                // Keyed by the source, so a swap moves the row (and its running drag) instead of restarting it.
+                key(source) {
+                    val on = columns.screensOf(source)
+                    val shown = on.ifEmpty { lastScreens[source] ?: Screen.entries.toSet() }
+                    val checked = on.isNotEmpty()
+                    val at = Where.of(shown)!!
+                    // The row differs from the stored list: its tick box, name and dropdown in tertiary.
+                    val changed = rowChanged(source)
+                    val moved = rowMoved(source)
+                    val lifted = dragged == source
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .onSizeChanged { heights[source] = it.height }
+                            .then(
+                                if (lifted) {
+                                    Modifier
+                                        .zIndex(1f)
+                                        .graphicsLayer {
+                                            translationY = dragOffset
+                                            shadowElevation = 8.dp.toPx()
+                                            shape = RoundedCornerShape(8.dp)
+                                            clip = true
+                                        }
+                                        .background(colors.surfaceContainerHigh)
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            Modifier
+                                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                .pointerInput(source, gap) {
+                                    detectVerticalDragGestures(
+                                        onDragStart = { dragged = source; dragOffset = 0f },
+                                        onDragEnd = { dragged = null; dragOffset = 0f },
+                                        onDragCancel = { dragged = null; dragOffset = 0f },
+                                    ) { change, amount ->
+                                        change.consume()
+                                        dragOffset += amount
+                                        val place = order.indexOf(source)
+                                        val below = order.getOrNull(place + 1)?.let { heights[it] }
+                                        val above = order.getOrNull(place - 1)?.let { heights[it] }
+                                        if (below != null && dragOffset > below / 2f) {
+                                            dragOffset -= below + gap
+                                            move(source, 1)
+                                        } else if (above != null && dragOffset < -above / 2f) {
+                                            dragOffset += above + gap
+                                            move(source, -1)
+                                        }
+                                    }
+                                }
+                                .clearAndSetSemantics { },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            // A text glyph, no icon library.
+                            Text("≡", style = MaterialTheme.typography.titleLarge, color = if (moved) colors.tertiary else colors.onSurfaceVariant)
+                        }
+                        // Wraps the dropdown under the name when both don't fit on one line (a large font, a narrow pane).
+                        FlowRow(
+                            Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            itemVerticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                Modifier.toggleable(
+                                    checked,
+                                    // The last tick stays.
+                                    enabled = !(checked && tickedCount == 1),
+                                    role = Role.Checkbox,
+                                    onValueChange = { place(source, if (it) shown else emptySet()) },
+                                ).semantics {
+                                    if (changed || moved) stateDescription = "${if (checked) "Checked" else "Not checked"}, not set yet"
+                                    customActions = listOfNotNull(
+                                        CustomAccessibilityAction("Move up") { move(source, -1); true }.takeIf { index > 0 },
+                                        CustomAccessibilityAction("Move down") { move(source, 1); true }.takeIf { index < order.lastIndex },
+                                    )
+                                },
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Checkbox(
+                                    checked = checked,
+                                    onCheckedChange = null,
+                                    enabled = !(checked && tickedCount == 1),
+                                    colors = if (changed) CheckboxDefaults.colors(checkedColor = colors.tertiary, uncheckedColor = colors.tertiary) else CheckboxDefaults.colors(),
+                                )
+                                Text(source.shortLabel, Modifier.padding(start = 8.dp, end = 16.dp), color = highlight(changed), softWrap = false)
+                            }
+                            Dropdown("${source.shortLabel} on", Where.entries, at, Where::label, enabled = checked, changed = changed) {
+                                place(source, it.screens)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -2234,6 +2340,7 @@ private fun Setup.toBundle() = Bundle().apply {
     putInt("pictureAt", pictureAt)
     putBoolean("soon", soon)
     putBoolean("darken", darken)
+    putString("order", order.joinToString(",") { it.name })
     parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.whole}|${part.url.orEmpty()}") }
 }
 
@@ -2251,6 +2358,7 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         pictureAt = pictureAtOrDefault(bundle.getInt("pictureAt", DEFAULT_PICTURE_AT)),
         soon = bundle.getBoolean("soon"),
         darken = bundle.getBoolean("darken", true),
+        order = orderOf(bundle.getString("order")),
         parts = Source.entries.mapNotNull { source ->
             bundle.getString("part.${source.name}")?.split('|', limit = 4)?.let { (date, position, whole, url) ->
                 source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict())

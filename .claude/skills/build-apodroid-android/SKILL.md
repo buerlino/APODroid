@@ -346,6 +346,12 @@ what it leaves open.
   `debug-set.png`'s pixels, synthetic pictures only): Android 10–14's codec on an EXIF crop, a
   real wide panorama's frame, the lock screen by eye, the wallpaper colours from a darkened set,
   screen readers' "not set yet", and the FP6.
+- The detector (O14, 2026-11-14; the tablet, Android 15, pipeline run 101: a force stop, the clock
+  stepped, Keep running off and on, a reboot, a page before T + offset + 30 min): a bucket holding
+  the alarm without a force stop (`am set-standby-bucket … rare` didn't take, `DetectorTest` only),
+  the alarms gone with job 2 pending (the landing alarm re-armed the pair), the daily switch, Set
+  and a pull right after a force stop, the one-column layout's scroll to "Keep running", ZUI's
+  cleaner on a real day, the makers' lines on their phones, and the FP6.
 
 **The update from 0.5.0:**
 - The migration race (the page and the job at once) with "Where" Home or Both (V4: Lock only).

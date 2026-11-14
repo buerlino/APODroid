@@ -578,6 +578,8 @@ expedited), `.reg` (regular, the control) and `.hog` (only its Hog screen is use
 
 ### [ ] O6. Android check: the expedited run in Doze, battery saver and the buckets (Opus, medium)
 
+**Session 1 only** (user, 2026-11-14: the shift gets the tablet tonight): session 2, the real night, is dropped; the real-night evidence comes from the FP6's week with the built 0.7.0. The first run (pipeline #86, 2026-11-14) hit the pipeline's 1 h limit with (a) and (d) done (the expedited job ran in deep idle and in battery saver with the network, HTTP 200; the regular one waited for idle's end) and (b) unfinished; its logs are in `.coord/runs/086-o6/tablet/`. The rerun finishes session 1 ((b), and (c) if session 1 holds it), then the table and the verdict from session 1 alone.
+
 (Agent rosie, the tablet, after W; decides O10, and whether B comes back to the user.) J0's form:
 two sessions, the probes `.ej` and `.reg`, both Optimized (not on `deviceidle whitelist`).
 - **Session 1 (by day, about 45 min):** the tablet's state noted (night.md, For rosie). Install
@@ -603,7 +605,7 @@ two sessions, the probes `.ej` and `.reg`, both Optimized (not on `deviceidle wh
 - **Verdict:** PASS when `.ej` ran with the network within about a minute of its alarm in (a),
   (b) and (d) and on the night; STOP otherwise (B comes back to the user). (c) is reported, not
   judged: how late RESTRICTED's alarm came, and the job after it.
-- **Done when:** both sessions ran, the table and the verdict written, the probes uninstalled,
+- **Done when:** session 1 ran (user, 2026-11-14), the table and the verdict written, the probes uninstalled,
   the tablet set back.
 
 ### [ ] O7. Android check: a foreground service's life, look and memory (Opus, medium)

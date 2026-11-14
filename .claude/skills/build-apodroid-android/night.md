@@ -95,7 +95,7 @@ after it still run unless their After names it. An After that names `the user` w
 brackets: the probe, the check by hand or the user's answers; `plan-0.7.0.md`, The order); the user takes the words
 out once it's done. Since 2026-11-14 (user: everything queued) no row waits for the user: the probes
 run as rosie's rows, L6 builds on L1 (L2 on the FP6 checks it later), O12 decides from O7's report;
-left by hand: O6's real night, O9, L2, O16, O17, L9's two days, L10, E, the FP6's week, the tag. The regression after the last row reruns dev's debug build; let it run. Only APODroid's nights
+left by hand: O9, L2, O16, O17, L9's two days, L10, E, the FP6's week, the tag. The regression after the last row reruns dev's debug build; let it run. Only APODroid's nights
 use the tablet (pascaline's leave HA24BZ2Y alone). Done rows stay in the table: `scripts/pipeline.test.sh` resolves
 every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-android/night.md`, before 2026-11-13).
 
@@ -111,7 +111,7 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 8 | O4a | The alarms never lost while the switch is on | winston | opus, medium | yes | O4 | review-0.7.0-runs.md O4a |
 | 9 | O4b | A run counts as failed from its start until it ends well | winston | opus, high | yes | O4a | review-0.7.0-runs.md O4b |
 | 10 | O4c | The switch-on run stops between sets once the switch is off | winston | opus, medium | yes | O4b | review-0.7.0-runs.md O4c |
-| 11 | O6 | Android check: the expedited run (session 1 by day; session 2, the real night, by hand) | rosie | opus, medium | no | — | on-time-0.7.0.md O6 |
+| 11 | O6 | Android check: the expedited run (session 1 only; the user, 2026-11-14) | rosie | opus, medium | no | — | on-time-0.7.0.md O6 |
 | 12 | O7 | Android check: a foreground service's life, look and memory | rosie | opus, medium | no | — | on-time-0.7.0.md O7 |
 | 13 | O8 | Android check: ZUI's cleaner against a foreground service | rosie | opus, medium | no | O7 | on-time-0.7.0.md O8 |
 | 14 | L1 | Android check: the live wallpaper on the tablet | rosie | opus, medium | no | O8 | live-0.7.0.md L1 |

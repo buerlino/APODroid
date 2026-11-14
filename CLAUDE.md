@@ -466,7 +466,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice and the ⓘs (Save every picture, Save; Change every, RO2).
+    update), the video-day notice and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. A neutral box below the
   tile (`surfaceVariant` fill, `outline` border) says what the video day does to the wallpaper;

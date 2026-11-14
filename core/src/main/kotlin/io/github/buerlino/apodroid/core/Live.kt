@@ -176,6 +176,17 @@ fun lockFollowsHome(split: LiveSets, shared: Boolean, lockColumn: Boolean): Bool
 }
 
 /**
+ * Whether the engine's hand-over in this run waits (L6f1): while the one engine covers the lock
+ * screen ([shared]) and a still set of this run that included the lock screen failed
+ * ([failedStill], the screens of each failed still set). Else the engine would draw home's new
+ * picture on the lock screen too, against Decision 10 (the lock screen never shows home's new
+ * picture through the engine while its own set is due). The caller counts the skipped hand-over
+ * as a failed set, so the alarms' retry plans both again.
+ */
+fun handOverWaits(shared: Boolean, failedStill: List<Set<Screen>>): Boolean =
+    shared && failedStill.any { Screen.LOCK in it }
+
+/**
  * The screens APODroid's engine is on whose records aren't noted live (L6), forgotten before the
  * rules as [lostLive]'s are ([Record.forget]: owner and stamp kept), so the same run hands home's
  * picture to the engine and gives the lock screen its own (the engine's too when it's home's,

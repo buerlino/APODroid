@@ -45,6 +45,7 @@ import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
 import io.github.buerlino.apodroid.core.Size as Sizing
 import io.github.buerlino.apodroid.core.livePosition
+import io.github.buerlino.apodroid.core.handOverWaits
 import io.github.buerlino.apodroid.core.lockFollowsHome
 import io.github.buerlino.apodroid.core.lostLive
 import io.github.buerlino.apodroid.core.opensPicker
@@ -1088,6 +1089,7 @@ class Store(private val context: Context) {
             shown.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper shown live: "),
         ).joinToString("; ").ifEmpty { null }
         var failure: Exception? = null
+        val failedStill = mutableListOf<Set<Screen>>()
         for ((index, step) in steps.withIndex()) {
             val (entry, toEngine) = step
             val (picture, screens) = entry
@@ -1095,6 +1097,15 @@ class Store(private val context: Context) {
             if (index > 0 && !setAsked && !daily) {
                 Log.i("APODroid", "Switched off after: ${said() ?: "nothing"}")
                 return@synchronized Triple(said(), failure, true)
+            }
+            // The lock screen's still set failed while the engine covers it: home's hand-over
+            // would show home's new picture there too (Decision 10). A failed set, so the
+            // alarms' retry plans both again (`:core`'s handOverWaits).
+            if (toEngine && handOverWaits(live.shared, failedStill)) {
+                Log.i("APODroid", "Live: the lock screen's set failed, home's hand-over waits")
+                failure = failure ?: IllegalStateException("the lock screen's set failed, home's hand-over waits")
+                screens.forEach { setsSinceSetup[it] = false }
+                continue
             }
             // The engine's hand-over writes Live's copy, no WallpaperManager call; a failed copy is a failed set.
             var whole = false
@@ -1108,6 +1119,7 @@ class Store(private val context: Context) {
             } catch (e: Exception) {
                 failure = failure ?: e
                 screens.forEach { setsSinceSetup[it] = false }
+                if (!toEngine) failedStill += screens
                 continue
             }
             screens.forEach { setsSinceSetup[it] = true }

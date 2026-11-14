@@ -396,7 +396,7 @@ what it leaves open.
   FP6 and adb was denied, run 107 found no device): all of L5's and L6's tablet bullets in
   `live-0.7.0.md` (the engine, the pan, the hand-over, the copy not the source's file, lost Live
   and Decision 12, no crash, Size and its row, Set's picker and its return, Decision 10, the
-  status line, " · Live"); `unnotedLive` and `lockFollowsHome` (`LiveTest` and SIM only); a
+  status line, " · Live"); `unnotedLive` and `lockFollowsHome` (`LiveTest` and SIM only), `handOverWaits` (L6f1, `LiveTest`); a
   maker's picker refusing the start (`firstStarted`, unit-tested only); below 14 (`live.homeId`,
   E); the FP6's picker (L2).
 

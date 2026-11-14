@@ -9,6 +9,7 @@ import android.app.job.JobService
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 import io.github.buerlino.apodroid.core.JobRuns
 import java.time.Instant
@@ -22,7 +23,7 @@ import kotlin.concurrent.thread
  * - **The alarms** ([AlarmReceiver]): at each next run ([Store.nextAlarm]: the change times and
  *   their checks, or a failed run's retry) a pair, `setWindow(T, 10 min)` and
  *   `setAndAllowWhileIdle(T)`, the only alarms that land in Doze (J0). The first that fires
- *   schedules a one-off job ([RUN], no delay, any network) unless it's pending or a run goes; the
+ *   schedules a one-off job ([RUN], no delay, any network, expedited on 12+) unless it's pending or a run goes; the
  *   second finds it so and does nothing.
  * - **The fallback** ([PERIODIC]): every 6 hours with a 6 hour flex, a timing that never changes,
  *   so after the first start's [ensure] nothing schedules it again while it runs.
@@ -63,6 +64,11 @@ class DailyJob : JobService() {
         }
         stoppedBySystem = false
         workerJob = params.jobId
+        // O10: whether the alarms' run got its expedited quota (12+; 10–11 have none).
+        val kind = if (Build.VERSION.SDK_INT >= 31) {
+            if (params.isExpeditedJob) ", expedited" else ", not expedited"
+        } else ""
+        Log.i("APODroid", "Daily job: job ${params.jobId} starts$kind")
         worker = thread {
             val store = Store(this)
             started(this, store, generation)
@@ -205,7 +211,7 @@ class DailyJob : JobService() {
         }
 
         /**
-         * An alarm fired: schedules the run ([RUN], no delay, any network) while the daily switch
+         * An alarm fired: schedules the run ([RUN], no delay, any network, expedited on 12+: O10) while the daily switch
          * is on, unless a run goes in this process (scheduling it again would stop it) or this
          * process scheduled it and it hasn't started (the second alarm of the pair lands here; it
          * may be about to start). A pending [RUN] from before the process died (Android may
@@ -231,13 +237,21 @@ class DailyJob : JobService() {
                 Log.i("APODroid", "Daily job: alarm, a run is pending")
                 return
             }
-            val job = JobInfo.Builder(RUN, ComponentName(context, DailyJob::class.java))
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .build()
             runScheduled = true
-            val result = runCatching { scheduler(context).schedule(job) }
+            // O10: expedited on 12+, so Doze and battery saver let it run with the network on an
+            // Optimized phone. RESULT_FAILURE there means no expedited quota left: scheduled again
+            // as a plain job, as on 10–11 (a throw is tried again the same way).
+            if (Build.VERSION.SDK_INT >= 31) {
+                val expedited = runCatching { scheduler(context).schedule(runJob(context, expedited = true)) }
+                if (expedited.getOrNull() == JobScheduler.RESULT_SUCCESS) {
+                    Log.i("APODroid", "Daily job: alarm, run scheduled")
+                    return
+                }
+                Log.i("APODroid", "Daily job: alarm, not expedited: ${expedited.exceptionOrNull() ?: "RESULT_FAILURE"}")
+            }
+            val result = runCatching { scheduler(context).schedule(runJob(context, expedited = false)) }
             if (result.getOrNull() == JobScheduler.RESULT_SUCCESS) {
-                Log.i("APODroid", "Daily job: alarm, run scheduled")
+                Log.i("APODroid", if (Build.VERSION.SDK_INT >= 31) "Daily job: alarm, run scheduled, not expedited" else "Daily job: alarm, run scheduled")
                 return
             }
             // No run and the alarm used up (O4a): the pair Store.runRetry ahead, else nothing would
@@ -249,6 +263,13 @@ class DailyJob : JobService() {
                 if (store.daily) armRetry(context, store)
             }
         }
+
+        /** [RUN]: no delay, any network, not persisted; expedited on request (12+ only, O10). */
+        private fun runJob(context: Context, expedited: Boolean): JobInfo =
+            JobInfo.Builder(RUN, ComponentName(context, DailyJob::class.java))
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .apply { if (expedited && Build.VERSION.SDK_INT >= 31) setExpedited(true) }
+                .build()
 
         /**
          * The pair [Store.runRetry] ahead (15 min, an hour after one or more failed runs in a row):

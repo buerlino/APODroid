@@ -43,7 +43,15 @@ disagree and no default serves both).
   about an hour of its release.
 - **In 0.7.0**, not a 0.6.1.
 
-## The rules with the switch on (draft, for the user to check)
+(User, 2026-11-14.)
+- **The rules below checked**, without B22's stand-in not twice (the rotation drops it).
+- **Texts, placeholders until approved from the tablet's screenshots:** the label "As soon as
+  it's out"; the ⓘ "A new picture goes on within the hour after it's out, not only at the change
+  time."
+- **Setup's summary doesn't name the switch** (the row stays short).
+- **The pause hint's Optimized line unchanged.**
+
+## The rules with the switch on (checked by the user, 2026-11-14)
 
 1. Unchanged: at the change times a screen changes (turns as 0.7.0's rotation says,
    `rotation-0.7.0.md`).
@@ -54,12 +62,13 @@ disagree and no default serves both).
 Everything else as now: never back, equal columns together, Set, a pull, a forgotten picture
 and a new screen, the stand-in on APOD's video day (its own post is "newer" when it comes out:
 with "NASA instead" and the switch on, NASA's picture goes on in APOD's turn as soon as it's
-out), B22's stand-in not twice, the retries. B21's mark (after a day offline) changes nothing
+out), the retries. B21's mark (after a day offline) changes nothing
 while it's on (every newer post goes on anyway).
 
 ## Open
 
-The user's, one at a time, before SO1.
+Answered by the user, 2026-11-14 (Decided): 1 and 2 the placeholders as recommended, 3 nothing in
+the summary, 4 unchanged.
 
 1. **The label** (a label, not a sentence; placeholder): "As soon as it's out". Recommended:
    that, approved from the tablet's screenshot.

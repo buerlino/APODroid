@@ -293,9 +293,9 @@ on; `DailyJob.kt`'s are unchanged.
 
 ### [ ] O4b. A run counts as failed from its start until it ends well (Opus, high)
 
-(`review-0.7.0-runs.md`, The simpler model; finding 5. **A decision first:** the retry measured
-from the run's start, not its end. Without the user's yes, only finding 5 is built: `nextAlarm`
-without `running`, no behaviour change.)
+(`review-0.7.0-runs.md`, The simpler model; finding 5. **The user's yes** (2026-11-14): the
+retry measured from the run's start, not its end; the whole model is built, with the fold of
+0.6.0's `runGoing` as a migration.)
 - **`:core`:** `nextAlarm(now, zone, failures, time, turns, offset, waiting, lastRun)`: the clock's
   run, or with `failures > 0` the earlier of it and `lastRun + retryAfter(failures)`, at the
   earliest now. `retryAfter` public (`runRetry` goes). `nextRun` without `failures`.
@@ -339,6 +339,8 @@ without `running`, no behaviour change.)
 - **Done when:** built; the tablet passes.
 
 ### [ ] O4d. One stop flag per run (Opus, medium; optional)
+
+Left out (user, 2026-11-14): not queued.
 
 (`review-0.7.0-runs.md`, finding 4. No behaviour change; for O10's stops.)
 - `DailyJob`: a run's job id, thread and stop flag in one object made at its start. `onStopJob`

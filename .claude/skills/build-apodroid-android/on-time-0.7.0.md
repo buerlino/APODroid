@@ -457,6 +457,9 @@ claude --model opus --effort high "Do O17 in .claude/skills/build-apodroid-andro
 
 ### [ ] O1. Declutter: warnings, duplicates and wrong comments (C1–C3, C6–C12) (Opus, medium)
 
+(User, 2026-11-14: the saved-state key's rename `tab` → `chosenSource` kept; a page restored across
+the update opens once on the wallpaper's source.)
+
 (`declutter.md`, Pass 2026-10-25, Code; every item with its evidence:
 `.coord/reports/2026-10-25-declutter.md`, section 4.) No behaviour and no text changes. The line
 numbers there are master 82df16a's; B22–B24 moved the code since: find each by its name.
@@ -758,6 +761,10 @@ state, the shown source, Setup's and Advanced's state (B13's rules for a rotatio
 - **Done when:** built; measured; the tablet passes.
 
 ### [ ] O13. The pause hint per maker (Opus, medium)
+
+(User, 2026-11-14: the stock battery line keeps " (on Optimized, a new picture can come hours
+late)", the only place that says what Optimized costs; the other texts wait for rosie's
+screenshots.)
 
 (This file, The pause hint per maker. After O3.)
 - **`:core`:** the maker from `Build.MANUFACTURER` (Xiaomi/Redmi/POCO, Samsung,

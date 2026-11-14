@@ -40,6 +40,16 @@ four change times usually find nothing new.
 - Rejected: keeping the rule and saying on the page why nothing changed (a status line such as
   "Waiting for a new picture": more text, and the behaviour still surprises).
 
+(User, 2026-11-14, the Open questions.)
+- **Open 1: by the clock** (b): each change time has a number (the day's change times counted
+  from "New picture at", plus the day's number since a fixed day × the change times a day), and
+  the screen's sources take turns by it, number mod the sources. A phone off, a Set or a pull
+  never shifts it. A source with nothing to show passes to the next with a picture.
+- **Open 2: B22's stand-in not twice goes:** repeats are accepted; `standInSkipped` and the
+  video notice's "skipped" texts go.
+- **Open 3: an ⓘ beside "Change every"**, one sentence, its text a placeholder until the user
+  approves it from the tablet's screenshot.
+
 ## The rules (draft, for the user to check)
 
 1. **At [06:00], and with several sources every [24/12/6/3 h] from then, a screen changes to
@@ -70,7 +80,7 @@ switches to the next source's newest picture."
 
 ## Open
 
-The user's, one at a time, before RO1.
+Answered by the user, 2026-11-14: 1 (b) by the clock, 2 dropped, 3 an ⓘ (Decided).
 
 1. **Which source a change time gets.** (a) The next after the one on, as 0.6.0 does
    (`nextSource` after `Record.owner`): a change time missed with the phone off makes one

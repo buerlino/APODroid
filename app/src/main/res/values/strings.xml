@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Live (0.7.0, L5): the live wallpaper's description in Android's picker. A placeholder until the user approves it. -->
+    <string name="live_description">Today\'s picture, moving across the screen over the day.</string>
+</resources>

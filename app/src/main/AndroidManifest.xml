@@ -46,6 +46,21 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Keeps the app's process, so memory cleaners don't clear its wallpaper alarms; a user setting, off by default." />
         </service>
+        <!-- Live (0.7.0, L5): APODroid's live wallpaper, chosen in Android's picker. Exported for
+             the system, which binds it holding BIND_WALLPAPER (the guard, not a permission the app
+             asks for). In the app's one process: the prefs, the locks and the job runs are per process. -->
+        <service
+            android:name=".LiveWallpaper"
+            android:exported="true"
+            android:label="APODroid"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/live_wallpaper" />
+        </service>
         <!-- The alarms' run, and arming them again after a boot, a time zone or clock change and
              an update of the app (J2). Not exported: system broadcasts reach it anyway. -->
         <receiver

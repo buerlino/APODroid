@@ -496,4 +496,19 @@ class LiveTest {
         assertTrue(owed(stray = true, notedLive = true))
         assertTrue(owed(stray = true, notedLive = true, lastRun = null))
     }
+    @Test
+    fun anOwedCheckFromTheRealNextAlarmIsOwed() {
+        // nextAlarm hands back its own now for an owed check (fix round 1): the clock read once.
+        val passed = nextAlarm(wake, zurich, 0, PictureTime(), false, Duration.ZERO, Instant.parse("2026-11-13T06:00:00Z"))
+        assertEquals(wake, passed, "the 06:00 check passed since the last run")
+        assertTrue(owed(nextAlarm = passed, lastRun = Instant.parse("2026-11-13T06:00:00Z")))
+
+        val retryRun = wake.minus(Duration.ofMinutes(20))
+        val retry = nextAlarm(wake, zurich, 1, PictureTime(), false, Duration.ZERO, retryRun)
+        assertEquals(wake, retry, "a failed run's retry is due")
+        assertTrue(owed(nextAlarm = retry, lastRun = retryRun))
+
+        // A clock read twice: nextAlarm's own now a millisecond later wasn't owed.
+        assertFalse(owed(nextAlarm = nextAlarm(wake.plusMillis(1), zurich, 0, PictureTime(), false, Duration.ZERO, Instant.parse("2026-11-13T06:00:00Z"))))
+    }
 }

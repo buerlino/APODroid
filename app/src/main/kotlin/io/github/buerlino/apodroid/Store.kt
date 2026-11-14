@@ -583,8 +583,7 @@ class Store(private val context: Context) {
      * the wallpaper lock: the page's `onResume` and the alarms' receiver call it on the main
      * thread, and a set holds that lock for seconds.
      */
-    fun nextAlarm(): Instant {
-        val now = Instant.now()
+    fun nextAlarm(now: Instant = Instant.now()): Instant {
         val zone = ZoneId.systemDefault()
         val setup = setup
         return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), setup.pictureTime, hasTurns, offset, instant("lastRunAt"), allDay = setup.soon)
@@ -1335,8 +1334,11 @@ class Store(private val context: Context) {
      * check owed by [nextAlarm] or a [stray] engine while a record is noted live). On the main
      * thread: prefs only, no lock.
      */
-    fun screenOnRunOwed(stray: Boolean): Boolean =
-        coreScreenOnRunOwed(Instant.now(), daily, nextAlarm(), instant("lastRunAt"), stray, liveNoted)
+    fun screenOnRunOwed(stray: Boolean): Boolean {
+        // The clock read once: nextAlarm hands back its own now for an owed check, a read later would be ahead.
+        val now = Instant.now()
+        return coreScreenOnRunOwed(now, daily, nextAlarm(now), instant("lastRunAt"), stray, liveNoted)
+    }
 
     /** The one engine on the lock screen too: home live and no lock wallpaper of its own (`getWallpaperId(FLAG_LOCK)` -1; 14+ only, L1). */
     val liveShared: Boolean

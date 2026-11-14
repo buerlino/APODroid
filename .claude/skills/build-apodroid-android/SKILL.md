@@ -139,9 +139,9 @@ packages unattended): `night.md`.
   pair (two `PendingIntent`s, request codes 1 and 2, the same time; `RTC_WAKEUP`); the job logs
   `Daily job: alarms for <UTC time>` each time it arms them, `Daily job: alarm, run scheduled`
   when one fires, `Daily job: jobFinished (job <id>)` at a run's end. Since J2 no run asks
-  Android for a retry: after a failed run no backoff job is pending, the alarms come 15 min later. The job logs `Daily job: wallpaper set: Of(source=APOD, date=…, url=…) on HOME+LOCK`
-  (`Own` for "my picture"; one entry per set), `Daily job failed: …`, `Daily job: the run before never ended
-  (killed), counted as failed` and `Daily job: stopped (the switch off)` (B19) under `adb logcat -d -s APODroid`; the page the same as `Page:
+  Android for a retry: after a failed run no backoff job is pending, the alarms come 15 min after its start (O4b). The job logs `Daily job: wallpaper set: Of(source=APOD, date=…, url=…) on HOME+LOCK`
+  (`Own` for "my picture"; one entry per set), `Daily job failed: …` and `Daily job: stopped (the switch off)` (B19; a killed run
+  is no longer logged apart since O4b: it stays counted from its start) under `adb logcat -d -s APODroid`; the page the same as `Page:
   …` and `Update failed`, Set as `Set: …`, the switch as `Switch on: …`. Nothing is logged when there was nothing to set (a kept video day neither). Pull to refresh:
   `adb shell input swipe 400 300 400 1100 600` (tablet coordinates). Crashes:
   `adb logcat -d | grep 'E AndroidRuntime'` (the `I AndroidRuntime` lines are adb's `content`

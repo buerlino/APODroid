@@ -970,15 +970,15 @@ every run, so both are due one picture and get one set; home with no record star
 screen's owner. So they match again after a Set from columns that differed and after a failed
 set on one screen (its retry takes home's picture). Columns that differ: each screen its own
 owner, the same change times. A changed interval or picture time takes effect with Set.
-**The next run** (`nextRun(now, zone, failures, time, turns, offset, waiting)`, for the
-alarms): the earliest of the next change time; within the window 15 min after the change time,
+**The next run** (`nextRun(now, zone, time, turns, offset, waiting, lastRun)`, for the
+alarms, with a failed run's retry added by `nextAlarm`): the earliest of the next change time; within the window 15 min after the change time,
 then hourly (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone), and the
 window's end (09:00, B15: a half-hour zone's post published within it, Tehran's 08:35; three
 real hours, so 02:00 CET on the EU's autumn DST night for a change at 00:00 CEST); hourly
-while a screen waits, until the next change time; after a failed or stopped run 15 min later,
-then hourly (`failures`, the failed runs in a row). The clock's checks come a per-device offset
+while a screen waits, until the next change time; after a failed or stopped run 15 min after
+its start, then hourly (`nextAlarm`'s `failures`, the failed runs in a row, O4b). The clock's checks come a per-device offset
 later (`randomOffset`, 0–10 min in whole seconds, drawn once; kept in range); the retries
-count from the run. No model of each source's posting time. **In `Store`:** `pictureAt` (pref
+count from the run's start. No model of each source's posting time. **In `Store`:** `pictureAt` (pref
 `pictureAt`, default 6, also after an update from 0.5.0; part of `Setup` and `saveSetup`, the
 page's draft, "New picture at" in Setup), the zone the system's, the offset (pref
 `offset`, seconds, drawn at the first `nextAlarm`); `nextAlarm` also keeps a failed run's retry

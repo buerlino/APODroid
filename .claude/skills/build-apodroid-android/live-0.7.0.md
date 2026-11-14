@@ -352,7 +352,7 @@ black or on the blurred background: A3's `whole()` today). Its three users:
 switch is on, when a check is owed (`Store.nextAlarm()` ≤ now: a check time passed since
 `lastRunAt`, or a failed run's retry due, B16) and no run started in the last 15 min
 (`lastRunAt`): `DailyJob.runNow(context)`, the same call the alarms make.
-- It's job 2, so `lastRunAt`, `runGoing`, one run at a time, the failures and the retries are the
+- It's job 2, so `lastRunAt`, `failedRuns` (counted from its start, O4b), one run at a time, the failures and the retries are the
   job's own: no second run path.
 - With O10 the job is expedited.
 - The screen being on means no Doze, and the process runs at foreground-service level while awake.

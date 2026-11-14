@@ -93,6 +93,8 @@ internal open class Phone(
     val offline: ClosedRange<Instant>? = null,
     /** "As soon as it's out" (SO1): [dueWallpapers]' `soon`, [nextAlarm]'s hourly checks all day. */
     var soon: Boolean = false,
+    /** The list's order and its anchor (OR1); the default is RO1's rotation. */
+    var rotation: Rotation = Rotation(),
 ) {
     val sets = mutableListOf<String>()
     val runs = mutableListOf<String>()
@@ -118,7 +120,7 @@ internal open class Phone(
      * [setFails]) leaves them. Returns the plan.
      */
     fun check(now: Instant, failSets: Boolean = false, pull: Boolean = false, stored: Stored = stored(now)): Plan {
-        val plan = dueWallpapers(columns, records, stored, time, zone, now, pull, soon)
+        val plan = dueWallpapers(columns, records, stored, time, zone, now, pull, soon, rotation)
         records = records + plan.screens.filterValues { !it.set }.mapValues { it.value.record }
         for ((picture, screens) in plan.sets) {
             if (failSets || setFails(picture, screens, now)) continue
@@ -131,7 +133,7 @@ internal open class Phone(
 
     /** "Set as wallpaper" at [now], the setup unchanged. */
     fun set(now: Instant) {
-        val restart = restartAndForget(columns, columns, records, stored(now), time, zone, now)
+        val restart = restartAndForget(columns, columns, records, stored(now), time, zone, now, rotation)
         records = records + restart.plan.screens.mapValues { it.value.record }
         check(now)
     }

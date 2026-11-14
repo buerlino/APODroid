@@ -2,6 +2,7 @@ package io.github.buerlino.apodroid.core
 
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.random.Random
 
@@ -109,6 +110,26 @@ data class PictureTime(val pictureAt: Int = DEFAULT_PICTURE_AT, val everyHours: 
      * off, a Set or a pull never shifts it.
      */
     fun turn(now: Instant, zone: ZoneId): Long = changes(now, zone, true).last { it.first <= now }.second
+
+    /**
+     * N(A) (OR1): the number ([turn]) of [date]'s "New picture at", the day's first change time:
+     * the date's epoch day × the change times a day. Always from the current setup, never stored,
+     * so a changed "Change every" keeps the anchor's date and recomputes it.
+     */
+    fun turn(date: LocalDate): Long = date.toEpochDay() * hours(true).size
+
+    /** A's instant (OR1): [date]'s "New picture at" in [zone] (an hour that doesn't exist at the gap's end, one twice the first). */
+    fun at(date: LocalDate, zone: ZoneId): Instant = date.atTime(pictureAt, 0).atZone(zone).toInstant()
+
+    /**
+     * The anchor's date for a Set of a new order at [now] (OR1, `orderFrom`): the local date of
+     * the next "New picture at" after [now]: the same day for a Set before it, else the next day.
+     */
+    fun anchorDate(now: Instant, zone: ZoneId): LocalDate {
+        val next = next(now, zone, turns = false)
+        val day = now.atZone(zone).toLocalDate()
+        return (0L..2L).map { day.plusDays(it) }.first { at(it, zone) == next }
+    }
 
     /** Whether [t] is one of the change times (a record's stamp from 0.6.0's Set clock or 0.5.0 isn't). */
     fun isChangeTime(t: Instant, zone: ZoneId, turns: Boolean): Boolean = t in around(t, zone, turns)

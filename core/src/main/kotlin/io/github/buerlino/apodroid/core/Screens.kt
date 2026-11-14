@@ -9,9 +9,10 @@ import java.time.ZoneId
  * RO1, 2026-11-14). The rules (CLAUDE.md, Background update, Turns; the times in PictureTime.kt),
  * by the clock, never by what's on the screen:
  * 1. At a change time a screen changes: with one source to its newest picture, with several to
- *    the turn's source by the clock ([PictureTime.turn] mod the column, in order APOD → NASA →
- *    Earth) and its newest picture, also one shown before; a source with nothing to show passes
- *    the turn to the next with a picture.
+ *    the turn's source by the clock ([PictureTime.turn] mod the column, in the list's order from
+ *    its anchor, [Rotation]; APOD → NASA → Earth from 1970-01-01 without one) and its newest
+ *    picture, also one shown before; a source with nothing to show passes the turn to the next
+ *    in the list's order with a picture.
  * 2. A newer picture of the source that went on, published in the [pictureWindow] after the
  *    change time, still replaces it whenever a check sees it (B15: by the publish time, not by
  *    when it's seen). With one source that is the whole rule: from each change time T the
@@ -182,7 +183,8 @@ data class Plan(val screens: Map<Screen, Due>) {
  * - **A change time** since the record's stamp (rule 1): with one source the screen is due its
  *   newest picture (on an APOD video day the stand-in; with "Skip it" or nothing stored it keeps
  *   its picture) and takes the change time; with several the turn's source by the clock
- *   ([PictureTime.turn] mod the column, APOD → NASA → Earth) becomes the owner and its newest
+ *   ([Rules.turnOf]: [PictureTime.turn] − the anchor's mod the column in the [rotation]'s order;
+ *   RO1's APOD → NASA → Earth with the default) becomes the owner and its newest
  *   picture is due, also one this screen has shown (RO1: a plain rotation, repeats accepted). A
  *   source with nothing to show ([Stored.picture] null: nothing stored, APOD's video with "Skip
  *   it" or "Use my picture" without one) passes the turn to the next with a picture; none has
@@ -234,8 +236,9 @@ fun dueWallpapers(
     now: Instant,
     pull: Boolean = false,
     soon: Boolean = false,
+    rotation: Rotation = Rotation(),
 ): Plan {
-    val rules = Rules(stored, time, zone, now, soon)
+    val rules = Rules(stored, time, zone, now, soon, rotation)
     val due = mutableMapOf<Screen, Due>()
     val home = columns[Screen.HOME].orEmpty()
     if (home.isNotEmpty() && home.toSet() == columns[Screen.LOCK].orEmpty().toSet()) {
@@ -253,22 +256,42 @@ fun dueWallpapers(
     return Plan(due.filter { (screen, it) -> it.set || it.record != records[screen] })
 }
 
-private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId, val now: Instant, val soon: Boolean = false) {
+private class Rules(
+    val stored: Stored,
+    val time: PictureTime,
+    val zone: ZoneId,
+    val now: Instant,
+    val soon: Boolean = false,
+    val rotation: Rotation = Rotation(),
+) {
     fun current(column: List<Source>): Instant = time.last(now, zone, column.size >= 2)
 
+    /** [now] is before the anchor A ([Rotation.from]'s "New picture at" by this setup's hour; OR1). False without an anchor. */
+    val beforeAnchor: Boolean get() = rotation.from?.let { now < time.at(it, zone) } == true
+
     /**
-     * The source whose turn the current change time is (RO1, by the clock): [PictureTime.turn]
-     * mod the column's sources in order (APOD → NASA → Earth). One source: that one.
+     * The source whose turn the current change time is (RO1, by the clock; OR1, the list's order
+     * from the anchor): the column's sources in the list's order, S[(N(c) − N(A)) mod n], N(c)
+     * [PictureTime.turn] at [now], N(A) the anchor's ([PictureTime.turn] of its date, 0 without
+     * one). One source: that one.
      */
     fun turnOf(column: List<Source>): Source {
-        val order = Source.entries.filter { it in column }
-        return order[Math.floorMod(time.turn(now, zone), order.size)]
+        val order = rotation.ordered(column)
+        val anchor = rotation.from?.let { time.turn(it) } ?: 0L
+        return order[Math.floorMod(time.turn(now, zone) - anchor, order.size.toLong()).toInt()]
     }
 
+    /** [source] when it has something to show, else the next after it in the list's order with a picture; null: none has one. */
+    private fun withPicture(column: List<Source>, source: Source): Source? =
+        source.takeIf { stored.picture(it) != null } ?: nextSource(column, source, { stored.picture(it) != null }, rotation.order)
+
     /** The turn's source ([turnOf]) when it has something to show, else the next after it with a picture; null: none has one. */
-    fun pick(column: List<Source>): Source? {
-        val turn = turnOf(column)
-        return turn.takeIf { stored.picture(it) != null } ?: nextSource(column, turn) { stored.picture(it) != null }
+    fun pick(column: List<Source>): Source? = withPicture(column, turnOf(column))
+
+    /** The column's top in the list's order (OR1), or the next with a picture when it has none; with none the top. */
+    fun top(column: List<Source>): Source {
+        val top = rotation.ordered(column).first()
+        return withPicture(column, top) ?: top
     }
 
     /** A screen with no record: on the turn's source (or the next with a picture), with the current change time. */
@@ -360,7 +383,8 @@ private fun shows(noted: Picture?, due: Picture): Boolean =
         noted.source == due.source && noted.date == due.date
 
 /**
- * Set ("Set as wallpaper", S4; J1): the setup is saved with the columns [before] → [after], then
+ * Set ("Set as wallpaper", S4; J1; the daily switch on, with [before] = [after]): the setup is
+ * saved with the columns [before] → [after], then
  * [dueWallpapers] gives each screen what the setup says afresh. The records of the screens with
  * a column in [after] are forgotten ([Record.forget]: the picture dropped, so it goes on again
  * with the new setup). Each screen goes to the current change time's turn by the clock (RO1:
@@ -372,6 +396,14 @@ private fun shows(noted: Picture?, due: Picture): Boolean =
  * was empty and now isn't is in [Restart.drop]: its record is stale (the app left it alone
  * meanwhile), so it starts as a screen with no record (on the other screen's source if that's
  * in its column). Write the result at once, then run [dueWallpapers].
+ *
+ * **The list's order** (OR1): [rotation] is the order and the anchor after this Set (a Set of a
+ * new order moves the anchor, `Store` writes it). From the anchor A on, or without one, the above,
+ * the turn by the formula ([Rules.turnOf]). Before A ([now] < A, by [time]'s hour) each screen
+ * keeps what's on until A ([keepUntilAnchor]): [orderOnly] (a Set of the order alone: the draft
+ * equals the stored setup but for the order, no newly picked "my picture") keeps the record,
+ * otherwise the owner is kept and set again; [daily] false (the switch off) puts the top on.
+ * The defaults are RO1's.
  */
 fun restartAndForget(
     before: Map<Screen, List<Source>>,
@@ -381,9 +413,13 @@ fun restartAndForget(
     time: PictureTime,
     zone: ZoneId,
     now: Instant,
+    rotation: Rotation = Rotation(),
+    orderOnly: Boolean = false,
+    daily: Boolean = true,
 ): Restart {
-    val rules = Rules(stored, time, zone, now)
+    val rules = Rules(stored, time, zone, now, rotation = rotation)
     val used = Screen.entries.filter { after[it].orEmpty().isNotEmpty() }
+    if (rules.beforeAnchor) return keepUntilAnchor(before, after, records, stored, rules, used, orderOnly, daily)
     val drop = used.filter { before[it].orEmpty().isEmpty() && it in records }.toSet()
     val forgotten = records.filterKeys { it in used && it !in drop }.mapValues { (screen, r) ->
         val column = after.getValue(screen)
@@ -391,6 +427,46 @@ fun restartAndForget(
         Due(r.forget().copy(owner = owner, stamp = rules.current(column)), false)
     }
     return Restart(Plan(forgotten), drop)
+}
+
+/**
+ * [restartAndForget] before the anchor (OR1, Night defaults 1 and 2): each screen with a column
+ * keeps what's on until A instead of jumping to the clock's turn (right after an anchor mostly the
+ * last in the list), and takes the current change time as its stamp (so a change time passed
+ * without a run isn't taken by the next run with the new phase):
+ * - [daily] and [orderOnly] (a Set of the order alone): the record kept, picture and all; nothing
+ *   is set (rule 2 and "As soon as it's out" may still put the owner's newer picture on);
+ * - [daily], anything else (other settings too, the daily switch on): the owner kept and its
+ *   picture forgotten, so it goes on again at once (a changed "my picture" or part shows);
+ * - keep can't hold (no record, a column that was empty, the owner no longer ticked there or with
+ *   nothing to show), or the daily switch off (nothing turns, so Set is what puts a picture on):
+ *   the column's top in the list's order ([Rules.top]), set at once.
+ * A screen whose column was empty gets a fresh record here, so nothing is in [Restart.drop].
+ */
+private fun keepUntilAnchor(
+    before: Map<Screen, List<Source>>,
+    after: Map<Screen, List<Source>>,
+    records: Map<Screen, Record>,
+    stored: Stored,
+    rules: Rules,
+    used: List<Screen>,
+    orderOnly: Boolean,
+    daily: Boolean,
+): Restart {
+    val plan = used.associateWith { screen ->
+        val column = after.getValue(screen)
+        val current = rules.current(column)
+        val record = records[screen]?.takeIf { before[screen].orEmpty().isNotEmpty() }
+        val holds = daily && record != null && record.owner in column && stored.picture(record.owner) != null
+        val kept = when {
+            holds && orderOnly -> record!!.copy(stamp = current)
+            holds -> record!!.forget().copy(stamp = current)
+            record != null -> record.forget().copy(owner = rules.top(column), stamp = current)
+            else -> Record(rules.top(column), stamp = current)
+        }
+        Due(kept, false)
+    }
+    return Restart(Plan(plan), emptySet())
 }
 
 /** [restartAndForget]'s outcome: the [plan] to write, and the screens whose record to remove ([drop]). */

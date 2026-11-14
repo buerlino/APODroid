@@ -112,6 +112,54 @@ class PictureTimeTest {
         assertEquals(listOf("24 02:00", "25 02:00", "26 02:00"), changes(time, zurich, LocalDate.parse("2026-10-25"), false))
     }
 
+    // The anchor (OR1, the list's order)
+
+    @Test
+    fun theAnchorsDateIsTheNextNewPictureAt() {
+        val time = PictureTime(6, 6)
+        val day = LocalDate.parse("2026-11-14")
+        // Before "New picture at" the same day, at it and after it the next.
+        assertEquals(day, time.anchorDate(at(zurich, "2026-11-14T05:59"), zurich))
+        assertEquals(day.plusDays(1), time.anchorDate(at(zurich, "2026-11-14T06:00"), zurich))
+        assertEquals(day.plusDays(1), time.anchorDate(at(zurich, "2026-11-14T20:00"), zurich))
+        // Just after midnight: today's.
+        assertEquals(day, time.anchorDate(at(zurich, "2026-11-14T00:01"), zurich))
+        // By the hour, not the turns' change times (00:00, 12:00 and 18:00 aren't anchors).
+        assertEquals(day.plusDays(1), PictureTime(23, 3).anchorDate(at(zurich, "2026-11-14T23:30"), zurich))
+        assertEquals(day, PictureTime(0, 24).anchorDate(at(zurich, "2026-11-13T23:59"), zurich))
+    }
+
+    @Test
+    fun theAnchorsDateOverTheDstDays() {
+        val time = PictureTime(2, 24)
+        // 28 Mar 2027, Zurich: 02:00 doesn't exist, the anchor's change comes at 03:00.
+        val spring = LocalDate.parse("2027-03-28")
+        assertEquals(spring, time.anchorDate(at(zurich, "2027-03-28T01:59"), zurich))
+        assertEquals(spring.plusDays(1), time.anchorDate(at(zurich, "2027-03-28T03:00"), zurich))
+        assertEquals(Instant.parse("2027-03-28T01:00:00Z"), time.at(spring, zurich))
+        assertEquals(time.next(at(zurich, "2027-03-27T12:00"), zurich, false), time.at(spring, zurich))
+        // 25 Oct 2026: 02:00 twice, the first counts; a Set at the second is after it.
+        val autumn = LocalDate.parse("2026-10-25")
+        assertEquals(Instant.parse("2026-10-25T00:00:00Z"), time.at(autumn, zurich))
+        assertEquals(autumn, time.anchorDate(Instant.parse("2026-10-24T23:59:00Z"), zurich))
+        assertEquals(autumn.plusDays(1), time.anchorDate(Instant.parse("2026-10-25T01:30:00Z"), zurich))
+    }
+
+    @Test
+    fun theAnchorsNumberIsItsDaysFirstChangeTime() {
+        val day = LocalDate.parse("2026-11-15")
+        for (every in listOf(24, 12, 6, 3)) {
+            val time = PictureTime(6, every)
+            assertEquals(day.toEpochDay() * (24 / every), time.turn(day), "every $every h")
+            // The same number as the change time's own (RO1's [PictureTime.turn]).
+            assertEquals(time.turn(time.at(day, zurich), zurich), time.turn(day), "every $every h")
+            assertEquals(time.turn(day) - 1, time.turn(time.at(day, zurich) - Duration.ofMinutes(1), zurich), "every $every h")
+        }
+        // Not by the hour: 22:00 every 3 h counts from 22:00.
+        val late = PictureTime(22, 3)
+        assertEquals(late.turn(late.at(day, la), la), late.turn(day))
+    }
+
     @Test
     fun anHourThatDoesntExistComesAtTheGapsEnd() {
         // 28 Mar 2027, Zurich: 02:00 CET jumps to 03:00 CEST.

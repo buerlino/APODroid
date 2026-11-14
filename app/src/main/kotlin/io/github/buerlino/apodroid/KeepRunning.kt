@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.ServiceCompat
+import io.github.buerlino.apodroid.core.PendingStarts
 
 /**
  * "Keep running" (0.7.0, O11): a foreground service that does nothing but be one, so the app's
@@ -28,6 +29,7 @@ class KeepRunning : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        pending.delivered(fromStart = intent != null)
         try {
             ServiceCompat.startForeground(
                 this,
@@ -54,6 +56,9 @@ class KeepRunning : Service() {
         private const val NOTIFICATION = 1
         private const val CHANNEL = "keep"
 
+        /** Starts not yet delivered to [onStartCommand]: [stop] waits for them (fix round 1). */
+        private val pending = PendingStarts()
+
         /**
          * Starts the service while the daily switch and "Keep running" are on, else stops it.
          * Android's refusal of a start from the background is caught and logged (the job's run
@@ -62,15 +67,23 @@ class KeepRunning : Service() {
         fun ensure(context: Context) {
             val store = Store(context)
             if (!store.daily || !store.keepRunning) return stop(context)
+            pending.starting()
             try {
                 context.startForegroundService(Intent(context, KeepRunning::class.java))
             } catch (e: Exception) {
+                pending.failed()
                 Log.w("APODroid", "Keep running: couldn't start: $e")
             }
         }
 
-        /** Stops the service (the switch off, the daily switch off). */
+        /**
+         * Stops the service (the switch off, the daily switch off), unless a start is still
+         * pending: a `stopService` before its `onStartCommand` takes the service down owing
+         * `startForeground`, and the app crashes. The pending `onStartCommand` goes foreground,
+         * reads the switch off and stops itself (callers write the switch before this).
+         */
         fun stop(context: Context) {
+            if (!pending.mayStop()) return
             context.stopService(Intent(context, KeepRunning::class.java))
         }
 

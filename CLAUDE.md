@@ -905,7 +905,9 @@ sweep). `KeepRunning.kt`, a `Service` with `foregroundServiceType="specialUse"` 
 `START_STICKY` (O7: back about 1 s after a `kill -9`, foreground again on 15); nothing else, no
 thread, no wake lock, no network: the runs stay the alarms' and the fallback's in this process.
 A start that crossed an off (the switch read on just before) goes foreground, then stops
-itself. The notification: channel `keep`, "Keep running", `IMPORTANCE_LOW`, no badge; the text
+itself; a stop waits while a start is pending (`:core`'s `PendingStarts`, O11's fix round 1: a
+`stopService` before the start's `onStartCommand` crashes the app, "did not then call
+startForeground"). The notification: channel `keep`, "Keep running", `IMPORTANCE_LOW`, no badge; the text
 "Keeps the wallpaper changing on time" (the header names the app), ongoing, no time, the small
 icon `ic_keep_running` (the monochrome layer's paths, the inner 72 of 108 units, 24 dp), a tap
 opens the page. **Started** by `KeepRunning.ensure` (while `daily` and `keepRunning`, else it

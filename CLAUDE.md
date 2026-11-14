@@ -354,6 +354,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
     after it (beside it, either run could set first and the other's toast was wrong); a page
     update meanwhile waits for it, and Set is disabled while it runs. Off is off: off drops a
     waiting run, and a running one restarts nothing and sets nothing more once `daily` is off.
+    A set that has begun ends (a screen's set can take seconds with the whole picture); the
+    next one doesn't start: before each set after the first, an update without Set's `set` finds
+    `daily` off and ends there, what it did kept, no failure, as a run that gave up (O4c,
+    2026-11-14, review-0.7.0-runs finding 2; the page's load too; the job's runs stop by
+    `onStopJob` as before), so B6's last on still runs.
     What the draft's switch hid (the rows below) follows the one switch.
   - **Two kinds of state on the page:** the controls and the sources the page offers (the
     title's dropdown and the swipe) follow the draft, so turning "More NASA pictures" on offers

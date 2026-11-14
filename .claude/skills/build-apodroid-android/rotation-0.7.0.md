@@ -174,3 +174,45 @@ skill's "End a turn".
   picture shown twice a day pans twice.
 - Before or after O1–O3 (the declutter every track waits for): RO1 touches only `Screens.kt`,
   `PictureTime.kt` and their tests.
+
+## RO3's results
+
+(rosie, pipeline run 87, 2026-11-14, the tablet HA24BZ2Y, Android 15; dev's debug build after
+RO2, 7636281's tree; evidence in `.coord/runs/087-ro3/tablet/`.) **PASS**, no `BUG:` line.
+
+Setup by the page: "More NASA pictures" on, APOD and NASA ticked on Both, "Change every" 6 h,
+"New picture at" 06:00, Set at 11:46 (real time, Sat 14 Nov): APOD on both screens (06:00's
+turn), one set with both flags. The offset 416 s, so each check's alarm at :06:56. Each change
+ended by the skill's "End a turn", the clock stepped forward (`auto_time 0`, `cmd alarm
+set-time`) to half a minute before the alarm, the alarm left to fire on its own (job 2):
+
+| Clock (CET) | What ran | Set | Next alarm |
+|---|---|---|---|
+| Sat 11:58 | job 1 forced | nothing | 12:06:56 |
+| Sat 12:07 | the alarm | NASA 13 Nov, HOME+LOCK | 12:21:56 (window) |
+| Sat 15:07 | passed window checks, then the window's end | nothing | **18:06:56** |
+| Sat 16:30 | job 1 forced | nothing | 18:06:56 |
+| Sat 18:07 | the alarm | **APOD 14 Nov again**, HOME+LOCK (shown at 06:00's turn) | 18:21:56 |
+| Sat 21:07 | the window's end | nothing | **00:06:56** |
+| Sun 00:07 | the alarm | NASA 13 Nov again (Friday's, a weekend repeat) | 00:21:56 |
+| Sun 03:07 | the window's end | nothing | **06:06:56** |
+| Sun 04:30 | job 1 forced | nothing | 06:06:56 |
+| Sun 06:07 | the alarm | APOD 14 Nov again | 06:21:56 |
+
+- APOD at 06:00 and 18:00, NASA at 12:00 and 00:00: the FP6's case of 11 Nov (APOD back at
+  18:00 though shown that morning) now changes. Both records (`wallpaperSource`, `…Picture`,
+  `…Stamp`, `lock.` the same) followed each change; `dumpsys wallpaper` one shared wallpaper
+  (`mWhich=3`) after each set, its id up by one per set, none in between.
+- `dumpsys alarm` after each window's end: the pair at the next change time + the offset, no
+  hourly checks (`alarm-1630.txt`).
+- The page at 18:07: the chip "On wallpaper", "Changed 14 Nov, 18:07 · APOD"
+  (`page-1807-apod.png`).
+- The clock set back to the real time (11:56) left a stamp ahead (Sun 06:00): a forced job 1
+  set nothing and armed 12:06:56, as "a stamp that lies ahead counts as the current change
+  time" says.
+- Also: the ⓘ "About Change every"'s dialog with the draft's values, "Every 6 h from 06:00,
+  each screen switches to its next source's newest picture." (`change-every-info.png`, a
+  placeholder for the user). No crash (`logcat`, `exit-info`); job 1's last successful run
+  11:56:22.
+- Not checked: the smoke list's page load with the switch on beyond this setup, a Set during
+  the day shifting nothing (`ScreensTest` covers it), the lock screen with its own column.

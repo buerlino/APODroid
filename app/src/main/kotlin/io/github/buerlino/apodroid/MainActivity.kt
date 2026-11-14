@@ -504,12 +504,14 @@ class MainActivity : ComponentActivity() {
      */
     override fun onStop() {
         super.onStop()
+        // Always, also with no pictures yet: a [show] past its STARTED check, still decoding,
+        // must not draw into the stopped page (its pictures would stay for days).
+        showing++
+        restore = true
         if (pictures.isEmpty()) return
         val dropped = pictures.values
         stoppedSizes = pictures.mapValues { (_, picture) -> IntSize(picture.width, picture.height) }
         pictures = emptyMap()
-        showing++
-        restore = true
         // The composition hears of it before its next frame draws (a recycled picture isn't drawn: [PicturePainter]).
         Snapshot.sendApplyNotifications()
         dropped.forEach { it.asAndroidBitmap().recycle() }

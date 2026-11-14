@@ -742,7 +742,11 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   process scheduled it and it hasn't started (`runScheduled` and `getPendingJob`); the second
   finds it so and does nothing. A pending id 2 from before the process died (Android may
   reschedule a run that died with it, with its own backoff, and while pending it blocked the
-  alarms; B16, 2026-10-24, from a review of J2) is replaced. Expect about T + 10 min when Unrestricted;
+  alarms; B16, 2026-10-24, from a review of J2) is replaced. **A failed schedule arms the retry**
+  (O4a, 2026-11-14, from the review of 0.7.0's runs): when `schedule()` returns
+  `RESULT_FAILURE` or throws (caught, logged), the pair is armed `runRetry` ahead (15 min, an
+  hour after a failed run), as a run's start and an alarm landing in a going run do (`armRetry`),
+  so while the switch is on an alarm is armed or id 2 is pending (SIM's invariant 9). Expect about T + 10 min when Unrestricted;
   Optimized: the alarm on time, the network only at Doze's next maintenance window (accepted).
 - **A passed check kept** (B16): each run's start (either id) notes `lastRunAt` (also the
   daily switch on, whose own update sets; off removes it). A check time after it that has

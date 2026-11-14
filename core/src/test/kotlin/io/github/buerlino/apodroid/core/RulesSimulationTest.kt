@@ -21,9 +21,10 @@ import kotlin.test.fail
  * the setup, the device's offset) and 60 days from 20 Oct 2026 (both 2026 DST ends) or from
  * 20 Mar 2027 (the EU's spring change): the posts as the sites post them (APOD late now and then,
  * video days, a post without its publish time, a second picture on the same date), the alarms'
- * runs and the fallback job's, page opens, pulls, Sets (now and then with a new setup), the daily
- * switch off and on, offline spans from minutes to two days, failed checks and sets, killed runs
- * and the phone switched off. [SimPhone] does what `Store` and `DailyJob` do around `:core`'s
+ * runs (the alarm's id 2 pending while offline, its `schedule()` failing now and then) and the
+ * fallback job's, page opens, pulls, Sets (now and then with a new setup), the daily switch off
+ * and on, offline spans from minutes to two days, failed checks and sets, killed runs and the
+ * phone switched off. [SimPhone] does what `Store` and `DailyJob` do around `:core`'s
  * rules; the invariants come from CLAUDE.md's rules (Background update; Turns and the picture
  * time), not from the code, and a failure names the seed, the invariant and the day's runs and
  * sets. A seed that finds a bug stays in [knownBugs] with its own `@Ignore`d test until a fix.
@@ -31,7 +32,7 @@ import kotlin.test.fail
 class RulesSimulationTest {
     @Test
     fun theRulesHoldOverRandomMonths() {
-        val checked = IntArray(9)
+        val checked = IntArray(10)
         val failures = (1..SEEDS).filter { it !in knownBugs }.mapNotNull { seed ->
             val phone = SimPhone(seed)
             try {
@@ -47,7 +48,7 @@ class RulesSimulationTest {
             fail("${failures.size} of $SEEDS seeds failed: ${failures.map { "${it.seed} (${it.invariant})" }}\n\n" + failures.take(3).joinToString("\n\n") { it.message!! })
         }
         // Each invariant was checked, none is idle (about 25,000 sets and 270,000 armings over 240 seeds).
-        for (invariant in 1..8) assertTrue(checked[invariant] > 100, "invariant $invariant checked ${checked[invariant]} times")
+        for (invariant in 1..9) assertTrue(checked[invariant] > 100, "invariant $invariant checked ${checked[invariant]} times")
     }
 
     private companion object {
@@ -152,6 +153,9 @@ private class SimPhone(val seed: Int) : Phone(
     private var alarm: Instant? = null
     private var alarmFires: Instant? = null
     private var fallback: Instant? = null
+
+    /** When the pending run (`DailyJob`'s id 2) starts: the end of the offline span it waits in. */
+    private var runPending: Instant? = null
     private var poweredOff = false
 
     // What the screens show, and what the invariants keep
@@ -161,8 +165,8 @@ private class SimPhone(val seed: Int) : Phone(
     private val kept = mutableMapOf<Screen, Pair<Post, Picture>>()
     private val log = mutableListOf<Pair<Instant, String>>()
 
-    /** How often each invariant was checked (index 1–8). */
-    val checked = IntArray(9)
+    /** How often each invariant was checked (index 1–9). */
+    val checked = IntArray(10)
 
     // The run going through setDue
     private var kind = Kind.PAGE
@@ -487,6 +491,24 @@ private class SimPhone(val seed: Int) : Phone(
         arm(now, runEnd = true)
     }
 
+    /**
+     * `DailyJob.runNow`, an alarm fired: schedules id 2 unless it's pending; it starts at once when
+     * online, else when the offline span ends. A `schedule()` fails now and then (1 in 50, O4a):
+     * the pair `runRetry` ahead, so an alarm stays armed (invariant 9).
+     */
+    private fun runNow(now: Instant) {
+        if (!daily) return
+        if (runPending != null) return note(now, "alarm, a run is pending")
+        if (r.nextInt(50) == 0) {
+            note(now, "alarm, couldn't schedule the run")
+            return armAt(now + runRetry(failedRuns))
+        }
+        var starts = now
+        while (true) starts = offlineSpans.firstOrNull { starts in it }?.endInclusive?.plusSeconds(1) ?: break
+        if (starts == now) jobRun(now, Kind.ALARM)
+        else runPending = starts.also { note(now, "alarm, the run waits for the network until ${local(zone, it)}") }
+    }
+
     private fun armAt(at: Instant) {
         alarm = at
         alarmFires = at + Duration.ofSeconds(r.nextLong(0, 601))
@@ -552,7 +574,7 @@ private class SimPhone(val seed: Int) : Phone(
         apply(new)
         records = records + restart.plan.screens.mapValues { it.value.record } - restart.drop
         update(now, Kind.SET, force = false, page = true, set = true)
-        if (daily) arm(now) else alarm = null.also { alarmFires = null }
+        if (daily) arm(now) else alarm = null.also { alarmFires = null; runPending = null }
     }
 
     private fun switchDaily(now: Instant, on: Boolean) {
@@ -567,6 +589,7 @@ private class SimPhone(val seed: Int) : Phone(
             alarm = null
             alarmFires = null
             fallback = null
+            runPending = null
             return
         }
         val restart = restartAndForget(columns, columns, records, stored(now), time, zone, now)
@@ -580,7 +603,7 @@ private class SimPhone(val seed: Int) : Phone(
     fun simulate() {
         while (true) {
             val scripted = if (events.isEmpty()) null else events.firstKey()
-            val next = listOfNotNull(scripted, alarmFires?.takeIf { !poweredOff }, fallback?.takeIf { !poweredOff }).min()
+            val next = listOfNotNull(scripted, alarmFires?.takeIf { !poweredOff }, runPending?.takeIf { !poweredOff }, fallback?.takeIf { !poweredOff }).min()
             if (next >= end) return
             when (next) {
                 scripted -> {
@@ -598,6 +621,7 @@ private class SimPhone(val seed: Int) : Phone(
                             poweredOff = true
                             alarm = null
                             alarmFires = null
+                            runPending = null
                         }
                         Event.BOOT -> {
                             note(next, "boot")
@@ -608,8 +632,13 @@ private class SimPhone(val seed: Int) : Phone(
                     }
                 }
                 alarmFires -> {
-                    note(next, "alarm run (armed for ${local(zone, alarm!!)})")
+                    note(next, "alarm (armed for ${local(zone, alarm!!)})")
                     alarmFires = null
+                    runNow(next)
+                }
+                runPending -> {
+                    note(next, "the pending run starts (online)")
+                    runPending = null
                     jobRun(next, Kind.ALARM)
                 }
                 else -> {
@@ -617,6 +646,11 @@ private class SimPhone(val seed: Int) : Phone(
                     fallback = next + Duration.ofMinutes(r.nextLong(3 * 60, 9 * 60))
                     jobRun(next, Kind.FALLBACK)
                 }
+            }
+            // Invariant 9 (O4a): while the switch is on and the phone is on, an alarm is armed or id 2 is pending.
+            if (daily && !poweredOff) {
+                checked[9]++
+                if (alarmFires == null && runPending == null) fail(next, 9, "no alarm armed and no run pending")
             }
         }
     }

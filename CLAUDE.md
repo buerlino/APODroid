@@ -802,9 +802,16 @@ set it as wallpaper, and on video days kept the old wallpaper.
   that has a column and no set of its own this run (another column, its picture not due), its
   record is forgotten and the run planned again, so it gets its own picture first, still when
   it isn't home's (logged `Live: home's new picture would show on the lock screen, its own
-  again`). Open (T1's SIM, seed 235): a lock screen with nothing of its own to show (APOD alone
-  there on a video day with "Skip it", nothing stored yet) gets no set when planned again, so the
-  engine shows home's new picture there. **A failed lock set holds the hand-over** (L6f1; `handOverWaits`): while the engine
+  again`). **One with nothing of its own keeps its picture** (B27, 2026-11-14, T1's SIM seed
+  235; the user's fix (a)): when the lock screen, planned again, still has no set (APOD alone
+  there on a video day with "Skip it", nothing stored yet), it keeps what the engine draws now
+  by a still set with `FLAG_LOCK` before home's hand-over: Live's copy (`live.jpg` as drawn: its
+  whole flag, `live.darken`, the frame at `liveAt(now)`), else the engine's fallback as it is;
+  its record and `wallpaperSetAt` stay, its live note goes (logged `Live: the lock screen keeps
+  <picture>, still`). A failed one holds the hand-over (below). An engine drawing black (no
+  copy, no fallback: the first pick on an APOD video day with APOD first in home's column; SIM
+  seed 1952 of 2000) has nothing to keep: the lock screen follows home (night default; the
+  alternative a black still). **A failed lock set holds the hand-over** (L6f1; `handOverWaits`): while the engine
   covers the lock screen and a still set with the lock screen failed in this run, home's
   hand-over is skipped and counts as a failed set (home's record unwritten), so the alarms'
   retry plans both again (logged `Live: the lock screen's set failed, home's hand-over waits`).

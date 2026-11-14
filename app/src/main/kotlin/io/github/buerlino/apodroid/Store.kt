@@ -1057,16 +1057,29 @@ class Store(private val context: Context) {
         if (unnotedLive.isNotEmpty()) Log.i("APODroid", "Live: the engine is on ${unnotedLive.joinToString("+")}, not noted live")
         var records = lost.forgetting(records()).mapValues { (screen, record) -> if (screen in unnotedLive) record.forget() else record }
         val homeColumn = columns[Screen.HOME].orEmpty().isNotEmpty()
-        fun plan() = lost.onPlan(dueWallpapers(columns, records, stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation), records)
+        fun plan(records: Map<Screen, Record>) = lost.onPlan(dueWallpapers(columns, records, stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation), records)
         fun split(plan: Plan) = stillOrLive(setup.size, live.home, live.shared, homeColumn, plan.screens[Screen.HOME]?.record?.picture ?: records[Screen.HOME]?.picture, plan.sets)
-        var plan = plan()
+        var plan = plan(records)
         // L6: home's hand-over would show its new picture on a lock screen the engine covers that
         // isn't due it: the lock screen forgotten and planned again (`:core`'s lockFollowsHome).
+        // B27: with nothing of its own even then, it keeps what the engine draws now (Live's copy,
+        // else its fallback) by a still set before the hand-over, its record kept. An engine that
+        // draws black has nothing to keep: the lock screen follows home.
         val lock = records[Screen.LOCK]
-        if (lock != null && lockFollowsHome(split(plan), live.shared, columns[Screen.LOCK].orEmpty().isNotEmpty())) {
-            Log.i("APODroid", "Live: home's new picture would show on the lock screen, its own again")
-            records = records + (Screen.LOCK to lock.forget())
-            plan = plan()
+        val lockColumn = columns[Screen.LOCK].orEmpty().isNotEmpty()
+        var keep: File? = null
+        if (lock != null && lockFollowsHome(split(plan), live.shared, lockColumn)) {
+            val forgotten = records + (Screen.LOCK to lock.forget())
+            val again = plan(forgotten)
+            val drawn = liveFile.takeIf { it.exists() } ?: liveFallback()
+            if (drawn != null && lockFollowsHome(split(again), live.shared, lockColumn)) {
+                Log.i("APODroid", "Live: home's new picture would show on the lock screen, which has nothing of its own: it keeps ${if (drawn == liveFile) livePicture else drawn.name}")
+                keep = drawn
+            } else {
+                Log.i("APODroid", "Live: home's new picture would show on the lock screen, its own again")
+                records = forgotten
+                plan = again
+            }
         }
         val unset = plan.screens.filterValues { !it.set }
         // A forgotten screen the rules leave out (no column) keeps its record, but not the live note.
@@ -1090,6 +1103,24 @@ class Store(private val context: Context) {
         ).joinToString("; ").ifEmpty { null }
         var failure: Exception? = null
         val failedStill = mutableListOf<Set<Screen>>()
+        // B27: the lock screen keeps what the engine draws, a still set of it: Live's copy as the
+        // engine draws it now (its whole flag, its darkening, the frame where the clock has it), the
+        // fallback as it is. No record, no wallpaperSetAt: it shows what it showed. A failed one
+        // holds home's hand-over (handOverWaits).
+        keep?.let { file ->
+            if (isStopped(stopped)) throw InterruptedException()
+            val copy = file == liveFile
+            try {
+                setFile(file, setOf(Screen.LOCK), liveAt(now), whole = copy && liveWhole, factor = if (copy) liveDarken else 1f)
+            } catch (e: Exception) {
+                Log.w("APODroid", "Live: the lock screen's still set of what the engine draws failed: $e")
+                failure = e
+                failedStill += setOf(Screen.LOCK)
+                return@let
+            }
+            Log.i("APODroid", "Live: the lock screen keeps ${if (copy) livePicture else file.name}, still")
+            commitBeforeStop(stopped) { remove(Screen.LOCK.key("wallpaperLive")) }
+        }
         for ((index, step) in steps.withIndex()) {
             val (entry, toEngine) = step
             val (picture, screens) = entry
@@ -1423,17 +1454,25 @@ class Store(private val context: Context) {
     private fun set(picture: Picture, screens: Set<Screen>, stored: Stored): String {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
         val part = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
-        val position = part?.position ?: 0.5f
+        return setFile(file, screens, part?.position ?: 0.5f, part?.whole == true, factor = null)
+    }
+
+    /**
+     * Blocking. [set]'s drawing of [file] on [screens]: Fill at [position], or [whole]; darkened
+     * by [factor], or with null by the measure while [darken] is on. Writes no record.
+     */
+    private fun setFile(file: File, screens: Set<Screen>, position: Float, whole: Boolean, factor: Float?): String {
         val flags = screens.fold(0) { flags, it -> flags or if (it == Screen.HOME) WallpaperManager.FLAG_SYSTEM else WallpaperManager.FLAG_LOCK }
         val manager = WallpaperManager.getInstance(context)
         val screen = screen
-        val darken = darken
-        if (part?.whole == true) {
+        val darken = factor == null && darken
+        val fixed = factor
+        if (whole) {
             // The screen's size already: the hint is all of it. Measured with its background (Open 5).
             val whole = wholePicture(file, screen)
             dumpWhole(whole)
             val grey = if (darken) topThirdGrey(whole) else null
-            val factor = grey?.let(::darkening) ?: 1f
+            val factor = fixed ?: grey?.let(::darkening) ?: 1f
             val bitmap = if (factor < 1f) darkened(whole, factor) else whole
             dumpSet(bitmap)
             manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
@@ -1442,7 +1481,7 @@ class Store(private val context: Context) {
         // A failed measure leaves the picture as it is: the set matters more than the darkening.
         val grey = if (!darken) null else runCatching { frameGrey(file, screen, position) }
             .onFailure { Log.w("APODroid", "Couldn't measure the brightness: $it") }.getOrNull()
-        val factor = grey?.let(::darkening) ?: 1f
+        val factor = fixed ?: grey?.let(::darkening) ?: 1f
         if (factor < 1f) {
             // Only the frame is decoded, at the screen's size, upright (an EXIF photo too).
             val frame = decodeFrame(file, screen, position, screen.height)

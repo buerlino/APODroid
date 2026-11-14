@@ -92,7 +92,8 @@ fun Map<Source, Part>.forPost(post: Post): Part? = this[post.source]?.takeIf { p
 /**
  * Everything "Set as wallpaper" saves at once ([Store.saveSetup]); the page's draft until then.
  * [list] is the list's columns, kept in APOD mode too; [parts] ⛶'s part per source; [pictureAt]
- * "New picture at", an hour. Not the daily switch: it acts at once ([Store.switchDaily]).
+ * "New picture at", an hour; [soon] "As soon as it's out" (SO2: a newer picture of a screen's
+ * source goes on whenever a check sees it, with hourly checks all day). Not the daily switch: it acts at once ([Store.switchDaily]).
  */
 data class Setup(
     val allSources: Boolean,
@@ -102,6 +103,7 @@ data class Setup(
     val videoDays: VideoDays,
     val parts: Map<Source, Part>,
     val pictureAt: Int = DEFAULT_PICTURE_AT,
+    val soon: Boolean = false,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
     val columns: Map<Screen, List<Source>>
@@ -267,7 +269,7 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt)
+        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon)
 
     /**
      * Blocking. "Set as wallpaper": saves [setup] in one commit (the list with [putColumns], so
@@ -297,6 +299,7 @@ class Store(private val context: Context) {
             if (setup.allSources || hasList) putColumns(setup.list, list)
             putString("interval", setup.interval.name)
             putInt("pictureAt", setup.pictureAt)
+            putBoolean("soon", setup.soon)
             putString("videoDays", setup.videoDays.name)
             for ((source, part) in setup.parts) putPart(source, part)
             putRestart(restart)
@@ -419,6 +422,14 @@ class Store(private val context: Context) {
         get() = pictureAtOrDefault(prefs.getInt("pictureAt", DEFAULT_PICTURE_AT))
 
     /**
+     * "As soon as it's out" (SO2, part of the [setup], default off: 0.6.0's 3-hour window): on, a
+     * newer picture of a screen's source goes on whenever a check sees it ([dueWallpapers]'
+     * `soon`), and the alarms check hourly all day ([nextAlarm]'s `allDay`).
+     */
+    val soon: Boolean
+        get() = prefs.getBoolean("soon", false)
+
+    /**
      * This device's offset after the clock's checks ([randomOffset], 0–10 min), drawn once and
      * stored (`offset`, seconds), so a time zone's phones don't all ask at once.
      */
@@ -453,7 +464,7 @@ class Store(private val context: Context) {
 
     /**
      * When the alarms should start the next run ([nextAlarm]): the change times of the stored
-     * setup, with their checks (15 min after a change time, then hourly in its window; no waiting
+     * setup, with their checks (15 min after a change time, then hourly in its window, all day with [soon]; no waiting
      * since RO1) and this device's [offset], or, after failed runs (a run going among
      * them, O4b), [runRetry] after the last one's start (`lastRunAt`) when that comes first; at
      * once when a check passed since the last run's start (B16). So an arming during a run keeps
@@ -464,8 +475,8 @@ class Store(private val context: Context) {
     fun nextAlarm(): Instant {
         val now = Instant.now()
         val zone = ZoneId.systemDefault()
-        val time = setup.pictureTime
-        return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), time, hasTurns, offset, instant("lastRunAt"))
+        val setup = setup
+        return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), setup.pictureTime, hasTurns, offset, instant("lastRunAt"), allDay = setup.soon)
     }
 
     /**
@@ -823,7 +834,8 @@ class Store(private val context: Context) {
     private fun setDue(pull: Boolean, setAsked: Boolean, stopped: () -> Boolean): Triple<String?, Exception?, Boolean> = synchronized(wallpaperLock) {
         val now = Instant.now()
         val stored = stored()
-        val plan = dueWallpapers(columns, records(), stored, setup.pictureTime, ZoneId.systemDefault(), now, pull)
+        val setup = setup
+        val plan = dueWallpapers(setup.columns, records(), stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon)
         val unset = plan.screens.filterValues { !it.set }
         if (unset.isNotEmpty()) commitBeforeStop(stopped) { putPlan(plan.copy(screens = unset)) }
         val done = mutableListOf<String>()

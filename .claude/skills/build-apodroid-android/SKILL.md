@@ -51,7 +51,7 @@ packages unattended): `night.md`.
   `core/.../Screens.kt` (0.6.0, M1; `Store` uses it since M2): `Screen`, `apodColumns`,
   `screensOf` and `placing` (S2: the list's change, a source on exactly its screens),
   `Picture` (a source's post or `Own`), `StandIn`, `Stored` (posts, files, the stand-in, the posts after a gap:
-  `picture(source)`, `standInShown(source, shown)` (B22, only for `standInSkipped` until RO2), `publishedBefore(source, limit, orAfterGap)`, B15, B21), `Record` (owner, picture, stamp: the change time,
+  `picture(source)`, `publishedBefore(source, limit, orAfterGap)`, B15, B21), `Record` (owner, picture, stamp: the change time,
   `shown`: the last post shown per source; `forget()`), and the pure functions returning a
   `Plan` (records, `sets` grouped by picture): `dueWallpapers(columns, records, stored, time,
   zone, now, pull)` (each run, the rules; turns a plain rotation by the clock since RO1; equal columns: the lock screen follows home's
@@ -59,7 +59,7 @@ packages unattended): `night.md`.
   `restartAndForget(before, after, records, stored, time, zone, now)` (S4, Set: the pictures of
   the screens with a column forgotten, each stamped with the current change time; a `Restart`
   with the plan and the screens whose record to `drop`, a column that was empty), and
-  `videoDayKept` for the page's status line (B23: not while a stand-in will go on; `Stored.standsIn`), `standInSkipped` for its video notice (B22, the rules no longer skip; RO2 removes it; tests in `ScreensTest`, with the FP6's day of 11 Nov).
+  `videoDayKept` for the page's status line (B23: not while a stand-in will go on; `Stored.standsIn`) (tests in `ScreensTest`, with the FP6's day of 11 Nov; B22's `standInShown` and `standInSkipped` went with RO2).
   The rules over random months (SIM, test code only): `RulesSimulationTest`, 240 seeded phones of
   60 days (seven zones, both DST changes, random setups, posts, runs, pulls, Sets, offline spans,
   failed sets, killed runs, the alarms' id 2 pending while offline and its `schedule()` failing
@@ -97,7 +97,7 @@ packages unattended): `night.md`.
   `screenState(screen)`, a `ScreenState` (picture, set time, `kept`) for the page; `pageScreen`
   is APOD mode's screen), `stored()` (posts, files,
   the stand-in for `:core`), `setDue()` (`dueWallpapers`, then the sets per screen, under the
-  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `sourcePicture(source)`, `standInSkipped` (B22, the video notice), `set(picture, screens)` (the flags per screen; a photo with
+  wallpaper lock), `saveInUse()` (the job's saves, `saveEvery`, `saveLimit`), `sourcePicture(source)`, `set(picture, screens)` (the flags per screen; a photo with
   an EXIF orientation goes upright through `setBitmap`; with ⛶'s whole picture (`Part.whole`, A3) `Drawing.kt`'s `wholePicture` bitmap, written to `files/debug-whole.png` too in a debuggable build (`dumpWhole`, L4, for comparing the pixels); the frame's place and the whole picture from `parts.forPost(post)`, O2), `parts` with `forPost` (the one lookup of a source's `Part` for a post, date and picture URL; the page's draft and highlight use it too), `save` (the original, else the stored picture; the job's `limit`; returns `Saved`; its temp file `cache/original.part`, leftovers dropped by `dropSaveLeftovers` at the page's first start and by each save, B13), `imageBounds`
   (`wallpaperFrame` is in `Drawing.kt`).
 - `app/.../Drawing.kt` (L4): the one drawing of a picture onto a `Canvas` of a given size, for
@@ -113,7 +113,7 @@ packages unattended): `night.md`.
   in the saved state, `setupSummary` of the stored setup; the highlight: `setupChanged`, `rowChanged`, `videoDaysChanged`, `highlight`, `Segments`
   (the segmented rows), `Dropdown` (C5, O3: every outlined dropdown, its button, menu, ✓, highlight and label; not the title's menu, `SourceTitle`); with the switch "More NASA pictures" `PictureList`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
-  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, `setsSinceSetup()`, then the alarms and the fallback armed (`scheduleJob`) or cancelled by the stored `daily`; `draft()` with the draft's `pictureAt` (J3); `ModeSwitch` at Setup's top, `PictureAtChoice` and `hourLabel` (J3));
+  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, `setsSinceSetup()`, then the alarms and the fallback armed (`scheduleJob`) or cancelled by the stored `daily`; `draft()` with the draft's `pictureAt` (J3); `ModeSwitch` at Setup's top, `PictureAtChoice` and `hourLabel` (J3), `ChangeEveryHeading` ("Change every" with its ⓘ and dialog, RO2));
   `zone` and `hours24` (the status line's and the problem box's times) from `readClock`, on resume and by `clockChanged` while resumed, B13; `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post, not while a load, a Set or the switch-on runs, once more when called during one (`followAgain`, B14); `saveFallback` copies a pick in `runs` (B14); `dropVideoDays()` and two `LaunchedEffect`s in `Settings()` put a hidden draft value back (B14).
   `app/.../DailyJob.kt` (J2): the run (`onStartJob`: ends at once while a run goes, B16; `started` notes `runStarts` (the run counted as failed until it ends well, O4b) and arms the alarms `Store.runRetry()` ahead (15 min, an hour after a failure, B19); a run the switch off dropped logs "stopped (the switch off)", no failure, B19; `update`, then `saveInUse` unless stopped; the interrupt flag cleared, then `noted` calls `ranWell` after a good run only (before `jobFinished`, B24), then `jobFinished(…, false)` (`onStopJob` false, no Android retry), then `ended` (`runs.finished`) calls `ensure`, each unless an off came since or the switch is off; `stoppedBySystem` (reset at each start) counts as failed), two jobs: id 1 the 6 h fallback (`periodic`), id 2 the alarms' one-off (`runNow`, not while a run goes or while this process's own is pending, `runScheduled`; a stale pending one is replaced, B16; a failed or throwing `schedule()` arms the retry, O4a; `armRetry`, the pair `Store.runRetry()` ahead, for `started`, `runNow`'s going branch and that one); `ensure` arms the pair of alarms (`arm`: `setWindow` with request code 1, `setAndAllowWhileIdle` with 2, for `Store.nextAlarm()`, B16f1) and schedules the fallback when missing or with another timing, not while a run goes; `cancel` (off) drops the generation and cancels both jobs and both alarms. `app/.../AlarmReceiver.kt` (J2, not exported): `ACTION_RUN` → `runNow`; `BOOT_COMPLETED`, `TIMEZONE_CHANGED`, `TIME_SET`, `MY_PACKAGE_REPLACED` → `ensure` while `daily`. The run count and the generation are `core/.../JobRuns.kt` (`JobRuns`: `start()`, null while a run goes, `counts(generation)`, `finished(generation)`, `going`, `drop()`; `JobRunsTest`).
 

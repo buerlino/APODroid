@@ -10,6 +10,7 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.util.Size
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import io.github.buerlino.apodroid.core.Frame
 import io.github.buerlino.apodroid.core.blurBackground
 import io.github.buerlino.apodroid.core.blurSize
@@ -62,7 +63,7 @@ const val MEASURE_HEIGHT = 200
 fun topThirdGrey(bitmap: Bitmap): Double {
     val h = minOf(bitmap.height, MEASURE_HEIGHT)
     val w = maxOf(1, (bitmap.width.toLong() * h / bitmap.height).toInt())
-    val copy = if (h == bitmap.height) bitmap else Bitmap.createScaledBitmap(bitmap, w, h, true)
+    val copy = if (h == bitmap.height) bitmap else bitmap.scale(w, h)
     val pixels = IntArray(w * h).also { copy.getPixels(it, 0, w, 0, 0, w, h) }
     if (copy !== bitmap) copy.recycle()
     return topThirdMean(IntArray(pixels.size) { gray(pixels[it]) }, w, h)

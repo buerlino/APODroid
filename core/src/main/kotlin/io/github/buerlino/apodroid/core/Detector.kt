@@ -44,3 +44,13 @@ fun missedChange(stamps: Collection<Instant>, offset: Duration, lost: Lost?): In
     if (lost == null) return null
     return stamps.filter { it > lost.lastRun && it + offset + missAfter <= lost.at }.maxOrNull()
 }
+
+/**
+ * What the detector's box calls the missed change (O14b): "06:00", or "06:00 on 16 Nov" when its
+ * local date isn't today's. [time] is the clock part, already formatted as the system shows it.
+ */
+fun missedWhen(missed: Instant, now: Instant, zone: java.time.ZoneId, time: String): String {
+    val day = missed.atZone(zone).toLocalDate()
+    if (day == now.atZone(zone).toLocalDate()) return time
+    return "$time on ${day.dayOfMonth} ${day.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)}"
+}

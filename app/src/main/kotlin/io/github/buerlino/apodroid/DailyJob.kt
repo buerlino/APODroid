@@ -176,14 +176,16 @@ class DailyJob : JobService() {
          * that lands in a going run arms the pair [Store.runRetry] ahead, as the run's start did
          * (B18, CR2's finding 1): it had replaced that pair (an arming during the run, or the run
          * outlasting it), so a process killed before the run's end would else have no alarm left.
-         * The run's end arms them again.
+         * The run's end arms them again. A [RUN] that can't be scheduled (`RESULT_FAILURE` or a
+         * throw, O4a) arms the pair [Store.runRetry] ahead too, so the alarms aren't lost while the
+         * switch is on.
          */
         fun runNow(context: Context) {
             if (!Store(context).daily) return
             if (runs.going) {
                 synchronized(lock) {
                     val store = Store(context)
-                    if (runs.going && store.daily) arm(context, System.currentTimeMillis() + store.runRetry().toMillis())
+                    if (runs.going && store.daily) armRetry(context, store)
                 }
                 Log.i("APODroid", "Daily job: alarm, a run is going")
                 return
@@ -196,12 +198,28 @@ class DailyJob : JobService() {
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .build()
             runScheduled = true
-            if (scheduler(context).schedule(job) == JobScheduler.RESULT_SUCCESS) Log.i("APODroid", "Daily job: alarm, run scheduled")
-            else {
-                runScheduled = false
-                Log.w("APODroid", "Daily job: alarm, couldn't schedule the run")
+            val result = runCatching { scheduler(context).schedule(job) }
+            if (result.getOrNull() == JobScheduler.RESULT_SUCCESS) {
+                Log.i("APODroid", "Daily job: alarm, run scheduled")
+                return
+            }
+            // No run and the alarm used up (O4a): the pair Store.runRetry ahead, else nothing would
+            // start a run until a page open, a boot or the fallback.
+            runScheduled = false
+            Log.w("APODroid", "Daily job: alarm, couldn't schedule the run: ${result.exceptionOrNull() ?: "RESULT_FAILURE"}")
+            synchronized(lock) {
+                val store = Store(context)
+                if (store.daily) armRetry(context, store)
             }
         }
+
+        /**
+         * The pair [Store.runRetry] ahead (15 min, an hour after one or more failed runs in a row):
+         * a run's start ([started]), an alarm that lands in a going run, and a run [runNow]
+         * couldn't schedule. The caller holds [lock] and has checked [Store.daily].
+         */
+        private fun armRetry(context: Context, store: Store) =
+            arm(context, System.currentTimeMillis() + store.runRetry().toMillis())
 
         /** Every 6 hours with any flex (0.4.0's; so scheduling runs it at once). */
         private fun periodic(context: Context): JobInfo =
@@ -235,7 +253,7 @@ class DailyJob : JobService() {
         private fun started(context: Context, store: Store, generation: Int): Unit = synchronized(lock) {
             if (!runs.counts(generation) || !store.daily) return
             if (store.runStarts()) Log.w("APODroid", "Daily job: the run before never ended (killed), counted as failed")
-            arm(context, System.currentTimeMillis() + store.runRetry().toMillis())
+            armRetry(context, store)
         }
 
         /**

@@ -55,7 +55,7 @@ packages unattended): `night.md`.
   `shown`: the last post shown per source; `forget()`), and the pure functions returning a
   `Plan` (records, `sets` grouped by picture): `dueWallpapers(columns, records, stored, time,
   zone, now, pull, soon)` (each run, the rules; turns a plain rotation by the clock since RO1; equal columns: the lock screen follows home's
-  record and picture, B2; `soon`, default off, "As soon as it's out" (SO1): rule 2 without the window, the owner's newer picture whenever a run sees it; `Store` passes nothing yet, SO2 wires the pref),
+  record and picture, B2; `soon`, default off, "As soon as it's out" (SO1): rule 2 without the window, the owner's newer picture whenever a run sees it; `Store.setDue` passes the stored `soon`, SO2),
   `restartAndForget(before, after, records, stored, time, zone, now)` (S4, Set: the pictures of
   the screens with a column forgotten, each stamped with the current change time; a `Restart`
   with the plan and the screens whose record to `drop`, a column that was empty), and
@@ -82,12 +82,12 @@ packages unattended): `night.md`.
   (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
   `list` (the list's columns in both modes; before the first save APOD on "Where"'s screens,
   `hasList`), `columns` (the mode's, `Setup.columns`), `hasTurns`, `pictureAt` (J2, pref `pictureAt`, default
-  `:core`'s `DEFAULT_PICTURE_AT`), `Setup.pictureTime`, `offset` (pref `offset`, seconds, drawn once),
-  `nextAlarm()` (when the alarms go: `:core`'s `nextAlarm` with `failedRuns` and
-  `lastRunAt`, not under a lock, no argument, O4b), `runStarts()` (a job run's start: `failedRuns` + 1 and `lastRunAt` in one commit, O4b, B16, B19), `runRetry()` (`retryAfter(failedRuns)`) and
+  `:core`'s `DEFAULT_PICTURE_AT`), `soon` (SO2, pref `soon`, default off: "As soon as it's out"), `Setup.pictureTime`, `offset` (pref `offset`, seconds, drawn once),
+  `nextAlarm()` (when the alarms go: `:core`'s `nextAlarm` with `failedRuns`,
+  `lastRunAt` and `allDay` = the stored `soon`, not under a lock, no argument, O4b), `runStarts()` (a job run's start: `failedRuns` + 1 and `lastRunAt` in one commit, O4b, B16, B19), `runRetry()` (`retryAfter(failedRuns)`) and
   `ranWell()` (a good run's end: removes `failedRuns`; a failed, stopped or killed run stays counted), `foldRunGoing()` (in `migrateOnce`: 0.6.0's `runGoing` counted once in `failedRuns`, `runGoing` and `failedAt` removed, O4b),
   `setup` (the stored `Setup`: mode, "Where", list, interval, video days, `parts`, ⛶'s
-  `Part` per source with its `whole`, `pictureAt`) and
+  `Part` per source with its `whole`, `pictureAt`, `soon`; `setDue` passes its `soon` to `dueWallpapers`) and
   `setPart(post, part)` (U0, ⛶'s ✓: the part saved with `putPart` and the screens with a column whose record shows that post set again; only `wallpaperSetAt` moves),
   `saveSetup(setup, pick)` (S4, Set: one commit with the settings, `putColumns`, the parts (`putPart`) and
   `restartAndForget`'s plan; returns whether the commit was written, B20; `draftFallbackFile` renamed to `fallbackFile` first, only with `pick`, the page's own `draftFallback` (B11); not `daily`), `setsSinceSetup()` (after Set's update: whether any run set a screen since `saveSetup`, and whether one's last set failed; Set's toast, B14),
@@ -113,7 +113,7 @@ packages unattended): `night.md`.
   in the saved state, `setupSummary` of the stored setup; the highlight: `setupChanged`, `rowChanged`, `videoDaysChanged`, `highlight`, `Segments`
   (the segmented rows), `Dropdown` (C5, O3: every outlined dropdown, its button, menu, ✓, highlight and label; not the title's menu, `SourceTitle`); with the switch "More NASA pictures" `PictureList`; `VideoDaysChoice`, the
   dropdown; `switchAllSources`, `place(source, screens)` (the list's tick, untick and dropdown), `chooseVideoDays`,
-  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, `setsSinceSetup()`, then the alarms and the fallback armed (`scheduleJob`) or cancelled by the stored `daily`; `draft()` with the draft's `pictureAt` (J3); `ModeSwitch` at Setup's top, `PictureAtChoice` and `hourLabel` (J3), `ChangeEveryHeading` ("Change every" with its ⓘ and dialog, RO2));
+  all in the draft; `setAsWallpaper()`, the one button: `saveSetup`, `update(set = true)`, `setsSinceSetup()`, then the alarms and the fallback armed (`scheduleJob`) or cancelled by the stored `daily`; `draft()` with the draft's `pictureAt` (J3); `ModeSwitch` at Setup's top, `PictureAtChoice` and `hourLabel` (J3), `SoonSwitch` ("As soon as it's out" under it with its ⓘ, the draft's `soon`, SO2), `ChangeEveryHeading` ("Change every" with its ⓘ and dialog, RO2));
   `zone` and `hours24` (the status line's and the problem box's times) from `readClock`, on resume and by `clockChanged` while resumed, B13; `follow()` redraws while resumed when `Store.watch` sees the job set (either screen's record) or store a post, not while a load, a Set or the switch-on runs, once more when called during one (`followAgain`, B14); `saveFallback` copies a pick in `runs` (B14); `dropVideoDays()` and two `LaunchedEffect`s in `Settings()` put a hidden draft value back (B14).
   `app/.../DailyJob.kt` (J2): the run (`onStartJob`: ends at once while a run goes, B16; `started` notes `runStarts` (the run counted as failed until it ends well, O4b) and arms the alarms `Store.runRetry()` ahead (15 min, an hour after a failure, B19); a run the switch off dropped logs "stopped (the switch off)", no failure, B19; `update`, then `saveInUse` unless stopped; the interrupt flag cleared, then `noted` calls `ranWell` after a good run only (before `jobFinished`, B24), then `jobFinished(…, false)` (`onStopJob` false, no Android retry), then `ended` (`runs.finished`) calls `ensure`, each unless an off came since or the switch is off; `stoppedBySystem` (reset at each start) counts as failed), two jobs: id 1 the 6 h fallback (`periodic`), id 2 the alarms' one-off (`runNow`, not while a run goes or while this process's own is pending, `runScheduled`; a stale pending one is replaced, B16; a failed or throwing `schedule()` arms the retry, O4a; `armRetry`, the pair `Store.runRetry()` ahead, for `started`, `runNow`'s going branch and that one); `ensure` arms the pair of alarms (`arm`: `setWindow` with request code 1, `setAndAllowWhileIdle` with 2, for `Store.nextAlarm()`, B16f1) and schedules the fallback when missing or with another timing, not while a run goes; `cancel` (off) drops the generation and cancels both jobs and both alarms. `app/.../AlarmReceiver.kt` (J2, not exported): `ACTION_RUN` → `runNow`; `BOOT_COMPLETED`, `TIMEZONE_CHANGED`, `TIME_SET`, `MY_PACKAGE_REPLACED` → `ensure` while `daily`. The run count and the generation are `core/.../JobRuns.kt` (`JobRuns`: `start()`, null while a run goes, `counts(generation)`, `finished(generation)`, `going`, `drop()`; `JobRunsTest`).
 

@@ -220,7 +220,9 @@ with turns every "Change every" from it), 15 min after it and hourly for the 3 h
 and at their end (06:00, 06:15, 07:15, 08:15, 09:00; B15), and after a
 failed run 15 min later, then hourly; the 6 h fallback job adds up to four more a day (no hourly
 checks while a screen waits since RO1, 2026-11-14: turns don't wait). So about 4–8 checks a day
-with one source, more with turns (each change time's own checks). Every phone of a time
+with one source, more with turns (each change time's own checks). With "As soon as it's out"
+on (SO2, default off) the job checks hourly all day, about 24 checks a day per source in use
+(NASA's feed 49 KB, APOD's post 21 KB; the picture only when new). Every phone of a time
 zone has the same change times; a per-device offset (0–10 min, drawn once) spreads each burst
 over 10 minutes. 1000 users ≈ 5000–10000 requests a day, spread over the day by the time
 zones. The risk is fragility, not load. Since 0.5.0 (WP7c, 2026-10-18) NASA and Earth have no
@@ -295,8 +297,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   NASA, Earth"; then, while the daily switch is on, " · every 6 h from 06:00" while a screen
   takes turns, else " · 06:00", 12/24 h as the system says. At its top the switch **More NASA pictures**
   (Setup is the draft, Advanced acts at once), then in APOD mode **Where**, with the switch on
-  **Pictures from** (the list); while the daily switch is on **New picture at**, then, while a
-  column takes turns, "Change every", and "If APOD is a video". Closed at a fresh start; it
+  **Pictures from** (the list); while the daily switch is on **New picture at**, "As soon as
+  it's out" under it, then, while a column takes turns, "Change every", and "If APOD is a video". Closed at a fresh start; it
   opens by itself while the draft differs from the store in it, when "More NASA pictures" is
   turned (the area swaps), and closes after a Set that saved (also "Setup saved. Nothing to set
   yet."; a failed set leaves it open). Its state and Advanced's survive a rotation (the saved
@@ -309,6 +311,15 @@ set it as wallpaper, and on video days kept the old wallpaper.
     The pref `pictureAt` (Turns and the picture time), default 06:00. Part of the draft (Set
     arms the alarms afresh); shown only while the daily switch is on, and while hidden it goes
     back to the stored one (as "If APOD is a video").
+  - **As soon as it's out** (SO2, 2026-11-14; the label and the ⓘ placeholders until the user
+    approves them from screenshots; `soon-0.7.0.md`): a switch under "New picture at" with a
+    small ⓘ ("About As soon as it's out"; its dialog "A new picture goes on within the hour
+    after it's out, not only at the change time."), the pref `soon`, default off (0.6.0's
+    window). On: a newer picture of the source a screen shows goes on whenever a check sees
+    it, with hourly checks all day (Turns and the picture time, rule 2). Part of the draft, as
+    "New picture at": shown only while the daily switch is on, back to the stored one while
+    hidden, the highlight (label and switch in `tertiary`, "On, not set yet"). Setup's summary
+    doesn't name it (user, 2026-11-14: the row stays short).
   - **The highlight**: each draft setting that differs from the stored setup shows in the
     theme's `tertiary` until Set: its heading, a segmented row's chosen segment
     (`tertiaryContainer` / `onTertiaryContainer`) and the row's borders (`tertiary`), the
@@ -317,19 +328,20 @@ set it as wallpaper, and on video days kept the old wallpaper.
     chosen), the mode switch and its label, crop mode's "Whole picture" toggle while it differs
     (not ⛶ since U0: ✓ saves the part at once), the
     "Setup" row's title while anything in it differs (the shown mode's "Where" or list, the
-    mode switch, "New picture at", "Change every", "If APOD is a video"; not ⛶). Not the daily
+    mode switch, "New picture at", "As soon as it's out", "Change every", "If APOD is a
+    video"; not ⛶). Not the daily
     switch, nor Advanced (they act at once). Screen readers: a highlighted control's state adds
     "not set yet" ("Selected, not set yet", "Checked, not set yet", "On, not set yet"; the rows
     "collapsed, not set yet").
   - **Set applies the setup** (user, 2026-10-20 evening; why: a change took effect at once,
     "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks and dropdowns),
-    "New picture at", "Change every", "If APOD is a video", a newly picked "my picture" and the
-    switch "More NASA pictures" change only the page
+    "New picture at", "As soon as it's out", "Change every", "If APOD is a video", a newly
+    picked "my picture" and the switch "More NASA pictures" change only the page
     (`MainActivity`'s draft state; no pref is written, no set, no scheduling). **A hidden
     setting goes back to the stored one** (user, 2026-10-22: else Set saved a hidden "Change
     every", and "Setup" stayed highlighted with nothing in it highlighted): "Change every" while
-    it's hidden (no column with two or more, or the daily switch off), "New picture at", "If
-    APOD is a video" and a newly picked "my picture" while the daily switch is off; so Set
+    it's hidden (no column with two or more, or the daily switch off), "New picture at", "As
+    soon as it's out", "If APOD is a video" and a newly picked "my picture" while the daily switch is off; so Set
     saves, and "Setup" highlights, only what the page shows. A rotation and the system killing
     the app keep the draft (`onSaveInstanceState`); closing the app drops it (a start without a
     saved draft deletes `files/fallback-draft.jpg`). **One page:** another start while the page
@@ -951,7 +963,12 @@ RO1 the rules don't read the notes, and since RO2 nothing does: still written, n
    usually marked, doesn't put it on in Los Angeles' normal evening. Turns ignore the mark. A
    phone in the RESTRICTED bucket (one alarm a day) can have such gaps daily: its newest goes on
    whenever that run comes (accepted). A pull, Set, a forgotten picture and a new screen put the
-   newest on at once, whenever it was published; the next change time's target then decides. **Never back:** a
+   newest on at once, whenever it was published; the next change time's target then decides.
+   **With "As soon as it's out" on** (SO1, SO2; `dueWallpapers`' `soon`, the stored `soon`): no
+   window, the owner's newer stored picture goes on whenever a run sees it, whenever it was
+   published (with turns only the turn's source's: another source's waits for its turn; the
+   stand-in's too, so with "NASA instead" NASA's picture goes on in APOD's turn as soon as it's
+   out); B21's mark changes nothing while it's on. **Never back:** a
    picture of the same source older (by date) than the one on the screen isn't set.
 A stamp that isn't a change time (M2's migrated 0.5.0 clock, 0.6.0's own Set clock, a time zone
 changed since) or lies ahead (the clock set back) counts as the current change time: it takes
@@ -989,12 +1006,14 @@ then hourly (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time 
 window's end (09:00, B15: a half-hour zone's post published within it, Tehran's 08:35; three
 real hours, so 02:00 CET on the EU's autumn DST night for a change at 00:00 CEST); no hourly
 checks after the window (0.6.0's for a waiting screen went with RO1; the loop stays behind
-`nextRun`'s `allDay`, default off, for "As soon as it's out", SO1); after a failed or stopped run 15 min after
+`nextRun`'s `allDay`, default off: with "As soon as it's out" on, `Store.nextAlarm` passes it
+and the checks go hourly until the next change time, SO1, SO2); after a failed or stopped run 15 min after
 its start, then hourly (`nextAlarm`'s `failures`, the failed runs in a row, O4b). The clock's checks come a per-device offset
 later (`randomOffset`, 0–10 min in whole seconds, drawn once; kept in range); the retries
 count from the run's start. No model of each source's posting time. **In `Store`:** `pictureAt` (pref
 `pictureAt`, default 6, also after an update from 0.5.0; part of `Setup` and `saveSetup`, the
-page's draft, "New picture at" in Setup), the zone the system's, the offset (pref
+page's draft, "New picture at" in Setup), `soon` (pref `soon`, default off, in `Setup` and
+`saveSetup` too; `setDue` and `nextAlarm` pass it, SO2), the zone the system's, the offset (pref
 `offset`, seconds, drawn at the first `nextAlarm`); `nextAlarm` also keeps a failed run's retry
 and arms at once for a check passed since `lastRunAt` (Background update, B16). 0.6.0's `turnStartedAt` is no longer read (left in the prefs, no
 migration). A video-day choice or the mode switch in the
@@ -1323,8 +1342,11 @@ window), with hourly checks all day; turns still change only at the change times
 posts 15:00–23:00 in Central Europe, after a 06:00 window, so a screen with NASA alone was a
 weekday behind all day (FP6, 13 Nov: lock on 12 Nov's NASA while the page showed 13 Nov's from
 17:41); Los Angeles' APOD at 21:05 is the same case, which 2026-10-23 wanted at 06:00, so users
-would disagree. Open, the user's: the label, the ⓘ, Setup's summary. Until it ships, rule 2's
-window stands.
+would disagree. Decided (user, 2026-11-14): the draft rules checked, the label and the ⓘ the
+placeholders until approved from screenshots, Setup's summary doesn't name it, the pause hint's
+Optimized line unchanged. **Built** (SO1 `:core`, SO2 the switch, `Store` and this file,
+2026-11-14): The app, Settings; Turns and the picture time; Traffic. SO3, the tablet's faked
+afternoon post, checks it.
 
 **0.8.0: Fill's frame on the subject** (user, 2026-11-02, from issue #3: "for 0.8.0";
 [subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md)). A saliency map

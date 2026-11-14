@@ -25,7 +25,8 @@ import kotlin.math.roundToInt
 
 // The drawing (L4): one place that draws a picture onto a canvas of a given size, panned (Fill's
 // frame at a position) or whole (on black or blurred). Its users: Store.set's whole picture and a
-// bright picture's frame (BR2), and from 0.7.0's Live the engine and ⛶'s preview.
+// bright picture's frame (BR2), and from 0.7.0's Live the engine and ⛶'s preview, both darkened by
+// the picture's one factor (BR3).
 
 /**
  * [picture]'s frame at [position] (0–1, [wallpaperFrame]: the [screen]'s portrait shape) drawn to
@@ -72,6 +73,32 @@ fun topThirdGrey(bitmap: Bitmap): Double {
 /** The mean grey of the top third of [file]'s frame at [position] ([topThirdGrey], [decodeFrame] small). */
 fun frameGrey(file: File, screen: Size, position: Float): Double =
     decodeFrame(file, screen, position, MEASURE_HEIGHT).let { frame -> topThirdGrey(frame).also { frame.recycle() } }
+
+/**
+ * The mean grey of the top third of [file] as a whole ([topThirdGrey]), upright, decoded straight
+ * to at most [MEASURE_HEIGHT] high: Live's measure of a panned picture (BR3), one per picture, so
+ * the darkening doesn't change as the frame moves.
+ */
+fun pictureGrey(file: File): Double {
+    val copy = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
+        val (w, h) = info.size.width to info.size.height
+        if (h > MEASURE_HEIGHT) decoder.setTargetSize(maxOf(1, (w.toLong() * MEASURE_HEIGHT / h).toInt()), MEASURE_HEIGHT)
+        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+    }
+    return topThirdGrey(copy).also { copy.recycle() }
+}
+
+/**
+ * The mean grey of the top third of [file]'s whole picture on its background ([drawWhole]),
+ * drawn at the [screen]'s shape at most [MEASURE_HEIGHT] high: Live's measure of a whole picture
+ * and the preview's (BR3), what the screen shows, as `Store.set` measures it at full size.
+ */
+fun wholeGrey(file: File, screen: Size): Double {
+    val h = minOf(screen.height, MEASURE_HEIGHT)
+    val small = Size(maxOf(1, (screen.width.toLong() * h / screen.height).toInt()), h)
+    val drawn = wholePicture(file, small)
+    return topThirdGrey(drawn).also { drawn.recycle() }
+}
 
 /**
  * [file]'s frame at [position] ([wallpaperFrame], the [screen]'s shape), upright, decoded alone

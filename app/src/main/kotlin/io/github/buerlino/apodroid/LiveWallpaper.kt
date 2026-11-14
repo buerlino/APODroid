@@ -31,7 +31,8 @@ import java.util.concurrent.Executors
  * reverted home (until Decision 12's still set replaces it). Only Live's copy ([Store.liveFile],
  * written by `Store.setDue`'s hand-over), never the source's file, which changes with every
  * stored post and goes on a video day; without a copy the newest stored picture of home's first
- * source ([Store.liveFallback]). Panned by the clock ([Store.liveAt]), or whole and still.
+ * source ([Store.liveFallback]). Panned by the clock ([Store.liveAt]), or whole and still,
+ * darkened by the copy's one factor ([Store.liveDarken], BR3; the fallback as it is).
  *
  * In the app's one process (the prefs, the locks and the job runs are per process). A software
  * canvas, one for the engine's life (L1: mixing them breaks the surface); decoded once per
@@ -51,10 +52,11 @@ class LiveWallpaper : WallpaperService() {
         /** The decoded picture and what it is; all on the main thread. */
         private var picture: Bitmap? = null
         private var whole = false
+        private var factor = 1f
         private var name = "nothing"
         private var colors: WallpaperColors? = null
 
-        /** The key of the picture decoded ([shownKey]) and of the one asked for ([wantedKey]): the file, its time and length, the whole flag. */
+        /** The key of the picture decoded ([shownKey]) and of the one asked for ([wantedKey]): the file, its time and length, the whole flag, the darkening. */
         private var shownKey: String? = null
         private var wantedKey: String? = null
 
@@ -177,21 +179,24 @@ class LiveWallpaper : WallpaperService() {
                 val copy = store.liveFile
                 val file: File?
                 val wantWhole: Boolean
+                val wantFactor: Float
                 val wantName: String
                 if (copy.exists()) {
                     file = copy
                     wantWhole = store.liveWhole
+                    wantFactor = store.liveDarken
                     wantName = store.livePicture ?: copy.name
                 } else {
                     file = store.liveFallback()
                     wantWhole = false
+                    wantFactor = 1f
                     wantName = file?.name?.let { "$it (no copy)" } ?: "nothing"
                 }
-                val key = file?.let { "${it.path}:${it.lastModified()}:${it.length()}:$wantWhole" }
+                val key = file?.let { "${it.path}:${it.lastModified()}:${it.length()}:$wantWhole:$wantFactor" }
                 if (key == wantedKey) return@safely
                 wantedKey = key
                 if (file == null) {
-                    show(key, null, false, wantName, null)
+                    show(key, null, false, 1f, wantName, null)
                     return@safely
                 }
                 val screen = store.screen
@@ -199,19 +204,20 @@ class LiveWallpaper : WallpaperService() {
                     val start = SystemClock.uptimeMillis()
                     val bitmap = decode(file, wantWhole, screen)
                     if (bitmap != null) Log.i(TAG, "Live: decoded ${bitmap.width}×${bitmap.height} in ${SystemClock.uptimeMillis() - start} ms")
-                    val found = bitmap?.let(::colorsOf)
+                    val found = bitmap?.let { colorsOf(it, wantFactor) }
                     handler.post {
-                        if (destroyed || key != wantedKey) bitmap?.recycle() else show(key, bitmap, wantWhole, wantName, found)
+                        if (destroyed || key != wantedKey) bitmap?.recycle() else show(key, bitmap, wantWhole, wantFactor, wantName, found)
                     }
                 }
             }
         }
 
         /** The new picture in place of the old (recycled), the colours told, drawn. */
-        private fun show(key: String?, bitmap: Bitmap?, whole: Boolean, name: String, found: WallpaperColors?) {
+        private fun show(key: String?, bitmap: Bitmap?, whole: Boolean, factor: Float, name: String, found: WallpaperColors?) {
             val old = picture
             picture = bitmap
             this.whole = whole
+            this.factor = factor
             this.name = name
             shownKey = key
             drawnFrame = null
@@ -256,10 +262,14 @@ class LiveWallpaper : WallpaperService() {
             return null
         }
 
-        /** The colours of the whole picture (not the moving frame, which would recolour the theme all day), from a small copy. */
-        private fun colorsOf(bitmap: Bitmap): WallpaperColors? = try {
+        /**
+         * The colours of the whole picture (not the moving frame, which would recolour the theme
+         * all day), from a small copy darkened by [factor] (BR3: as Android's from a darkened still set).
+         */
+        private fun colorsOf(bitmap: Bitmap, factor: Float): WallpaperColors? = try {
             val w = maxOf(1, bitmap.width * COLOR_HEIGHT / bitmap.height)
-            val small = bitmap.scale(w, minOf(COLOR_HEIGHT, bitmap.height))
+            val scaled = bitmap.scale(w, minOf(COLOR_HEIGHT, bitmap.height))
+            val small = if (factor < 1f) darkened(if (scaled === bitmap) bitmap.copy(Bitmap.Config.ARGB_8888, false) else scaled, factor) else scaled
             WallpaperColors.fromBitmap(small).also { if (small !== bitmap) small.recycle() }
         } catch (e: Throwable) {
             Log.w(TAG, "Live: couldn't compute the colours: $e")
@@ -293,12 +303,13 @@ class LiveWallpaper : WallpaperService() {
                 }
                 try {
                     canvas.drawColor(Color.BLACK)
-                    if (bitmap != null) drawPanned(canvas, bitmap, size, position)
+                    if (bitmap != null) drawPanned(canvas, bitmap, size, position, factor)
                     drawnFrame = frame
                 } finally {
                     surfaceHolder.unlockCanvasAndPost(canvas)
                 }
-                Log.i(TAG, String.format(Locale.ROOT, "Live: drew %s p=%.2f in %d ms", if (bitmap == null) "black ($name)" else name, position, SystemClock.uptimeMillis() - start))
+                val darker = if (bitmap != null && factor < 1f) String.format(Locale.ROOT, " ×%.2f", factor) else ""
+                Log.i(TAG, String.format(Locale.ROOT, "Live: drew %s p=%.2f%s in %d ms", if (bitmap == null) "black ($name)" else name, position, darker, SystemClock.uptimeMillis() - start))
             }
         }
 

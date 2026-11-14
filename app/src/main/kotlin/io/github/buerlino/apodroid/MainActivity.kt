@@ -156,6 +156,7 @@ import io.github.buerlino.apodroid.core.Size as Sizing
 import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.firstStarted
+import io.github.buerlino.apodroid.core.darkening
 import io.github.buerlino.apodroid.core.livePosition
 import io.github.buerlino.apodroid.core.maker
 import io.github.buerlino.apodroid.core.missedWhen
@@ -1775,16 +1776,22 @@ class MainActivity : ComponentActivity() {
      * bitmap of the screen's portrait size by the wallpaper's own code ([wholePicture]: on black
      * or blurred), shown in the screen's shape, centred on black in the picture's place (so the
      * page doesn't move). Drawn off the main thread, again when the page's [picture] changes;
-     * a spinner meanwhile, the picture alone when it fails. Not darkened (the page shows the
-     * picture as it is).
+     * a spinner meanwhile, the picture alone when it fails. Darkened as the wallpaper will be
+     * (BR3) while the draft's "Darken bright pictures" is on: its top third measured as drawn,
+     * `:core`'s [darkening] (the page's picture itself stays as it is).
      */
     @Composable
     private fun WholePreview(source: Source, picture: ImageBitmap, modifier: Modifier) {
         val file = store.imageFile(source)
         val screen = screen
-        val preview by produceState<ImageBitmap?>(null, picture) {
+        val darken = darken
+        val preview by produceState<ImageBitmap?>(null, picture, darken) {
             val drawn = withContext(Dispatchers.IO) {
-                runCatching { wholePicture(file, screen) }
+                runCatching {
+                    val whole = wholePicture(file, screen)
+                    val factor = if (darken) darkening(topThirdGrey(whole)) else 1f
+                    if (factor < 1f) darkened(whole, factor) else whole
+                }
                     .onFailure { Log.w("APODroid", "Part: couldn't draw the whole picture's preview: $it", it) }
                     .getOrNull()
             }

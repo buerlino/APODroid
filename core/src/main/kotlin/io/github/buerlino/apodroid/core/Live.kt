@@ -12,7 +12,7 @@ import kotlin.math.sqrt
  * CLAUDE.md, 0.7.0: Live). What decides the picture stays the rules' (Screens.kt); this file has
  * where the engine draws it ([livePosition]), at what size it decodes it ([liveDecodeSize]),
  * which of a run's sets go to the engine and which are still ([stillOrLive]), and what a lost
- * Live forgets ([lostLive], Decision 12).
+ * Live forgets ([lostLive], Decision 12), and when Set opens Android's picker ([opensPicker], L6).
  */
 
 /** Size in Setup: Fill (a still set, as 0.6.0) or Live (home's picture drawn by APODroid's live wallpaper). */
@@ -160,4 +160,32 @@ fun lostLive(homeNoted: Boolean, lockNoted: Boolean, homeLive: Boolean, shared: 
     )
     lockNoted && !(homeLive && shared) -> LostLive(forget = setOf(Screen.LOCK))
     else -> LostLive()
+}
+
+/** The same sources on both screens, home's not empty: the rules' equal columns ([dueWallpapers]), whose lock screen takes home's record and picture. */
+fun equalColumns(columns: Map<Screen, List<Source>>): Boolean {
+    val home = columns[Screen.HOME].orEmpty()
+    return home.isNotEmpty() && home.toSet() == columns[Screen.LOCK].orEmpty().toSet()
+}
+
+/**
+ * Whether "Set as wallpaper" opens Android's live wallpaper picker (L6; live-0.7.0.md, "Store,
+ * Size and Set", Set with Live), after saving the setup: [columns] the saved ones, [before] the
+ * stored ones before this Set, [homeLive] and [shared] as the system says now (`Store.liveOn`,
+ * `liveShared`), [lockShares] whether the one engine can cover the lock screen at all (Android
+ * 14+; below it a live wallpaper is home's only, Decision 5).
+ * - Size [Size.LIVE], home has a column and isn't live: the picker, for home (also after a
+ *   back-out or a lost Live: every such Set offers it again).
+ * - Or, on [lockShares] only, this Set makes the columns equal ([equalColumns]), the stored ones
+ *   having differed, while home is live and the engine doesn't cover the lock screen: once per
+ *   split, since the next Set finds them equal before it (a home-only answer or a back-out
+ *   leaves the lock screen Fill, with no picker again).
+ * Never with Size Fill, never for the lock screen alone (no home column: Live is home's), never
+ * for a lock column that differs (Decision 10: the lock screen Fill), and not for equal columns
+ * that were equal before (APOD mode's "Where" Both with home-only Live: the lock screen Fill).
+ */
+fun opensPicker(size: Size, before: Map<Screen, List<Source>>, columns: Map<Screen, List<Source>>, homeLive: Boolean, shared: Boolean, lockShares: Boolean): Boolean = when {
+    size != Size.LIVE || columns[Screen.HOME].orEmpty().isEmpty() -> false
+    !homeLive -> true
+    else -> lockShares && !shared && equalColumns(columns) && !equalColumns(before)
 }

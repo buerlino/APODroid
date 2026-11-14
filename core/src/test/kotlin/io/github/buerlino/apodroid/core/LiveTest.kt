@@ -14,6 +14,7 @@ import java.time.ZoneOffset
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -329,5 +330,65 @@ class LiveTest {
         val records = mapOf(HOME to Record(APOD, x, t0))
         assertEquals(records, LostLive().forgetting(records))
         assertNotNull(records[HOME]?.picture)
+    }
+
+    // When Set opens the picker (L6)
+
+    private val equal = mapOf(HOME to listOf(APOD), LOCK to listOf(APOD))
+    private val homeOnly = mapOf(HOME to listOf(APOD), LOCK to emptyList())
+    private val lockOnly = mapOf(HOME to emptyList(), LOCK to listOf(APOD))
+    private val split = mapOf(HOME to listOf(APOD), LOCK to listOf(EARTH))
+
+    private fun picker(before: Map<Screen, List<Source>>, columns: Map<Screen, List<Source>>, homeLive: Boolean, shared: Boolean = false, size: Size = Size.LIVE, lockShares: Boolean = true) =
+        opensPicker(size, before, columns, homeLive, shared, lockShares)
+
+    @Test
+    fun fillNeverOpensThePicker() {
+        assertFalse(picker(equal, equal, homeLive = false, size = Size.FILL))
+        assertFalse(picker(split, equal, homeLive = true, size = Size.FILL))
+    }
+
+    @Test
+    fun liveOpensThePickerWhileHomeIsntLive() {
+        assertTrue(picker(equal, equal, homeLive = false))
+        assertTrue(picker(homeOnly, homeOnly, homeLive = false))
+        // Decision 10: home APOD, lock Earth, Live on none: once, for home.
+        assertTrue(picker(split, split, homeLive = false))
+        // Below 14 too: Live is home's there.
+        assertTrue(picker(equal, equal, homeLive = false, lockShares = false))
+    }
+
+    @Test
+    fun theLockScreenAloneNeverOpensThePicker() {
+        assertFalse(picker(lockOnly, lockOnly, homeLive = false))
+        assertFalse(picker(equal, lockOnly, homeLive = false))
+    }
+
+    @Test
+    fun homeLiveOpensThePickerOnlyWhenTheSetMakesTheColumnsEqual() {
+        // Decision 10's second Set: home live, the lock screen Fill of its own column: no picker.
+        assertFalse(picker(split, split, homeLive = true))
+        // The columns made equal after the split, the lock screen not covered: once.
+        assertTrue(picker(split, equal, homeLive = true))
+        // Already covered: no picker.
+        assertFalse(picker(split, equal, homeLive = true, shared = true))
+        // The next Set with the same columns: they were equal before it.
+        assertFalse(picker(equal, equal, homeLive = true))
+        // Equal from the start (APOD mode's "Where" Both), Live on home only: the lock screen Fill.
+        assertFalse(picker(equal, equal, homeLive = true, shared = false))
+        // A column made to differ, or home alone: never.
+        assertFalse(picker(equal, split, homeLive = true))
+        assertFalse(picker(split, homeOnly, homeLive = true))
+        // Below 14 the engine never covers the lock screen.
+        assertFalse(picker(split, equal, homeLive = true, lockShares = false))
+    }
+
+    @Test
+    fun equalColumnsAreTheSameSourcesOnBothScreens() {
+        assertTrue(equalColumns(equal))
+        assertTrue(equalColumns(mapOf(HOME to listOf(APOD, NASA), LOCK to listOf(NASA, APOD))))
+        assertFalse(equalColumns(split))
+        assertFalse(equalColumns(homeOnly))
+        assertFalse(equalColumns(mapOf(HOME to emptyList(), LOCK to emptyList())))
     }
 }

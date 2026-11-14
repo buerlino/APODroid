@@ -151,6 +151,7 @@ import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.maker
+import io.github.buerlino.apodroid.core.missedWhen
 import io.github.buerlino.apodroid.core.orderOf
 import io.github.buerlino.apodroid.core.pictureAtOrDefault
 import io.github.buerlino.apodroid.core.pictureHours
@@ -2294,18 +2295,21 @@ class MainActivity : ComponentActivity() {
     private fun MissNotice() {
         val missed = missedAt ?: return
         if (!daily || missed == missDismissed || !missedKeep && keepRunning) return
-        val time = missed.atZone(zone).format(DateTimeFormatter.ofPattern(if (hours24) "HH:mm" else "h:mm\u00A0a", Locale.ENGLISH))
+        val time = missedWhen(
+            missed, Instant.now(), zone,
+            missed.atZone(zone).format(DateTimeFormatter.ofPattern(if (hours24) "HH:mm" else "h:mm\u00A0a", Locale.ENGLISH)),
+        )
         if (!missedKeep) {
             NoticeBox({
                 TextButton(onClick = ::openKeepRunning) { Text("Keep running") }
                 TextButton(onClick = ::dismissMiss) { Text("Dismiss") }
-            }) { Text("Your phone stopped APODroid: the $time change came late.", style = MaterialTheme.typography.bodyMedium) }
+            }) { Text("Your phone stopped APODroid: the $time came late.", style = MaterialTheme.typography.bodyMedium) }
         } else {
             NoticeBox({
                 TextButton(onClick = ::openAppInfo) { Text("App info") }
                 TextButton(onClick = ::dismissMiss) { Text("Dismiss") }
             }) {
-                Text("Your phone still stops APODroid: the $time change came late.", style = MaterialTheme.typography.bodyMedium)
+                Text("Your phone still stops APODroid: the $time came late.", style = MaterialTheme.typography.bodyMedium)
                 stopLines().forEach {
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

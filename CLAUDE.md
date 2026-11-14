@@ -984,7 +984,7 @@ So a bucket holding an alarm (no sign), a boot, an update, a failed run (it star
 open before T + offset + 30 min and a pending job 2 show nothing. **The box** (neutral, with
 the others, while the daily switch is on, from `missedAt` until "Dismiss", `missDismissed`, the
 next miss shows again): with Keep running off at the miss "Your phone stopped APODroid: the
-18:00 change came late." (the time as the system's clock), buttons "Keep running" (opens
+18:00 change came late." (the time as the system's clock; when the missed change's local date isn't today "the 18:00 change on 16 Nov came late", O14b, `:core`'s `missedWhen`, placeholder), buttons "Keep running" (opens
 Advanced settings and scrolls to the switch; doesn't turn it on) and "Dismiss"; such a box hides
 while Keep running is on. With it on "Your phone still stops APODroid: the 18:00 change came
 late." and the maker's lines (`maker`): Xiaomi `App info › Autostart: on`, `App info › Battery

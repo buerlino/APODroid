@@ -1,0 +1,8 @@
+- Size: Live moves a wide picture across the screen over the day
+- Turns are a plain rotation; drag the sources into order
+- "As soon as it's out": new pictures go on within the hour
+- "Darken bright pictures", on by default
+- Keep running (Advanced settings): the phone can't stop the app; two install-time permissions
+- Changes on time in Doze (Android 12+)
+- A box tells you when a change came late
+- The battery hint names your maker's settings path

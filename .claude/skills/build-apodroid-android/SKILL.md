@@ -51,7 +51,8 @@ packages unattended): `night.md`.
   `LostLive(forget, lockTakesHome, dropShared)` with `forgetting(records)` and `onPlan(plan, records)` (Decision 12;
   tests in `LiveTest`). Used by `Store.setDue`, `setPart` and the engine (L5); Size by L6. L6: `equalColumns(columns)`
   (the rules' equal columns, `dueWallpapers` uses it), `opensPicker(size, before, columns, homeLive, shared,
-  lockShares)` (whether Set opens Android's picker), `unnotedLive(size, homeLive, shared, homeNoted, lockNoted,
+  lockShares)` (whether Set opens Android's picker), `firstStarted(options, failed, start)` (the picker's intents in
+  order, any `RuntimeException` of a start logged and the next tried: L6 fix round 1), `unnotedLive(size, homeLive, shared, homeNoted, lockNoted,
   columns)` (the screens the engine is on not noted live, forgotten before the rules) and `lockFollowsHome(split,
   shared, lockColumn)` (home's hand-over would change a shared lock screen not due it: forget it, plan again).
   `core/.../Turn.kt`: `nextSource(ticked, after, hasPicture, order)` (the next ticked source in

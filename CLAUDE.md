@@ -448,9 +448,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
     for the lock screen, never for the lock screen alone (no home column: Live is home's), never
     for a lock column that differs (the lock screen Fill, Decision 10). Both screens'
     `getWallpaperId`s are noted first; the picker is `ACTION_CHANGE_LIVE_WALLPAPER` for
-    `LiveWallpaper`, started directly (`ActivityNotFoundException` caught: L1's
-    `resolveActivity` is null without `<queries>`), else `ACTION_LIVE_WALLPAPER_CHOOSER`, else
-    the toast "This phone can't show live wallpapers." (placeholder) and Fill; only from a page
+    `LiveWallpaper`, started directly (L1's `resolveActivity` is null without `<queries>`), else
+    `ACTION_LIVE_WALLPAPER_CHOOSER`, else the toast "This phone can't show live wallpapers."
+    (placeholder) and Fill; any refusal of a start (`ActivityNotFoundException`, a maker's
+    picker not exported or behind a permission, `SecurityException`) is logged and tries the
+    next (`:core`'s `firstStarted`), and any failure of the picker's trip ends as Fill, so Set
+    never crashes after its setup is saved (L6 fix round 1); only from a page
     in the foreground (a start from the background is blocked silently), with
     `registerForActivityResult`, so a page a rotation made gets the return too (a page's
     `onResume` ends the wait as a fallback). On the return, when an id changed, up to 3 s for

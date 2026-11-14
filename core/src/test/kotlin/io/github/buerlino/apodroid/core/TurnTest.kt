@@ -3,6 +3,8 @@ package io.github.buerlino.apodroid.core
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertNull
 
 class TurnTest {
@@ -88,5 +90,34 @@ class TurnTest {
         assertEquals(all, Rotation().order)
         assertFailsWith<IllegalArgumentException> { Rotation(listOf(apod, nasa)) }
         assertFailsWith<IllegalArgumentException> { Rotation(listOf(apod, nasa, nasa)) }
+    }
+
+    /** A setup as the app's: the list's columns, ⛶'s parts, another field, the order. */
+    private data class Draft(
+        val list: Map<Screen, List<Source>>,
+        val parts: Map<Source, Float> = emptyMap(),
+        val hours: Int = 24,
+        val order: List<Source> = Source.entries,
+    )
+
+    private fun alone(was: Draft, now: Draft) =
+        orderAlone(was, now, Draft::order, { d, o -> d.copy(order = o) }, { it.copy(list = columnsInOneOrder(it.list)) })
+
+    @Test
+    fun theOrderAloneIsOnlyAnotherOrder() {
+        // OR2's fix round: Store compared the setups with their different orders still in, so it was never true.
+        val both = mapOf(Screen.HOME to all, Screen.LOCK to all)
+        val was = Draft(both, mapOf(nasa to 0.3f))
+        val nae = listOf(nasa, apod, earth)
+        assertTrue(alone(was, was.copy(order = nae)))
+        assertFalse(alone(was, was))
+        assertFalse(alone(was, was.copy(order = nae, parts = mapOf(nasa to 0.4f))))
+        assertFalse(alone(was, was.copy(order = nae, parts = emptyMap())))
+        assertFalse(alone(was, was.copy(order = nae, hours = 6)))
+        assertFalse(alone(was, was.copy(order = nae, list = mapOf(Screen.HOME to all, Screen.LOCK to listOf(apod)))))
+        // The list's columns in another sequence still count as equal.
+        val shuffled = mapOf(Screen.LOCK to listOf(earth, apod, nasa), Screen.HOME to listOf(nasa, earth, apod))
+        assertTrue(alone(was, was.copy(order = nae, list = shuffled)))
+        assertFalse(alone(was, was.copy(list = shuffled)))
     }
 }

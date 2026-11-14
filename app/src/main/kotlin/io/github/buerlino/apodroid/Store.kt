@@ -14,7 +14,9 @@ import android.graphics.ImageDecoder
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.os.Environment
+import android.os.SystemClock
 import android.provider.MediaStore
+import android.provider.Settings
 import android.util.Log
 import android.util.Size
 import android.view.Display
@@ -39,6 +41,9 @@ import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.Stored
 import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
+import io.github.buerlino.apodroid.core.Lost
+import io.github.buerlino.apodroid.core.alarmsLost
+import io.github.buerlino.apodroid.core.missedChange
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.columnsInOneOrder
 import io.github.buerlino.apodroid.core.screensOf
@@ -69,7 +74,9 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.abs
 
 /** APOD mode's "Where": the screens APOD goes on. */
 enum class Where(val screens: Set<Screen>) {
@@ -423,13 +430,15 @@ class Store(private val context: Context) {
      * jobs and the alarms, or arms them) and forgets the job's failed runs, both ways (off is off;
      * on starts afresh), a run going among them (a run from before it no longer counts, B19).
      * Turning it on, the caller then runs [startAfresh] and [update] with `set`, which counts as
-     * the last run's start (`lastRunAt`, B16): the checks before it aren't owed.
+     * the last run's start (`lastRunAt`, B16): the checks before it aren't owed. The detector's
+     * note of alarms found gone goes both ways (O14: off cancels them, on starts afresh).
      */
     fun switchDaily(on: Boolean) {
         prefs.edit(commit = true) {
             putBoolean("daily", on)
             remove("failedRuns")
             if (on) putLong("lastRunAt", System.currentTimeMillis()) else remove("lastRunAt")
+            removeLost()
         }
     }
 
@@ -583,6 +592,74 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("pauseHintHidden", false)
         set(value) = prefs.edit { putBoolean("pauseHintHidden", value) }
 
+    /**
+     * The detector (O14): the change time of the last miss ([missedChange]: the phone stopped the
+     * app, and its change came late), null before the first. The box shows it until [missDismissed].
+     */
+    val missedAt: Instant?
+        get() = instant("missedAt")
+
+    /** "Keep running" was on when [missedAt] was noted: the box names the maker's settings, else the switch. */
+    val missedKeep: Boolean
+        get() = prefs.getBoolean("missedKeep", false)
+
+    /** The miss whose box the user dismissed (its change time); the next miss shows again. */
+    var missDismissed: Instant?
+        get() = instant("missDismissed")
+        set(value) = prefs.edit { if (value == null) remove("missDismissed") else putLong("missDismissed", value.toEpochMilli()) }
+
+    /**
+     * The alarms were armed ([DailyJob]'s arming): which boot and which install they belong to, so
+     * the next process that finds them gone ([noteAlarmsGone]) can tell a boot or an update from a
+     * stopped app. The boot by `Settings.Global.BOOT_COUNT`, which a clock change doesn't move
+     * (the boot's moment, the clock less the time since boot, as a fallback where it's missing);
+     * the install by `lastUpdateTime`, compared as a value.
+     */
+    fun noteArmed() = prefs.edit {
+        putInt("armedBoot", bootCount() ?: -1)
+        putLong("armedBootAt", bootMoment())
+        putLong("armedUpdate", updateTime())
+    }
+
+    /**
+     * The first arming in a process found the alarms gone while the daily switch is on
+     * ([DailyJob]): unless a boot or an update since they were armed or a pending run ([runPending])
+     * explains it ([alarmsLost]), notes when (`alarmsLostAt`) and the last run's start before it
+     * (`lostAfterRun`), for the next ordinary run's sets ([setDue]). No note of the arming yet (the
+     * first start of 0.7.0, after the update) explains it too.
+     */
+    fun noteAlarmsGone(runPending: Boolean) {
+        val booted = prefs.getInt("armedBoot", -1).let { armed ->
+            val now = bootCount()
+            if (armed >= 0 && now != null) now != armed
+            else !prefs.contains("armedBootAt") || abs(bootMoment() - prefs.getLong("armedBootAt", 0)) > TimeUnit.MINUTES.toMillis(1)
+        }
+        val updated = !prefs.contains("armedUpdate") || prefs.getLong("armedUpdate", 0) != updateTime()
+        val lost = alarmsLost(gone = true, booted, updated, runPending, instant("lastRunAt"), Instant.now())
+        Log.i("APODroid", "Detector: the alarms found gone${if (lost == null) " (booted $booted, updated $updated, run pending $runPending)" else ", after the run of ${lost.lastRun}"}")
+        if (lost != null) prefs.edit(commit = true) {
+            putLong("alarmsLostAt", lost.at.toEpochMilli())
+            putLong("lostAfterRun", lost.lastRun.toEpochMilli())
+        }
+    }
+
+    /** The alarms found gone and not yet judged by a run's sets ([judgeMiss]). */
+    private fun lost(): Lost? {
+        val at = instant("alarmsLostAt") ?: return null
+        return Lost(at, instant("lostAfterRun") ?: return null)
+    }
+
+    private fun SharedPreferences.Editor.removeLost() {
+        remove("alarmsLostAt")
+        remove("lostAfterRun")
+    }
+
+    private fun bootCount(): Int? = runCatching { Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT) }.getOrNull()
+
+    private fun bootMoment() = System.currentTimeMillis() - SystemClock.elapsedRealtime()
+
+    private fun updateTime() = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime }.getOrDefault(0L)
+
     /** The video-day notice was dismissed for this date (stored as text), and it's back on the next video day. */
     var videoNoticeDate: String?
         get() = prefs.getString("videoNoticeDate", null)
@@ -707,11 +784,11 @@ class Store(private val context: Context) {
         Problem.of(prefs.getString(source.key("problem"), null), prefs.getInt(source.key("httpCode"), 0))
 
     /**
-     * Calls [action] when a set, a stored post or a save changes, also the job's or one started
+     * Calls [action] when a set, a stored post, a save or a miss (O14) changes, also the job's or one started
      * before a rotation (they run in this process), until [stopWatching]. Android holds the listener weakly: keep the one returned.
      */
     fun watch(action: () -> Unit) = OnSharedPreferenceChangeListener { _, key ->
-        if (key in recordKeys || Source.entries.any { key in listOf(it.key("date"), it.key("imageUrl"), it.key("title"), it.key("explanation"), it.key("credit"), it.key("savedUri"), it.key("problem"), it.key("httpCode")) }) {
+        if (key in recordKeys || key == "missedAt" || Source.entries.any { key in listOf(it.key("date"), it.key("imageUrl"), it.key("title"), it.key("explanation"), it.key("credit"), it.key("savedUri"), it.key("problem"), it.key("httpCode")) }) {
             action()
         }
     }.also(prefs::registerOnSharedPreferenceChangeListener)
@@ -943,7 +1020,30 @@ class Store(private val context: Context) {
                 throw e
             }
         }
+        if (!pull && !setAsked) judgeMiss(plan)
         Triple(done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: "), failure, false)
+    }
+
+    /**
+     * The detector (O14): after the alarms were found gone ([noteAlarmsGone]), the next ordinary
+     * run's sets (the page's load or the run its arming started, whichever gets here first; not a
+     * pull's nor Set's) tell whether a change was missed ([missedChange]): noted with "Keep
+     * running"'s state (`missedAt`, `missedKeep`) for the box. Either way the note is used up: a
+     * run with nothing to set lost nothing.
+     */
+    private fun judgeMiss(plan: Plan) {
+        val lost = lost() ?: return
+        val stamps = plan.sets.flatMap { (_, screens) -> screens.mapNotNull { plan.screens.getValue(it).record.stamp } }
+        val missed = missedChange(stamps, offset, lost)
+        val keep = keepRunning
+        prefs.edit(commit = true) {
+            removeLost()
+            if (missed != null) {
+                putLong("missedAt", missed.toEpochMilli())
+                putBoolean("missedKeep", keep)
+            }
+        }
+        Log.i("APODroid", "Detector: ${if (missed != null) "missed the change of $missed (Keep running ${if (keep) "on" else "off"})" else "nothing missed"}")
     }
 
     private fun SharedPreferences.Editor.putSetAt(screen: Screen) = putLong(screen.key("wallpaperSetAt"), System.currentTimeMillis())

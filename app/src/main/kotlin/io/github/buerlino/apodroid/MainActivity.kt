@@ -58,6 +58,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -100,6 +102,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
@@ -295,6 +298,14 @@ class MainActivity : ComponentActivity() {
     /** "Advanced settings" is open; closed by default. */
     private var advancedOpen by mutableStateOf(false)
 
+    /** The detector's box asked for "Keep running": Advanced opens and its switch scrolls into view once. */
+    private var showKeepRunning by mutableStateOf(false)
+
+    /** The detector (O14): the last miss's change time, whether "Keep running" was on then, the one dismissed. */
+    private var missedAt by mutableStateOf<Instant?>(null)
+    private var missedKeep by mutableStateOf(false)
+    private var missDismissed by mutableStateOf<Instant?>(null)
+
     private var weekdayNoticeHidden by mutableStateOf(false)
 
     /** The weekday dialog shows. */
@@ -303,7 +314,7 @@ class MainActivity : ComponentActivity() {
     private var mayHibernate by mutableStateOf(false)
     private var pauseHintHidden by mutableStateOf(false)
 
-    /** The phone's maker, for the pause hint's battery line. */
+    /** The phone's maker, for the pause hint's battery line and the detector's lines. */
     private val phoneMaker = maker(Build.MANUFACTURER)
     private var videoNoticeDate by mutableStateOf<String?>(null)
     private var videoNoticeHidden by mutableStateOf(false)
@@ -665,6 +676,9 @@ class MainActivity : ComponentActivity() {
         pageScreen = store.pageScreen
         screens = Screen.entries.associateWith(store::screenState)
         standInReady = apod?.isVideo == true && store.sourcePicture(Source.APOD) != null
+        missedAt = store.missedAt
+        missedKeep = store.missedKeep
+        missDismissed = store.missDismissed
         readProblem()
     }
 
@@ -898,6 +912,18 @@ class MainActivity : ComponentActivity() {
         } catch (_: ActivityNotFoundException) {
             openAppInfo()
         }
+    }
+
+    /** The detector's box hidden until the next miss. */
+    private fun dismissMiss() {
+        missDismissed = missedAt
+        store.missDismissed = missedAt
+    }
+
+    /** The detector's "Keep running": Advanced settings opened at the switch (not turned on). */
+    private fun openKeepRunning() {
+        advancedOpen = true
+        showKeepRunning = true
     }
 
     private fun hidePauseHint() {
@@ -1442,6 +1468,7 @@ class MainActivity : ComponentActivity() {
         val apod = apod
         val post = post
         if (post == null || (post.source !in pictures && post.source !in stoppedSizes && !post.isVideo)) {
+            MissNotice()
             BatteryNotice()
             return
         }
@@ -1459,6 +1486,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             if (apod?.isVideo == true && !videoNoticeHidden && videoNoticeDate != apod.date.toString()) VideoNotice()
+            MissNotice()
             BatteryNotice()
             // With two or more sources a source line names it; with one the caption stays as 0.4.0's.
             val dateLine = post.date.format(dateFormat) + if (post.isVideo) " · Video" else ""
@@ -1733,12 +1761,21 @@ class MainActivity : ComponentActivity() {
                 Header("Advanced settings", advancedOpen, changed = false) { advancedOpen = !advancedOpen }
                 if (advancedOpen) {
                     SaveEverySwitch()
+                    val keepRow = remember { BringIntoViewRequester() }
                     // At once, not the draft: the stored state is the shown one, so never highlighted.
-                    DraftSwitch(
-                        "Keep running", keepRunning, keepRunning, about = "About keeping running",
-                        info = "Keeps APODroid running, so the phone can't stop it between changes. It shows as an active app.",
-                        onChange = ::switchKeepRunning,
-                    )
+                    Box(Modifier.bringIntoViewRequester(keepRow)) {
+                        DraftSwitch(
+                            "Keep running", keepRunning, keepRunning, about = "About keeping running",
+                            info = "Keeps APODroid running, so the phone can't stop it between changes. It shows as an active app.",
+                            onChange = ::switchKeepRunning,
+                        )
+                    }
+                    // The detector's "Keep running" (O14): once laid out, the switch scrolled into view.
+                    if (showKeepRunning) LaunchedEffect(Unit) {
+                        withFrameNanos { }
+                        keepRow.bringIntoView()
+                        showKeepRunning = false
+                    }
                 }
             }
         }
@@ -2244,6 +2281,54 @@ class MainActivity : ComponentActivity() {
                 Text("NASA Image of the Day and Earth Observatory post on weekdays only.")
             },
         )
+    }
+
+    /**
+     * The detector's box (O14; on-time-0.7.0.md, The detector), while the daily switch is on, from a
+     * miss ([Store.missedAt]: the phone stopped the app and the change came late) until dismissed.
+     * With "Keep running" off then: the switch ("Keep running" opens Advanced settings at it); a
+     * miss with it off hides once it's on. With it on: the maker's settings (:core's [maker]).
+     * Placeholder texts until the user approves them.
+     */
+    @Composable
+    private fun MissNotice() {
+        val missed = missedAt ?: return
+        if (!daily || missed == missDismissed || !missedKeep && keepRunning) return
+        val time = missed.atZone(zone).format(DateTimeFormatter.ofPattern(if (hours24) "HH:mm" else "h:mm\u00A0a", Locale.ENGLISH))
+        if (!missedKeep) {
+            NoticeBox({
+                TextButton(onClick = ::openKeepRunning) { Text("Keep running") }
+                TextButton(onClick = ::dismissMiss) { Text("Dismiss") }
+            }) { Text("Your phone stopped APODroid: the $time change came late.", style = MaterialTheme.typography.bodyMedium) }
+        } else {
+            NoticeBox({
+                TextButton(onClick = ::openAppInfo) { Text("App info") }
+                TextButton(onClick = ::dismissMiss) { Text("Dismiss") }
+            }) {
+                Text("Your phone still stops APODroid: the $time change came late.", style = MaterialTheme.typography.bodyMedium)
+                stopLines().forEach {
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+
+    /**
+     * The detector's lines with "Keep running" on: the maker's settings that let an app start and
+     * run in the background (on-time-0.7.0.md, What stops the job; dontkillmyapp.com, the makers'
+     * guides). Placeholders until checked on their phones. Stock Android and Lenovo have no such
+     * setting (O8: none on ZUI): only a force stop ends the changes there.
+     */
+    private fun stopLines(): List<String> = when (phoneMaker) {
+        Maker.XIAOMI -> listOf("App info › Autostart: on", "App info › Battery saver › No restrictions")
+        Maker.SAMSUNG -> listOf("Battery › Background usage limits › Never sleeping apps › APODroid")
+        Maker.OPPO -> listOf("App info › Battery usage › \"Allow background activity\": on", "App info › Battery usage › \"Allow auto launch\": on")
+        Maker.VIVO -> listOf("Battery › High background power consumption › APODroid: on", "App info › Autostart: on")
+        Maker.HUAWEI -> listOf(
+            "App info › Battery usage details › App launch settings › \"Manage automatically\": off",
+            "Auto-launch, Secondary launch, Run in background: on",
+        )
+        Maker.LENOVO, Maker.STOCK -> listOf("A force stop ends the changes until APODroid opens.")
     }
 
     @Composable

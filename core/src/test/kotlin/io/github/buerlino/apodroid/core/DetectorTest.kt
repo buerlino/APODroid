@@ -1,0 +1,110 @@
+package io.github.buerlino.apodroid.core
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+
+class DetectorTest {
+    private val zurich = ZoneId.of("Europe/Zurich")
+
+    private fun at(text: String): Instant = LocalDateTime.parse(text).atZone(zurich).toInstant()
+
+    private val offset = Duration.ofMinutes(4)
+
+    /** The alarms found gone at [now] after a run at [lastRun], nothing else explaining it. */
+    private fun lost(lastRun: String, now: String) =
+        alarmsLost(gone = true, booted = false, updated = false, runPending = false, lastRun = at(lastRun), now = at(now))
+
+    @Test
+    fun wsTabletDayIsAMiss() {
+        // W, Wed 28 Oct 2026: the last run 13:34, ZUI's cleaner force-stopped the app at 13:57, the
+        // lock screen took turns (its new stamp 18:00), the page opened at 19:40 and set it.
+        val lost = lost("2026-10-28T13:34", "2026-10-28T19:40")
+        assertEquals(Lost(at("2026-10-28T19:40"), at("2026-10-28T13:34")), lost)
+        assertEquals(at("2026-10-28T18:00"), missedChange(listOf(at("2026-10-28T18:00")), offset, lost))
+    }
+
+    @Test
+    fun aHeldAlarmIsNone() {
+        // A bucket (RARE: 57 min in V11a) holds the alarm past T + 30 min, but it's still there.
+        val lost = alarmsLost(gone = false, booted = false, updated = false, runPending = false, lastRun = at("2026-10-28T09:00"), now = at("2026-10-28T06:50"))
+        assertNull(lost)
+        assertNull(missedChange(listOf(at("2026-10-28T06:00")), offset, lost))
+    }
+
+    @Test
+    fun aPageBeforeTheChangeIsOverdueIsNone() {
+        // 06:00 + 7 min offset + 30 min = 06:37: a page at 06:20 isn't late enough.
+        val seven = Duration.ofMinutes(7)
+        val early = lost("2026-10-27T09:00", "2026-10-28T06:20")
+        assertNull(missedChange(listOf(at("2026-10-28T06:00")), seven, early))
+        // At 06:37 it is.
+        val late = lost("2026-10-27T09:00", "2026-10-28T06:37")
+        assertEquals(at("2026-10-28T06:00"), missedChange(listOf(at("2026-10-28T06:00")), seven, late))
+    }
+
+    @Test
+    fun aBootExplainsTheAlarmsGone() {
+        // The phone off overnight: booted after T, the alarms gone with the boot, not a stop.
+        val lost = alarmsLost(gone = true, booted = true, updated = false, runPending = false, lastRun = at("2026-10-27T21:00"), now = at("2026-10-28T08:00"))
+        assertNull(lost)
+        assertNull(missedChange(listOf(at("2026-10-28T06:00")), offset, lost))
+    }
+
+    @Test
+    fun anUpdateExplainsTheAlarmsGone() {
+        assertNull(alarmsLost(gone = true, booted = false, updated = true, runPending = false, lastRun = at("2026-10-27T21:00"), now = at("2026-10-28T08:00")))
+    }
+
+    @Test
+    fun aPendingRunExplainsTheAlarmsGone() {
+        // The pair fired and was used up; the run (job 2) waits for the network or its quota.
+        assertNull(alarmsLost(gone = true, booted = false, updated = false, runPending = true, lastRun = at("2026-10-27T21:00"), now = at("2026-10-28T08:00")))
+    }
+
+    @Test
+    fun noRunYetIsNone() {
+        // Nothing noted yet: nothing is owed.
+        assertNull(alarmsLost(gone = true, booted = false, updated = false, runPending = false, lastRun = null, now = at("2026-10-28T08:00")))
+    }
+
+    @Test
+    fun aRunThatStartedAndFailedIsNone() {
+        // The 06:00 run started at 06:04 and failed (no network, a 503): the problem box's.
+        val lost = lost("2026-10-28T06:04", "2026-10-28T08:00")
+        assertNull(missedChange(listOf(at("2026-10-28T06:00")), offset, lost))
+    }
+
+    @Test
+    fun theDailySwitchOnAfterTheChangeIsNone() {
+        // The switch on notes the last run's start: the change before it isn't owed.
+        val lost = lost("2026-10-28T07:00", "2026-10-28T08:00")
+        assertNull(missedChange(listOf(at("2026-10-28T06:00")), offset, lost))
+    }
+
+    @Test
+    fun nothingToSetIsNone() {
+        assertNull(missedChange(emptyList(), offset, lost("2026-10-27T21:00", "2026-10-28T08:00")))
+    }
+
+    @Test
+    fun aChangeAfterTheAlarmsWereFoundGoneIsNone() {
+        // A later run's set by the next change time: the alarms were armed again by then.
+        val lost = lost("2026-10-27T21:00", "2026-10-28T08:00")
+        assertNull(missedChange(listOf(at("2026-10-28T12:00")), offset, lost))
+    }
+
+    @Test
+    fun theLatestMissedChangeIsNamed() {
+        // Home with one source (06:00), lock with turns (18:00): both missed, the later named.
+        val lost = lost("2026-10-27T21:00", "2026-10-28T19:40")
+        val stamps = listOf(at("2026-10-28T06:00"), at("2026-10-28T18:00"))
+        assertEquals(at("2026-10-28T18:00"), missedChange(stamps, offset, lost))
+        // Without a loss noted, none.
+        assertNull(missedChange(stamps, offset, null))
+    }
+}

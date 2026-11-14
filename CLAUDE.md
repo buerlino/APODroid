@@ -500,7 +500,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Keep running, Background update).
+    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Keep running, Background update).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. A neutral box below the
   tile (`surfaceVariant` fill, `outline` border) says what the video day does to the wallpaper;
@@ -590,9 +590,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   hides that problem until its kind or HTTP code changes or a new day starts
   (`problemNoticeKey`, e.g. `http:503:2026-10-16`); no "Don't show again", a failing app must
   not look like a working one. **All boxes that apply show at once** (user, 2026-10-16), stacked
-  below the picture or tile, above the title: problem, video notice, battery hint (Background
-  update), each with its own buttons. The empty state shows the text above "Try again", no
-  problem box, but the battery hint below it. So on a day whose post is stored, opening the
+  below the picture or tile, above the title: problem, video notice, the detector's box, battery
+  hint (Background update), each with its own buttons. The empty state shows the text above
+  "Try again", no problem box, but the detector's box and the battery hint below it. So on a day whose post is stored, opening the
   page clears a pull's failure: nothing is wrong until the next picture is due. **The status
   lines**, under the switch while it's on (texts since U0, user, 2026-11-02): "Changed 16 Oct, 06:12" (`wallpaperSetAt`,
   any successful set; 12/24 h and the time zone as the system; the zone followed while the page
@@ -951,6 +951,44 @@ O7: refused while Optimized). **Stopped:** the switch off, the daily switch off 
 sticky restart's `startForeground`): caught, logged ("Keep running: couldn't start: …" or
 "Keep running: refused: …"), the service stops; nothing on the page. With it on the process
 stays resident (O7: about 105 MB PSS after Back, the decoded pictures still in the native heap; O12: the page lets them go when it stops).
+
+**The detector** (O14, 2026-11-14; on-time-0.7.0.md, The detector; the texts placeholders until
+the user approves them from the tablet's screenshots): the page notices that the phone stopped
+the app, so the change came only when something started it again. `:core`'s `Detector.kt`
+(`DetectorTest`). **The sign:** a force stop deletes the alarms (`am force-stop`, O7; ZUI's
+cleaner, O8, whose force stop leaves no other sign: `wasForceStopped()` false, the package not
+stopped), a process's death doesn't. So the first arming in a process (`DailyJob.ensure`'s
+`checkAlarms`, from the page's `onResume` or a receiver; not again in a process that armed or
+cancelled them) asks for the pair's `PendingIntent`s with `FLAG_NO_CREATE`; both missing while
+`daily` is on is noted (`alarmsLost`: `alarmsLostAt` and `lostAfterRun`, the last run's start)
+unless a boot or an update since the alarms were armed explains it, or job 2 is pending (the pair
+fired and was used up; the run waits for the network or its quota), or no run's start is noted.
+Each arming notes its boot (`armedBoot`, `Settings.Global.BOOT_COUNT`, which a clock change
+doesn't move; the boot's moment, `armedBootAt`, where it's missing) and its install
+(`armedUpdate`, `lastUpdateTime`); none noted yet (the first start of 0.7.0) explains it too
+(night default: by the arming, not by `lastRunAt` as the plan said: each run's start arms, so
+it's as recent, and a clock step doesn't fake a boot). **A miss** (`missedChange`): the next
+ordinary run's sets (the page's load, or the run its arming started at once for the passed
+check, whichever reaches `setDue` first; not a pull's nor Set's) due by a change time T after
+that last run's start, the alarms found gone at T + the offset + 30 min (`missAfter`) or later: the
+latest such T is noted (`missedAt`) with "Keep running"'s state (`missedKeep`); the loss note is
+used up either way (nothing to set: nothing lost). The daily switch, both ways, drops the note.
+So a bucket holding an alarm (no sign), a boot, an update, a failed run (it started), a page
+open before T + offset + 30 min and a pending job 2 show nothing. **The box** (neutral, with
+the others, while the daily switch is on, from `missedAt` until "Dismiss", `missDismissed`, the
+next miss shows again): with Keep running off at the miss "Your phone stopped APODroid: the
+18:00 change came late." (the time as the system's clock), buttons "Keep running" (opens
+Advanced settings and scrolls to the switch; doesn't turn it on) and "Dismiss"; such a box hides
+while Keep running is on. With it on "Your phone still stops APODroid: the 18:00 change came
+late." and the maker's lines (`maker`): Xiaomi `App info › Autostart: on`, `App info › Battery
+saver › No restrictions`; Samsung `Battery › Background usage limits › Never sleeping apps ›
+APODroid`; Oppo `App info › Battery usage › "Allow background activity": on`, `App info ›
+Battery usage › "Allow auto launch": on`; Vivo `Battery › High background power consumption ›
+APODroid: on`, `App info › Autostart: on`; Huawei/Honor `App info › Battery usage details › App
+launch settings › "Manage automatically": off`, `Auto-launch, Secondary launch, Run in
+background: on`; Lenovo (O8: ZUI has no such setting) and stock `A force stop ends the changes
+until APODroid opens.`; buttons
+"App info" and "Dismiss". It doesn't suggest Live (live-0.7.0.md, Decision 9).
 
 Each run (either id), and each page open or pull (2026-10-16, one path): `Store.update(force)`,
 `refresh(source)` for each source in use unless its stored post is today's (always with
@@ -1420,7 +1458,8 @@ and the like, which no app setting gets past). Decided:
   holding them doesn't; user, 2026-10-28: "Only on a force stop"), shows a box at the first miss
   pointing to "Keep running"; without that sign no box (the pause hint covers the buckets); with it
   already on, the maker's settings path for `Build.MANUFACTURER` and "App info". Keep running is
-  offered only there, not by maker before a miss (user, 2026-10-28).
+  offered only there, not by maker before a miss (user, 2026-10-28). **Built** (O14,
+  2026-11-14): Background update, The detector.
 - **The pause hint per maker** (after the friend's Honor X60, MagicOS 9: App info has no
   "Unrestricted"): the battery line names the phone's own path (`Build.MANUFACTURER`), and a
   button opens Android's Battery optimisation list (`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`,

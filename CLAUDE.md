@@ -837,10 +837,20 @@ set it as wallpaper, and on video days kept the old wallpaper.
   only (date and picture URL), so each new picture starts centred (a new post drops a draft
   part); the job uses only the stored one. The user's own picture (video days) is always
   centred.
+  **With Live** (L7, 2026-11-14; Decision 7): while the draft's Size is Live and the shown
+  source is in the draft's home column, ⛶'s frame stands where the engine has it now
+  (`livePosition` by the draft's "New picture at", "Change every" and home's column, turns from
+  two sources) and doesn't move by drag (no drag action for screen readers either); a minute
+  tick moves it while open. ✓ then saves the stored part's position unchanged (Fill's, for the
+  lock screen and Fill) and the whole picture. A source only on the lock screen, or Size Fill:
+  ⛶ as above (the lock screen is Fill, Decision 10).
   **Whole picture** (texts approved by the user, 2026-10-24): in ⛶ mode a toggle at the
   picture's top left (where the chip is otherwise; the chip's dark pill), "Whole picture", "✓ Whole
   picture" while on. While on, the frame hides (no dimming, no drag) and the page shows the
-  picture as it is (no preview of the background: that comes with Live, 0.7.0). ✓ saves and
+  picture in the screen's shape as the wallpaper draws it (L7, Fill or Live): `Drawing.kt`'s
+  `wholePicture` at the screen's portrait size, on black or the blurred background, drawn off
+  the main thread (a spinner meanwhile) and shown centred on black in the picture's place (the
+  page doesn't move); not darkened (the page shows pictures as they are). ✓ saves and
   sets it with the part (`Part.whole`, U0), Back drops it, reopening ⛶ shows the stored one; a
   Set from open crop mode stores it too, per source for that post only, as the part. The toggle
   shows in `tertiary` while it differs from the stored one (until ✓); screen readers: "Whole
@@ -1493,7 +1503,7 @@ library (ML Kit needs Play Services; Tesseract is large). Decided:
 - Not wanted (2026-10-22): a "Colour" background, a dim setting (bright pictures alone darker
   planned for 0.7.0, issue #2), screen-aware placement (clock and dock), per-screen Size (the
   2026-10-19 decision stands); learning per user (was "after 0.6.0", gone with the smart Auto).
-  The preview on the page comes with Live (0.7.0).
+  The preview on the page came with Live (0.7.0, L7: ⛶ mode).
 
 **0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline, right after 0.6.0):
 Size [Fill | Live], with the preview on the page (one drawing code). A wide picture is shown at the screen's full height and moves
@@ -1530,7 +1540,8 @@ in [live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md)):
   stop or a crash loop drops a live wallpaper; Auto went in 0.6.0). Live only for those who
   choose it.
 - **The preview in ⛶ mode:** with Live the frame where the clock has it (no drag); with "Whole
-  picture" a screen-shaped preview on its background, drawn by the wallpaper's code.
+  picture" a screen-shaped preview on its background, drawn by the wallpaper's code **Built**
+  (L7, 2026-11-14): The app, Choosing the part.
 - **"My picture" moves too.** **The detector doesn't suggest Live**, and Live doesn't change it
   (2026-11-14: it fires only after a force stop, which drops Live on both screens).
 - **Different pictures on home and lock: Live on home, the lock screen still Fill** (user,

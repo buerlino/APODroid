@@ -143,6 +143,8 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 40 | T2 | Final tablet pass on the combined tree | rosie | opus, high | no | T1, R1, B27, L9a | plan T2 |
 | 41 | B27 | A shared lock screen with nothing of its own keeps its picture | winston | opus, medium | yes | L8, T1 | plan B27 |
 | 42 | L9a | The engine's first frame without the black | winston | opus, medium | yes | L8, B27 | live-0.7.0.md L9a |
+| 43 | R2a | Below 14, Live re-applied over itself isn't taken for lost | winston | opus, medium | yes | L9a | plan R2a |
+| 44 | R2b | Set's wait for the picker isn't ended by the picker's Settings button | winston | opus, low | yes | L9a | plan R2b |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

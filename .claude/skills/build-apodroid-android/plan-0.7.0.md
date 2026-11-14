@@ -89,6 +89,39 @@ follows home").
 - **Done when:** seed 235's test is un-ignored, out of `knownBugs`, and passes (it fails on the old code); the
   other seeds still pass; `CLAUDE.md` says what the lock screen does.
 
+### [ ] R2a. Below 14, Live re-applied over itself isn't taken for lost (Opus, medium)
+
+(From the release audit, 2026-11-14, PLAUSIBLE: read from AOSP, not run; queued the same night.) Below 14,
+`Store.liveState()` takes home as live only while `live.homeId` equals `getWallpaperId(FLAG_SYSTEM)`, and the
+engine notes the id only in `onCreate` (`LiveWallpaper.kt`, `Store.kt`'s `noteHomeId`). AOSP 10–13's
+`setWallpaperComponent` gives a new `wallpaperId` when the same component is applied again (from about 11 it
+sends the engine `COMMAND_REAPPLY` instead of a new engine), so a user who picks APODroid's live wallpaper again
+in the system's wallpaper app makes the next run's `lostLive` forget home's record and set Fill over Live.
+- **The fix:** `LiveEngine` overrides `onCommand`: for `WallpaperManager.COMMAND_REAPPLY` on a non-preview
+  engine below 14, `store.noteHomeId()` inside `safely`, then `reload()`. Nothing changes on 14+.
+- **Files:** `LiveWallpaper.kt`; `CLAUDE.md` (Live, the note below 14: a re-apply notes the id again; Android
+  10 unchecked, whether it sends the command); `live-0.7.0.md` (The note).
+- **Tests:** none in `:core` (Android only).
+- **Tablet:** a smoke check on 15 only (the path is below 14): Live on home, re-apply APODroid's live wallpaper
+  in the picker, then `cmd jobscheduler run -f … 2`: still live, the hand-over logged, no "Live isn't on". The
+  real check is E's (0.8.0), noted in the skill's Still untested.
+- **Done when:** the code and the notes; the tablet's smoke check passes.
+
+### [ ] R2b. Set's wait for the picker isn't ended by the picker's own Settings button (Opus, low)
+
+(From the release audit, 2026-11-14, PLAUSIBLE; queued the same night.) `pickerBack` is process-wide and every
+`MainActivity.onResume` completes it; `res/xml/live_wallpaper.xml` names `MainActivity` as `settingsActivity`,
+so the system's live wallpaper preview can offer a Settings button that starts a second page in the picker's
+task. Its `onResume` ends Set's wait while the picker is still open: Set sets a still Fill and toasts "Wallpaper
+set", and Live applied afterwards draws the old copy until the next run.
+- **The fix:** remove `android:settingsActivity` from `live_wallpaper.xml` (the engine has no settings of its
+  own; a page stacked in the picker's task also breaks "one page"). Night default; if the user wants the button,
+  the alternative is completing `pickerBack` only for the page that started the picker.
+- **Files:** `live_wallpaper.xml`; `CLAUDE.md` (Live: no Settings entry in the picker).
+- **Tablet:** Size Live, Set: the picker shows no Settings/Customize entry that opens APODroid; Set ends only
+  after the picker returns (the "Wallpaper set" toast and the `Set:` log line after it); Live goes on.
+- **Done when:** the tablet passes.
+
 ## Before the tag
 
 ### [ ] T1. SIM on the combined rules (Opus, high)

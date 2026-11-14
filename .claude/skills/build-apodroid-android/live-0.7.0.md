@@ -323,7 +323,7 @@ black or on the blurred background: A3's `whole()` today). Its three users:
   `BIND_WALLPAPER`, labelled "APODroid".
 - **`res/xml/live_wallpaper.xml`:** the thumbnail is the launcher icon, the description a string
   resource (placeholder "Today's picture, moving across the screen over the day."; the app's first
-  `strings.xml`), `settingsActivity` the page.
+  `strings.xml`); no `settingsActivity` (R2b, 2026-11-15: a page the picker's Settings started ended Set's wait for the picker).
 - **Which screen:** always home's picture (Decision 10), whatever its flags: on both screens,
   on home alone after a split, and as a stray on the lock screen after home's revert (L1: it
   reports flags 3 there) until Decision 12's still set replaces it. `onWallpaperFlagsChanged`

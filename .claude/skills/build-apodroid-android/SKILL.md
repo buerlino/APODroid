@@ -42,6 +42,14 @@ packages unattended): `night.md`.
   alarms found gone and nothing but a stopped app explains it: a `Lost(at, lastRun)`, else null),
   `missedChange(stamps, offset, lost)` (the latest change time of a run's sets after `lost.lastRun`
   whose run was `missAfter`, 30 min, overdue at `lost.at`; tests in `DetectorTest`, W's day among them).
+  `core/.../Live.kt` (0.7.0, L3): `Size` (FILL, LIVE), `liveSpan` (18 h), `livePosition(now, zone, time, turns)`
+  (the frame's place by the clock: from the column's change time over the shorter of its turn and 18 h, then
+  still at 1), `LIVE_DECODE_BUDGET` (50,000,000 bytes) and `liveDecodeSize(width, height, screenHeight, maxBytes)`
+  (the shape at the screen's portrait height, never enlarged, within the budget), `stillOrLive(size, homeLive,
+  shared, homeColumn, homePicture, sets)` → `LiveSets(still, engine)` (a run's `Plan.sets` split: the still sets
+  first, then home's hand-over), `lostLive(homeNoted, lockNoted, homeLive, shared, sharedNote, lockColumn)` →
+  `LostLive(forget, lockTakesHome, dropShared)` with `forgetting(records)` and `onPlan(plan, records)` (Decision 12;
+  tests in `LiveTest`). Not used by `:app` yet (L5, L6).
   `core/.../Turn.kt`: `nextSource(ticked, after, hasPicture, order)` (the next ticked source in
   the list's order for which a test holds, from `after`'s place, ticked or not), `Rotation(order,
   from)` (OR1: the list's order and the anchor's date, `orderFrom`; `ordered(column)`; the

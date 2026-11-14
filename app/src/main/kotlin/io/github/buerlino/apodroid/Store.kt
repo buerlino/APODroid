@@ -285,7 +285,10 @@ class Store(private val context: Context) {
     fun saveSetup(setup: Setup, pick: Boolean): Boolean = synchronized(wallpaperLock) {
         if (pick && draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
         val before = columns
-        val restart = restartAndForget(before, setup.columns, records(), stored(), setup.pictureTime, ZoneId.systemDefault(), Instant.now())
+        // The new setup's stand-in, not the stored one (RO2's fix round): else a Set that changed
+        // "If APOD is a video" picked each screen's owner by the old choice ("Skip it" passed APOD's
+        // turn to NASA, so Earth went on only at the second Set).
+        val restart = restartAndForget(before, setup.columns, records(), stored(setup.videoDays.standIn), setup.pictureTime, ZoneId.systemDefault(), Instant.now())
         // edit(commit = true) { } drops commit()'s result (B20), so not the KTX edit lint suggests.
         @SuppressLint("UseKtx") val saved = with(prefs.edit()) {
             putBoolean("allSources", setup.allSources)
@@ -854,12 +857,12 @@ class Store(private val context: Context) {
 
     private fun SharedPreferences.Editor.putSetAt(screen: Screen) = putLong(screen.key("wallpaperSetAt"), System.currentTimeMillis())
 
-    /** What is stored for `:core`: the posts, which pictures are there, the user's own, the video-day choice, the posts after a gap (B21). */
-    private fun stored() = Stored(
+    /** What is stored for `:core`: the posts, which pictures are there, the user's own, the video-day choice ([standIn]: Set's own before it's saved), the posts after a gap (B21). */
+    private fun stored(standIn: StandIn = videoDays.standIn) = Stored(
         Source.entries.mapNotNull { s -> post(s)?.let { s to it } }.toMap(),
         Source.entries.filter { imageFile(it).exists() }.toSet(),
         fallbackFile.exists(),
-        videoDays.standIn,
+        standIn,
         Source.entries.filter { prefs.getBoolean(it.key("afterGap"), false) }.toSet(),
     )
 

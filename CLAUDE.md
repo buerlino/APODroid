@@ -969,7 +969,7 @@ unticked source's picture never goes on). **Set** (`restartAndForget`, then `set
 the screens with a column are forgotten (the picture
 dropped, so it goes on again with the new setup, a changed whole picture or "my picture" too); each
 screen goes to the current change time's turn by the clock in its new column (RO1; the next with
-a picture when that source has none), so a Set never shifts the rotation, and takes the current
+a picture when that source has none, by the new setup's "If APOD is a video": RO2's fix round), so a Set never shifts the rotation, and takes the current
 change time as its stamp, so the next run doesn't move it on and the next change comes at the
 next change time. The notes
 stay; the change times don't move. Turning the daily switch on (`Store.startAfresh`) does

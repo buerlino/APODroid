@@ -702,6 +702,27 @@ class ScreensTest {
         assertEquals(NASA, set(cols(all, emptyList()), cols(all, emptyList()), late, t0 + h3 + h1).plan.screens.getValue(HOME).record.owner)
     }
 
+    /**
+     * RO2's fix round (the tablet, 2026-11-14): a Set that changes "If APOD is a video" from
+     * "Skip it" to Earth on APOD's video day, at APOD's turn. [restartAndForget] picks the owner by
+     * the stand-in of the [Stored] it's given, so `Store.saveSetup` gives it the new setup's: with
+     * the stored "Skip it" the turn passed to NASA again and NASA's picture went on, Earth's only
+     * at the second Set.
+     */
+    @Test
+    fun setWithANewStandInPicksTheOwnerByTheNewChoice() {
+        val video = posts + (APOD to post(APOD, video = true))
+        val records = mapOf(HOME to Record(NASA, pic(NASA), t0, shown(pic(NASA))))
+        val columns = cols(all, emptyList())
+        val skip = set(columns, columns, records, t0 + h1, stored(video, StandIn.SKIP))
+        assertEquals(NASA, skip.plan.screens.getValue(HOME).record.owner)
+        val earth = stored(video, StandIn.EARTH)
+        val restart = set(columns, columns, records, t0 + h1, earth)
+        assertEquals(APOD, restart.plan.screens.getValue(HOME).record.owner)
+        val plan = due(columns, apply(records, restart.plan), earth, now = t0 + h1)
+        assertEquals(listOf(pic(EARTH) to setOf(HOME)), plan.sets)
+    }
+
     @Test
     fun setPutsTheSamePictureOnAgainSoAChangedWholePictureOrOwnPictureShows() {
         val record = Record(APOD, pic(APOD), t0, shown(pic(APOD)))

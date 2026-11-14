@@ -221,3 +221,22 @@ fun opensPicker(size: Size, before: Map<Screen, List<Source>>, columns: Map<Scre
     !homeLive -> true
     else -> lockShares && !shared && equalColumns(columns) && !equalColumns(before)
 }
+
+/**
+ * Set's picker (L6, fix round 1): [start]s each of [options] in order and returns the first
+ * that started, null when none did. Any [RuntimeException] of a start is passed to [failed] and
+ * the next is tried: a maker's picker may be missing (`ActivityNotFoundException`), not
+ * exported or guarded by a permission (`SecurityException`), and an uncaught one crashed Set
+ * after its setup was saved, on every Set again.
+ */
+fun <T> firstStarted(options: List<T>, failed: (T, RuntimeException) -> Unit, start: (T) -> Unit): T? {
+    for (option in options) {
+        try {
+            start(option)
+            return option
+        } catch (e: RuntimeException) {
+            failed(option, e)
+        }
+    }
+    return null
+}

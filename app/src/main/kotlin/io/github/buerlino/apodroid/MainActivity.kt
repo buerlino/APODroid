@@ -154,6 +154,7 @@ import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.Size as Sizing
 import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
+import io.github.buerlino.apodroid.core.firstStarted
 import io.github.buerlino.apodroid.core.maker
 import io.github.buerlino.apodroid.core.missedWhen
 import io.github.buerlino.apodroid.core.orderOf
@@ -162,6 +163,7 @@ import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -416,14 +418,12 @@ class MainActivity : ComponentActivity() {
     private fun openLivePicker(): Boolean {
         val direct = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
             .putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, ComponentName(this, LiveWallpaper::class.java))
-        for (intent in listOf(direct, Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER))) {
-            try {
-                livePicker.launch(intent)
-                return true
-            } catch (_: ActivityNotFoundException) {
-                Log.i("APODroid", "Set: no activity for ${intent.action}")
-            }
-        }
+        // Any refusal (no activity, a maker's picker not exported or behind a permission) tries the next.
+        val started = firstStarted(
+            listOf(direct, Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER)),
+            { intent, e -> Log.i("APODroid", "Set: couldn't start ${intent.action}: $e") },
+        ) { livePicker.launch(it) }
+        if (started != null) return true
         toast("This phone can't show live wallpapers.")
         return false
     }
@@ -1042,7 +1042,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
             // Size Live (L6): Android's picker when home isn't covered, then the wait for the engine.
-            if (saving.getOrNull()?.second == true) pickLive(store, page)
+            // Whatever fails on the way (L6 fix round 1): Fill, and Set goes on to its update and resets `setting`.
+            if (saving.getOrNull()?.second == true) {
+                try {
+                    pickLive(store, page)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w("APODroid", "Set: the picker failed, Fill: $e", e)
+                }
+            }
             val result = saving.mapCatching { (saved, _) ->
                 withContext(Dispatchers.IO) {
                     Triple(store.update(force = false, page = true, show = offered, set = true), store.setsSinceSetup(), saved)

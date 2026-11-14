@@ -422,4 +422,26 @@ class LiveTest {
         // Nothing for the engine: no.
         assertFalse(lockFollowsHome(LiveSets(listOf(y to setOf(LOCK))), shared = true, lockColumn = true))
     }
+
+    // L6 fix round 1: a maker's picker that isn't exported throws SecurityException, which crashed Set.
+    @Test
+    fun aPickerThatRefusesFallsToTheNextAndNoneLeavesNull() {
+        val failed = mutableListOf<String>()
+        val tried = mutableListOf<String>()
+        val started = firstStarted(listOf("direct", "chooser"), { o, _ -> failed += o }) {
+            tried += it
+            if (it == "direct") throw SecurityException("Permission Denial: starting Intent")
+        }
+        assertEquals("chooser", started)
+        assertEquals(listOf("direct", "chooser"), tried)
+        assertEquals(listOf("direct"), failed)
+
+        val none = firstStarted(listOf("direct", "chooser"), { o, _ -> failed += o }) {
+            if (it == "direct") throw SecurityException("denied") else throw IllegalStateException("no picker")
+        }
+        assertNull(none)
+        assertEquals(listOf("direct", "direct", "chooser"), failed)
+
+        assertEquals("direct", firstStarted(listOf("direct", "chooser"), { _, _ -> }) {})
+    }
 }

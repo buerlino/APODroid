@@ -84,10 +84,12 @@ the summary, 4 unchanged.
 - **`:core`, `Screens.kt`:** `dueWallpapers` takes the switch (`PictureTime` or a parameter);
   `inWindow` returns `true` for the owner's newer stored post while it's on (the limit
   dropped, not moved). The one-source path and the turns path both go through `inWindow`, so
-  that's the whole rule change; B22's `standInShown` check stays.
+  that's the whole rule change (B22's `standInShown` check went with RO1 and RO2, 2026-11-14:
+  the stand-in may repeat).
 - **`:core`, `PictureTime.kt`:** `nextRun` checks hourly until the next change time while the
-  switch is on (what `waiting` does today; `waiting || soon`). If RO1 lands first and removes
-  `waiting`, the hourly loop stays for the switch alone.
+  switch is on. RO1 removed `waiting` and left the hourly loop behind `nextRun`'s `allDay`
+  (default false): the switch passes it. `nextAlarm` doesn't take `allDay` yet (it calls
+  `nextRun` with the default): SO1 adds the parameter and `Store.nextAlarm` passes the pref.
 - **`Store`:** the pref (`soon`, boolean, default false) in `Setup` and `saveSetup`;
   `nextAlarm` and `setDue` pass it.
 - **The page:** the switch in Setup under "New picture at" with its ⓘ, the draft, the

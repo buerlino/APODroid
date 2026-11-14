@@ -1137,7 +1137,7 @@ change the run's bookkeeping; with O10 the run is expedited.)
 
 ### [ ] L9a. The engine's first frame without the black (Opus, medium)
 
-(From L9's `BUG:` line, 2026-11-14; for the user to queue, or to leave for 0.7.1.)
+(From L9's `BUG:` line, 2026-11-14; queued the same night, before T2.)
 - **The bug:** an engine created with the screen on (a rebind after a process death, `install
   -r`, the picker's preview) draws black for 0.7–1 s before its picture, though the decode takes
   under 50 ms (L9's result).

@@ -352,6 +352,14 @@ what it leaves open.
   the alarms gone with job 2 pending (the landing alarm re-armed the pair), the daily switch, Set
   and a pull right after a force stop, the one-column layout's scroll to "Keep running", ZUI's
   cleaner on a real day, the makers' lines on their phones, and the FP6.
+- The alarms' run as an expedited job (O10, 2026-11-14; pipeline run 103, the tablet check not
+  run: the night's serial was the FP6 and adb was denied): the app's own job 2 on any device (O6
+  checked only the probes `.ej` and `.reg`), its "expedited"/"not expedited" start lines, the
+  plain job after `RESULT_FAILURE` (no quota left), a stop at the expedited limit, and 10–11's
+  plain job.
+- The detector's box naming the day of an earlier miss (O14b, 2026-11-14; pipeline run 104, not
+  run on a device for the same reason; `DetectorTest` only), and the day not moving at midnight
+  while the page stays open (it is read when the box draws).
 
 **The update from 0.5.0:**
 - The migration race (the page and the job at once) with "Where" Home or Both (V4: Lock only).

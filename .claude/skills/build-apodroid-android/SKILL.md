@@ -147,8 +147,9 @@ packages unattended): `night.md`.
   `onCreate` (a `Store`, `Live: engine … created`, `noteHomeId` below 14, `Store.watch` → `reload`), `reload` (the
   copy or `liveFallback`, keyed by path, time, length, whole and `Store.liveDarken` (BR3: `live.darken`, the
   factor `copyForLive` measured; `draw` passes it to `drawPanned`, `colorsOf` darkens its copy by it); decoded on the `live-decode` thread by `decode`:
-  panned at `liveDecodeSize`, a quarter of the bytes after an out of memory, twice; whole by `wholePicture`; colours
-  by `colorsOf`), `show` (swap, recycle, `notifyColorsChanged`, draw), `draw` (software canvas: black, then
+  panned at `liveDecodeSize`, a quarter of the bytes after an out of memory, twice; whole by `wholePicture`; `smallCopy`
+  for the colours, then `show`, then `colorsOf` and `notifyColorsChanged` (L9a: the picture first)), `show` (swap,
+  recycle, draw), `draw` (software canvas: black, then
   `drawPanned` at `Store.liveAt`, or the whole bitmap's middle; the minute's `tick` only when the frame moved),
   `checkStray` (14+, at a visibility), `runIfOwed` (L8, D: at a visibility, not the preview,
   `Store.screenOnRunOwed` → `Live: screen on, run owed` and `DailyJob.runNow`), `safely` (everything caught, `Live: couldn't …`).

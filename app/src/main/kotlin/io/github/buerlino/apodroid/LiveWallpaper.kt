@@ -196,7 +196,7 @@ class LiveWallpaper : WallpaperService() {
                 if (key == wantedKey) return@safely
                 wantedKey = key
                 if (file == null) {
-                    show(key, null, false, 1f, wantName, null)
+                    show(key, null, false, 1f, wantName)
                     return@safely
                 }
                 val screen = store.screen
@@ -204,16 +204,26 @@ class LiveWallpaper : WallpaperService() {
                     val start = SystemClock.uptimeMillis()
                     val bitmap = decode(file, wantWhole, screen)
                     if (bitmap != null) Log.i(TAG, "Live: decoded ${bitmap.width}×${bitmap.height} in ${SystemClock.uptimeMillis() - start} ms")
-                    val found = bitmap?.let { colorsOf(it, wantFactor) }
+                    // L9a: the small copy first, while the bitmap is still this thread's (show may
+                    // recycle it), then the picture shown at once; the colours (WallpaperColors.fromBitmap,
+                    // most of a second on the tablet) after it, so a new engine's first frame isn't black.
+                    val small = bitmap?.let { smallCopy(it, wantFactor) }
                     handler.post {
-                        if (destroyed || key != wantedKey) bitmap?.recycle() else show(key, bitmap, wantWhole, wantFactor, wantName, found)
+                        if (destroyed || key != wantedKey) bitmap?.recycle() else show(key, bitmap, wantWhole, wantFactor, wantName)
+                    }
+                    val found = small?.let { colorsOf(it) }
+                    if (found != null) handler.post {
+                        if (!destroyed && key == shownKey) {
+                            colors = found
+                            safely("tell the colours") { notifyColorsChanged() }
+                        }
                     }
                 }
             }
         }
 
-        /** The new picture in place of the old (recycled), the colours told, drawn. */
-        private fun show(key: String?, bitmap: Bitmap?, whole: Boolean, factor: Float, name: String, found: WallpaperColors?) {
+        /** The new picture in place of the old (recycled), drawn; its colours come after it ([reload]). */
+        private fun show(key: String?, bitmap: Bitmap?, whole: Boolean, factor: Float, name: String) {
             val old = picture
             picture = bitmap
             this.whole = whole
@@ -222,10 +232,6 @@ class LiveWallpaper : WallpaperService() {
             shownKey = key
             drawnFrame = null
             if (old !== bitmap) old?.recycle()
-            if (found != null) {
-                colors = found
-                safely("tell the colours") { notifyColorsChanged() }
-            }
             draw()
         }
 
@@ -263,17 +269,30 @@ class LiveWallpaper : WallpaperService() {
         }
 
         /**
-         * The colours of the whole picture (not the moving frame, which would recolour the theme
-         * all day), from a small copy darkened by [factor] (BR3: as Android's from a darkened still set).
+         * A small copy of the whole picture for its colours (not the moving frame, which would
+         * recolour the theme all day), [COLOR_HEIGHT] high, darkened by [factor] (BR3: as Android's
+         * from a darkened still set); always a new bitmap, never [bitmap]. On [decoder], before
+         * [show] may recycle [bitmap].
          */
-        private fun colorsOf(bitmap: Bitmap, factor: Float): WallpaperColors? = try {
+        private fun smallCopy(bitmap: Bitmap, factor: Float): Bitmap? = try {
             val w = maxOf(1, bitmap.width * COLOR_HEIGHT / bitmap.height)
-            val scaled = bitmap.scale(w, minOf(COLOR_HEIGHT, bitmap.height))
-            val small = if (factor < 1f) darkened(if (scaled === bitmap) bitmap.copy(Bitmap.Config.ARGB_8888, false) else scaled, factor) else scaled
-            WallpaperColors.fromBitmap(small).also { if (small !== bitmap) small.recycle() }
+            val scaled = bitmap.scale(w, minOf(COLOR_HEIGHT, bitmap.height)).let {
+                if (it === bitmap) bitmap.copy(Bitmap.Config.ARGB_8888, false) else it
+            }
+            if (factor < 1f) darkened(scaled, factor) else scaled
         } catch (e: Throwable) {
             Log.w(TAG, "Live: couldn't compute the colours: $e")
             null
+        }
+
+        /** The colours of [small] ([smallCopy]), which is recycled; on [decoder], after [show]. */
+        private fun colorsOf(small: Bitmap): WallpaperColors? = try {
+            WallpaperColors.fromBitmap(small)
+        } catch (e: Throwable) {
+            Log.w(TAG, "Live: couldn't compute the colours: $e")
+            null
+        } finally {
+            small.recycle()
         }
 
         /**

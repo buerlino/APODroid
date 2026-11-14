@@ -1,0 +1,333 @@
+package io.github.buerlino.apodroid.core
+
+import io.github.buerlino.apodroid.core.Screen.HOME
+import io.github.buerlino.apodroid.core.Screen.LOCK
+import io.github.buerlino.apodroid.core.Source.APOD
+import io.github.buerlino.apodroid.core.Source.EARTH
+import io.github.buerlino.apodroid.core.Source.NASA
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import kotlin.math.abs
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+/** Live (L3): the position by the clock, the decode size, still or engine, lost Live. */
+class LiveTest {
+    private val zurich = ZoneId.of("Europe/Zurich")
+    private val utc = ZoneOffset.UTC
+
+    private fun at(local: String, zone: ZoneId = zurich): Instant = LocalDateTime.parse(local).atZone(zone).toInstant()
+
+    private fun p(local: String, time: PictureTime = PictureTime(), turns: Boolean = false, zone: ZoneId = zurich) =
+        livePosition(at(local, zone), zone, time, turns)
+
+    private fun assertP(expected: Double, actual: Float) = assertEquals(expected, actual.toDouble(), 1e-4)
+
+    // The position
+
+    @Test
+    fun oneSourceCrossesFrom0600To2400ThenStandsStill() {
+        assertP(0.0, p("2026-07-01T06:00"))
+        assertP(1.0 / 3, p("2026-07-01T12:00"))
+        assertP(2.0 / 3, p("2026-07-01T18:00"))
+        assertP(1.0, p("2026-07-02T00:00"))
+        assertP(1.0, p("2026-07-02T03:00"))
+        assertP(1.0, p("2026-07-02T05:59"))
+        assertP(0.0, p("2026-07-02T06:00"))
+    }
+
+    @Test
+    fun eachTurnCrossesWithinItself() {
+        val twelve = PictureTime(6, 12)
+        assertP(0.0, p("2026-07-01T06:00", twelve, true))
+        assertP(0.5, p("2026-07-01T12:00", twelve, true))
+        assertP(0.0, p("2026-07-01T18:00", twelve, true))
+        assertP(0.5, p("2026-07-02T00:00", twelve, true))
+        assertP(719.0 / 720, p("2026-07-02T05:59", twelve, true))
+        val six = PictureTime(6, 6)
+        assertP(0.5, p("2026-07-01T09:00", six, true))
+        assertP(0.0, p("2026-07-01T12:00", six, true))
+        assertP(0.5, p("2026-07-01T15:00", six, true))
+        assertP(0.5, p("2026-07-02T03:00", six, true))
+        val three = PictureTime(6, 3)
+        assertP(0.5, p("2026-07-01T07:30", three, true))
+        assertP(0.0, p("2026-07-01T09:00", three, true))
+        assertP(0.5, p("2026-07-02T01:30", three, true))
+    }
+
+    @Test
+    fun everyTwentyFourHoursWithTwoSourcesCrossesIn18HoursThenStandsStill() {
+        val day = PictureTime(6, 24)
+        assertP(0.5, p("2026-07-01T15:00", day, true))
+        assertP(1.0, p("2026-07-02T00:00", day, true))
+        assertP(1.0, p("2026-07-02T05:00", day, true))
+        assertP(0.0, p("2026-07-02T06:00", day, true))
+    }
+
+    @Test
+    fun newPictureAtMidnightAnd2300() {
+        val midnight = PictureTime(0)
+        assertP(0.0, p("2026-07-01T00:00", midnight))
+        assertP(0.5, p("2026-07-01T09:00", midnight))
+        assertP(1.0, p("2026-07-01T18:00", midnight))
+        assertP(1.0, p("2026-07-01T23:59", midnight))
+        val late = PictureTime(23)
+        assertP(0.0, p("2026-07-01T23:00", late))
+        assertP(0.5, p("2026-07-02T08:00", late))
+        assertP(1.0, p("2026-07-02T17:00", late))
+        assertP(1.0, p("2026-07-02T22:59", late))
+        assertP(1.0 / 18, p("2026-07-02T00:00", late))
+    }
+
+    @Test
+    fun theDstNightsInZurichMoveTheRightEdgeByAnHourOnTheClock() {
+        // Spring, 28 Mar 2027: 00:00 CET, then 02:00 → 03:00. 18 real hours end at 19:00 CEST.
+        val midnight = PictureTime(0)
+        assertP(17.0 / 18, p("2027-03-28T18:00", midnight))
+        assertP(1.0, p("2027-03-28T19:00", midnight))
+        assertP(1.0 / 18, p("2027-03-28T01:00", midnight))
+        // 03:00 CEST is 2 real hours after 00:00 CET.
+        assertP(2.0 / 18, p("2027-03-28T03:00", midnight))
+        // Autumn, 25 Oct 2026: 00:00 CEST, then 03:00 → 02:00. 18 real hours end at 17:00 CET.
+        assertP(17.0 / 18, p("2026-10-25T16:00", midnight))
+        assertP(1.0, p("2026-10-25T17:00", midnight))
+    }
+
+    @Test
+    fun theDstNightsInZurichWithThreeHourTurns() {
+        val three = PictureTime(0, 3)
+        // Spring: 00:00 CET to 03:00 CEST is a turn of 2 real hours; 01:00 CET is half of it.
+        assertP(0.5, p("2027-03-28T01:00", three, true))
+        assertP(0.0, p("2027-03-28T03:00", three, true))
+        assertP(0.5, p("2027-03-28T04:30", three, true))
+        // Autumn: 00:00 CEST to 03:00 CET is a turn of 4 real hours; the first 02:00 (CEST) is half of it.
+        val firstTwo = Instant.parse("2026-10-25T00:00:00Z")
+        assertP(0.5, livePosition(firstTwo, zurich, three, true))
+        assertP(0.75, livePosition(firstTwo + Duration.ofHours(1), zurich, three, true))
+        assertP(0.0, p("2026-10-25T03:00", three, true))
+    }
+
+    @Test
+    fun theChangeTimesFollowTheZone() {
+        val now = Instant.parse("2026-07-01T12:00:00Z")
+        assertP(8.0 / 18, livePosition(now, zurich, PictureTime(), false))
+        assertP(2.0 / 18, livePosition(now, ZoneId.of("America/New_York"), PictureTime(), false))
+        assertP(16.0 / 18, livePosition(now, ZoneId.of("Australia/Sydney"), PictureTime(), false))
+    }
+
+    // The decode size
+
+    private fun bytes(size: Pair<Int, Int>) = size.first.toLong() * size.second * 4
+
+    private fun assertShape(width: Int, height: Int, size: Pair<Int, Int>) =
+        assertTrue(abs(size.first.toDouble() / size.second - width.toDouble() / height) < 0.002, "$size for $width×$height")
+
+    @Test
+    fun aThreeToTwoIsDecodedAtTheScreensHeight() {
+        assertEquals(3726 to 2484, liveDecodeSize(6000, 4000, 2484))
+        assertEquals(3726 to 2484, liveDecodeSize(3726, 2484, 2484))
+    }
+
+    @Test
+    fun aSmallPictureIsNotEnlarged() {
+        assertEquals(1440 to 600, liveDecodeSize(1440, 600, 2484))
+        assertEquals(1280 to 853, liveDecodeSize(1280, 853, 2400))
+    }
+
+    @Test
+    fun theWidestRealOnesAreDecodedWithinTheBudget() {
+        // The widest of private/pictures/, 6090×2085 (L1): not enlarged, 50.8 MB, so a little smaller.
+        val widest = liveDecodeSize(6090, 2085, 2484)
+        assertTrue(bytes(widest) <= LIVE_DECODE_BUDGET, "$widest")
+        assertTrue(widest.first in 6000..6090, "$widest")
+        assertShape(6090, 2085, widest)
+        // The widest of 0.6.0's mock-up, about 2.14:1: 5316×2484 at the screen's height, 53 MB.
+        val mockUp = liveDecodeSize(10632, 4968, 2484)
+        assertTrue(bytes(mockUp) <= LIVE_DECODE_BUDGET, "$mockUp")
+        assertTrue(mockUp.first in 5100 until 5316, "$mockUp")
+        assertShape(10632, 4968, mockUp)
+    }
+
+    @Test
+    fun aPanoramaIsDecodedWithinTheBudget() {
+        val size = liveDecodeSize(12000, 3000, 2484)
+        assertTrue(bytes(size) <= LIVE_DECODE_BUDGET, "$size")
+        assertTrue(bytes(size) > LIVE_DECODE_BUDGET * 0.99, "$size")
+        assertTrue(size.second < 2484)
+        assertShape(12000, 3000, size)
+    }
+
+    @Test
+    fun aTinyBudgetStillGivesAPicture() {
+        assertEquals(1 to 1, liveDecodeSize(4000, 3000, 2484, maxBytes = 4))
+    }
+
+    // Still or engine
+
+    private val x: Picture = Picture.Of(APOD, LocalDate.parse("2026-11-14"), "https://x/a.jpg")
+    private val y: Picture = Picture.Of(NASA, LocalDate.parse("2026-11-13"), "https://x/n.jpg")
+    private val both = listOf(x to setOf(HOME, LOCK))
+    private val apart = listOf(x to setOf(HOME), y to setOf(LOCK))
+
+    @Test
+    fun sizeFillSetsEverythingStill() {
+        assertEquals(LiveSets(both), stillOrLive(Size.FILL, homeLive = true, shared = true, homeColumn = true, homePicture = x, sets = both))
+        assertEquals(LiveSets(apart), stillOrLive(Size.FILL, homeLive = true, shared = false, homeColumn = true, homePicture = x, sets = apart))
+    }
+
+    @Test
+    fun liveOnHomeOnlySetsTheLockScreenStill() {
+        assertEquals(
+            LiveSets(listOf(x to setOf(LOCK)), x to setOf(HOME)),
+            stillOrLive(Size.LIVE, homeLive = true, shared = false, homeColumn = true, homePicture = x, sets = both),
+        )
+    }
+
+    @Test
+    fun oneEngineOnBothTakesTheSamePictureWithNoStillSet() {
+        assertEquals(LiveSets(emptyList(), x to setOf(HOME, LOCK)), stillOrLive(Size.LIVE, true, true, true, x, both))
+        // The lock screen alone due home's picture (home's is on already): noted live, no set.
+        assertEquals(LiveSets(emptyList(), x to setOf(LOCK)), stillOrLive(Size.LIVE, true, true, true, x, listOf(x to setOf(LOCK))))
+    }
+
+    @Test
+    fun differentPicturesSetTheLockScreenStillBeforeHomesHandOver() {
+        val sets = stillOrLive(Size.LIVE, true, true, true, x, apart)
+        assertEquals(LiveSets(listOf(y to setOf(LOCK)), x to setOf(HOME)), sets)
+        // The lock screen alone due another picture than home's: still.
+        assertEquals(LiveSets(listOf(y to setOf(LOCK))), stillOrLive(Size.LIVE, true, true, true, x, listOf(y to setOf(LOCK))))
+    }
+
+    @Test
+    fun liveWithHomeNotLiveSetsEverythingStill() {
+        assertEquals(LiveSets(both), stillOrLive(Size.LIVE, homeLive = false, shared = false, homeColumn = true, homePicture = x, sets = both))
+        // Also a lock screen the engine still shows (a stray after home's revert).
+        assertEquals(LiveSets(both), stillOrLive(Size.LIVE, homeLive = false, shared = true, homeColumn = true, homePicture = x, sets = both))
+        assertEquals(LiveSets(listOf(x to setOf(LOCK))), stillOrLive(Size.LIVE, false, true, true, x, listOf(x to setOf(LOCK))))
+    }
+
+    @Test
+    fun noHomeColumnSetsEverythingStill() {
+        val lock = listOf(y to setOf(LOCK))
+        assertEquals(LiveSets(lock), stillOrLive(Size.LIVE, homeLive = true, shared = true, homeColumn = false, homePicture = null, sets = lock))
+    }
+
+    @Test
+    fun aScreenWithoutAColumnGetsNothing() {
+        // APOD mode's "Where" Home: the plan has home's set only, the lock screen gets none.
+        val home = listOf(x to setOf(HOME))
+        assertEquals(LiveSets(emptyList(), x to setOf(HOME)), stillOrLive(Size.LIVE, true, true, true, x, home))
+        assertEquals(LiveSets(emptyList(), x to setOf(HOME)), stillOrLive(Size.LIVE, true, false, true, x, home))
+        assertEquals(LiveSets(emptyList()), stillOrLive(Size.LIVE, true, true, true, x, emptyList()))
+    }
+
+    // Lost Live
+
+    private val time = PictureTime(6, 6)
+    private val t0 = Instant.parse("2026-11-16T06:00:00Z")
+    private val d1 = LocalDate.parse("2026-11-16")
+
+    private fun post(source: Source) =
+        Post(source, d1, "$source", "https://x/$source.jpg", "https://p/$source", false, published = t0 - Duration.ofHours(2))
+
+    private val stored = Stored(Source.entries.associateWith { post(it) }, Source.entries.toSet(), own = false, standIn = StandIn.SKIP)
+
+    private fun due(columns: Map<Screen, List<Source>>, records: Map<Screen, Record>, now: Instant = t0 + Duration.ofHours(1)) =
+        dueWallpapers(columns, records, stored, time, utc, now)
+
+    /** The records after the first run's sets at 06:30, then a run at 07:00 with nothing due. */
+    private fun settled(columns: Map<Screen, List<Source>>): Map<Screen, Record> {
+        val records = due(columns, emptyMap(), t0 + Duration.ofMinutes(30)).screens.mapValues { it.value.record }
+        assertTrue(due(columns, records).sets.isEmpty())
+        return records
+    }
+
+    private fun bare(record: Record) = record.copy(shown = emptyMap())
+
+    @Test
+    fun aLockScreenNotSharedAnyMoreIsForgottenAlone() {
+        for (columns in listOf(mapOf(HOME to listOf(APOD), LOCK to listOf(NASA)), mapOf(HOME to listOf(APOD), LOCK to listOf(APOD, NASA, EARTH)))) {
+            val records = settled(columns)
+            val lost = lostLive(homeNoted = true, lockNoted = true, homeLive = true, shared = false, sharedNote = true, lockColumn = true)
+            assertEquals(LostLive(forget = setOf(LOCK)), lost)
+            val forgotten = lost.forgetting(records)
+            assertEquals(records[HOME], forgotten[HOME])
+            val plan = due(columns, forgotten)
+            assertEquals(listOf(records.getValue(LOCK).picture!! to setOf(LOCK)), plan.sets)
+            val lock = plan.screens.getValue(LOCK).record
+            assertEquals(records.getValue(LOCK).owner, lock.owner)
+            assertEquals(records.getValue(LOCK).stamp, lock.stamp)
+            // Still: the engine doesn't cover the lock screen.
+            assertEquals(LiveSets(plan.sets), stillOrLive(Size.LIVE, true, false, true, records.getValue(HOME).picture, plan.sets))
+        }
+    }
+
+    @Test
+    fun homeLostLiveForgetsBothAndSetsBothStill() {
+        val equal = mapOf(HOME to listOf(APOD, NASA), LOCK to listOf(APOD, NASA))
+        val different = mapOf(HOME to listOf(APOD), LOCK to listOf(NASA, EARTH))
+        for (columns in listOf(equal, different, mapOf(HOME to listOf(APOD), LOCK to listOf(APOD)))) {
+            val records = settled(columns)
+            val lost = lostLive(homeNoted = true, lockNoted = columns == equal, homeLive = false, shared = false, sharedNote = true, lockColumn = true)
+            assertEquals(LostLive(forget = setOf(HOME, LOCK), dropShared = true), lost)
+            val plan = lost.onPlan(due(columns, lost.forgetting(records)), records)
+            assertEquals(setOf(HOME, LOCK), plan.sets.flatMap { it.second }.toSet())
+            for (screen in Screen.entries) {
+                assertEquals(bare(records.getValue(screen)), bare(plan.screens.getValue(screen).record))
+            }
+            if (columns != different) assertEquals(1, plan.sets.size)
+            val split = stillOrLive(Size.LIVE, homeLive = false, shared = true, homeColumn = true, homePicture = records.getValue(HOME).picture, sets = plan.sets)
+            assertEquals(LiveSets(plan.sets), split)
+            assertNull(split.engine)
+        }
+    }
+
+    @Test
+    fun aLockScreenWithoutAColumnTheEngineCoveredTakesHomesPicture() {
+        val columns = mapOf(HOME to listOf(APOD), LOCK to emptyList())
+        val records = settled(columns)
+        assertEquals(setOf(HOME), records.keys)
+        val lost = lostLive(homeNoted = true, lockNoted = true, homeLive = false, shared = false, sharedNote = true, lockColumn = false)
+        assertEquals(LostLive(forget = setOf(HOME), lockTakesHome = true, dropShared = true), lost)
+        val plan = lost.onPlan(due(columns, lost.forgetting(records)), records)
+        val home = records.getValue(HOME).picture!!
+        assertEquals(listOf(home to setOf(HOME, LOCK)), plan.sets)
+        assertEquals(LiveSets(plan.sets), stillOrLive(Size.LIVE, false, true, true, home, plan.sets))
+    }
+
+    @Test
+    fun aLockScreenWithoutAColumnNotCoveredIsLeftAlone() {
+        val columns = mapOf(HOME to listOf(APOD), LOCK to emptyList())
+        val records = settled(columns)
+        val lost = lostLive(homeNoted = true, lockNoted = false, homeLive = false, shared = false, sharedNote = false, lockColumn = false)
+        assertEquals(LostLive(forget = setOf(HOME), dropShared = true), lost)
+        val plan = lost.onPlan(due(columns, lost.forgetting(records)), records)
+        assertEquals(listOf(records.getValue(HOME).picture!! to setOf(HOME)), plan.sets)
+        assertNull(plan.screens[LOCK])
+    }
+
+    @Test
+    fun homeLostWithNothingDueLeavesTheLockScreenAlone() {
+        // Home forgotten with nothing to show (no record either): no picture for the lock screen to take.
+        val lost = LostLive(forget = setOf(HOME), lockTakesHome = true, dropShared = true)
+        val plan = Plan(emptyMap())
+        assertEquals(plan, lost.onPlan(plan, emptyMap()))
+    }
+
+    @Test
+    fun nothingLostWhileLiveHolds() {
+        assertEquals(LostLive(), lostLive(homeNoted = true, lockNoted = true, homeLive = true, shared = true, sharedNote = true, lockColumn = true))
+        assertEquals(LostLive(), lostLive(homeNoted = true, lockNoted = false, homeLive = true, shared = false, sharedNote = false, lockColumn = true))
+        assertEquals(LostLive(), lostLive(homeNoted = false, lockNoted = false, homeLive = false, shared = false, sharedNote = true, lockColumn = true))
+        val records = mapOf(HOME to Record(APOD, x, t0))
+        assertEquals(records, LostLive().forgetting(records))
+        assertNotNull(records[HOME]?.picture)
+    }
+}

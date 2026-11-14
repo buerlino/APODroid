@@ -770,7 +770,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   Draws at `onSurfaceChanged`, `onSurfaceRedrawNeeded`, when it becomes visible (re-reading the
   copy: an interrupted thread's commit skips the listeners, B16), when the copy changes
   (`Store.watch`) and once a minute while visible when the frame moved a pixel; never on a tick
-  while invisible. Colours from a 112 px high copy of the whole picture, once per picture.
+  while invisible. Colours from a 112 px high copy of the whole picture, once per picture, told after the picture is
+  drawn (L9a, 2026-11-14: `WallpaperColors.fromBitmap` took most of a second, so a new engine drew
+  black meanwhile; the copy is made on the decoder thread before the picture is shown).
   Logs: `Live: engine <flags|preview|home> created/destroyed`, `Live: engine flags <n>`,
   `Live: decoded <w>×<h> in <n> ms`, `Live: drew <picture> p=<0.00> in <n> ms`, and a stray's
   `Live: home isn't live (stray on the lock screen)` (14+, non-preview, at a visibility).

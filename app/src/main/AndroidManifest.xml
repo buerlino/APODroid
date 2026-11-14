@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Keep running (O11, approved 2026-10-28): normal permissions, granted at install, inert while it's off. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <!-- Backup: phone-to-phone transfer only, no cloud (dataExtractionRules, Android 12+).
          Android 10 and 11 have no such split, so allowBackup turns both off there, and lint's
@@ -33,6 +36,16 @@
             android:name=".DailyJob"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+        <!-- Keep running (O11): a foreground service that only keeps the process, a setting, off by
+             default. specialUse: dataSync has a daily limit on 15+ and can't start at boot. -->
+        <service
+            android:name=".KeepRunning"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps the app's process, so memory cleaners don't clear its wallpaper alarms; a user setting, off by default." />
+        </service>
         <!-- The alarms' run, and arming them again after a boot, a time zone or clock change and
              an update of the app (J2). Not exported: system broadcasts reach it anyway. -->
         <receiver

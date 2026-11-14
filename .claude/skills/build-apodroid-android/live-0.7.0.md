@@ -567,6 +567,108 @@ end. A picture: the widest real APOD in `private/pictures/` (by `imageBounds`), 
   - the oom adj, and whether ZUI spares a live wallpaper, for track O's seams.
 - **Done when:** every step ran or says why not, the table and the recommendations written, the
   tablet set back. Verdict PASS, or STOP when Android does what this file didn't expect.
+- **Result** (rosie, pipeline run 95, 2026-11-14, the tablet, Android 15, ZUI; the probe's logs,
+  the dumps and the screenshots in `.coord/runs/095-l1/`, the report `report.md` there): **STOP**.
+  Android's picker and its revert paths don't do what "What Android gives" read. Every step ran.
+  The pictures: 2026-05-12's APOD (6090×2085, the widest of `private/pictures/`), its rendition at
+  1340 high (3914×1340) and an 8000×2500 panorama made from it.
+  - **1. Trial:** `Pick` opened `com.android.wallpaper.livepicker/.LiveWallpaperChange` (`PICK
+    resolved=null` without `<queries>`, then `started`), the probe drawing in its preview
+    (`CREATE preview=true flags=1`). No probe bug.
+  - **2. The picker:** `CHANGE_LIVE_WALLPAPER` → `livepicker/.LiveWallpaperChange`,
+    `LIVE_WALLPAPER_CHOOSER` → `livepicker/.LiveWallpaperActivity`. The preview: "Probe Live",
+    "Set wallpaper" (and "Preview", ←). "Set wallpaper" asks **"Home screen" or "Home screen and
+    lock screen"; never "Lock screen" alone.** While the probe is already on both screens it asks
+    nothing and applies to both at once.
+  - **3. Flags and engines** (the table below). **"Home screen" always ends as one engine on both
+    screens** (`mWhich=3`, no lock wallpaper): over the shared still picture (AOSP: "also a lock
+    wallpaper if nothing is set") and also with the probe on the lock screen alone and a still on
+    home, where it destroyed the lock engine and made one shared one. **Two engines never
+    happened**; home alone comes only from a still set on `FLAG_LOCK`. The split by a still set
+    works as AOSP reads: `Still lock` → `FLAGS 1(home)`, `Still home` → `FLAGS 2(lock)`, the same
+    engine, no rebind. Applying "both" over home-only also keeps the engine (`FLAGS 3`).
+    **Decision 10 can't work here:** the picker offers no lock screen, and "Home screen" over a
+    lock-only probe makes it shared. Set → `CREATE`: 0.16–0.18 s (Set's 3 s wait is ample).
+
+    | State (`dumpsys wallpaper`) | Engine flags | `getWallpaperInfo()` / `(SYSTEM)` / `(LOCK)` | `getWallpaperId` home / lock |
+    |---|---|---|---|
+    | Shared (`mWhich=3`, no lock entry) | 3 | probe / probe / **null** | n / **-1** |
+    | Home only (still on lock) | 1 | probe / probe / null | n / m |
+    | Lock only (still on home) | 2 | null / null / probe | n / m |
+    | After two deaths in 10 s or a crash loop: home default, lock still the probe (`mWhich=2`) | **3** (new engine) | null / null / **null** | n / m |
+
+    So L5's rule holds while nothing reverted: shared = `(SYSTEM)` names it and the lock id is -1;
+    home only = `(SYSTEM)` names it and the lock id isn't -1; lock only = `(LOCK)` names it. An app
+    sees its own package without `<queries>`.
+  - **4. The first frame:** on the lock screen the capture right after `WAKEUP` showed **the frame
+    drawn before the screen went off** in 2 of 3 (the third capture was blank, the screen not yet
+    on): "drawn 14:27:24" at 14:28:24, "drawn 14:28:29" at 14:29:28. The new frame follows
+    `VIS true` by 10–16 ms, `VIS true` about 0.3 s after the wake; the lock screen is still dim
+    then. Home after `wm dismiss-keyguard`: the fresh frame. **Stale for about 0.3 s: a question
+    for the user** (L2 looks by eye on the FP6).
+  - **5. Draw time and memory** (one engine, `capMb` 0):
+
+    | Canvas | Picture, decoded | Draw ms | Native Heap MB | Graphics MB | TOTAL PSS MB |
+    |---|---|---|---|---|---|
+    | sw | widest 3914×1340 (21 MB) | 6–14 (10 wakes) | 29 | 6 | 70 |
+    | sw | panorama 4288×1340 (23 MB) | 7 | 31 | 6 | 78 |
+    | sw | widest 6090×2085 at `height=2484` (51 MB, not enlarged) | 20 | 58 | 6 | 105 |
+    | sw | panorama 7948×2484 (79 MB) | 23 | 86 | 6 | 132 |
+    | hw | widest 3914×1340 | 2–4 (10 wakes) | — | — | — |
+    | hw | panorama 4288×1340 | 6 | 32 | 75 | 148 |
+    | hw | panorama 7948×2484 | 1–20 | 87 | 70 | 197 |
+    | hw | widest 6090×2085 | 3 | 59 | 145 | 245 |
+
+    `hw` drew the 79 MB panorama (no "too large"), at up to twice the memory (the texture).
+    Decodes: 53–117 ms (21 MB) to 500 ms (79 MB). **Mixing canvases on one surface breaks it:**
+    sw → hw aborted the process (`SkiaVulkanPipeline::getFrame()`, "getFrame() called on a context
+    with no surface!", rebound at once); hw → sw gives `lockCanvas()` null ("no canvas") until the
+    process restarts. L5 keeps one canvas for an engine's life.
+  - **6. The process:** `oom_score_adj` **100** throughout: screen on with home (`BFGS`), with an
+    app on top (`BFGS`), screen off 2 min and 10 min (`IMPF`).
+  - **7. Its life:** `kill -9`: rebound in 1.5 s (`CREATE`), still the probe. **Twice within
+    10 s: only the home screen reverts** ("Reverting to built-in wallpaper!", home `mWhich=1`
+    `SET_LIVE_TO_CLEAR`); the lock screen keeps the probe (`mWhich=2`), drawn by a new engine
+    that reports flags 3 while `getWallpaperInfo(FLAG_LOCK)` is null. **`crash` true** (a throw
+    in the draw): a crash dialog first ("Probe Live has stopped", App info / Close app; the
+    process lives until it's closed), then the rebinds crash twice in 1.5 s and the same as two
+    kills: home default, the lock screen still the probe. `am force-stop`: **both screens
+    default** (AOSP). `install -r`: still the probe, rebound (`PACKAGE_UPDATE_FINISHED`, exit
+    `PACKAGE_UPDATED`). Reboot: still the probe, `CREATE` 1.5 s after `boot_completed` (no exit
+    reason recorded for the reboot).
+  - **8. ZUI's cleaner** (`.hog`, 3000 MB, from 2.25 GB available, the screen off):
+    `ZuiMemoryCleaner` (Moderate then Aggressive, `minAdj: 701`) force-stopped 20 apps and
+    **spared the probe** (adj 100). At the hog's peak (2.5 GB, 176 MB available) the low-memory
+    killer killed it among 27 (`oom_score_adj 100`, exit `LOW_MEMORY`); **the wallpaper stayed the
+    probe**, rebound 6 s later. Stopped by the cleaner, for the user to reopen:
+    `dev.imranr.obtainium.fdroid`, `com.zui.camera`, `com.android.shell`,
+    `com.android.managedprovisioning`, `com.google.android.as.oss`,
+    `com.android.providers.calendar`, `com.google.android.configupdater`,
+    `com.google.android.apps.carrier.carrierwifi`, `com.google.android.cellbroadcastreceiver`,
+    `com.google.android.partnersetup`, `com.yha.factory`,
+    `com.google.android.apps.setupwizard.searchselector`, `com.google.android.packageinstaller`,
+    `com.aura.oobe.lenovo`, `com.android.providers.contacts`, `com.google.android.apps.turbo`,
+    `com.motorola.mobiledesktop.core`, `com.android.providers.downloads`,
+    `com.google.android.permissioncontroller`, `com.tblenovo.tabpushout`. The low-memory killer
+    also killed Syncthing-Fork, Tailscale, FlorisBoard, Olauncher and ZUI's launcher (they restart).
+  - **9. Colours:** `dumpsys wallpaper` lists none on this build. The engine's colours reached
+    SystemUI (`ThemeOverlayController: onColorsChanged … which 3`) after a new picture, and it
+    applied the earlier ones (held, wallpaper colours off).
+  - **10. Set back:** the probes uninstalled, APODroid's Set (APOD · both screens, daily off as
+    found) put its APOD on both (one shared still, as before), its prefs restored byte for byte,
+    the settings as found (`accelerometer_rotation` came back 0 after the reboot: set to 1).
+  - **Recommendations:** **the canvas: software** (6–23 ms, never 30; hardware is faster but
+    costs up to twice the memory and gains nothing at a frame a minute). **The budget: 50 MB a
+    bitmap** (a process's base is about 50 MB PSS; two engines with 50 MB each stay near 150 MB;
+    on this tablet only one engine ever runs, which with 79 MB stayed at 132 MB). **The split**
+    works as AOSP reads while nothing reverted (the table); the engine shouldn't trust its flags
+    after a revert (it said 3 on the lock screen alone), and L5's rule then sees the lock screen
+    as not live and sets Fill there, which replaces the stray engine. **The first frame:** stale
+    for about 0.3 s on the lock screen, the user's question. **The oom adj: 100**, below ZUI's 701:
+    the cleaner spares a live wallpaper's process, so its alarms survive (track O: Live gives what
+    Keep running gives, without the notification). **For the user (STOP):** Decision 10 (a
+    second engine for the lock screen) has no way through this picker; the picker's "Home
+    screen" makes it shared; a double death reverts home only.
 
 ### [ ] L2. Android check on the FP6: the picker and the first frame (Opus, medium)
 

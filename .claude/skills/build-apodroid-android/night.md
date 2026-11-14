@@ -120,7 +120,7 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 17 | O12 | The page lets its pictures go while stopped (the user: run it, 2026-11-14) | winston | opus, medium | yes | O11, O7 | on-time-0.7.0.md O12 |
 | 18 | O14 | The detector | winston | opus, high | yes | O11, O13 | on-time-0.7.0.md O14 |
 | 19 | O14b | The detector's box names the day | winston | sonnet, medium | yes | O14 | on-time-0.7.0.md O14b |
-| 20 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O12, O13, O14, O14b | on-time-0.7.0.md O15 |
+| 20 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O12, O13, O14, O14b, the user (the tablet back) | on-time-0.7.0.md O15 |
 | 21 | L3 | `:core`: the position by the clock, the decode size, still or engine | winston | opus, medium | no | O1 | live-0.7.0.md L3 |
 | 22 | L5 | The engine, and `setDue` leaves a live screen to it | winston | opus, high | yes | L3, L4 | live-0.7.0.md L5 |
 | 23 | L6 | Size Fill or Live, Set opens Android's picker, the texts | winston | opus, high | yes | L5 | live-0.7.0.md L6 |
@@ -137,10 +137,10 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 34 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | — | bright-0.7.0.md BR1 |
 | 35 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, O3, L4 | bright-0.7.0.md BR2 |
 | 36 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L7 | bright-0.7.0.md BR3 |
-| 37 | L9 | Tablet pass of track L (the two real days by hand) | rosie | opus, high | no | L8, BR3 | live-0.7.0.md L9 |
+| 37 | L9 | Tablet pass of track L (the two real days by hand) | rosie | opus, high | no | L8, BR3, the user (the tablet back) | live-0.7.0.md L9 |
 | 38 | T1 | SIM on the combined rules | winston | opus, high | no | RO2, SO2, O4b, O10, OR2 | plan T1 |
-| 39 | R1 | The release's texts: versionCode 11, the changelog | winston | sonnet, medium | no | O14, O15, L8, L9, RO3, SO3, BR3, OR2 | plan R1 |
-| 40 | T2 | Final tablet pass on the combined tree | rosie | opus, high | no | T1, R1 | plan T2 |
+| 39 | R1 | The release's texts: versionCode 11, the changelog | winston | sonnet, medium | no | O14, O14b, L8, RO3, SO3, BR3, OR2 | plan R1 |
+| 40 | T2 | Final tablet pass on the combined tree | rosie | opus, high | no | T1, R1, the user (the tablet back) | plan T2 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

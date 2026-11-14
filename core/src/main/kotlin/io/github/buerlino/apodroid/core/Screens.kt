@@ -118,17 +118,6 @@ class Stored(
     }
 
     /**
-     * Whether what [source] shows now is a stand-in (on an APOD video day NASA's or Earth's
-     * picture) that a screen which showed [shown] has shown for its own source (B15, B22). The
-     * rules no longer read it (RO1: the stand-in may repeat); only [standInSkipped], the page's
-     * video notice, until RO2 removes both. The user's own picture never is.
-     */
-    fun standInShown(source: Source, shown: Map<Source, Picture.Of>): Boolean {
-        val picture = picture(source) as? Picture.Of ?: return false
-        return picture.source != source && shows(shown[picture.source], picture)
-    }
-
-    /**
      * Whether what [source] shows now ([picture]) was published before [limit] (B15): its post
      * ([Post.publishedAt]), and a stand-in's own post too. With [orAfterGap] (one source, B21) a
      * post stored after a gap ([gaps]) counts as published before it. False with nothing stored.
@@ -354,24 +343,6 @@ fun videoDayKept(column: List<Source>, record: Record?, stored: Stored, everSet:
     if (Source.APOD !in column || stored.post(Source.APOD)?.isVideo != true) return false
     if (record == null || record.owner != Source.APOD) return false
     return !stored.standsIn && (record.picture != null || everSet)
-}
-
-/**
- * Whether an APOD video day's stand-in passed a screen with [column] and [record] by (B22, the
- * page's video notice; the rules no longer skip it since RO1, and RO2 removes this with its
- * texts): APOD is ticked there, the stand-in (NASA's or Earth's picture) was shown
- * there before ([Stored.standInShown], the check the rules make), it isn't on it now, and it
- * didn't fill APOD's turn there this video day (APOD's video post isn't noted). So the screen
- * kept its picture (APOD alone) or the turn passed on (turns), as with "Skip it". A record
- * without a picture (forgotten by Set) or none: the next run puts the stand-in on.
- */
-fun standInSkipped(column: List<Source>, record: Record?, stored: Stored): Boolean {
-    val video = stored.post(Source.APOD)?.takeIf { it.isVideo } ?: return false
-    val picture = record?.picture ?: return false
-    if (Source.APOD !in column) return false
-    val standIn = stored.picture(Source.APOD) ?: return false
-    return stored.standInShown(Source.APOD, record.shown) && !shows(picture, standIn) &&
-        !shows(record.shown[Source.APOD], video.picture())
 }
 
 private fun shows(noted: Picture?, due: Picture): Boolean =

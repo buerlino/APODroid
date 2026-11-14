@@ -876,38 +876,6 @@ class ScreensTest {
     }
 
 
-    // The page's video notice: the stand-in skipped (B22)
-
-    @Test
-    fun aStandInShownBeforeAndNotOnIsSkipped() {
-        val video = stored(videoDay, StandIn.NASA)
-        val notes = shown(pic(APOD), pic(NASA))
-        assertTrue(standInSkipped(listOf(APOD), Record(APOD, pic(APOD), t0, notes), video))
-        // With turns, the turn passed on to Earth.
-        assertTrue(standInSkipped(listOf(APOD, EARTH), Record(EARTH, pic(EARTH), t0, notes + shown(pic(EARTH))), video))
-    }
-
-    @Test
-    fun aStandInOnOrNotShownIsNotSkipped() {
-        val video = stored(videoDay, StandIn.NASA)
-        val notes = shown(pic(APOD), pic(NASA))
-        // Not shown yet: it takes APOD's place at the next run.
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, pic(APOD), t0, shown(pic(APOD))), video))
-        // On the screen now.
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, pic(NASA), t0, notes), video))
-        // It filled APOD's turn this video day and the turn moved on since.
-        val filled = notes + shown(post(APOD, d2, video = true).picture(), pic(EARTH))
-        assertFalse(standInSkipped(listOf(APOD, EARTH), Record(EARTH, pic(EARTH), t0 + h3, filled), video))
-        // Forgotten by Set, or no record: the next run puts it on.
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, null, t0, notes), video))
-        assertFalse(standInSkipped(listOf(APOD), null, video))
-        // APOD not ticked there, an image day, "Skip it", the user's own picture.
-        assertFalse(standInSkipped(listOf(EARTH), Record(EARTH, pic(EARTH), t0, notes), video))
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, pic(APOD), t0, notes), stored(standIn = StandIn.NASA)))
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, pic(APOD), t0, notes), stored(videoDay, StandIn.SKIP)))
-        assertFalse(standInSkipped(listOf(APOD), Record(APOD, pic(APOD), t0, notes), stored(videoDay, StandIn.OWN)))
-    }
-
     // The page's "video day, wallpaper kept"
 
     @Test

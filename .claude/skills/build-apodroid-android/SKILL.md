@@ -195,16 +195,13 @@ packages unattended): `night.md`.
   (e.g. with a moved position), fake only `wallpaperDate`, then `run -f`; faking all dates moves
   `cropDate` too, which is right.
 - End a turn (debug builds; since J1, 2026-10-23, the turns follow the change times, so
-  `turnStartedAt` and `private/wp7-handoff/turn.sh` no longer do anything): either fake the
-  clock past the next change time (`settings put global auto_time 0`, `cmd alarm set-time
-  <ms>`, then `run -f`; set `auto_time` back to 1 at the end and check the clock against the
-  desktop's `date`), or move a screen's record back one change: after `am kill`, read
-  `wallpaperStamp` (`lock.wallpaperStamp` for the lock screen; equal columns follow home's) and
-  `sed -i -e '/wallpaperStamp/s,<value>,<value - interval in ms>,'`, then `run -f`. A stamp
-  that isn't a change time counts as the current one and changes nothing, so subtract exactly
-  the interval (10800000 for 3 h, 86400000 for one source). A screen changes only to a source
-  whose newest post it hasn't shown: delete its `shownDate`/`shownUrl` keys (`nasa.`, `earth.`
-  for the others, `lock.` before them for the lock screen) to make a post count as new.
+  `turnStartedAt` and `private/wp7-handoff/turn.sh` no longer do anything): fake the clock
+  past the next change time (`settings put global auto_time 0`, `cmd alarm set-time <ms>`,
+  then `run -f`; set `auto_time` back to 1 at the end and check the clock against the
+  desktop's `date`). Since RO1 (2026-11-14) the turn is the clock's, so moving a record's
+  `wallpaperStamp` back one interval no longer ends a turn (the screen takes the current
+  change time's turn, the source it already has), and the `shownDate`/`shownUrl` notes decide
+  nothing (still written, read by no rule since RO2).
   The list's order (OR2) is in the prefs too: `order` (`NASA,APOD,EARTH`) and `orderFrom` (the
   anchor's local date, `2026-11-15`); a turn is S[(N(c) − N(A)) mod n] over the column in that
   order, so with `orderFrom` the turn at a change time isn't RO1's APOD → NASA → Earth from

@@ -219,6 +219,11 @@ data class Plan(val screens: Map<Screen, Due>) {
  *   match again after Set from columns that differed, and after a failed set on one screen (B2).
  * - A screen needs a set when its due picture isn't the one it shows ([Picture.Of.url] null
  *   matches by date); nothing to show keeps the picture.
+ * - **[soon]** ("As soon as it's out", SO1): rule 2 without the [pictureWindow]. A newer picture
+ *   of the screen's owner (one source: its source; turns: the turn's source, on an APOD video day
+ *   its stand-in) goes on whenever a run sees it, whenever it was published; another source's new
+ *   picture still waits for its turn. Everything else as above (never back, equal columns, the
+ *   change times); [Stored.gaps] changes nothing while it's on. Off: 0.6.0's window.
  */
 fun dueWallpapers(
     columns: Map<Screen, List<Source>>,
@@ -228,8 +233,9 @@ fun dueWallpapers(
     zone: ZoneId,
     now: Instant,
     pull: Boolean = false,
+    soon: Boolean = false,
 ): Plan {
-    val rules = Rules(stored, time, zone, now)
+    val rules = Rules(stored, time, zone, now, soon)
     val due = mutableMapOf<Screen, Due>()
     val home = columns[Screen.HOME].orEmpty()
     if (home.isNotEmpty() && home.toSet() == columns[Screen.LOCK].orEmpty().toSet()) {
@@ -247,7 +253,7 @@ fun dueWallpapers(
     return Plan(due.filter { (screen, it) -> it.set || it.record != records[screen] })
 }
 
-private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId, val now: Instant) {
+private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId, val now: Instant, val soon: Boolean = false) {
     fun current(column: List<Source>): Instant = time.last(now, zone, column.size >= 2)
 
     /**
@@ -303,9 +309,13 @@ private class Rules(val stored: Stored, val time: PictureTime, val zone: ZoneId,
         return show(record, if (due) stored.picture(record.owner) else null)
     }
 
-    /** Rule 2 by the publish time (B15): the owner's picture came out before the record's change time + the window. */
+    /**
+     * Rule 2 by the publish time (B15): the owner's picture came out before the record's change
+     * time + the window. With [soon] (SO1) the window goes: the owner's newer picture is due
+     * whenever a run sees it ([show] still never goes back, and sets nothing when it's on).
+     */
     private fun inWindow(record: Record, orAfterGap: Boolean = false) =
-        stored.publishedBefore(record.owner, record.stamp!! + pictureWindow, orAfterGap)
+        soon || stored.publishedBefore(record.owner, record.stamp!! + pictureWindow, orAfterGap)
 
     /** [record] showing [picture] (null, or an older picture of the source on it, keeps what it shows), its notes brought up to date. */
     fun show(record: Record, picture: Picture?): Due {

@@ -91,6 +91,8 @@ internal open class Phone(
     var standIn: StandIn = StandIn.SKIP,
     /** While offline every check fails and the stored posts are those out at its start (B15). */
     val offline: ClosedRange<Instant>? = null,
+    /** "As soon as it's out" (SO1): [dueWallpapers]' `soon`, [nextAlarm]'s hourly checks all day. */
+    var soon: Boolean = false,
 ) {
     val sets = mutableListOf<String>()
     val runs = mutableListOf<String>()
@@ -116,7 +118,7 @@ internal open class Phone(
      * [setFails]) leaves them. Returns the plan.
      */
     fun check(now: Instant, failSets: Boolean = false, pull: Boolean = false, stored: Stored = stored(now)): Plan {
-        val plan = dueWallpapers(columns, records, stored, time, zone, now, pull)
+        val plan = dueWallpapers(columns, records, stored, time, zone, now, pull, soon)
         records = records + plan.screens.filterValues { !it.set }.mapValues { it.value.record }
         for ((picture, screens) in plan.sets) {
             if (failSets || setFails(picture, screens, now)) continue
@@ -146,7 +148,7 @@ internal open class Phone(
             check(now)
             // An offline run fails: the alarms retry it (Background update).
             failures = if (isOffline(now)) failures + 1 else 0
-            now = nextAlarm(now, zone, failures, time, turns, Duration.ZERO, now)
+            now = nextAlarm(now, zone, failures, time, turns, Duration.ZERO, now, allDay = soon)
         }
     }
 }

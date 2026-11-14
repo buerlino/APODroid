@@ -1055,6 +1055,11 @@ change the run's bookkeeping; with O10 the run is expedited.)
     across a change time (the lock screen's still set, home's hand-over, no picker);
   - Decision 12: two kills within 10 s, then both screens Fill by the next run, on R8 too;
   - landscape (the picture at the landscape height).
+  - BR3: a bright picture with Live, the engine and the preview darkened (the log's ", darker ×…");
+  - L6f1: the lock screen's still set failing (if it can be made to fail) holds home's hand-over;
+  - B27: home and lock on one engine, lock with APOD alone on a "Skip it" video day, home's new
+    picture handed over: the lock screen keeps its picture (a still from `live.jpg`).
+  (The night of 14 Nov ran none of L5–L8's, BR3's, L6f1's or B27's device checks.)
 - `logcat` and `exit-info` without a crash; `dumpsys meminfo` with the page open and closed.
 - **Then two real days** (W's way, by hand, morning reads; the tablet on battery at night as W did;
   not during O16's week): the change at 06:00 on the live screens, the frame's place at each read,

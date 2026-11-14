@@ -903,6 +903,8 @@ build (sign as the skill says); the update from 0.6.0's build with its setup (Ke
 afterwards, nothing new running); then Keep running on: the expedited run in force-idle and
 under saver (O10's checks), the service's starts (O11's checks), the detector (O14's), the
 pause hint (O13's), a Set and the daily switch with the service on, `am kill` and a reboot;
+Also O14b's (the night of 14 Nov ran no device check): a miss faked for yesterday names the day
+("the 18:00 change on 16 Nov came late"), one faked for today doesn't.
 `logcat` and `exit-info` without a crash. The texts' screenshots in one folder for the user.
 - **Done when:** every check ran on R8 too; no `BUG:` line, or each one drafted as a package.
 

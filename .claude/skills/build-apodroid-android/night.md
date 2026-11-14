@@ -120,7 +120,7 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 17 | O12 | The page lets its pictures go while stopped (the user: run it, 2026-11-14) | winston | opus, medium | yes | O11, O7 | on-time-0.7.0.md O12 |
 | 18 | O14 | The detector | winston | opus, high | yes | O11, O13 | on-time-0.7.0.md O14 |
 | 19 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O12, O13, O14 | on-time-0.7.0.md O15 |
-| 20 | L3 | `:core`: the position by the clock, the decode size, still or engine | winston | opus, medium | no | O1, L1 | live-0.7.0.md L3 |
+| 20 | L3 | `:core`: the position by the clock, the decode size, still or engine | winston | opus, medium | no | O1 | live-0.7.0.md L3 |
 | 21 | L5 | The engine, and `setDue` leaves a live screen to it | winston | opus, high | yes | L3, L4 | live-0.7.0.md L5 |
 | 22 | L6 | Size Fill or Live, Set opens Android's picker, the texts | winston | opus, high | yes | L5 | live-0.7.0.md L6 |
 | 23 | L7 | The preview in ⛶ mode | winston | opus, medium | yes | L6 | live-0.7.0.md L7 |

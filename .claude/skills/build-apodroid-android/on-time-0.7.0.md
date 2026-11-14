@@ -852,6 +852,8 @@ screenshots.)
 
 ### [ ] O14. The detector (Opus, high)
 
+**The user, 2026-11-14 (from pass 37's questions):** the box follows Keep running's state at the miss, as built (turning it on from the box clears that box); the box names the day when the miss isn't today (O14b).
+
 (This file, The detector. After O11 and O13.)
 - **`:core`:** whether a page open's set is a miss (this file's rule: the set's stamp T, now, the
   offset, `lastRunAt`, the boot time, the update time, job 2 pending, `alarmsLostAt`), with
@@ -880,6 +882,19 @@ screenshots.)
   before the alarm fires, the alarm still in `dumpsys alarm`, then the page). The clock and
   `auto_time` set back; the smoke list.
 - **Done when:** built; the tests pass; the tablet passes; the texts listed.
+
+### [ ] O14b. The detector's box names the day (Sonnet, medium)
+
+(User, 2026-11-14, from pass 37.) O14's box names only the time ("the 06:00 change came late"), so a
+box left for days doesn't say which day. When the missed change time's local date isn't today, the
+box names it: "the 06:00 change on 16 Nov" (12/24 h and the date as the status lines show them);
+today's stays as built. The text a placeholder until the user approves it from a screenshot.
+- **Files:** the detector box's text where O14 built it (`MainActivity.kt` and its helper; a pure
+  formatting function in `:core` if O14 put the box's text there), its test.
+- **Tests:** a miss today (no date), yesterday, and across midnight in the zone.
+- **For rosie:** fake a miss dated yesterday (O14's way of provoking the box) and screenshot the box;
+  a miss today unchanged.
+- **Done when:** the tests pass; the screenshot in the report's Texts.
 
 ### [ ] O15. Tablet pass of the track (Opus, high)
 

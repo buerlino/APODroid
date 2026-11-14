@@ -119,27 +119,28 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 16 | O11 | Keep running: the service, the setting, its starts | winston | opus, high | yes | O4a, O4b, O4c, O7, O8 | on-time-0.7.0.md O11 |
 | 17 | O12 | The page lets its pictures go while stopped (the user: run it, 2026-11-14) | winston | opus, medium | yes | O11, O7 | on-time-0.7.0.md O12 |
 | 18 | O14 | The detector | winston | opus, high | yes | O11, O13 | on-time-0.7.0.md O14 |
-| 19 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O12, O13, O14 | on-time-0.7.0.md O15 |
-| 20 | L3 | `:core`: the position by the clock, the decode size, still or engine | winston | opus, medium | no | O1 | live-0.7.0.md L3 |
-| 21 | L5 | The engine, and `setDue` leaves a live screen to it | winston | opus, high | yes | L3, L4 | live-0.7.0.md L5 |
-| 22 | L6 | Size Fill or Live, Set opens Android's picker, the texts | winston | opus, high | yes | L5 | live-0.7.0.md L6 |
-| 23 | L7 | The preview in ⛶ mode | winston | opus, medium | yes | L6 | live-0.7.0.md L7 |
-| 24 | L8 | D: the screen-on check starts the alarms' run | winston | opus, medium | yes | L5, O4a, O4b, O4c | live-0.7.0.md L8 |
-| 25 | RO1 | `:core`: turns as a plain rotation | winston | opus, high | no | O1 | rotation-0.7.0.md RO1 |
-| 26 | RO2 | `Store`, the page's texts, `CLAUDE.md` for the rotation | winston | opus, medium | yes | RO1 | rotation-0.7.0.md RO2 |
-| 27 | RO3 | Tablet check: the rotation on a faked day | rosie | opus, medium | no | RO2 | rotation-0.7.0.md RO3 |
-| 28 | SO1 | `:core`: as soon as it's out, the rule and the hourly checks | winston | opus, high | no | RO1 | soon-0.7.0.md SO1 |
-| 29 | SO2 | The switch in Setup, `Store`, `CLAUDE.md` | winston | opus, medium | yes | SO1 | soon-0.7.0.md SO2 |
-| 30 | SO3 | Tablet check: a NASA post in the afternoon | rosie | opus, medium | no | SO2 | soon-0.7.0.md SO3 |
-| 31 | OR1 | `:core`: the list's order in the turns, the anchor, Set keeping what's on until it | winston | opus, high | no | RO3, SO3 | order-0.7.0.md OR1 |
-| 32 | OR2 | The drag list, its actions, the order in the draft and Set, `CLAUDE.md` | winston | opus, high | yes | OR1 | order-0.7.0.md OR2 |
-| 33 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | — | bright-0.7.0.md BR1 |
-| 34 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, O3, L4 | bright-0.7.0.md BR2 |
-| 35 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L7 | bright-0.7.0.md BR3 |
-| 36 | L9 | Tablet pass of track L (the two real days by hand) | rosie | opus, high | no | L8, BR3 | live-0.7.0.md L9 |
-| 37 | T1 | SIM on the combined rules | winston | opus, high | no | RO2, SO2, O4b, O10, OR2 | plan T1 |
-| 38 | R1 | The release's texts: versionCode 11, the changelog | winston | sonnet, medium | no | O14, O15, L8, L9, RO3, SO3, BR3, OR2 | plan R1 |
-| 39 | T2 | Final tablet pass on the combined tree | rosie | opus, high | no | T1, R1 | plan T2 |
+| 19 | O14b | The detector's box names the day | winston | sonnet, medium | yes | O14 | on-time-0.7.0.md O14b |
+| 20 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O12, O13, O14, O14b | on-time-0.7.0.md O15 |
+| 21 | L3 | `:core`: the position by the clock, the decode size, still or engine | winston | opus, medium | no | O1 | live-0.7.0.md L3 |
+| 22 | L5 | The engine, and `setDue` leaves a live screen to it | winston | opus, high | yes | L3, L4 | live-0.7.0.md L5 |
+| 23 | L6 | Size Fill or Live, Set opens Android's picker, the texts | winston | opus, high | yes | L5 | live-0.7.0.md L6 |
+| 24 | L7 | The preview in ⛶ mode | winston | opus, medium | yes | L6 | live-0.7.0.md L7 |
+| 25 | L8 | D: the screen-on check starts the alarms' run | winston | opus, medium | yes | L5, O4a, O4b, O4c | live-0.7.0.md L8 |
+| 26 | RO1 | `:core`: turns as a plain rotation | winston | opus, high | no | O1 | rotation-0.7.0.md RO1 |
+| 27 | RO2 | `Store`, the page's texts, `CLAUDE.md` for the rotation | winston | opus, medium | yes | RO1 | rotation-0.7.0.md RO2 |
+| 28 | RO3 | Tablet check: the rotation on a faked day | rosie | opus, medium | no | RO2 | rotation-0.7.0.md RO3 |
+| 29 | SO1 | `:core`: as soon as it's out, the rule and the hourly checks | winston | opus, high | no | RO1 | soon-0.7.0.md SO1 |
+| 30 | SO2 | The switch in Setup, `Store`, `CLAUDE.md` | winston | opus, medium | yes | SO1 | soon-0.7.0.md SO2 |
+| 31 | SO3 | Tablet check: a NASA post in the afternoon | rosie | opus, medium | no | SO2 | soon-0.7.0.md SO3 |
+| 32 | OR1 | `:core`: the list's order in the turns, the anchor, Set keeping what's on until it | winston | opus, high | no | RO3, SO3 | order-0.7.0.md OR1 |
+| 33 | OR2 | The drag list, its actions, the order in the draft and Set, `CLAUDE.md` | winston | opus, high | yes | OR1 | order-0.7.0.md OR2 |
+| 34 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | — | bright-0.7.0.md BR1 |
+| 35 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, O3, L4 | bright-0.7.0.md BR2 |
+| 36 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L7 | bright-0.7.0.md BR3 |
+| 37 | L9 | Tablet pass of track L (the two real days by hand) | rosie | opus, high | no | L8, BR3 | live-0.7.0.md L9 |
+| 38 | T1 | SIM on the combined rules | winston | opus, high | no | RO2, SO2, O4b, O10, OR2 | plan T1 |
+| 39 | R1 | The release's texts: versionCode 11, the changelog | winston | sonnet, medium | no | O14, O15, L8, L9, RO3, SO3, BR3, OR2 | plan R1 |
+| 40 | T2 | Final tablet pass on the combined tree | rosie | opus, high | no | T1, R1 | plan T2 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

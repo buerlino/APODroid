@@ -1398,10 +1398,9 @@ right edge at 24:00), so the whole picture is seen by evening. Built as a **live
 at the position for the time of day whenever the screen turns on, smooth, nothing drawn or set
 while the screen is off. The clock moves it, not the launcher: it works on any launcher (the
 FP6's Niagara scrolls vertically and reports `mWallpaperX=0.0`; a launcher's
-sideways scroll is ignored). Since Android 14 the engine knows whether it draws home or lock
-(`getWallpaperFlags`), so the screens can keep their own pictures; a separate lock-screen live
-wallpaper is always there from Android 15 (Android 14's first AOSP release had it off by
-default); on 10–13 a live wallpaper is the home screen's only. Chosen in Android's live
+sideways scroll is ignored). Live is the home screen's (2026-11-14, below): one engine, on the
+lock screen too while that shows the same picture; on 10–13 a live wallpaper is the home
+screen's only anyway. Chosen in Android's live
 wallpaper picker (the app opens it; one confirmation). Rejected: steps set by the job (it jumps,
 every set redraws and recolours the system's theme colours, smooth would mean dozens of sets a
 day). **Decided** (user, 2026-10-28; the findings, the plan, the checks and the packages L0–L10
@@ -1410,7 +1409,8 @@ in [live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md)):
   the next change time; **with turns each picture crosses within its own turn** (at most 18 h).
 - **A screen with a column where APODroid's live wallpaper isn't on gets Fill**, as 0.6.0 (the
   lock screen on 10–13, a screen left out in the picker, another wallpaper picked, a force stop,
-  which makes Android drop a live wallpaper to the default): at once, by the next run.
+  which makes Android drop a live wallpaper to the default on both screens): at once, by the
+  next run.
 - **Android 10–13's lock screen: Fill**, not `clear(FLAG_LOCK)` (untested there).
 - **Fill stays a still set**, not drawn by the engine (updaters would need the picker; a force
   stop or a crash loop drops a live wallpaper; Auto went in 0.6.0). Live only for those who
@@ -1418,10 +1418,26 @@ in [live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md)):
 - **The preview in ⛶ mode:** with Live the frame where the clock has it (no drag); with "Whole
   picture" a screen-shaped preview on its background, drawn by the wallpaper's code.
 - **"My picture" moves too.** **The detector doesn't suggest Live.**
-- **Different pictures on home and lock:** Set offers Android's picker once more for the lock
-  screen (14+), once per setup.
-- The engine draws only its screen's own copy of the picture (`live-home.jpg`, `live-lock.jpg`,
-  written when a screen is handed to it), never the source's file. No new permission.
+- **Different pictures on home and lock: Live on home, the lock screen still Fill** (user,
+  2026-11-14, from L1 on the tablet; replaces 2026-10-28's second picker trip for a lock-screen
+  engine). ZUI's picker offers only "Home screen" or "Home screen and lock screen", and either
+  puts the one engine on both; a still set on the lock screen leaves it on home alone. So the
+  engine draws home's picture, on the lock screen too while it's due the same one; when the
+  lock screen is due another (different columns) or the engine isn't on it, the app sets the
+  lock screen's still Fill with `FLAG_LOCK`, after the picker by Set's update, later by any run.
+  No second picker, no lock-screen engine of its own, the same rule on every Android 14+ picker
+  unless L2 (the FP6's picker) shows a reason.
+- **The wake frame accepted** (user, 2026-11-14): the lock screen shows the last frame for about
+  0.3 s after a wake before the engine redraws (L1); nothing drawn while the screen is off.
+- **Home lost Live: both screens Fill** (user, 2026-11-14): two deaths within 10 s or a crash
+  loop make Android revert only home to the default, the lock screen keeping the engine, which
+  then believes it's on both (L1). The next run that finds home's record noted live and home not
+  live (14+ `getWallpaperInfo(FLAG_SYSTEM)` not APODroid's, below 14 home's wallpaper id
+  changed) sets both screens' still Fill; Live stays off until the user picks it again in the
+  picker. The same for any loss on home (another wallpaper, a force stop).
+- The engine draws only Live's own copy of home's picture (`live.jpg`, written when home is
+  handed to it), never the source's file; a software canvas, at most 50 MB a decoded picture
+  (L1). No new permission.
 
 **0.7.0: on time on any phone** (user, 2026-10-25, after a friend's Chinese phone had no
 "Unrestricted"; planned again 2026-10-28 after W's tablet day; after 0.6.0 ships, the freeze; the

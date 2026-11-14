@@ -4,7 +4,10 @@
 [Decisions](#decisions-user-2026-10-28); reviewed by reading the same evening against `Store.kt`,
 `PictureTime.kt` and `Frame.kt`: the engine draws its own copy, lost Live gets Fill at once, Set
 waits for the engine after the picker, the shared engine told by the engines' notes, the engine
-can't crash, Decision 10. What was settled before is in `CLAUDE.md`, Next
+can't crash, Decision 10. Rewritten 2026-11-14 after L1's STOP on the tablet, from the user's
+[Decisions after L1](#decided-after-l1-user-2026-11-14): Live is the home screen's, the lock
+screen Fill when its picture differs, the stale wake frame accepted, both screens Fill when home
+loses Live. What was settled before is in `CLAUDE.md`, Next
 features, 0.7.0: Live, the day's pan: Size [Fill | Live] with the preview on the page, a
 `WallpaperService`, no library, no permission, the position by the time of day from the picture
 time, drawn when the screen turns on and nothing while it's off, the clock moves it and not the
@@ -32,6 +35,9 @@ app opens the picker's preview of its own engine with `ACTION_CHANGE_LIVE_WALLPA
 immediately confirm"); `ACTION_LIVE_WALLPAPER_CHOOSER` opens the list. Which screens it goes on
 (home, lock, both) is the picker's question to the user, where the picker asks it at all; the
 app can't choose. The picker shows the engine with `isPreview()` true, a separate engine.
+**L1 (ZUI, Android 15):** the picker (`livepicker/.LiveWallpaperChange`) asks "Home screen" or
+"Home screen and lock screen", never "Lock screen" alone, and nothing while the engine is already
+on both; `resolveActivity` returns null without `<queries>` while `startActivity` works.
 
 **Home and lock, by Android version:**
 - **10–13:** a live wallpaper is the home ("system") wallpaper only. AOSP 13's
@@ -53,7 +59,10 @@ app can't choose. The picker shows the engine with `isPreview()` true, a separat
   `onWallpaperFlagsChanged(FLAG_SYSTEM)`), and a still set on `FLAG_SYSTEM` makes it lock-only.
   Re-applying the same live wallpaper to home alone while it's on both rebinds it
   (`forceRebind`): two engines of the same service, one per screen. One engine on both screens
-  is **one surface**: it can't show home and lock different pictures.
+  is **one surface**: it can't show home and lock different pictures. **L1:** the split by a
+  still set works as read (`Still lock` → `FLAGS 1`, the same engine, no rebind); two engines
+  never happened: "Home screen" ends as one engine on both over a shared still, and also over a
+  lock-only engine with a still on home.
 - **16:** `WallpaperDescription` and `onCreateEngine(description)` (instances with their own
   content). Not needed here.
 
@@ -67,6 +76,10 @@ app can't choose. The picker shows the engine with `isPreview()` true, a separat
 - `getWallpaperId(which)` needs no permission (AOSP 10 and 13). The id changes with every set or
   clear (`makeWallpaperIdLocked`), not with a rebind after a process death. So below 14 the engine
   notes the home wallpaper's id when it starts, and "Live is on" means the id is still that one.
+- **L1's table** (14+): shared: `getWallpaperInfo(FLAG_SYSTEM)` names it, `(FLAG_LOCK)` null,
+  the lock id -1; home only: `(SYSTEM)` names it, the lock id not -1; after a revert of home
+  (two deaths in 10 s): `(SYSTEM)` null and `(LOCK)` null too, while the lock screen still shows
+  the engine, which reports flags 3. An app sees its own package without `<queries>`.
 
 **The process:**
 - The system binds the current wallpaper with `BIND_AUTO_CREATE | BIND_SHOWING_UI |
@@ -74,12 +87,18 @@ app can't choose. The picker shows the engine with `isPreview()` true, a separat
   process lives as long as it's the wallpaper, at foreground-service level while the screen is on.
 - After the process dies the system rebinds it. After a low-memory kill it tries 3 times, 5 s
   apart. Dying twice within 10 s (`MIN_WALLPAPER_CRASH_TIME`) **reverts to the default
-  wallpaper**.
+  wallpaper**. **L1:** `kill -9` rebound in 1.5 s; the low-memory killer's kill rebound 6 s
+  later, still live; two deaths within 10 s or a crash loop revert **the home screen only**: the
+  lock screen keeps the engine (a new one, which believes it's on both, flags 3). A throw in the
+  draw shows a crash dialog first. The oom adj stays 100, the screen on or off (ZUI's cleaner
+  spared it, `minAdj` 701).
 - **A force stop reverts to the default wallpaper:** `ACTION_PACKAGE_RESTARTED` →
   `PackageMonitor` marks the package as disappearing (`PACKAGE_TEMPORARY_CHANGE`) →
   `doPackagesChangedLocked` → `clearWallpaperLocked`. That covers the user's App info → Force
   stop, `am force-stop`, and a maker's cleaner that force-stops (ZUI's, `on-time-0.7.0.md`).
-- An update keeps it: the package is modified, the service still exists, so it rebinds.
+  L1: both screens default.
+- An update keeps it: the package is modified, the service still exists, so it rebinds (L1, and
+  a reboot: `CREATE` 1.5 s after `boot_completed`).
 - `AppStandbyController` exempts bound widgets, not wallpapers. The buckets still apply to the
   app's alarms and jobs.
 - Fairphone's forum: on the FP5's Android 15 (Fairphone OS) live wallpapers reverted to the
@@ -88,7 +107,13 @@ app can't choose. The picker shows the engine with `isPreview()` true, a separat
 
 **Drawing:**
 - `SurfaceHolder.lockCanvas()` (software) or `lockHardwareCanvas()` (API 26). The engine's
-  callbacks run on the app's main thread, shared with the page.
+  callbacks run on the app's main thread, shared with the page. **L1:** software 6–23 ms a draw
+  (up to a 79 MB picture), hardware faster at up to twice the memory; mixing them on one surface
+  breaks it (software → hardware aborted the process, hardware → software gives a null
+  `lockCanvas()` until the process restarts).
+- **L1:** the frame after a wake: the lock screen shows the frame drawn before the screen went
+  off for about 0.3 s (until `VIS true`, then the new frame 10–16 ms later); home after the
+  keyguard the fresh one.
 - "It is very important that a wallpaper only use CPU while it is visible" (`onVisibilityChanged`).
 - `onSurfaceRedrawNeeded` wants a frame at once. `setOffsetNotificationsEnabled(false)` is "a
   performance optimization" (no launcher scroll events). Zoom and touch are off by default.
@@ -101,7 +126,8 @@ app can't choose. The picker shows the engine with `isPreview()` true, a separat
   background such as the job's, are held "until screen off". So the system's theme colours follow
   a new picture at the next screen-off and never change in front of the user, with Fill too.
 - The tablet and the FP6 have wallpaper colours off (U1): only what the engine reports can be
-  checked (`dumpsys wallpaper`).
+  checked. L1: `dumpsys wallpaper` lists none on the tablet; SystemUI's log does
+  (`ThemeOverlayController: onColorsChanged … which 3`).
 
 **Memory**, decoded at the surface's height (ARGB, 4 bytes a pixel):
 - FP6, 1116×2484: a 3:2 rendition 3726×2484 is 37 MB. The widest real APOD of 0.6.0's mock-up
@@ -109,6 +135,8 @@ app can't choose. The picker shows the engine with `isPreview()` true, a separat
 - Tablet, 800×1340: a 3:2 picture is 2010×1340, 11 MB.
 - Earth's 1440×600 isn't scaled up: 3.5 MB, drawn enlarged. A user's 12000×3000 panorama would be
   99 MB at full height, so it needs a budget (below).
+- **L1** (one engine, software): a process's base about 50 MB PSS; 21 MB decoded → 70 MB, 51 MB →
+  105 MB, 79 MB → 132 MB. Decodes 53–117 ms (21 MB) to 500 ms (79 MB). Budget: 50 MB a bitmap.
 - **Speed:** a 3:2 picture on the FP6 travels 2610 px in 18 h, about 2.4 px a minute; with 6 h
   turns about 7 px a minute. Nothing needs animating.
 
@@ -119,16 +147,17 @@ What decides what each screen shows stays; Live changes only how a picture reach
 | 0.6.0 | With Live |
 |---|---|
 | The rules, the records per screen, turns, the stand-in, Set's forgetting, the alarms, the job | Unchanged: they decide the picture; SIM still guards them |
-| A still set per screen (`setStream`/`setBitmap`, home and lock apart, M0); Android keeps its own copy of the picture | On a screen where APODroid's live wallpaper is on: no set. The picture is **copied to the screen's own file** (`files/live-home.jpg`, `live-lock.jpg`, with its whole flag), the engine's copy as Android's is for a still set; the record (noted live) and `wallpaperSetAt` are written as after a set, and the engine redraws (a prefs listener in the same process). Elsewhere the still set as now |
-| One wallpaper on both screens when both are due the same picture | One engine on both while both show the same picture; when they're due different pictures the lock screen gets its still set and Android moves the engine to home |
+| A still set per screen (`setStream`/`setBitmap`, home and lock apart, M0); Android keeps its own copy of the picture | On the home screen while APODroid's live wallpaper is on there: no set. Home's picture is **copied to Live's own file** (`files/live.jpg`, with its whole flag), the engine's copy as Android's is for a still set; the record (noted live) and `wallpaperSetAt` are written as after a set, and the engine redraws (a prefs listener in the same process). Elsewhere the still set as now |
+| One wallpaper on both screens when both are due the same picture | One engine on both while both show home's picture; when the lock screen is due another picture it gets its still set and Android moves the engine to home (L1: `FLAGS 1`, the same engine). The lock screen never has an engine of its own (Decision 10) |
 | ⛶'s part (Fill) | Fill only. In Live the clock places the frame (no drag); the stored part stays for Fill |
 | The whole picture per post, on blur or black (A3) | The same per post: on a live screen the engine draws it still, with A3's drawing, now shared |
 | "My picture", Fill centred | It moves too (decided) |
 | Video days ("Skip it": the old picture stays) | The old picture keeps moving (its copy stays; `refresh` deleting `apod.jpg` doesn't touch it) |
+| The screen turns on | The engine redraws when it becomes visible; the lock screen shows the last frame for about 0.3 s first (L1; accepted, Decision 11) |
 | A newer post stored before it's due (Los Angeles: the 21:05 APOD, due at 06:00) | Not shown: the engine draws only its copy, also after a process death, a reboot or a rebind |
 | Landscape: Android zooms the portrait frame's middle band (CLAUDE.md, Wallpaper) | The engine draws for its surface: in landscape the picture at the landscape height, at the same position |
 | The launcher's scroll offset | Ignored (CLAUDE.md: the clock moves it) |
-| The user picks another wallpaper; any wallpaper is replaced at the next change | A screen noted live that isn't live now (another wallpaper, a force stop's default) counts as a forgotten picture, so the next run (a page open too) sets Fill at once, not at the next change (decided: a force stop never cost the picture before); the page says Live isn't on, Set offers the picker |
+| The user picks another wallpaper; any wallpaper is replaced at the next change | A screen noted live that isn't live now (another wallpaper, a force stop's default) counts as a forgotten picture, so the next run (a page open too) sets Fill at once, not at the next change (decided: a force stop never cost the picture before); when home lost Live (also Android's revert after two deaths in 10 s, which leaves the engine on the lock screen), both screens get Fill (Decision 12); the page says Live isn't on, Set offers the picker |
 | The status lines, the chip | From the records, as now; Setup's summary adds " · Live" |
 
 ## Decisions (user, 2026-10-28)
@@ -146,7 +175,8 @@ Asked one at a time, each with the recommendation first; every answer was the re
 4. **A screen with a column where APODroid's live wallpaper isn't on gets Fill**, as 0.6.0: the
    lock screen on Android 10–13, a screen the user left out in Android's picker, one where the user
    picked another wallpaper since, or after a force stop. The pictures keep coming; Set offers the
-   picker again. Not "leave it alone until Set".
+   picker again. Not "leave it alone until Set". (2026-11-14: Live is home's, so home's loss
+   takes the lock screen too, Decision 12.)
 5. **Android 10–13's lock screen: Fill (still)**, also when both screens show the same picture.
    The user asked for the pros and cons first; answered: `clear(FLAG_LOCK)` is Android's
    documented way to show the live home wallpaper on the lock screen (AOSP 13 does it), small in
@@ -166,53 +196,85 @@ Asked one at a time, each with the recommendation first; every answer was the re
 8. **"My picture" moves too:** Live moves every picture except one set to "Whole picture".
 9. **The detector doesn't suggest Live** (track O's recommendation, decided here): Live is a
    look, Keep running the fix; with Live on and still a miss the box shows the maker's line.
-10. **Different pictures on home and lock: Set offers the picker for the lock screen** (user,
-    2026-10-28 evening, after a review of this plan found the lock screen would stay Fill for
-    good, quietly dropping CLAUDE.md's "the screens can keep their own pictures"). On Android 14+
-    (where the build offers a lock-screen live wallpaper; 15+ always), with Size Live, the lock
-    screen's column differing from home's and the lock screen not live, Set opens Android's picker
-    once more for the user to pick "Lock screen" (a second engine). Backing out leaves the lock
-    screen Fill, and Set doesn't ask again until the columns change (`live.lockAsked`, the columns
-    it asked for). Not "accept: the lock screen stays Fill".
+10. ~~Different pictures on home and lock: Set offers the picker for the lock screen~~ (user,
+    2026-10-28 evening; replaced 2026-11-14 by the Decision 10 below: L1 found no way to a lock
+    screen engine through ZUI's picker).
+
+### Decided after L1 (user, 2026-11-14)
+
+From L1's STOP (rosie, the tablet, `.coord/runs/095-l1/report.md`).
+10. **Home ≠ lock: Live on home, the lock screen still Fill** (replaces 2026-10-28's Decision 10).
+    ZUI's picker offers only "Home screen" or "Home screen and lock screen", and "Home screen"
+    still puts the one engine on both; a still set on `FLAG_LOCK` leaves it on home alone
+    (`FLAGS 1`, the same engine). So Live is the home screen's: the engine draws home's picture,
+    on the lock screen too while the lock screen is due the same one (one engine on both). When
+    the lock screen is due another picture (different columns), or the engine isn't on it (only
+    home has Live), the app sets the lock screen's still Fill itself with `FLAG_LOCK`, after the
+    picker by Set's own update, later by any run. No second picker trip, no `live.lockAsked`, no
+    second engine. A lock screen with a column and no home column (APOD mode's "Where" Lock):
+    Fill, no picker. **The same rule on every Android 14+ picker**, also one that offers "Lock
+    screen" (LineageOS's on the FP6, L2): a lock screen with an engine of its own isn't counted as
+    live, so its column's next set replaces it with Fill. Changed only if L2 shows a reason
+    (Open).
+11. **The wake frame: accepted.** The lock screen shows the frame drawn before the screen went off
+    for about 0.3 s after a wake, then the engine's new one (L1, 2 of 3 captures; the lock screen
+    still dim then). No redraw while the screen is off (CLAUDE.md's rule stands).
+12. **Home lost Live: both screens Fill.** Two deaths within 10 s or a crash loop make Android
+    revert only the home screen to the default; the lock screen keeps the engine, a new one that
+    believes it's on both (flags 3; L1, step 7). The next run that finds home's record noted live
+    and home not live sets **both** screens' still Fill: home's and the lock screen's records
+    forgotten (the lock screen's when it has a column or the engine covered it, `live.shared`),
+    every set still, the stray engine replaced by the lock screen's still set. Live is then off
+    on both until the user picks it again in Android's picker (Set offers it). How the app knows:
+    14+ `getWallpaperInfo(FLAG_SYSTEM)` no longer names `LiveWallpaper` (L1: null after the
+    revert), below 14 `getWallpaperId(FLAG_SYSTEM)` no longer the engine's noted id; the engine's
+    flags aren't trusted. The same for any loss of Live on home (another wallpaper picked, a force
+    stop). Not "the lock screen keeps Live".
 
 **Decided in this plan, not asked** (the user can change any; each has its reason):
-- **Software canvas** (`lockCanvas`) unless L1 measures a draw over about 30 ms: a frame a minute
-  needs no GPU, and a software canvas has no texture size limit for a 5000-px picture.
+- **Software canvas** (`lockCanvas`; L1: 6–23 ms a draw, never 30): a frame a minute needs no
+  GPU, a software canvas has no texture size limit, and hardware cost up to twice the memory.
+  **One canvas for an engine's life** (L1: mixing them aborts the process or gives a null canvas
+  until it restarts); a null `lockCanvas()` skips the frame, logged.
 - **When it draws:** at `onSurfaceRedrawNeeded` and `onSurfaceChanged`, when it becomes visible,
   when its picture changes, and once a minute while visible (only when the frame moved a pixel).
-  Never while invisible.
+  Never while invisible (Decision 11).
 - **The decode:** once per picture, at the screen's portrait height (the longer side, as
-  `Store.screen`), never enlarged, within a budget of 64 MB (a larger one decoded smaller and
-  drawn enlarged; L1 sets the figure), on a background thread, kept until the picture changes.
-  Landscape draws the same decode scaled down: a rotation decodes nothing.
+  `Store.screen`), never enlarged, within **50 MB a bitmap** (L1: about 50 MB base, 105 MB PSS with
+  51 MB, 132 MB with 79 MB; a larger one decoded smaller and drawn enlarged), on a background
+  thread, kept until the picture changes. Landscape draws the same decode scaled down: a rotation
+  decodes nothing.
 - **The engine can't crash:** decode and draw catch everything (out of memory: decode at half
   the size, then again, else draw black), since two crashes of the one process within 10 s
-  revert to the default wallpaper and kill a job run in progress.
+  revert home to the default wallpaper (Decision 12 then takes Live off both screens) and kill a
+  job run in progress. L1: a throw in the draw shows a crash dialog first.
 - **Colours** from a small copy of the whole picture (not the moving frame, which would recolour
   the theme all day), reported once per picture.
-- **Is it on:** each non-preview engine notes the screens its flags name (`live.home`,
-  `live.lock`; below 14 home only, with `getWallpaperId(FLAG_SYSTEM)`), and the note is checked
-  against the system: on 14+ home's by `getWallpaperInfo(FLAG_SYSTEM)` naming `LiveWallpaper`,
-  the lock screen's by `getWallpaperInfo(FLAG_LOCK)` naming it (its own engine) or, while one
-  engine is shared, by home's (AOSP: `getWallpaperInfo(FLAG_LOCK)` is null while the lock screen
-  shares home's wallpaper: the lock map is empty); below 14 by the id. The lock screen never
-  below 14 (Decision 5). Not `QUERY_ALL_PACKAGES` (a permission).
-- **Set with Live opens Android's picker when Live is on none of the screens with a column**
-  (except the lock screen alone below 14, where Live is Fill), and once per setup for the lock
-  screen with a column of its own (Decision 10). A user who chose "Home screen" with equal
-  columns isn't asked again at every Set; the page says which screens are live.
+- **Is it on** (L1's table): home on 14+ when `getWallpaperInfo(FLAG_SYSTEM)` names
+  `LiveWallpaper`; below 14 when `getWallpaperId(FLAG_SYSTEM)` is the id the engine noted at its
+  start (`live.homeId`). The lock screen only while home is and the one engine is shared:
+  `getWallpaperId(FLAG_LOCK)` -1 (L1: shared → -1, home only → a real id). Never below 14
+  (Decision 5), never by an engine of its own (Decision 10). The engine's flags aren't used (L1:
+  a stray on the lock screen reports 3). Not `QUERY_ALL_PACKAGES` (a permission).
+- **Set with Live opens Android's picker when a screen Live should cover isn't covered:** home
+  with a column not live, or the lock screen with a column equal to home's (APOD mode's "Where"
+  Both) while home is live but not shared (after a split). Never for the lock screen alone (no
+  home column) or a lock column that differs. The page says which screens are live.
 - **After the picker, Set waits for the engine:** it notes `getWallpaperId` of both screens
-  before opening the picker; when an id changed on the return, it waits up to 3 s for an
-  engine's note matching the new id before its update reads `liveOn` (else a still set could
-  replace the live wallpaper the user just picked, as the note is written asynchronously; below
-  14 nothing else tells). No note by then: the change wasn't APODroid's, Fill.
+  before opening the picker; when an id changed on the return, it waits up to 3 s for `liveOn`
+  (14+: the system's answer; below 14: the engine's note with the new id, written
+  asynchronously) before its update reads it (else a still set could replace the live wallpaper
+  the user just picked). L1: picker's "Set" → `CREATE` in 0.16–0.18 s. Not live by then: the
+  change wasn't APODroid's, Fill.
 - **One engine on both screens draws home's picture**; when the lock screen is due another, its
-  still set splits them (Decision 4, Android's own rule), and Decision 10 offers the lock
-  screen its own engine.
+  still set splits them (Decision 10, Android's own rule); the lock screen's still set comes
+  before home's hand-over, so the lock screen never flashes home's new picture.
 - **A screen noted live that isn't live now** gets its picture forgotten before the rules run
-  (as Set forgets it), so it's due again and gets Fill at once.
+  (as Set forgets it), so it's due again and gets Fill at once; home's loss forgets both
+  (Decision 12).
 - **D starts the alarms' run** (job 2, `DailyJob.runNow`), not a second run path in the engine
-  (Seams, 1).
+  (Seams, 1). A stray engine (non-preview, 14+, home not live) counts as a check owed, so the
+  lock screen's Fill (Decision 12) comes at the next screen-on, not the next check time.
 
 ## The plan
 
@@ -252,96 +314,119 @@ black or on the blurred background: A3's `whole()` today). Its three users:
 - **`res/xml/live_wallpaper.xml`:** the thumbnail is the launcher icon, the description a string
   resource (placeholder "Today's picture, moving across the screen over the day."; the app's first
   `strings.xml`), `settingsActivity` the page.
-- **Which screen:** on 14+ from `getWallpaperFlags()`: home when `FLAG_SYSTEM` is in it, else
-  lock. Below 14, home. `onWallpaperFlagsChanged` reloads.
-- **What it draws: only its screen's copy**, `files/live-home.jpg` or `live-lock.jpg` (one
-  engine on both: home's), with the whole flag noted beside it (`live.<screen>.whole`), at the
-  turns of that screen's column. Never the source's file: `refresh` replaces `<source>.jpg` with
+- **Which screen:** always home's picture (Decision 10), whatever its flags: on both screens,
+  on home alone after a split, and as a stray on the lock screen after home's revert (L1: it
+  reports flags 3 there) until Decision 12's still set replaces it. `onWallpaperFlagsChanged`
+  only redraws.
+- **What it draws: only Live's copy**, `files/live.jpg`, with the whole flag noted beside it
+  (`live.whole`), at the turns of home's column. Never the source's file: `refresh` replaces `<source>.jpg` with
   every new post, due or not, and deletes `apod.jpg` on a video day, and `Store.set` reads the
   part and the whole flag of the post stored now. Drawing those would show a post the rules
   haven't put on (Los Angeles' 21:05 APOD, due at 06:00) after any process death, reboot or
   rebind, and nothing on a "Skip it" video day.
-  - The copy is written by `setDue` when it hands a screen to the engine (L5): the picture's
+  - The copy is written by `setDue` when it hands home to the engine (L5): the picture's
     file (the source's or `fallback.jpg`) copied via a `.part` and renamed, then the whole flag,
     then the record noted live, under the wallpaper lock.
   - Without a copy (the picker's preview before the first hand-over, a fresh install): the
-    newest stored picture of the column's first source, else APOD's, else black. Drawn only
+    newest stored picture of home's column's first source, else APOD's, else black. Drawn only
     then.
   - A whole post is drawn whole and still; anything else panned, also "my picture" (Decision 8).
-- **Hearing about a new picture:** a prefs listener (`Store.watch`) on the screen's record keys
+- **Hearing about a new picture:** a prefs listener (`Store.watch`) on home's record keys
   while the engine exists, and a re-read whenever it becomes visible. The re-read covers a commit
-  from an interrupted thread, which skips the listeners (B16).
+  from an interrupted thread, which skips the listeners (B16), and a rebind after a kill (L1:
+  1.5 s after `kill -9`, 6 s after the low-memory killer; the copy is still there).
+- **The canvas:** software (`lockCanvas`), one for the engine's life (L1); a null canvas skips
+  the frame (`Live: couldn't draw: no canvas`).
 - **The decode:** on one background thread; the main thread only draws. Keyed by the copy's
-  file and time, at the screen's portrait height, so a rotation decodes nothing and the
-  preview doesn't decode the same file twice. Released in `onDestroy`.
+  file and time, at the screen's portrait height, within `LIVE_DECODE_BUDGET` (50 MB, L1), so a
+  rotation decodes nothing and the preview doesn't decode the same file twice. Released in
+  `onDestroy`.
 - **Nothing throws out of the engine:** decode and draw catch everything; out of memory
   decodes at half the size, then again, else draws black; a broken copy draws black. Logged
-  `Live: couldn't …`. Two crashes of the one process within 10 s revert to the default
-  wallpaper and kill a job run in progress (AOSP, above).
+  `Live: couldn't …`. Two crashes of the one process within 10 s revert home to the default
+  wallpaper (the lock screen keeps the engine; Decision 12) and kill a job run in progress (L1).
 - **The colours:** computed with the decode (`WallpaperColors.fromBitmap` on a small copy of the
   whole picture), returned by `onComputeColors`, `notifyColorsChanged()` after each new picture.
-- **The note:** a non-preview engine writes the screens its flags name (`live.home`,
-  `live.lock`, with `getWallpaperId` of each, `live.homeId`, `live.lockId`) when it starts and
-  at `onWallpaperFlagsChanged`, and removes its screens in `onDestroy`. A note left by a killed
-  process is caught by the check against the system (`Store.liveOn`).
-- **Logs** under `APODroid`: `Live: engine <home|lock|both|preview> created / destroyed`,
-  `Live: drew <picture> p=<0.00> in <n> ms`, `Live: decoded <w>×<h>`.
+- **The note** (below 14 only): a non-preview engine writes `live.homeId`,
+  `getWallpaperId(FLAG_SYSTEM)`, when it starts. On 14+ the system answers (`Store.liveOn`), and
+  the flags aren't noted (L1: wrong after a revert). A note left by a killed process is harmless:
+  any set or clear changes the id.
+- **A stray:** a non-preview engine on 14+ that finds `getWallpaperInfo(FLAG_SYSTEM)` not naming
+  it is on the lock screen alone after home's revert; it still draws home's copy, logs
+  `Live: home isn't live (stray on the lock screen)`, and when it becomes visible counts as a check
+  owed for D (L8), so the next run sets both screens Fill (Decision 12).
+- **Logs** under `APODroid`: `Live: engine <flags|preview> created / destroyed` (the flags as
+  Android reports them), `Live: drew <picture> p=<0.00> in <n> ms`, `Live: decoded <w>×<h>`.
 
 ### `Store`, Size and Set (L5, L6)
 
-- **`Store.liveOn(screen)`** and **`Store.liveShared`** (one engine on both): the engine's note
-  checked against the system, as "Is it on" says. 14+: home when `getWallpaperInfo(FLAG_SYSTEM)`
-  names `LiveWallpaper` and the note has home; the lock screen when `getWallpaperInfo(FLAG_LOCK)`
-  names it, or when it's null, home is live and home's engine noted both flags (shared). Below
-  14: home when `live.homeId` equals `getWallpaperId(FLAG_SYSTEM)`; lock never. L1 confirms
-  what `getWallpaperInfo(FLAG_LOCK)` returns while shared.
-- **Lost Live** (a review of this plan, 2026-10-28): each screen's record notes when its picture
-  went to the engine (`wallpaperLive`, `lock.wallpaperLive`; a still set removes it). Before the
-  rules run, a record noted live whose screen isn't live now is forgotten (`Record.forget()`, as
-  Set does), so `dueWallpapers` makes it due again and it gets Fill at once, by the job or a page
-  open. Else nothing would be due (the record says the picture is on) and a force stop's default
+- **`Store.liveOn(HOME)`** and **`Store.liveShared`** (the one engine on the lock screen too),
+  as "Is it on" says. Home: 14+ `getWallpaperInfo(FLAG_SYSTEM)` names `LiveWallpaper`; below 14
+  `live.homeId` equals `getWallpaperId(FLAG_SYSTEM)`. Shared: home live and
+  `getWallpaperId(FLAG_LOCK)` -1 (14+; L1's table); never below 14. There's no lock-screen engine
+  of its own to ask about (Decision 10). `live.shared` notes `liveShared` at each hand-over to
+  home (for Decision 12's lock screen without a column).
+- **Lost Live** (a review of this plan, 2026-10-28; Decision 12, 2026-11-14): each screen's
+  record notes when its picture went to the engine (`wallpaperLive`, `lock.wallpaperLive`; a still
+  set removes it). Before the rules run:
+  - **home's record noted live and home not live now** (another wallpaper, a force stop, Android's
+    revert after two deaths in 10 s): home's record forgotten (`Record.forget()`, as Set does), and
+    the lock screen's when it has a column; a lock screen without a column that the engine
+    covered (`live.shared`) is due home's picture (the one set with both flags, as a shared still).
+    Every set of the run is then still (home isn't live), so the stray engine on the lock screen
+    is replaced and Live is off on both until the picker. `live.shared` removed.
+  - **the lock screen's record noted live and not shared now** (the user set a lock wallpaper):
+    it alone is forgotten, so it gets Fill (Decision 4).
+  So `dueWallpapers` makes them due again and they get Fill at once, by the job or a page open.
+  Else nothing would be due (the record says the picture is on) and a force stop's default
   wallpaper would stay until the next change time.
-- **`setDue`'s sets** split per screen by a `:core` rule (L3), from Size, which screens are live,
-  whether one engine covers both, and each screen's picture after the plan:
-  - Size Fill: every set still, as 0.6.0. A still set replaces APODroid's engine like any
-    wallpaper.
-  - Size Live, a live screen: the engine. No `WallpaperManager` call; the copy
-    (`live-<screen>.jpg` and its whole flag) is written first, then the record (noted live) and
+- **`setDue`'s sets** split per screen by a `:core` rule (L3), from Size, whether home is live,
+  whether the engine covers the lock screen (`liveShared`), and each screen's picture after the
+  plan:
+  - Size Fill, or home not live: every set still, as 0.6.0. A still set replaces APODroid's
+    engine like any wallpaper (a stray on the lock screen too).
+  - Size Live, home live, home due a picture: the engine. No `WallpaperManager` call; the copy
+    (`live.jpg` and its whole flag) is written first, then the record (noted live) and
     `wallpaperSetAt` as after a set; `setsSinceSetup` counts it. A failed copy (a full disk)
     counts as a failed set: the record stays, the retry hands it over again.
-  - Size Live, a screen with a column that isn't live: the still set (Decision 4).
-  - One engine on both screens: it shows home's picture. If the lock screen's picture differs, the
-    lock screen gets its still set, which splits them.
-  - A screen without a column: left alone, as now (one engine on both may show home's picture
-    there).
+  - Size Live, home live, the lock screen due **home's picture** while shared: the engine shows
+    it already; its record noted live and `wallpaperSetAt`, no set.
+  - Size Live, home live, the lock screen due **another picture**, or not shared (home only):
+    its still set with `FLAG_LOCK` (Decision 10; a shared engine moves to home, L1's `FLAGS 1`),
+    before home's hand-over.
+  - Size Live, no home column: every set still (Live is home's).
+  - A screen without a column: left alone, as now (the one engine on both shows home's picture
+    there), but for Decision 12's lock screen.
 - **Size** (pref `size`, `FILL` by default, so 0.6.0's installs change nothing): a segmented row
   [Fill | Live] in Setup, part of the draft (the highlight, `Setup`, `saveSetup`, the saved
   state), always shown, as "Where". Placeholders: the heading "Size"; the summary " · Live".
 - **Set with Live:**
   1. `saveSetup`.
-  2. If Live is on none of the screens with a column (and not the lock screen alone below 14),
-     or, on 14+, the lock screen has a column differing from home's, isn't live and wasn't asked
-     for these columns (Decision 10, `live.lockAsked`): note `getWallpaperId` of both screens and
-     open Android's picker (`ACTION_CHANGE_LIVE_WALLPAPER` for `LiveWallpaper`; without it
-     `ACTION_LIVE_WALLPAPER_CHOOSER`; without either a toast, placeholder "This phone can't show
-     live wallpapers.", and Live acts as Fill). One picker trip per Set: the home screen's first
-     when neither is live, the lock screen's at the next Set.
-  3. On the return (the page's `onResume`): when an id changed, wait up to 3 s for an engine's
-     note with the new id (this file, "After the picker, Set waits for the engine"). Then Set's
-     `update(set = true)`; without a picker at once. Backing out of the picker gives Fill
-     (Decision 4).
-- **The page:** while Size is Live, the daily switch is on and Live is on none of the screens with
-  a column, a status line, placeholder "Live isn't on. Set as wallpaper turns it on." Otherwise
-  the status lines as now.
-- **SIM:** two invariants: with Size Live, a screen the engine covers never gets a still set,
-  but the lock screen of a shared engine when its picture differs; and a screen noted live that
-  lost Live is due again in the same run.
+  2. If home has a column and isn't live, or the lock screen's column equals home's while home is
+     live but not shared (after a split): note `getWallpaperId` of both screens and open Android's
+     picker (`ACTION_CHANGE_LIVE_WALLPAPER` for `LiveWallpaper`, started directly and
+     `ActivityNotFoundException` caught: L1's `resolveActivity` is null without `<queries>`;
+     failing that `ACTION_LIVE_WALLPAPER_CHOOSER`; failing both a toast, placeholder "This phone
+     can't show live wallpapers.", and Live acts as Fill). One picker trip per Set, for home: on
+     ZUI either answer over a shared still ends with the engine on both (L1).
+  3. On the return (the page's `onResume`): when an id changed, wait up to 3 s for `liveOn(HOME)`
+     (this file, "After the picker, Set waits for the engine"). Then Set's `update(set = true)`:
+     home to the engine, and the lock screen's still Fill when its picture differs (Decision 10);
+     without a picker at once. Backing out of the picker gives Fill (Decision 4).
+- **The page:** while Size is Live, the daily switch is on and home has a column but isn't live,
+  a status line, placeholder "Live isn't on. Set as wallpaper turns it on." (also after Decision
+  12's revert). Otherwise the status lines as now.
+- **SIM:** three invariants with Size Live: a still set never goes to home while home is live, and
+  goes to the lock screen only when its picture differs from home's or it isn't shared; nothing
+  is handed to the engine while home isn't live; a screen noted live that lost Live is due again
+  in the same run, both screens when home lost it.
 
 ### The preview in ⛶ mode (L7)
 
-- With Size Live (the draft's), ⛶'s frame sits at the clock's place for the shown post's screen
-  (home if its source is in home's column, else lock, else one source) and doesn't move by drag. A
-  minute tick moves it while open.
+- With Size Live (the draft's) and the shown post's source in home's column, ⛶'s frame sits at
+  the clock's place for home's column and doesn't move by drag. A minute tick moves it while open.
+  A source only in the lock screen's column: ⛶ as Fill (the lock screen is Fill with its own
+  picture, Decision 10).
 - With "Whole picture" on (Fill or Live), the picture's place shows the screen-shaped preview: the
   screen's portrait shape, drawn by L4's function, on the blurred or black background.
 - ✓, Back, the highlight and the draft as A4. Size Fill: ⛶ as now.
@@ -351,7 +436,9 @@ black or on the blurred background: A3's `whole()` today). Its three users:
 (`on-time-0.7.0.md`, D; Seams 1.) A non-preview engine that becomes visible, while the daily
 switch is on, when a check is owed (`Store.nextAlarm()` ≤ now: a check time passed since
 `lastRunAt`, or a failed run's retry due, B16) and no run started in the last 15 min
-(`lastRunAt`): `DailyJob.runNow(context)`, the same call the alarms make.
+(`lastRunAt`): `DailyJob.runNow(context)`, the same call the alarms make. A stray engine (14+, home
+not live: the lock screen after Android's revert of home) counts as a check owed, so Decision
+12's Fill on both comes at the next screen-on.
 - It's job 2, so `lastRunAt`, `failedRuns` (counted from its start, O4b), one run at a time, the failures and the retries are the
   job's own: no second run path.
 - With O10 the job is expedited.
@@ -374,8 +461,11 @@ the design comes before the package it decides.
     `install -r`, a reboot.
   - ZUI's cleaner under memory pressure (with O8). *The seam with track O.*
   - The reported colours, and `getWallpaperInfo(which)` for its own package without `<queries>`.
+  - *Ran 2026-11-14 (STOP), decided by the user the same day: Decisions 10–12.*
 - **The FP6 (L2, with the user, Android 16, LineageOS):** the picker and its question, the flags,
   the first frame after the screen turns on by eye. Short; the day-long revert check is L10's.
+  Whether LineageOS's picker gives a reason to treat a "Lock screen" choice apart from ZUI's
+  (Decision 10).
 - **Untestable here:** Android 10–14 (E stays open). That's the `getWallpaperId` note path, the
   10–13 lock screen as Fill, and Android 14's first builds without a lock-screen live wallpaper.
 
@@ -390,39 +480,45 @@ the design comes before the package it decides.
   **"my picture" still** (Decision 8); **the detector suggesting Live** (Decision 9).
 - **`QUERY_ALL_PACKAGES`** for `getWallpaperInfo()` below 14: a permission, and it sees every app.
   The engine's `getWallpaperId` note does without.
-- **Drawing while the screen is off** (CLAUDE.md), also to avoid a stale first frame: if L1 or L2
-  sees one, the user decides.
+- **Drawing while the screen is off** (CLAUDE.md), also to avoid the stale first frame L1 saw
+  (about 0.3 s on the lock screen; user, 2026-11-14, Decision 11: accepted).
 - **The launcher's scroll offset** (CLAUDE.md: the clock moves it).
 - **A second process** for the engine (track O's reason: the prefs, the locks and `JobRuns` are
   per process).
 - **`Store.update` in the engine** for D: a second run path beside the job's bookkeeping, where
   0.6.0's bugs came from. D schedules job 2 instead.
-- **Opening the picker at every Set while a screen isn't live:** it would nag the user who chose
-  "Home screen", and on 10–13 always. Decision 10 asks for the lock screen once per setup.
-- **The lock screen Fill for good with different pictures** (user, 2026-10-28 evening, Decision
-  10).
+- **Opening the picker at every Set while a screen isn't live:** it would nag, and on 10–13
+  always. Set opens it only when home, or a lock screen sharing home's column, isn't covered.
+- **A second engine for the lock screen** (Decision 10 of 2026-10-28, with `live.lockAsked` and a
+  second picker trip at Set; user, 2026-11-14): ZUI's picker offers no lock screen, its "Home
+  screen" makes the one engine shared, and two engines never happened (L1). The lock screen with
+  a picture of its own is Fill (the new Decision 10).
+- **The lock screen keeping Live after home's revert** (user, 2026-11-14, Decision 12): the stray
+  engine believes it's on both; both screens Fill until the picker.
 - **The engine drawing the source's file** (`<source>.jpg`): it changes with every stored post
   and goes on a video day; the screen's own copy instead (a review of this plan, 2026-10-28).
-- **Android 16's `WallpaperDescription`:** 16 only; per-screen engines do it from 14 on.
-- **A hardware canvas by default**, unless L1 measures the software one too slow.
+- **Android 16's `WallpaperDescription`:** 16 only; not needed with one engine drawing home's
+  picture.
+- **A hardware canvas** (L1: faster but up to twice the memory, no gain at a frame a minute).
 - **Steps set by the job** (CLAUDE.md, 2026-10-22).
 
 ## Open
 
-- The first frame after the screen turns on (L1, L2): if it's the old position for a moment, the
-  user decides between accepting it and something else (not drawing while off is CLAUDE.md's).
-- Whether ZUI's picker and LineageOS's ask home, lock or both (L1, L2). If a picker never asks,
-  Live goes where it puts it; Decision 4 covers the rest.
+- **For L2** (the FP6's picker, LineageOS, Android 16): does it ask "Lock screen" too, and does
+  "Home screen" over a shared still make the engine shared, as ZUI's and AOSP's do? Decision 10's
+  rule stays the same everywhere (Live is home's; a lock-screen engine of its own isn't counted
+  and its column's next set replaces it) unless L2 shows a reason, then back to the user.
+- What ZUI's "Home screen" does over a home-only engine with a still lock screen (L1 tried it over
+  a shared still and over a lock-only engine): L6 looks, for Set's picker with equal columns
+  after a split.
 - Android 10–14: untested (E stays the user's call), as for track O.
 - Whether a live wallpaper reverts by itself on the FP6, as on the FP5 (L10).
 - The texts: placeholders until the user approves them from screenshots (L5, L6, L7).
-- The decode budget (64 MB) and the canvas, until L1.
-- What `getWallpaperInfo(FLAG_LOCK)` returns while one engine is shared (AOSP: null), and whether
-  the engine's flags note is enough to tell shared from home only (L1, step 3).
-- A crash of the page or the job twice within 10 s also reverts Live to the default (one
-  process); only the engine's side is guarded. Accepted, as a crash loop is a bug anyway.
-- The 3 s wait for the engine's note after the picker (below 14 the only guard): untested there
-  (E); L1 measures how long the note takes on 15.
+- A crash of the page or the job twice within 10 s also reverts home to the default (one
+  process); only the engine's side is guarded. Accepted, as a crash loop is a bug anyway; Decision
+  12 then takes Live off both screens.
+- The 3 s wait after the picker: L1 measured 0.16–0.18 s to `CREATE` on 15; below 14, where the
+  engine's id note is the only guard, untested (E).
 
 ## Packages
 
@@ -461,14 +557,23 @@ claude --model opus --effort high "Do L10 in .claude/skills/build-apodroid-andro
 - **Never `am force-stop`** while APODroid's live wallpaper is on: Android then drops it to the
   default wallpaper (above). `am kill` doesn't kill the wallpaper's process (not in the
   background); use `adb shell run-as io.github.buerlino.apodroid kill -9 <pid>` (debug builds),
-  after which Android rebinds it.
+  after which Android rebinds it (1.5 s, L1). **Never a second kill within 10 s of the first**
+  unless the check asks for it: Android then reverts the home screen to the default and leaves the
+  engine on the lock screen (Decision 12). Wait for the rebind's `Live: engine … created` and 10 s.
 - **Set the tablet's wallpaper back** at the end as it was found (noted with `dumpsys wallpaper`
   first): APODroid's still wallpaper by a Set with Size Fill, or the system's by picking it.
 - **Applying Live** on the tablet:
   `adb shell am start -a android.service.wallpaper.CHANGE_LIVE_WALLPAPER --ecn android.service.wallpaper.extra.LIVE_WALLPAPER_COMPONENT io.github.buerlino.apodroid/.LiveWallpaper`,
-  then the picker's buttons by `ui.sh` (L1 notes their labels).
+  then the picker's buttons by `ui.sh` (L1: "Set wallpaper", then "Home screen" or "Home screen
+  and lock screen"; no question while the engine is already on both).
+- **Provoking Decision 12's case** (home reverted, the engine left on the lock screen): with
+  Live on both, `run-as … kill -9 <pid>`, wait for the rebind (`pidof`, about 1.5 s), kill the
+  new pid again, all within 10 s. Expected in `dumpsys wallpaper`: home the default (`mWhich=1`),
+  the lock screen still APODroid's (`mWhich=2`); logcat "Reverting to built-in wallpaper!". A kill
+  also ends a job run in progress (B19's retry).
 - **Reading the state:**
-  - `adb shell dumpsys wallpaper` (the components, which screens, the colours);
+  - `adb shell dumpsys wallpaper` (the components, which screens; no colours on the tablet: those
+    in `logcat`'s `ThemeOverlayController` lines);
   - `adb logcat -d -s APODroid` (`Live: …`);
   - `adb shell dumpsys activity processes | grep -A4 apodroid` (the oom adj);
   - `adb shell dumpsys meminfo io.github.buerlino.apodroid`;
@@ -528,7 +633,7 @@ end. A picture: the widest real APOD in `private/pictures/` (by `imageBounds`), 
    shared** (flags 3): `Info`'s `getWallpaperInfo(FLAG_LOCK)` and `getWallpaperId(FLAG_LOCK)`
    (AOSP reads null and -1), so L5 knows how to tell shared from home only. If the picker
    offers "Lock screen" alone with the probe on home: a second engine (`CREATE` flags 2) beside
-   the first (Decision 10). The time from the picker's "Set" to the engine's `CREATE` (the
+   the first (2026-10-28's Decision 10). The time from the picker's "Set" to the engine's `CREATE` (the
    note's delay, for Set's 3 s wait).
 4. **The first frame:** `warp` 10 (10 min of pan a second), screen off 60 s, then `adb shell
    "input keyevent WAKEUP; screencap -p /sdcard/l1-wake.png"`, three times; then the same with the
@@ -669,6 +774,9 @@ end. A picture: the widest real APOD in `private/pictures/` (by `imageBounds`), 
     Keep running gives, without the notification). **For the user (STOP):** Decision 10 (a
     second engine for the lock screen) has no way through this picker; the picker's "Home
     screen" makes it shared; a double death reverts home only.
+- **Decided from it** (user, 2026-11-14): Decisions 10–12 ([Decided after L1](#decided-after-l1-user-2026-11-14)):
+  Live on home, the lock screen Fill when its picture differs; the 0.3 s wake frame accepted;
+  home lost Live → both screens Fill. Software canvas and 50 MB a bitmap taken into L3 and L5.
 
 ### [ ] L2. Android check on the FP6: the picker and the first frame (Opus, medium)
 
@@ -677,10 +785,14 @@ end. A picture: the widest real APOD in `private/pictures/` (by `imageBounds`), 
 daily switch stays as the user has it; the probe goes on the home screen for the session only, and
 APODroid's next change would replace it anyway.
 1. Install the probe, push a picture, `Pick`: screenshots of LineageOS's picker. Does it ask home,
-   lock or both? Apply to home only if it asks, else as it does; `dumpsys wallpaper`, `Info`.
+   lock or both? Apply "Home screen" (or as it does) over the shared still; `dumpsys wallpaper`,
+   `Info` (L1's table: shared, or home alone?). Then `Still --es which lock`: `FLAGS 1`, home
+   alone? If the picker offers "Lock screen": note what it does, not used (Decision 10); a reason
+   to use it goes to the user.
 2. The first frame: `warp` 10, the screen off 60 s, then the user wakes the phone with the power
-   button and says what they see. Also with a `screencap` right after `WAKEUP`, three times.
-3. `DRAW` ms for `sw` and `hw` at 2484 high; `dumpsys meminfo`.
+   button and says what they see. Also with a `screencap` right after `WAKEUP`, three times. The
+   tablet's 0.3 s is accepted (Decision 11); much longer goes back to the user.
+3. `DRAW` ms for `sw` at 2484 high (L1 decided software); `dumpsys meminfo`.
 4. Back: the user picks their wallpaper again (or APODroid's Set), the probe uninstalled.
 - **Done when:** the answers written to `.coord/runs/l2/report.md`; the user has seen the first
   frame.
@@ -688,7 +800,7 @@ APODroid's next change would replace it anyway.
 ### [ ] L3. `:core`: the position by the clock, the decode size, still or engine (Opus, medium)
 
 (This file, The position; `Store`, Size and Set. After O1, which moves `PictureTime`'s constants,
-and L1, whose step 3 decides how a shared engine is told apart, which `stillOrLive` takes.)
+and L1, whose step 3 told how a shared engine is told apart (Decisions 10 and 12).)
 Plain Kotlin, JUnit.
 - **`livePosition(now, zone, time: PictureTime, turns: Boolean): Float`:** T =
   `time.last(now, zone, turns)`, span = the shorter of `time.next(T, zone, turns) − T` and 18 h
@@ -696,10 +808,14 @@ Plain Kotlin, JUnit.
 - **`liveDecodeSize(width, height, screenHeight, maxBytes): Pair<Int, Int>`:** the picture's
   shape at the screen's portrait height (landscape draws it scaled down, so a rotation decodes
   nothing), never larger than the picture, smaller while width × height × 4 is over `maxBytes`
-  (`LIVE_DECODE_BUDGET`, 64 MB until L1).
-- **`stillOrLive`** (the name is winston's), the rule of "`Store`, Size and Set": from Size, which
-  screens the engine covers, whether one engine covers both, and each screen's picture after the
-  plan, return per set the screens the engine takes and those set still.
+  (`LIVE_DECODE_BUDGET`, 50 MB, L1).
+- **`stillOrLive`** (the name is winston's), the rule of "`Store`, Size and Set": from Size,
+  whether home is live, whether the engine covers the lock screen (shared), which screens have a
+  column, and each screen's picture after the plan, return per set the screens the engine takes
+  (home, and the lock screen only while shared with home's picture) and those set still.
+- **Lost Live** (Decision 12) as a `:core` function beside `Record.forget()`: from the records'
+  live notes, home live, shared and `live.shared`, which records to forget and whether a lock
+  screen without a column takes home's picture.
 - **Tests:**
   - p at 06:00, 12:00, 18:00, 24:00 and 03:00 with one source (0, ⅓, ⅔, 1, 1);
   - every 12, 6 and 3 h (each turn 0 → 1), every 24 h with two sources (18 h, then still);
@@ -707,13 +823,16 @@ Plain Kotlin, JUnit.
   - the DST nights in Zurich (spring and autumn) with 00:00 and with 3 h turns;
   - a zone change (the change times follow);
   - the decode size for a 3:2 at 2484, the widest real one, Earth's 1440×600 (not enlarged), a
-    12000×3000 panorama (under the budget);
+    12000×3000 panorama (under the budget; the widest at 2484, 53 MB, too);
   - the rule: Size Fill (all still); Live on home only (lock still); one engine on both, the same
-    picture (the engine, no still set); different pictures (lock still); two engines, different
-    pictures (both the engine); a screen without a column (nothing); Live on no screen (all
-    still);
+    picture (the engine, no still set); different pictures (lock still, before home's
+    hand-over); Size Live with home not live (all still, also a lock screen the engine still
+    shows); no home column (all still); a screen without a column (nothing);
   - lost Live: a record noted live whose screen isn't live is due again (its picture
-    forgotten), with one source and with turns, and keeps its owner and stamp.
+    forgotten), with one source and with turns, and keeps its owner and stamp; **home lost**
+    (Decision 12): both records forgotten and both sets still, with equal and with different
+    columns; a lock screen without a column with `live.shared` due home's picture (one set, both
+    flags), without it left alone; the lock screen alone not shared any more: only it forgotten.
 - **Done when:** the tests pass; `CLAUDE.md`'s 0.7.0: Live section says the position rule; the
   skill's "Where things are".
 
@@ -740,26 +859,27 @@ Plain Kotlin, JUnit.
 ### [ ] L5. The engine, and `setDue` leaves a live screen to it (Opus, high)
 
 (This file, The engine; `Store`, Size and Set, its first half. After L1, L3, L4.) No setting yet:
-on `dev` between L5 and L6 the app treats Live as on wherever Android's picker put APODroid's
-engine.
+on `dev` between L5 and L6 the app treats Live as on while Android's picker put APODroid's
+engine on home.
 - **`LiveWallpaper.kt`**, the manifest entry, `res/xml/live_wallpaper.xml` and
-  `res/values/strings.xml` (the description), as This file says. The canvas and the budget as L1
-  decided.
-- **The engine draws only its screen's copy** (`live-home.jpg`, `live-lock.jpg` and the whole
-  flag beside it) and catches everything in decode and draw, as This file says.
-- **`Store.liveOn(screen)`** and `liveShared`, from the engines' notes checked against the
-  system (L1's step 3 decides the shared case).
-- **`setDue`** with L3's rule as for Size Live: a live screen gets its copy, then its record
-  (noted `wallpaperLive`) and `wallpaperSetAt`, no `WallpaperManager` call, `setsSinceSetup`
-  true, logged `wallpaper shown live: <picture> on <screens>`; one engine on both with different
-  pictures: the lock screen's still set. **Lost Live:** a record noted live on a screen not live
-  now is forgotten before the rules run, so the same run sets Fill.
+  `res/values/strings.xml` (the description), as This file says. As L1 decided: a software
+  canvas, one for the engine's life (a null canvas skips the frame), 50 MB a bitmap.
+- **The engine draws only Live's copy** (`live.jpg` and the whole flag beside it), home's
+  picture whatever its flags, and catches everything in decode and draw, as This file says; the
+  stray's log line (A stray).
+- **`Store.liveOn(HOME)`** and `liveShared` from the system's answers (L1's table), the
+  `live.homeId` note below 14; `live.shared` at each hand-over.
+- **`setDue`** with L3's rule as for Size Live: home gets its copy, then its record (noted
+  `wallpaperLive`) and `wallpaperSetAt`, no `WallpaperManager` call, `setsSinceSetup` true, logged
+  `wallpaper shown live: <picture> on <screens>`; the lock screen with another picture, or not
+  shared: its still set with `FLAG_LOCK` first (Decision 10). **Lost Live:** before the rules run,
+  L3's function forgets the records (home's loss: both, Decision 12), so the same run sets Fill.
 - **Files:** `LiveWallpaper.kt` (new), `Store.kt`, `AndroidManifest.xml`, the two resources,
   `CLAUDE.md` (The app, Wallpaper: Live; Next features: the decisions of this file), the skill's
   "Where things are" and its notes on `am force-stop` with Live.
 - **Tablet** (this file's notes for rosie):
-  - Apply Live on both through the picker (APODroid's daily switch on, the posts faked a day
-    back). Expected: `Live: engine both created`, a frame drawn.
+  - Apply Live through the picker ("Home screen and lock screen"; APODroid's daily switch on, the
+    posts faked a day back). Expected: `Live: engine 3 created`, a frame drawn.
   - `run -f 1`: the new post goes on as `shown live` (no `wallpaper set:` line), the engine
     redraws (`Live: drew`), `dumpsys wallpaper` still APODroid's live one.
   - The pan: `cmd alarm set-time` forward (auto_time 0, forward only, the skill's how) to 12:00
@@ -767,8 +887,10 @@ engine.
   - A whole post (⛶'s toggle and Set): drawn whole and still on blur.
   - "My picture" on a faked video day: panned.
   - With "More NASA pictures" on and different columns: the lock screen gets its still set
-    (`wallpaper set: … on LOCK`), the log's flags change to home.
+    (`wallpaper set: … on LOCK`), the engine's flags change to 1 (home), home still moving.
   - `run-as … kill -9`: rebound, the same frame.
+  - The low-memory killer's kill (`.hog` as L1's step 8, the screen off): the wallpaper stays
+    APODroid's, rebound about 6 s later, the same frame.
   - **The copy, not the source's file** (each after `kill -9`, so nothing is left in memory):
     - a newer post stored but not due: one source, the clock after the window, a post faked
       published after it (the skill's prefs edits; `<source>.published` later than the change
@@ -777,12 +899,19 @@ engine.
     - a "Skip it" video day (APOD faked a video, `apod.jpg` gone after the refresh), `kill -9`:
       the old picture still drawn;
     - a reboot: the same.
-  - **Lost Live:** another wallpaper picked in the system (or `am force-stop`, then the page
-    opened): the next run (`run -f 1`, or the page open) sets Fill on that screen at once
-    (`wallpaper set:`), the record no longer noted live.
-  - **No crash:** `live-home.jpg` truncated with `run-as` and the screen off and on: black,
+  - **Lost Live:** another wallpaper picked in the system for home (or `am force-stop`, then the
+    page opened): the next run (`run -f 1`, or the page open) sets Fill on both screens at once
+    (`wallpaper set:`), the records no longer noted live.
+  - **Home reverted, the lock screen kept** (Decision 12; "Provoking Decision 12's case" above),
+    with equal columns and again with different ones (Live on home only: then the lock screen is
+    already Fill, nothing stray): `dumpsys wallpaper` home default, the lock screen APODroid's;
+    then WAKEUP (with L8: the stray starts the run) or `run -f 1`: both screens still Fill
+    (`wallpaper set:` on both, one set when equal), `dumpsys wallpaper` without APODroid's
+    component, `Live: home isn't live` logged, the records no longer noted live; a further
+    `run -f 1` hands nothing to the engine. Then Live back through the picker.
+  - **No crash:** `live.jpg` truncated with `run-as` and the screen off and on: black,
     `Live: couldn't …` logged, no `CRASH` in `exit-info`, the wallpaper still APODroid's.
-  - The process's oom adj with the screen off.
+  - The process's oom adj with the screen off (L1: 100).
   - Then the smoke list, with Live off at its start (the system's wallpaper picked) and set back
     at the end.
 - **Done when:** the tablet passes; the texts listed (the description).
@@ -795,11 +924,11 @@ engine.
   engine.
 - **The row [Fill | Live]** in Setup after "Where" or the list (`Segments`), always shown.
 - **Setup's summary** " · Live".
-- **Set's flow** as This file says: the picker when Live is on none of the screens with a column
-  (not the lock screen alone below 14), and once per setup for the lock screen with its own
-  column (Decision 10, `live.lockAsked`); the chooser or the toast without it; the ids noted
-  before, the wait for the engine's note after; the update after the return, Fill after backing
-  out.
+- **Set's flow** as This file says: the picker when home has a column and isn't live, or the
+  lock screen's column equals home's and isn't shared (never for the lock screen alone); the
+  intent started directly, the chooser or the toast on `ActivityNotFoundException`; the ids noted
+  before, the wait for `liveOn(HOME)` after; the update after the return (the lock screen's still
+  Fill when its picture differs, Decision 10), Fill after backing out.
 - **The status line** "Live isn't on…" while it applies.
 - **Files:** `MainActivity.kt`, `Store.kt`, L3's rule if it needs the Size input; SIM's invariant
   (this file; `RulesSimulationTest` with a live screen); `CLAUDE.md` (Settings: Size; Set as
@@ -810,15 +939,24 @@ engine.
     - Back out: Fill sets, the status line.
     - Again and confirm both: `shown live` on both, the summary " · Live".
   - Size Fill and Set: still sets, `dumpsys wallpaper` shows no live component.
-  - Live with "Where" Home: the picker; the lock screen left alone.
-  - **Decision 10:** "More NASA pictures" on, home APOD, lock Earth, Live on home: Set opens the
-    picker for the lock screen; "Lock screen" there: two engines (`Live: engine lock created`),
-    each screen its own picture moving. Again with a back-out: the lock screen Fill, and a
-    second Set doesn't open the picker; a changed column does.
+  - Live with "Where" Home: the picker; the lock screen left alone (over a shared still it shows
+    the engine, home's picture, as the shared still did).
+  - Live with "Where" Lock: no picker, the lock screen Fill.
+  - **Decision 10:** "More NASA pictures" on, home APOD, lock Earth, Live on none: Set opens the
+    picker once; each of "Home screen" and "Home screen and lock screen" in turn: home moving
+    (`shown live` on HOME), the lock screen's still Fill of Earth right after (`wallpaper set: …
+    on LOCK`, the engine's flags 1); a second Set doesn't open the picker.
+  - **Equal columns after the split:** the columns made equal and Set: the picker opens (the lock
+    screen not covered); "Home screen and lock screen": shared (`getWallpaperId(FLAG_LOCK)` -1),
+    the lock screen's record noted live, no still set. Again from the split with "Home screen":
+    note what ZUI does (Open); if it stays home only, the lock screen Fill of the same picture and
+    the next Set asks again (reported, not a failure).
   - After confirming the picker, Set's update hands the screens to the engine (`shown live`),
     no still set over the live wallpaper just picked (`dumpsys wallpaper`).
-  - Another wallpaper picked in the system: the next `run -f 1` sets Fill there, the status line
-    says Live isn't on.
+  - Another wallpaper picked in the system for home: the next `run -f 1` sets Fill on both, the
+    status line says Live isn't on; Set opens the picker again.
+  - Decision 12's case (provoked as above): after the run both Fill, the status line, and Set
+    opens the picker.
   - The highlight and TalkBack's "not set yet" on the row.
   - Screenshots of the row, the summary, the status line and the picker's first screen for the
     user. Then the smoke list.
@@ -827,15 +965,17 @@ engine.
 ### [ ] L7. The preview in ⛶ mode (Opus, medium)
 
 (This file, The preview; Decision 7. After L6.)
-- **⛶ with the draft's Size Live:** the frame at `livePosition` for the shown post's screen (this
-  file's rule), no drag (the semantics without a drag action), moved by a minute tick while open.
+- **⛶ with the draft's Size Live** and the shown source in home's column: the frame at
+  `livePosition` for home's column, no drag (the semantics without a drag action), moved by a
+  minute tick while open; a source only on the lock screen: ⛶ as Fill (Decision 10).
 - **"Whole picture" on** (Fill or Live): the screen-shaped preview drawn by L4's function in the
   picture's place, with its background.
 - **✓, Back, the highlight, the draft** as A4.
 - **Files:** `MainActivity.kt`; `CLAUDE.md` (Choosing the part: the preview; Live).
 - **Tablet:** Size Live, ⛶ at a faked 12:00 (the frame a third across, a drag doesn't move it).
   Whole picture on a planet on black and a nebula on blur: the previews beside screenshots of the
-  wallpaper after Set (the same look). Size Fill: ⛶ as before. Rotation closes it as now.
+  wallpaper after Set (the same look). Different columns: a lock-only source's ⛶ drags as Fill.
+  Size Fill: ⛶ as before. Rotation closes it as now.
   Screenshots for the user; the smoke list.
 - **Done when:** the tablet passes; the texts listed (none expected beyond the semantics).
 
@@ -844,8 +984,9 @@ engine.
 (This file, D; `on-time-0.7.0.md`, D and its Seams 1. After L5 and O4 with its packages, which may
 change the run's bookkeeping; with O10 the run is expedited.)
 - **In the engine's `onVisibilityChanged(true)`** (not the preview), while `daily` is on: when
-  `Store.nextAlarm()` ≤ now and `lastRunAt` is older than 15 min, `DailyJob.runNow(context)`.
-  Logged `Live: screen on, run owed`. Nothing else: the run is job 2's.
+  `Store.nextAlarm()` ≤ now, or the engine is a stray (14+, home not live; Decision 12), and
+  `lastRunAt` is older than 15 min, `DailyJob.runNow(context)`. Logged `Live: screen on, run
+  owed`. Nothing else: the run is job 2's.
 - **Files:** `LiveWallpaper.kt`; `CLAUDE.md` (Background update: D); the skill.
 - **Tablet:**
   - Live on.
@@ -857,6 +998,9 @@ change the run's bookkeeping; with O10 the run is expedited.)
     `Live: screen on, run owed`, then job 2 runs and the engine shows the new picture.
   - **Not:** a second WAKEUP within 15 min; nothing owed; the daily switch off; the picker's
     preview.
+  - **The stray:** Decision 12's case provoked (L5's notes), nothing owed, `lastRunAt` older than
+    15 min: WAKEUP on the lock screen starts the run (`Live: screen on, run owed`), both screens
+    Fill.
   - Then the smoke list.
 - **Done when:** the tablet passes.
 
@@ -876,7 +1020,9 @@ change the run's bookkeeping; with O10 the run is expedited.)
   - `install -r` (still live);
   - L5's `kill -9` checks again (a post stored but not due, a "Skip it" video day) and lost
     Live after `am force-stop`;
-  - Decision 10's two engines with different pictures;
+  - Decision 10: different columns, home moving and the lock screen Fill with its own picture,
+    across a change time (the lock screen's still set, home's hand-over, no picker);
+  - Decision 12: two kills within 10 s, then both screens Fill by the next run, on R8 too;
   - landscape (the picture at the landscape height).
 - `logcat` and `exit-info` without a crash; `dumpsys meminfo` with the page open and closed.
 - **Then two real days** (W's way, by hand, morning reads; the tablet on battery at night as W did;
@@ -891,12 +1037,14 @@ change the run's bookkeeping; with O10 the run is expedited.)
 (**The user**: the FP6 is the user's phone. After L9; with O17 if both are ready.)
 - The release-signed build over the user's install (the skill: testing an update on the user's
   phone): Size Fill as before.
-- The user turns Live on with their setup (APOD + NASA, 12 h) through Android's picker. Over a few
-  days:
+- The user turns Live on with their setup (APOD + NASA, 12 h, equal columns) through Android's
+  picker, with the answer L2 found; if the user tries different columns, the lock screen Fill
+  (Decision 10). Over a few days:
   - the frame's place at a few times of day;
   - the change at 06:00;
-  - whether Live stays on (the FP5's revert: `dumpsys wallpaper` each day);
-  - the first frame when the phone wakes (the user's eye);
+  - whether Live stays on (the FP5's revert: `dumpsys wallpaper` each day; a revert of home
+    alone then shows as both screens Fill, Decision 12);
+  - the first frame when the phone wakes (the user's eye; about 0.3 s accepted, Decision 11);
   - the memory;
   - the battery (`dumpsys batterystats --charged io.github.buerlino.apodroid` against a day with
     Fill).
@@ -918,9 +1066,12 @@ Aligned with `on-time-0.7.0.md`'s "Seams with track L" (2026-10-28), point by po
    - a **force stop makes Android revert to the default wallpaper**, so a cleaner that
      force-stops a live wallpaper's app takes Live away, not only the alarms;
    - while the screen is off the binding's foreground level lapses, so the adj then decides.
-   L1 reads the adj with the screen off and runs ZUI's cleaner against a live probe; O8 can
-   include the probe in its sweep if L0 is built by then. With Live as the wallpaper, Keep running
-   still matters while the screen is off, unless L1 shows the adj stays low.
+   **L1:** the adj stays 100 with the screen on and off (`BFGS`, `IMPF`), so ZUI's cleaner
+   (`minAdj` 701) spared the live probe while it force-stopped 20 apps; the low-memory killer
+   killed it at the hog's peak and Android rebound it 6 s later, still the wallpaper. So with
+   Live on home, Live gives what Keep running gives on ZUI, without the notification; Keep running
+   stays a plain switch (3), and a phone whose cleaner force-stops anyway loses Live on both
+   screens (both default) and the alarms. A double death reverts home only (Decision 12).
 3. **The detector doesn't suggest Live** (user, 2026-10-28, Decision 9). For "APODroid is the
    current live wallpaper", **use `Store.liveOn` (L5), not `getWallpaperInfo()`**: below 14 that
    returns null without `QUERY_ALL_PACKAGES`. Keep running stays a plain switch, not turned off by
@@ -931,18 +1082,19 @@ Aligned with `on-time-0.7.0.md`'s "Seams with track L" (2026-10-28), point by po
    `setDue`'s last step (a live screen gets its record, not a still set), and the engine hears it
    through `Store.watch`. O's packages that touch `setDue` or `Store.set` come before L4 and L5 or
    rebase on them.
-6. **Memory:** the engine holds one decoded picture per engine (L3's budget) for as long as Live
-   is on. O12 (the page's pictures let go while stopped) helps both; L1 and L9 measure with the page
-   open and closed.
+6. **Memory:** the one engine holds one decoded picture (at most 50 MB, L1) for as long as Live
+   is on: about 105 MB PSS with 51 MB (L1). O12 (the page's pictures let go while stopped) helps
+   both; L9 measures with the page open and closed.
 7. **Order and the pipeline:** O1–O4 first (L3 after O1, L4 after O2; L6's row is a segmented row,
    so O3's dropdown doesn't block it). One tablet: L1 and O6–O8 one at a time, L1 beside O8 (its
    cleaner step), L9's two real days not during O16's week. One `plan-0.7.0.md` (or
    `pipeline-lib.sh`'s `live <key>`) and the L rows in `night.md`, as O's 7 says.
 8. **Permissions:** Live adds none (`BIND_WALLPAPER` is the service's guard, not a permission the
    app holds); track O adds `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE`.
-9. **rosie's habits** (new): with Live on, `am force-stop` drops the wallpaper to the default and
-   `am kill` doesn't kill the process. O's checks that force-stop the app (O14's "`am force-stop`
-   after a run") must run with Size Fill, or expect the live wallpaper gone.
+9. **rosie's habits** (new): with Live on, `am force-stop` drops the wallpaper to the default on
+   both screens, two kills within 10 s drop home's (Decision 12), and `am kill` doesn't kill the
+   process. O's checks that force-stop the app (O14's "`am force-stop` after a run") must run with
+   Size Fill, or expect the live wallpaper gone.
 
 Sources (read 2026-10-28):
 - **AOSP `frameworks/base`** (the GitHub mirror `aosp-mirror/platform_frameworks_base`):

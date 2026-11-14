@@ -65,6 +65,8 @@ the turns, in one fixed form (no setting), only for the order.
 
 ## Night defaults
 
+(User, 2026-11-14, from pass 36: Night default 1 kept, a Set of the order alone puts the top on at once when the owner can't hold.)
+
 (Chosen 2026-11-14 while planning, without the user; each stands unless the user overrules it.)
 
 1. **How a Set or the switch on keeps what's on before A** (the daily switch on):

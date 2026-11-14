@@ -51,19 +51,19 @@ class RulesSimulationTest {
     fun theRulesHoldOverRandomMonthsWithSoon() = simulate(soon = true, invariants = (1..17).toList())
 
     /**
-     * BUG (T1): with Size Live and the one engine on both screens, a lock screen with a column but
-     * nothing of its own to set (APOD alone there on a video day with "Skip it" or "Use my picture"
-     * without one; a source with nothing stored yet) shows home's new picture after home's
-     * hand-over: `lockFollowsHome` forgets the lock screen and plans again, the plan still has no
-     * set for it, and the engine draws home's picture there, an unticked source's (invariant 16;
-     * CLAUDE.md, Wallpaper: Live, "A shared lock screen follows home"). Seed 235: lock APOD with
-     * "Use my picture" and none, a Set's picker trip ("Home screen and lock screen"), the lock
-     * screen's still set failing, then APOD's video day at 02:28 hands EARTH over. Also seeds 370,
-     * 769, 1027, 1145, 1952 and, with "As soon as it's out", 370, 537, 551, 946, 1743 of 2000.
+     * T1's bug, fixed by B27: with Size Live and the one engine on both screens, a lock screen with
+     * a column but nothing of its own to set (APOD alone there on a video day with "Skip it" or
+     * "Use my picture" without one; a source with nothing stored yet), forgotten and planned again
+     * by `lockFollowsHome`, still had no set, and home's hand-over put home's new picture there, an
+     * unticked source's (invariant 16; CLAUDE.md, Wallpaper: Live, "A shared lock screen follows
+     * home"). Now the lock screen keeps what the engine shows, a still set of Live's copy before the
+     * hand-over. Seed 235: lock APOD with "Use my picture" and none, a Set's picker trip ("Home
+     * screen and lock screen"), the lock screen's still set failing, then APOD's video day at 02:28
+     * hands EARTH over. Also seeds 370, 769, 1027, 1145, 1952 and, with "As soon as it's out", 370,
+     * 537, 551, 946, 1743 of 2000.
      */
-    @Ignore("BUG: seed 235, invariant 16: home's hand-over shows home's picture on a shared lock screen with nothing of its own to set")
     @Test
-    fun seed235ASharedLockScreenWithNothingToSetShowsHomesPicture() = SimPhone(235).simulate()
+    fun seed235ASharedLockScreenWithNothingOfItsOwnKeepsItsPicture() = SimPhone(235).simulate()
 
     private fun simulate(soon: Boolean, invariants: List<Int>) {
         val checked = IntArray(18)
@@ -93,7 +93,7 @@ class RulesSimulationTest {
         val seeds = System.getenv("SIM_ONLY")?.split(",")?.mapNotNull { it.trim().toIntOrNull() } ?: (1..SEEDS).toList()
 
         /** Seeds that found a bug, each with an `@Ignore`d test of its own until the fix. */
-        val knownBugs = setOf(235)
+        val knownBugs = emptySet<Int>()
     }
 }
 
@@ -479,10 +479,25 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             stillOrLive(size, homeLive, shared, columns[HOME].orEmpty().isNotEmpty(), plan.screens[HOME]?.record?.picture ?: view[HOME]?.picture, plan.sets)
         var plan = plan()
         val lock = view[LOCK]
+        // B27: with nothing of its own even when forgotten, the lock screen keeps what the engine shows (Live's copy), as a still set before the hand-over.
+        var keepCopy: Picture? = null
+        // B27's night default: an engine that draws black (no copy, no fallback) has nothing to keep; the lock screen follows home.
+        var black = false
         if (lock != null && lockFollowsHome(split(plan), shared, lockColumn)) {
-            note(now, "home's hand-over would change the lock screen: forgetting it")
-            view = view + (LOCK to lock.forget())
-            plan = plan()
+            val forgotten = view + (LOCK to lock.forget())
+            val again = lost.onPlan(dueWallpapers(columns, forgotten, stored, time, zone, now, pull, soon, rotation), forgotten)
+            // What the engine draws now: its copy, else Store.liveFallback's (home's column's first source in the list's order, else APOD's stored picture).
+            val drawn = copy ?: listOfNotNull(rotation.order.firstOrNull { it in columns[HOME].orEmpty() }, Source.APOD)
+                .firstNotNullOfOrNull { s -> stored.picture(s)?.takeIf { it is Picture.Of && it.source == s } }
+            if (drawn != null && lockFollowsHome(split(again), shared, lockColumn)) {
+                note(now, "home's hand-over would change the lock screen, which has nothing of its own: it keeps ${drawn.label()}")
+                keepCopy = drawn
+            } else {
+                black = drawn == null
+                note(now, "home's hand-over would change the lock screen: forgetting it")
+                view = forgotten
+                plan = again
+            }
         }
         recordsBefore = view
         val unset = plan.screens.filterValues { !it.set }
@@ -504,10 +519,22 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         val homePicture = plan.screens[HOME]?.record?.picture ?: view[HOME]?.picture
         val split = split(plan)
         checked[16]++
-        if (lockFollowsHome(split, shared, lockColumn)) fail(now, 16, "home's hand-over changes the lock screen, which isn't due it")
+        if (keepCopy == null && !black && lockFollowsHome(split, shared, lockColumn)) fail(now, 16, "home's hand-over changes the lock screen, which isn't due it")
         // Store.setDue reads Live's state once, before the sets (L6f1's handOverWaits by it).
         val sharedBefore = shared
         val failedStill = mutableListOf<Set<Screen>>()
+        // B27: the lock screen's still set of Live's copy, its record kept; a failed one holds the hand-over.
+        keepCopy?.let { kept ->
+            stopPoint()
+            if (setFails(kept, setOf(LOCK), now)) {
+                failedStill += setOf(LOCK)
+            } else {
+                note(now, "kept ${kept.label()} on LOCK, still")
+                wall[LOCK] = kept
+                liveNoted -= LOCK
+                stillSet(setOf(LOCK))
+            }
+        }
         for ((picture, screens) in split.still) {
             stopPoint()
             if (size == Size.LIVE && homeLive) {

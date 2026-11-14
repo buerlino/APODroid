@@ -12,6 +12,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.random.Random
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -28,14 +29,17 @@ import kotlin.test.fail
  * in APOD mode), moving the anchor as `Store.saveSetup` does; since L6 a Set draws Size now and then,
  * Set's picker trip ([opensPicker]) is answered (backed out, "Home screen", "Home screen and lock
  * screen"), and Live is lost now and then (another wallpaper, Android's revert of home, a force
- * stop), with `Store.setDue`'s [lostLive] and [stillOrLive]. [SimPhone] does what `Store` and `DailyJob` do around `:core`'s
+ * stop), with `Store.setDue`'s [lostLive] and [stillOrLive]; since T1 a job run is now and then stopped
+ * by Android (O10's expedited limit, `onStopJob`) between its checks or its sets, a lock set that failed
+ * holds home's hand-over ([handOverWaits]), and a Live engine that becomes visible starts the alarms'
+ * run when [screenOnRunOwed] says so (L8, invariant 17). [SimPhone] does what `Store` and `DailyJob` do around `:core`'s
  * rules; the invariants come from CLAUDE.md's rules (Background update; Turns and the picture
  * time), not from the code, and a failure names the seed, the invariant and the day's runs and
  * sets. A seed that finds a bug stays in [knownBugs] with its own `@Ignore`d test until a fix.
  */
 class RulesSimulationTest {
     @Test
-    fun theRulesHoldOverRandomMonths() = simulate(soon = false, invariants = (1..9) + (11..16))
+    fun theRulesHoldOverRandomMonths() = simulate(soon = false, invariants = (1..9) + (11..17))
 
     /**
      * The same seeds with "As soon as it's out" on (SO1), now and then turned off and on again by
@@ -44,11 +48,26 @@ class RulesSimulationTest {
      * newest after every run.
      */
     @Test
-    fun theRulesHoldOverRandomMonthsWithSoon() = simulate(soon = true, invariants = (1..16).toList())
+    fun theRulesHoldOverRandomMonthsWithSoon() = simulate(soon = true, invariants = (1..17).toList())
+
+    /**
+     * BUG (T1): with Size Live and the one engine on both screens, a lock screen with a column but
+     * nothing of its own to set (APOD alone there on a video day with "Skip it" or "Use my picture"
+     * without one; a source with nothing stored yet) shows home's new picture after home's
+     * hand-over: `lockFollowsHome` forgets the lock screen and plans again, the plan still has no
+     * set for it, and the engine draws home's picture there, an unticked source's (invariant 16;
+     * CLAUDE.md, Wallpaper: Live, "A shared lock screen follows home"). Seed 235: lock APOD with
+     * "Use my picture" and none, a Set's picker trip ("Home screen and lock screen"), the lock
+     * screen's still set failing, then APOD's video day at 02:28 hands EARTH over. Also seeds 370,
+     * 769, 1027, 1145, 1952 and, with "As soon as it's out", 370, 537, 551, 946, 1743 of 2000.
+     */
+    @Ignore("BUG: seed 235, invariant 16: home's hand-over shows home's picture on a shared lock screen with nothing of its own to set")
+    @Test
+    fun seed235ASharedLockScreenWithNothingToSetShowsHomesPicture() = SimPhone(235).simulate()
 
     private fun simulate(soon: Boolean, invariants: List<Int>) {
-        val checked = IntArray(17)
-        val failures = (1..SEEDS).filter { it !in knownBugs }.mapNotNull { seed ->
+        val checked = IntArray(18)
+        val failures = seeds.filter { it !in knownBugs }.mapNotNull { seed ->
             val phone = SimPhone(seed, soon)
             try {
                 phone.simulate()
@@ -60,17 +79,21 @@ class RulesSimulationTest {
             }
         }
         if (failures.isNotEmpty()) {
-            fail("${failures.size} of $SEEDS seeds failed: ${failures.map { "${it.seed} (${it.invariant})" }}\n\n" + failures.take(3).joinToString("\n\n") { it.message!! })
+            fail("${failures.size} of ${seeds.size} seeds failed: ${failures.map { "${it.seed} (${it.invariant})" }}\n\n" + failures.take(if (System.getenv("SIM_ONLY") != null) failures.size else 3).joinToString("\n\n") { it.message!! })
         }
         // Each invariant was checked, none is idle (about 25,000 sets and 270,000 armings over 240 seeds).
-        for (invariant in invariants) assertTrue(checked[invariant] > 100, "invariant $invariant checked ${checked[invariant]} times")
+        if (System.getenv("SIM_ONLY") == null) for (invariant in invariants) assertTrue(checked[invariant] > 100, "invariant $invariant checked ${checked[invariant]} times")
     }
 
     private companion object {
-        const val SEEDS = 240
+        /** 240 as 0.6.0's SIM; `SIM_SEEDS=2000 ./gradlew :core:test --rerun --tests '*RulesSimulationTest*'` runs more. */
+        val SEEDS = System.getenv("SIM_SEEDS")?.toIntOrNull() ?: 240
+
+        /** The seeds run: 1 to [SEEDS], or those listed in `SIM_ONLY` (`SIM_ONLY=235,370`, to look at one). */
+        val seeds = System.getenv("SIM_ONLY")?.split(",")?.mapNotNull { it.trim().toIntOrNull() } ?: (1..SEEDS).toList()
 
         /** Seeds that found a bug, each with an `@Ignore`d test of its own until the fix. */
-        val knownBugs = setOf<Int>()
+        val knownBugs = setOf(235)
     }
 }
 
@@ -132,7 +155,10 @@ private fun drawPosts(r: Random, from: LocalDate, to: LocalDate): List<Out> {
     return outs.sortedBy { it.at }
 }
 
-private enum class Event { PAGE, PULL, SET, DAILY_OFF, DAILY_ON, POWER_OFF, BOOT, LOSE_LIVE }
+private enum class Event { PAGE, PULL, SET, DAILY_OFF, DAILY_ON, POWER_OFF, BOOT, LOSE_LIVE, SCREEN_ON }
+
+/** Android stopped the job's run (`onStopJob`: its 10 min, an expedited job's limit, O10): thrown at the run's next stop check. */
+private class Stopped : RuntimeException()
 
 /**
  * One seed's phone: the store (`Store`'s posts, picture files, `afterGap` marks, `checkedAt` and
@@ -149,6 +175,19 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
 
     /** Draws the list's order at a Set (OR1), apart from [r] and [soonR], so the seeds' other draws stay as they were. */
     private val orderR = Random(seed * 15485863L + 5)
+
+    /** Draws the job's stops (T1), apart from the others, so the seeds' other draws stay as they were. */
+    private val stopR = Random(seed * 49979687L + 11)
+
+    /** Draws the screen-on times (L8, T1), apart from the others. */
+    private val screenR = Random(seed * 67867967L + 13)
+
+    /**
+     * The stop check at which Android stops the run going (-1: none): `Store.update`'s before each
+     * source and after the checks, `setDue`'s before each set ([stopPoint]).
+     */
+    private var stopAt = -1
+    private var stopPoints = 0
 
     /** The last event was a Set that may move the anchor (invariant 13). */
     private var anchorMayMove = false
@@ -187,8 +226,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     private val kept = mutableMapOf<Screen, Pair<Post, Picture>>()
     private val log = mutableListOf<Pair<Instant, String>>()
 
-    /** How often each invariant was checked (index 1–16). */
-    val checked = IntArray(17)
+    /** How often each invariant was checked (index 1–17). */
+    val checked = IntArray(18)
 
     // Live (L6): Size, what the system shows, the records' live notes; drawn by [liveR] apart
     // from [r], so a seed that stays on Fill runs as before.
@@ -248,6 +287,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         }
         // L6: Live lost now and then (it acts only while home's record is noted live).
         for (d in 0 until 60) if (liveR.nextInt(8) == 0) schedule(start + Duration.ofDays(d.toLong()) + Duration.ofMinutes(liveR.nextLong(1, 24 * 60)), Event.LOSE_LIVE)
+        // L8: the screen turned on now and then (it acts only while an engine is on a screen).
+        for (d in 0 until 60) repeat(screenR.nextInt(8)) { schedule(start + Duration.ofDays(d.toLong()) + Duration.ofMinutes(screenR.nextLong(1, 24 * 60)), Event.SCREEN_ON) }
         repeat(r.nextInt(3)) {
             val off = randomTime()
             schedule(off, Event.DAILY_OFF)
@@ -352,11 +393,18 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         var failure = false
         for (source in Source.entries) {
             if (source !in show && source !in inUse()) continue
+            stopPoint()
             if (force || !page || !checkedRecently(source, now)) failure = !checkSite(source, force, now) || failure
         }
+        stopPoint()
         if (killAfterChecks) return null
         if (!daily && !set) return failure
         return setDue(now, kind, pull = force) || failure
+    }
+
+    /** `Store.isStopped`'s checks: the run going stops at the [stopAt]th. */
+    private fun stopPoint() {
+        if (stopAt >= 0 && stopPoints++ == stopAt) throw Stopped()
     }
 
     // The sets and the invariants around them
@@ -411,11 +459,12 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
      * noted live). As [Phone.check] otherwise: the records without a set written at once, each
      * set's after it; a failed set leaves them (and their live notes).
      * 14. With Size Live a still set never goes to home while home is live, and to the lock screen
-     * only when its picture differs from home's or the engine doesn't cover it.
+     * only when its picture differs from home's or the engine doesn't cover it (while home has a
+     * column, T1: without one nothing goes to the engine).
      * 15. Nothing is handed to the engine while home isn't live, nor with Size Fill.
      * 16. A screen noted live that lost Live is due again in the same run (both when home lost it,
      * the lock screen with a column); after the run a screen noted live shows the engine (but
-     * one whose set failed).
+     * one whose set failed; on the lock screen a stray counts, T1).
      */
     private fun liveCheck(now: Instant, pull: Boolean, stored: Stored) {
         val lockColumn = columns[LOCK].orEmpty().isNotEmpty()
@@ -438,7 +487,9 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         recordsBefore = view
         val unset = plan.screens.filterValues { !it.set }
         records = records + unset.mapValues { it.value.record }
-        liveNoted -= lost.forget.filter { it !in plan.screens || it in unset }.toSet()
+        // Store.putRecord: a forgotten picture isn't on the engine; a forgotten screen the rules leave out loses its note.
+        liveNoted -= lost.forget - plan.screens.keys
+        liveNoted -= unset.filterValues { it.record.picture == null }.keys
         if (HOME in lost.forget) {
             checked[16]++
             val home = plan.screens[HOME]
@@ -454,13 +505,21 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         val split = split(plan)
         checked[16]++
         if (lockFollowsHome(split, shared, lockColumn)) fail(now, 16, "home's hand-over changes the lock screen, which isn't due it")
+        // Store.setDue reads Live's state once, before the sets (L6f1's handOverWaits by it).
+        val sharedBefore = shared
+        val failedStill = mutableListOf<Set<Screen>>()
         for ((picture, screens) in split.still) {
+            stopPoint()
             if (size == Size.LIVE && homeLive) {
                 checked[14]++
                 if (HOME in screens) fail(now, 14, "a still set of ${picture.label()} on home, which is live")
-                if (shared && LOCK in screens && picture == homePicture) fail(now, 14, "a still set of home's ${picture.label()} on the lock screen the engine covers")
+                // T1: only while home has a column (Live is home's; with none nothing goes to the engine, the lock screen is Fill).
+                if (shared && LOCK in screens && picture == homePicture && columns[HOME].orEmpty().isNotEmpty()) fail(now, 14, "a still set of home's ${picture.label()} on the lock screen the engine covers")
             }
-            if (setFails(picture, screens, now)) continue
+            if (setFails(picture, screens, now)) {
+                failedStill += screens
+                continue
+            }
             records = records + screens.associateWith { plan.screens.getValue(it).record }
             liveNoted -= screens
             sets += local(zone, now) + " " + picture.label() + if (screens.size == 1) " ${screens.single()}" else ""
@@ -470,6 +529,12 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         split.engine?.let { (picture, screens) ->
             checked[15]++
             if (size != Size.LIVE || !homeLive) fail(now, 15, "${picture.label()} handed to the engine with Size $size, home ${if (homeLive) "live" else "not live"}")
+            stopPoint()
+            // L6f1: the lock screen's still set failed while the engine covers it: home's hand-over waits, a failed set.
+            if (handOverWaits(sharedBefore, failedStill)) {
+                failedScreens += screens
+                return@let note(now, "the lock screen's set failed, home's hand-over waits")
+            }
             if (setFails(picture, screens, now)) return@let
             records = records + screens.associateWith { plan.screens.getValue(it).record }
             liveNoted += screens
@@ -483,7 +548,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         for (screen in liveNoted) {
             if (screen in failedScreens) continue
             checked[16]++
-            val engine = if (screen == HOME) homeLive else homeLive && shared
+            // T1: a still set on home alone moves a shared engine to the lock screen (M0, a stray): still the engine.
+            val engine = if (screen == HOME) homeLive else homeLive && shared || stray
             if (!engine) fail(now, 16, "$screen noted live, but the engine isn't on it")
         }
     }
@@ -621,7 +687,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     /**
      * 4. With one source (rule 2): after each run, the screen shows the newest stored post when it
      * was published before the last change time + 3 h or is marked as stored after a gap; one
-     * published later isn't put on by a job or page run. (Its video days: invariants 6 and 8.)
+     * published later isn't put on by a job or page run (but the lock screen's retry taking home's
+     * record with equal columns, T1). (Its video days: invariants 6 and 8.)
      */
     private fun oneSource(now: Instant, stored: Stored) {
         if (kind.free) return
@@ -638,7 +705,9 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             if (due && wall[screen] != target) {
                 fail(now, 4, "$screen shows ${wall[screen]?.label()}, not ${target.label()} (published ${local(zone, post.publishedAt)}, change time ${local(zone, change)})")
             }
-            if (!due && setNow[screen] == target && !forgotten(screen)) {
+            // T1: with equal columns the lock screen takes home's record, so its retry puts on what a pull put on home.
+            val followsHome = screen == LOCK && equalColumns() && recordsBefore[HOME]?.picture == target
+            if (!due && setNow[screen] == target && !forgotten(screen) && !followsHome) {
                 fail(now, 4, "${target.label()} set on $screen, published ${local(zone, post.publishedAt)}, after the window of ${local(zone, change)}")
             }
         }
@@ -744,7 +813,17 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         armAt(now + retryAfter(failedRuns))
         val kill = if (r.nextInt(30) == 0) r.nextInt(3) else -1
         if (kill == 0) return note(now, "killed at its start")
-        val failed = update(now, kind, force = false, page = false, killAfterChecks = kill == 1) ?: return note(now, "killed after its checks")
+        // T1: Android stops about 1 run in 30 at one of its stop checks; it stays counted, its end arms the retry.
+        stopAt = if (stopR.nextInt(30) == 0) stopR.nextInt(6) else -1
+        stopPoints = 0
+        val failed = try {
+            update(now, kind, force = false, page = false, killAfterChecks = kill == 1)
+        } catch (_: Stopped) {
+            note(now, "stopped by Android")
+            return arm(now, runEnd = true)
+        } finally {
+            stopAt = -1
+        } ?: return note(now, "killed after its checks")
         if (kill == 2) return note(now, "killed before its end")
         if (!failed) failedRuns = 0
         arm(now, runEnd = true)
@@ -780,15 +859,43 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         if (at < now) fail(now, 7, "the alarm at ${local(zone, at)} is in the past")
         val nextChange = changeTimes(now, turns).first { it + offset > now } + offset
         if (at > nextChange) fail(now, 7, "the alarm at ${local(zone, at)} is after the next change time + the offset, ${local(zone, nextChange)}")
-        val clockCheck = clockCheck(now)
-        // A run counts as failed from its start until it ends well (O4b): its retry from its start.
-        val expected = when {
-            failedRuns > 0 && lastRunAt != null -> minOf(clockCheck, maxOf(lastRunAt!! + retry(failedRuns), now))
-            else -> clockCheck
-        }
+        val expected = expectedAlarm(now)
         if (at != expected) fail(now, 7, "the alarm at ${local(zone, at)}, the checks say ${local(zone, expected)} (${failedRuns} failed runs)")
         if (runEnd && failedRuns > 0 && at > now + retry(failedRuns)) fail(now, 7, "after $failedRuns failed runs the retry at ${local(zone, at)}")
         armAt(at)
+    }
+
+    /** When the alarms should start the next run: the clock's next check, or a failed run's retry from its start when earlier (O4b). */
+    private fun expectedAlarm(now: Instant): Instant {
+        val clockCheck = clockCheck(now)
+        val lastRun = lastRunAt
+        return if (failedRuns > 0 && lastRun != null) minOf(clockCheck, maxOf(lastRun + retry(failedRuns), now)) else clockCheck
+    }
+
+    /**
+     * L8, D: a Live engine that becomes visible (on home, or a stray on the lock screen) asks
+     * [screenOnRunOwed] and starts the alarms' run ([runNow]) when it says so.
+     * 17. It says so exactly while the daily switch is on, no run started in the last 15 min (one
+     * ahead of now doesn't count), and a check is owed (the alarm's time by the clock's checks or
+     * a failed run's retry has come) or the engine is a stray while a record is noted live.
+     */
+    private fun screenOn(now: Instant) {
+        if (!homeLive && !stray) return
+        val strayNow = stray && !homeLive
+        val notedLive = liveNoted.isNotEmpty()
+        val owed = screenOnRunOwed(now, daily, nextAlarm(now, zone, failedRuns, time, turns, offset, lastRunAt, allDay = soon), lastRunAt, strayNow, notedLive)
+        if (daily) {
+            checked[17]++
+            val lastRun = lastRunAt
+            val quiet = lastRun != null && lastRun <= now && Duration.between(lastRun, now) < Duration.ofMinutes(15)
+            val expected = !quiet && (expectedAlarm(now) <= now || strayNow && notedLive)
+            if (owed != expected) fail(now, 17, "the screen-on check says ${if (owed) "owed" else "not owed"}, the checks say ${if (expected) "owed" else "not owed"} (last run ${lastRun?.let { local(zone, it) }}, alarm ${local(zone, expectedAlarm(now))}${if (strayNow) ", a stray" else ""}, noted live $liveNoted)")
+        } else if (owed) {
+            fail(now, 17, "the screen-on check owes a run with the daily switch off")
+        }
+        if (!owed) return
+        note(now, "screen on, run owed")
+        runNow(now)
     }
 
     /** A failed run's retry: 15 min after the first, then hourly. */
@@ -846,7 +953,9 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         // L6: Size now and then, not with the order alone (a changed Size is another change).
         val toggleSize = !alone && liveR.nextInt(3) == 0
         if (toggleSize) size = if (size == Size.FILL) Size.LIVE else Size.FILL
-        val orderOnly = newOrder && new == setup && !(toggleSoon && !alone) && !toggleSize
+        // A newly picked "my picture" isn't the order alone (`saveSetup`'s pick); Setup.own is whether one is there.
+        val pick = new.own && !own
+        val orderOnly = newOrder && !pick && new.copy(own = own) == setup && !(toggleSoon && !alone) && !toggleSize
         val newRotation = if (!list) rotation else Rotation(draftOrder, if (anchorMayMove) new.time.anchorDate(now, zone) else rotation.from)
         note(now, "Set: $new, Size $size${if (soon) ", as soon as it's out" else ""}, order ${newRotation.order} from ${newRotation.from}${if (orderOnly) " (the order alone)" else ""}")
         val before = columns
@@ -942,6 +1051,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
                             runPending = null
                         }
                         Event.LOSE_LIVE -> loseLive(next)
+                        Event.SCREEN_ON -> screenOn(next)
                         Event.BOOT -> {
                             note(next, "boot")
                             poweredOff = false

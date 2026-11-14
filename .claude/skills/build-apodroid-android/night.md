@@ -112,7 +112,7 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 9 | O4b | A run counts as failed from its start until it ends well | winston | opus, high | yes | O4a | review-0.7.0-runs.md O4b |
 | 10 | O4c | The switch-on run stops between sets once the switch is off | winston | opus, medium | yes | O4b | review-0.7.0-runs.md O4c |
 | 11 | O6 | Android check: the expedited run (session 1 by day; session 2, the real night, by hand) | rosie | opus, medium | no | — | on-time-0.7.0.md O6 |
-| 12 | O7 | Android check: a foreground service's life, look and memory | rosie | opus, medium | no | O6 | on-time-0.7.0.md O7 |
+| 12 | O7 | Android check: a foreground service's life, look and memory | rosie | opus, medium | no | — | on-time-0.7.0.md O7 |
 | 13 | O8 | Android check: ZUI's cleaner against a foreground service | rosie | opus, medium | no | O7 | on-time-0.7.0.md O8 |
 | 14 | L1 | Android check: the live wallpaper on the tablet | rosie | opus, medium | no | O8 | live-0.7.0.md L1 |
 | 15 | O10 | The alarms' run as an expedited job | winston | opus, medium | yes | O4a, O4b, O4c, O6 | on-time-0.7.0.md O10 |

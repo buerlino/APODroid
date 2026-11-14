@@ -73,6 +73,22 @@ name carried it (`APOD_2026-10-29_APOD_29_October_2026_…`).
 - **Done when:** the tests pass and fail on the old regex; `CLAUDE.md`'s Open questions, 4
   removed and the Data source's title bullet names both orders.
 
+### [ ] B27. A shared lock screen with nothing of its own shows home's new picture (Opus, medium)
+
+(T1's SIM, seed 235, invariant 16; the user, 2026-11-14: fix (a), built the same night.) With Size Live and home
+and lock on the one engine (`live.shared`), a lock screen whose column has nothing new to show (e.g. lock = APOD
+alone, an APOD video day with "Skip it") follows home's hand-over and shows home's new picture, an unticked
+source's. It should keep the picture it shows now (`CLAUDE.md`, The app, Wallpaper: Live, "A shared lock screen
+follows home").
+- **The fix:** in `Store.setDue`, just before home's hand-over to a shared engine, when the lock screen isn't
+  due home's picture, set the lock screen's still from `live.jpg` (the picture the engine shows now), so the
+  lock screen keeps it and leaves the engine; its record stays. A failed still set holds the hand-over as L6f1's
+  rule does.
+- **Files:** `Store.kt` (setDue, lockFollowsHome), `Live.kt` (a pure helper if the rule fits there),
+  `RulesSimulationTest.kt`, `CLAUDE.md` (the lockFollowsHome paragraph: seed 235 no longer open).
+- **Done when:** seed 235's test is un-ignored, out of `knownBugs`, and passes (it fails on the old code); the
+  other seeds still pass; `CLAUDE.md` says what the lock screen does.
+
 ## Before the tag
 
 ### [ ] T1. SIM on the combined rules (Opus, high)

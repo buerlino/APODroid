@@ -140,7 +140,8 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 37 | L9 | Tablet pass of track L (the two real days by hand) | rosie | opus, high | no | L8, BR3, the user (the tablet back) | live-0.7.0.md L9 |
 | 38 | T1 | SIM on the combined rules | winston | opus, high | no | RO2, SO2, O4b, O10, OR2 | plan T1 |
 | 39 | R1 | The release's texts: versionCode 11, the changelog | winston | sonnet, medium | no | O14, O14b, L8, RO3, SO3, BR3, OR2 | plan R1 |
-| 40 | T2 | Final tablet pass on the combined tree | rosie | opus, high | no | T1, R1, the user (the tablet back) | plan T2 |
+| 40 | T2 | Final tablet pass on the combined tree | rosie | opus, high | no | T1, R1, B27, the user (the tablet back) | plan T2 |
+| 41 | B27 | A shared lock screen with nothing of its own keeps its picture | winston | opus, medium | yes | L8, T1 | plan B27 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

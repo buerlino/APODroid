@@ -1417,6 +1417,15 @@ day). **Decided** (user, 2026-10-28; the findings, the plan, the checks and the 
 in [live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md)):
 - **The route straight**, the same speed all day; **at night still at the right edge** until
   the next change time; **with turns each picture crosses within its own turn** (at most 18 h).
+- **The position** (L3, `:core`'s `Live.kt`, `livePosition`): by the clock only, not by when the
+  picture went on: T the column's current change time (`PictureTime.last`, with turns from two
+  sources), the span the shorter of T to the next change time and 18 h (`liveSpan`) in real
+  time, p = (now − T) / span held at 0..1 (0 the left edge). So one source or 24 h turns cross
+  in 18 h, 12 h turns in 12, 6 h in 6; Zurich's DST nights with "New picture at" 00:00 move the
+  right edge an hour on the clock (19:00 in spring, 17:00 in autumn). The engine decodes at the
+  screen's portrait height, never enlarged, within 50,000,000 bytes (`liveDecodeSize`,
+  `LIVE_DECODE_BUDGET`). Which sets go to the engine (`stillOrLive`) and what a lost Live
+  forgets (`lostLive`, Decision 12 below) are `:core`'s too, for L5.
 - **A screen with a column where APODroid's live wallpaper isn't on gets Fill**, as 0.6.0 (the
   lock screen on 10–13, a screen left out in the picker, another wallpaper picked, a force stop,
   which makes Android drop a live wallpaper to the default on both screens): at once, by the

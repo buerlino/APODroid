@@ -235,6 +235,59 @@ class PictureTimeTest {
         assertEquals("15 21:15", next("2026-07-15T20:15", PictureTime(6, 24), turns = true, allDay = true))
     }
 
+    /**
+     * The runs [nextAlarm] arms one after another (each run's end, no failure) from the change
+     * time [from] (+ [offset]) until [until] or the first run after it.
+     */
+    private fun runs(zone: ZoneId, from: Instant, until: Instant, time: PictureTime, turns: Boolean, allDay: Boolean, offset: Duration = Duration.ZERO): List<Instant> {
+        val out = mutableListOf(from + offset)
+        while (out.last() < until) out += nextAlarm(out.last(), zone, 0, time, turns, offset, out.last(), allDay)
+        return out
+    }
+
+    /**
+     * "As soon as it's out" (SO1): [nextAlarm] with allDay checks hourly through the whole day,
+     * in the seven zones of SIM and over their DST days (the hours real hours), one source and
+     * turns; off, nothing after the window but the next change time.
+     */
+    @Test
+    fun soonChecksHourlyThroughTheDayInEveryZone() {
+        val tehran = ZoneId.of("Asia/Tehran")
+        val kolkata = ZoneId.of("Asia/Kolkata")
+        val days = listOf(
+            zurich to "2026-07-14", zurich to "2026-10-24", zurich to "2027-03-27", la to "2026-10-31", sydney to "2026-10-03",
+            helsinki to "2026-10-24", newYork to "2026-10-31", tehran to "2026-12-01", kolkata to "2026-12-01",
+        )
+        val seven = Duration.ofMinutes(7)
+        for ((zone, day) in days) {
+            for ((time, turns) in listOf(PictureTime(6, 24) to false, PictureTime(6, 6) to true, PictureTime(21, 12) to true)) {
+                val first = time.next(LocalDate.parse(day).atStartOfDay(zone).toInstant(), zone, turns)
+                val until = time.next(first + Duration.ofHours(30), zone, turns)
+                val runs = runs(zone, first, until, time, turns, allDay = true, offset = seven)
+                val what = "$zone $day $time"
+                // Hourly at most, every change time (+ the offset) among them, the first check 15 min after each.
+                for ((a, b) in runs.zipWithNext()) assertTrue(Duration.between(a, b) in Duration.ofMinutes(15)..Duration.ofHours(1), "$what: ${local(zone, a)} → ${local(zone, b)}")
+                var change = first
+                while (change <= until) {
+                    assertTrue(change + seven in runs, "$what: the change time ${local(zone, change)}")
+                    if (change < until) assertTrue(change + firstCheck + seven in runs, "$what: 15 min after ${local(zone, change)}")
+                    change = time.next(change, zone, turns)
+                }
+                // Off: after the window's end the next run is the next change time.
+                val off = runs(zone, first, until, time, turns, allDay = false, offset = seven)
+                val end = first + pictureWindow + seven
+                assertEquals(time.next(first, zone, turns) + seven, off[off.indexOf(end) + 1], what)
+            }
+        }
+        // Zurich, one source: the window's checks, then every hour at :15 until 06:00.
+        val zurichDay = runs(zurich, at(zurich, "2026-07-14T06:00"), at(zurich, "2026-07-15T06:00"), PictureTime(6, 24), false, allDay = true).map { local(zurich, it) }
+        assertEquals(
+            listOf("14 06:00", "14 06:15", "14 07:15", "14 08:15", "14 09:00", "14 09:15") + (10..23).map { "14 %02d:15".format(it) } +
+                (0..5).map { "15 %02d:15".format(it) } + "15 06:00",
+            zurichDay,
+        )
+    }
+
     @Test
     fun aFailedRunIsRetriedIn15MinutesThenHourly() {
         assertEquals("15 10:15", ended("2026-07-15T10:00", failures = 1))

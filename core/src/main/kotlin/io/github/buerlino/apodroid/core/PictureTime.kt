@@ -15,6 +15,8 @@ import kotlin.random.Random
  * 2. A newer picture of that source published in the [pictureWindow] after the change still
  *    replaces it, whenever a check sees it (B15: by the publish time). With one source a post
  *    stored after a gap in the checks ([afterGap], B21) goes on whenever a run sees it too.
+ *    With "As soon as it's out" (SO1) the window goes: any newer picture of that source goes on
+ *    whenever a check sees it, and the checks come hourly all day.
  * 0.6.0's rule 3 (with nothing new the screen waits, checked hourly) went with RO1.
  * This file has the times: when a screen changes ([PictureTime]) and when the next run checks
  * ([nextRun]).
@@ -120,9 +122,10 @@ data class PictureTime(val pictureAt: Int = DEFAULT_PICTURE_AT, val everyHours: 
  * - within the [pictureWindow] after the current change time, [firstCheck] after it, then hourly
  *   (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone), and at its end
  *   (09:00: a half-hour zone's post, Tehran's 08:35, published within it; B15);
- * - with [allDay], the same checks hourly until the next change time (0.6.0's waiting screen,
- *   gone with RO1; kept for "As soon as it's out", SO1). No hourly checks after the window
- *   otherwise: a post that comes out later waits for its source's next turn.
+ * - with [allDay] ("As soon as it's out" on, SO1: [dueWallpapers]' `soon`), the same checks
+ *   hourly until the next change time, so a newer picture goes on within about an hour of its
+ *   release. No hourly checks after the window otherwise: a post that comes out later waits for
+ *   its source's next turn.
  * The clock's checks come [offset] later (0 to [maxOffset], kept in that range). No model of each
  * source's posting time (user, 2026-10-23).
  *
@@ -176,6 +179,7 @@ fun retryAfter(failures: Int): Duration = if (failures <= 1) firstCheck else hou
  * one that failed, O4b), [retryAfter] after the last one's start when that comes first, at the
  * earliest [now]. So an arming during a run keeps the pair its start armed (B16f1), one in a new
  * process after the run was killed keeps it too (B19), and one after a failed run keeps its retry.
+ * [allDay]: "As soon as it's out" on ([nextRun]'s hourly checks until the next change time, SO1).
  */
 fun nextAlarm(
     now: Instant,
@@ -185,8 +189,9 @@ fun nextAlarm(
     turns: Boolean,
     offset: Duration,
     lastRun: Instant?,
+    allDay: Boolean = false,
 ): Instant {
-    val clock = nextRun(now, zone, time, turns, offset, lastRun)
+    val clock = nextRun(now, zone, time, turns, offset, lastRun, allDay)
     if (failures <= 0 || lastRun == null) return clock
     return minOf(clock, maxOf(lastRun + retryAfter(failures), now))
 }

@@ -63,7 +63,8 @@ class ScreensTest {
         stored: Stored = stored(),
         now: Instant = t0 + h1,
         pull: Boolean = false,
-    ) = dueWallpapers(columns, records, stored, time, zone, now, pull)
+        soon: Boolean = false,
+    ) = dueWallpapers(columns, records, stored, time, zone, now, pull, soon)
 
     private fun set(before: Map<Screen, List<Source>>, after: Map<Screen, List<Source>>, records: Map<Screen, Record>, now: Instant, stored: Stored = stored()) =
         restartAndForget(before, after, records, stored, time, zone, now)
@@ -965,5 +966,111 @@ class ScreensTest {
         assertEquals(mapOf(HOME to listOf(NASA), LOCK to emptyList()), columns.placing(APOD, emptySet()))
         // The same screens: nothing changes.
         assertEquals(columns, columns.placing(NASA, setOf(HOME)))
+    }
+
+    // As soon as it's out (SO1, soon-0.7.0.md): rule 2 without the window
+
+    /**
+     * 12–13 Nov 2026 on the FP6 (soon-0.7.0.md, Why): APOD on home, NASA on lock, 06:00, Zurich.
+     * A Set at 20:57 put NASA's "Heart in the Sky" (out 20:14) on the lock screen; 13 Nov's NASA
+     * post came out at 17:41 and the page showed it at 19:24. Off (0.6.0's window): it waits for
+     * 14 Nov's 06:00. On: the next hourly check after it, 18:15, puts it on; home as before.
+     */
+    @Test
+    fun theFp6sDayOf13NovPutsNasaOnWithinTheHourWithSoon() {
+        val zurich = ZoneId.of("Europe/Zurich")
+        val heart = Out(at(zurich, "2026-11-12T20:14"), post(NASA, LocalDate.parse("2026-11-12"), at(zurich, "2026-11-12T20:14")))
+        val outbursts = Out(at(zurich, "2026-11-13T17:41"), post(NASA, LocalDate.parse("2026-11-13"), at(zurich, "2026-11-13T17:41")))
+        val posts = listOf(apod("2026-11-12"), apod("2026-11-13"), apod("2026-11-14"), nasa("2026-11-10"), heart, outbursts)
+        val columns = mapOf(HOME to listOf(APOD), LOCK to listOf(NASA))
+        fun day(soon: Boolean): List<String> {
+            val records = mapOf(
+                HOME to Record(APOD, pic(apod("2026-11-12")), at(zurich, "2026-11-12T06:00"), notes(apod("2026-11-12"))),
+                LOCK to Record(NASA, pic(nasa("2026-11-10")), at(zurich, "2026-11-12T06:00"), notes(nasa("2026-11-10"))),
+            )
+            val phone = Phone(zurich, columns, PictureTime(6, 24), posts, records, soon = soon)
+            phone.set(at(zurich, "2026-11-12T20:57"))
+            phone.run(at(zurich, "2026-11-12T20:58"), at(zurich, "2026-11-14T07:00"), pages = listOf(at(zurich, "2026-11-13T19:24")))
+            return phone.sets
+        }
+        val set = listOf("12 20:57 APOD 11-12 HOME", "12 20:57 NASA 11-12 LOCK")
+        assertEquals(set + listOf("13 06:15 APOD 11-13 HOME", "14 06:00 NASA 11-13 LOCK", "14 06:15 APOD 11-14 HOME"), day(soon = false))
+        assertEquals(set + listOf("13 06:15 APOD 11-13 HOME", "13 18:15 NASA 11-13 LOCK", "14 06:15 APOD 11-14 HOME"), day(soon = true))
+    }
+
+    @Test
+    fun withSoonOneSourcesNewerPictureGoesOnWheneverARunSeesIt() {
+        val records = mapOf(HOME to Record(APOD, pic(APOD), t0, shown(pic(APOD))))
+        val home = apodColumns(setOf(HOME))
+        // Published after the window (and long after it): on at the next run, the change time kept.
+        for (published in listOf(t0 + h3, t0 + Duration.ofHours(15))) {
+            val late = stored(posts + (APOD to post(APOD, d2, published = published)))
+            assertEquals(emptyList(), due(home, records, late, now = published + min1).sets, "off")
+            val plan = due(home, records, late, now = published + min1, soon = true)
+            assertEquals(listOf(pic(APOD, d2) to setOf(HOME)), plan.sets, "$published")
+            assertEquals(t0, plan.screens.getValue(HOME).record.stamp)
+            // Once on, nothing more.
+            assertEquals(emptyList(), due(home, apply(records, plan), late, now = published + h1, soon = true).sets)
+        }
+        // Never back.
+        val ahead = mapOf(HOME to Record(APOD, pic(APOD, d2), t0, shown(pic(APOD, d2))))
+        assertEquals(emptyList(), due(home, ahead, now = t0 + h3 + h1, soon = true).sets)
+        // B21's mark changes nothing while it's on.
+        val late = post(APOD, d2, published = t0 + h3 + h1)
+        for (gaps in listOf(emptySet(), setOf(APOD))) {
+            assertEquals(listOf(pic(APOD, d2) to setOf(HOME)), due(home, records, stored(posts + (APOD to late), gaps = gaps), now = t0 + h3 + h3, soon = true).sets)
+        }
+    }
+
+    @Test
+    fun withSoonTheTurnsSourcesNewerPictureGoesOnAnotherSourcesWaits() {
+        // APOD and NASA every 24 h, NASA's day from t0: NASA's and APOD's next posts both come
+        // out after the window (10 h and 9 h after t0).
+        val daily = PictureTime(6, 24)
+        val home = cols(listOf(APOD, NASA), emptyList())
+        val records = mapOf(HOME to Record(NASA, pic(NASA), t0, shown(pic(APOD), pic(NASA))))
+        val newer = stored(posts + (NASA to post(NASA, d2, published = t0 + Duration.ofHours(10))) + (APOD to post(APOD, d2, published = t0 + Duration.ofHours(9))))
+        val now = t0 + Duration.ofHours(11)
+        assertEquals(emptyList(), dueWallpapers(home, records, newer, daily, zone, now).sets)
+        // On: NASA's (the turn's) newer post goes on; APOD's waits for APOD's turn.
+        val plan = dueWallpapers(home, records, newer, daily, zone, now, soon = true)
+        assertEquals(listOf(pic(NASA, d2) to setOf(HOME)), plan.sets)
+        assertEquals(Record(NASA, pic(NASA, d2), t0), plan.bare(HOME).record)
+        val after = apply(records, plan)
+        assertEquals(emptyList(), dueWallpapers(home, after, newer, daily, zone, now + h1, soon = true).sets)
+        assertEquals(emptyList(), dueWallpapers(home, after, newer, daily, zone, t0 + day - min1, soon = true).sets)
+        assertEquals(listOf(pic(APOD, d2) to setOf(HOME)), dueWallpapers(home, after, newer, daily, zone, t0 + day, soon = true).sets)
+        // Every 3 h: Earth's newer post waits for Earth's turn, also with the switch on.
+        val all3 = cols(all, emptyList())
+        val apodOn = mapOf(HOME to Record(APOD, pic(APOD), t0, shown(pic(APOD), pic(NASA), pic(EARTH))))
+        val newEarth = stored(posts + (EARTH to post(EARTH, d2, published = t0 + h1)))
+        assertEquals(emptyList(), due(all3, apodOn, newEarth, now = t0 + h1 + min1, soon = true).sets)
+        // Never back with turns.
+        val ahead = mapOf(HOME to Record(NASA, pic(NASA, d2), t0))
+        assertEquals(emptyList(), dueWallpapers(home, ahead, stored(), daily, zone, now, soon = true).sets)
+    }
+
+    @Test
+    fun withSoonTheStandInsNewerPictureGoesOnInApodsTurn() {
+        // APOD alone, NASA for video days: the stand-in on; NASA's next post comes out in the
+        // afternoon, after the window: off it waits for the next change time, on it goes on.
+        val records = mapOf(HOME to Record(APOD, pic(NASA), t0, shown(post(APOD, d2, video = true).picture(), pic(NASA))))
+        val home = apodColumns(setOf(HOME))
+        val afternoon = post(NASA, d2, published = t0 + Duration.ofHours(10))
+        val video = stored(videoDay + (NASA to afternoon), StandIn.NASA)
+        val now = t0 + Duration.ofHours(10) + min1
+        assertEquals(emptyList(), due(home, records, video, now = now).sets)
+        assertEquals(listOf(afternoon.picture() to setOf(HOME)), due(home, records, video, now = now, soon = true).sets)
+        // With turns, in APOD's turn the same.
+        val turns = cols(listOf(APOD, EARTH), emptyList())
+        assertEquals(emptyList(), due(turns, records, video, now = t0 + h1).sets)
+        assertEquals(listOf(afternoon.picture() to setOf(HOME)), due(turns, records, video, now = t0 + h1, soon = true).sets)
+    }
+
+    @Test
+    fun withSoonEqualColumnsStayTogether() {
+        val records = mapOf(HOME to Record(APOD, pic(APOD), t0), LOCK to Record(APOD, pic(APOD), t0))
+        val late = stored(posts + (APOD to post(APOD, d2, published = t0 + h3 + h1)))
+        assertEquals(listOf(pic(APOD, d2) to setOf(HOME, LOCK)), due(apodColumns(setOf(HOME, LOCK)), records, late, now = t0 + h3 + h3, soon = true).sets)
     }
 }

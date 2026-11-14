@@ -2,6 +2,7 @@ package io.github.buerlino.apodroid.core
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class TurnTest {
@@ -49,5 +50,43 @@ class TurnTest {
     fun noneWithAPictureIsNull() {
         assertNull(next(pictures = emptySet()))
         assertNull(next(ticked = listOf(apod, nasa), pictures = setOf(earth)))
+    }
+
+    // The list's order (OR1)
+
+    @Test
+    fun nextSourceGoesInTheListsOrder() {
+        val order = listOf(earth, nasa, apod)
+        fun next(ticked: List<Source> = all, after: Source, pictures: Set<Source> = all.toSet()) = nextSource(ticked, after, pictures::contains, order)
+        assertEquals(nasa, next(after = earth))
+        assertEquals(apod, next(after = nasa))
+        assertEquals(earth, next(after = apod))
+        // Earth without a picture: from APOD to NASA (APOD → NASA → Earth would give NASA too, from Earth APOD).
+        assertEquals(nasa, next(after = earth, pictures = setOf(apod, nasa)))
+        assertEquals(nasa, next(after = apod, pictures = setOf(apod, nasa)))
+        // An unticked source: from its place in the order.
+        assertEquals(apod, next(ticked = listOf(earth, apod), after = nasa))
+        assertEquals(earth, next(ticked = listOf(earth, nasa), after = apod))
+        assertNull(next(after = apod, pictures = emptySet()))
+    }
+
+    @Test
+    fun theOrdersPrefIsReadTolerantly() {
+        assertEquals(all, orderOf(null))
+        assertEquals(all, orderOf(""))
+        assertEquals(listOf(nasa, apod, earth), orderOf("NASA,APOD,EARTH"))
+        assertEquals(listOf(earth, nasa, apod), orderOf(" EARTH , NASA,APOD"))
+        // Unknown names and duplicates dropped, missing ones appended in the default order.
+        assertEquals(listOf(earth, apod, nasa), orderOf("EARTH,MARS,EARTH"))
+        assertEquals(listOf(nasa, apod, earth), orderOf("nasa,NASA"))
+        assertEquals(all, orderOf(",,"))
+    }
+
+    @Test
+    fun aRotationNeedsEverySourceOnce() {
+        assertEquals(listOf(nasa, earth), Rotation(listOf(earth, nasa, apod)).ordered(listOf(nasa, earth)).reversed())
+        assertEquals(all, Rotation().order)
+        assertFailsWith<IllegalArgumentException> { Rotation(listOf(apod, nasa)) }
+        assertFailsWith<IllegalArgumentException> { Rotation(listOf(apod, nasa, nasa)) }
     }
 }

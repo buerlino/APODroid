@@ -142,7 +142,7 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
   tests don't cover R8, so test release builds on the phone.
 - Android SDK in `~/Android/Sdk`. The user tests on real devices over adb; the emulator only for
   the Android versions no device has (10–14; user, 2026-10-29: E; postponed to 0.7.0, user,
-  2026-11-02: release 0.6.0 as soon as possible), never for real timing (Doze, buckets, makers' cleaners).
+  2026-11-02: release 0.6.0 as soon as possible; to 0.8.0, user, 2026-11-14), never for real timing (Doze, buckets, makers' cleaners).
 - Git branch `master`, remote `origin`. `dev` holds the night shift's merges until the user fast-forwards master.
 
 **Releases** (F-Droid builds only the newest tag: it ships 0.5.0, 0.3.1 and 0.3.0 and skipped
@@ -1537,6 +1537,13 @@ library (ML Kit needs Play Services; Tesseract is large). Decided:
   planned for 0.7.0, issue #2), screen-aware placement (clock and dock), per-screen Size (the
   2026-10-19 decision stands); learning per user (was "after 0.6.0", gone with the smart Auto).
   The preview on the page came with Live (0.7.0, L7: ⛶ mode).
+
+**0.7.0's release gate** (user, 2026-11-14 evening: "finish 0.7.0 asap"): the tag on 15 Nov, after the
+tablet's shift (O15, L9's tablet part, T2, the regression, their fix packages) and the FP6 passes with the
+user (L2, O17, L10's first day). **No real week before the tag**, unlike 0.6.0's W: the user tests 0.7.0
+on the FP6 through the week as it comes, and a fix ships as 0.7.1. L9's two real days, O16's week and
+L10's further days go the same way (after the tag, not before). E moves to 0.8.0, so 0.7.0 ships
+Android 10–14 untested on a device, as 0.6.0 did.
 
 **0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline, right after 0.6.0):
 Size [Fill | Live], with the preview on the page (one drawing code). A wide picture is shown at the screen's full height and moves

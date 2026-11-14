@@ -1061,11 +1061,11 @@ change the run's bookkeeping; with O10 the run is expedited.)
     picture handed over: the lock screen keeps its picture (a still from `live.jpg`).
   (The night of 14 Nov ran none of L5–L8's, BR3's, L6f1's or B27's device checks.)
 - `logcat` and `exit-info` without a crash; `dumpsys meminfo` with the page open and closed.
-- **Then two real days** (W's way, by hand, morning reads; the tablet on battery at night as W did;
+- **Then two real days** (after the tag since 2026-11-14, the user's own use, `CLAUDE.md`, 0.7.0's release gate; not the pipeline's run) (W's way, by hand, morning reads; the tablet on battery at night as W did;
   not during O16's week): the change at 06:00 on the live screens, the frame's place at each read,
   the engine alive, `ZuiMemoryCleaner` lines, the wallpaper still APODroid's.
 - The texts' screenshots in one folder for the user.
-- **Done when:** every check ran on R8 too, the two days read; no `BUG:` line, or each drafted as
+- **Done when:** every check ran on R8 too; no `BUG:` line, or each drafted as
   a package.
 
 ### [ ] L10. Phone pass: Live on the FP6 for a few days (Opus, high)

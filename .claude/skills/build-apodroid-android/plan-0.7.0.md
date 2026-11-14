@@ -127,10 +127,11 @@ so nothing in the tracks checks the combined tree; 0.6.0's lesson was a real wee
 to the job or the rules.
 - **A final tablet pass** on the combined tree: R8, the update from 0.6.0, every track's checks.
 - **SIM** on the combined rules (rotation, as soon as it's out).
-- **A real week on the FP6** (0.6.0's W) after the last change to the job or the rules.
+- ~~A real week on the FP6~~ (user, 2026-11-14: after the tag, as the user uses it; a fix is 0.7.1;
+  `CLAUDE.md`, 0.7.0's release gate).
 - **The phone passes** O17 and L10, with soon's real afternoon (NASA on the lock screen) and
   bright's look on the FP6 (`bright-0.7.0.md`: "goes into L10 or O17").
-- **E**, Android 10–14 on the emulator (`CLAUDE.md`: postponed to 0.7.0; `emulator.md`'s
+- ~~E~~ moved to 0.8.0 (user, 2026-11-14). Was: Android 10–14 on the emulator (`CLAUDE.md`: postponed to 0.7.0; `emulator.md`'s
   "For 0.7.0" checks need an owner; `on-time-0.7.0.md`'s "E stays open" predates that).
 - **The release:** versionCode 11, `changelogs/11.txt` (Keep running's two permissions), the
   fastlane texts and screenshots (0.6.0's R), the tag (T).

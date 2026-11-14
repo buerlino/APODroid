@@ -31,10 +31,21 @@ import kotlin.test.fail
  */
 class RulesSimulationTest {
     @Test
-    fun theRulesHoldOverRandomMonths() {
-        val checked = IntArray(10)
+    fun theRulesHoldOverRandomMonths() = simulate(soon = false, invariants = 1..9)
+
+    /**
+     * The same seeds with "As soon as it's out" on (SO1), now and then turned off and on again by
+     * a Set: the invariants above with rule 2 without the window (4: one source shows its newest
+     * stored picture after every run; 7: the checks hourly all day) and 10, the turn's source's
+     * newest after every run.
+     */
+    @Test
+    fun theRulesHoldOverRandomMonthsWithSoon() = simulate(soon = true, invariants = 1..10)
+
+    private fun simulate(soon: Boolean, invariants: IntRange) {
+        val checked = IntArray(11)
         val failures = (1..SEEDS).filter { it !in knownBugs }.mapNotNull { seed ->
-            val phone = SimPhone(seed)
+            val phone = SimPhone(seed, soon)
             try {
                 phone.simulate()
                 null
@@ -48,7 +59,7 @@ class RulesSimulationTest {
             fail("${failures.size} of $SEEDS seeds failed: ${failures.map { "${it.seed} (${it.invariant})" }}\n\n" + failures.take(3).joinToString("\n\n") { it.message!! })
         }
         // Each invariant was checked, none is idle (about 25,000 sets and 270,000 armings over 240 seeds).
-        for (invariant in 1..9) assertTrue(checked[invariant] > 100, "invariant $invariant checked ${checked[invariant]} times")
+        for (invariant in invariants) assertTrue(checked[invariant] > 100, "invariant $invariant checked ${checked[invariant]} times")
     }
 
     private companion object {
@@ -124,10 +135,13 @@ private enum class Event { PAGE, PULL, SET, DAILY_OFF, DAILY_ON, POWER_OFF, BOOT
  * problems), the job's bookkeeping (`DailyJob`, `Store.runStarts`, `ranWell`, `nextAlarm`), the
  * wallpaper actually on each screen ([wall]), and the invariants checked around every set.
  */
-private class SimPhone(val seed: Int) : Phone(
-    zones[Random(seed * 7919L + 1).nextInt(zones.size)], emptyMap(), PictureTime(), emptyList(), emptyMap(),
+private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : Phone(
+    zones[Random(seed * 7919L + 1).nextInt(zones.size)], emptyMap(), PictureTime(), emptyList(), emptyMap(), soon = soonDrawn,
 ) {
     private val r = Random(seed)
+
+    /** Draws "As soon as it's out" at a Set ([soonDrawn] only), apart from [r], so the seeds without it run as before. */
+    private val soonR = Random(seed * 104729L + 3)
     private val start: Instant
     private val end: Instant
     private val offset: Duration
@@ -163,8 +177,8 @@ private class SimPhone(val seed: Int) : Phone(
     private val kept = mutableMapOf<Screen, Pair<Post, Picture>>()
     private val log = mutableListOf<Pair<Instant, String>>()
 
-    /** How often each invariant was checked (index 1–9). */
-    val checked = IntArray(10)
+    /** How often each invariant was checked (index 1–10). */
+    val checked = IntArray(11)
 
     // The run going through setDue
     private var kind = Kind.PAGE
@@ -326,6 +340,7 @@ private class SimPhone(val seed: Int) : Phone(
         check(now, pull = pull, stored = stored)
         oneSource(now, stored)
         rotation(now, stored)
+        turnsNewest(now, stored)
         keptChecks(now, stored)
         return failedScreens.isNotEmpty()
     }
@@ -416,7 +431,7 @@ private class SimPhone(val seed: Int) : Phone(
             val target = stored.picture(source) ?: continue
             checked[4]++
             val change = lastChange(now, turns = false)
-            val due = post.publishedAt < change + window || source in gaps
+            val due = soon || post.publishedAt < change + window || source in gaps
             if (due && wall[screen] != target) {
                 fail(now, 4, "$screen shows ${wall[screen]?.label()}, not ${target.label()} (published ${local(zone, post.publishedAt)}, change time ${local(zone, change)})")
             }
@@ -471,6 +486,25 @@ private class SimPhone(val seed: Int) : Phone(
             val on = wall[screen]
             val older = due is Picture.Of && on is Picture.Of && due.source == on.source && due.date < on.date
             if (!older && on != due) fail(now, 5, "$screen shows ${on?.label()}, not $owner's ${due.label()} after the change ${local(zone, change)}")
+        }
+    }
+
+    /**
+     * 10. With "As soon as it's out" (SO1) and turns: after every run the screen shows the newest
+     * stored picture of the source whose turn it is (on APOD's video day the stand-in; never back).
+     */
+    private fun turnsNewest(now: Instant, stored: Stored) {
+        if (!soon) return
+        for (screen in Screen.entries) {
+            val column = columns[screen].orEmpty()
+            if (column.size < 2 || screen in failedScreens) continue
+            val record = records[screen] ?: continue
+            if (record.owner !in column || record.stamp != lastChange(now, true)) continue
+            val due = stored.picture(record.owner) ?: continue
+            checked[10]++
+            val on = wall[screen]
+            val older = due is Picture.Of && on is Picture.Of && due.source == on.source && due.date < on.date
+            if (!older && on != due) fail(now, 10, "$screen shows ${on?.label()}, not ${record.owner}'s newest ${due.label()} (as soon as it's out)")
         }
     }
 
@@ -533,7 +567,7 @@ private class SimPhone(val seed: Int) : Phone(
 
     /** `DailyJob.ensure`'s alarms: [nextAlarm], checked against CLAUDE.md's checks (invariant 7). */
     private fun arm(now: Instant, runEnd: Boolean = false) {
-        val at = nextAlarm(now, zone, failedRuns, time, turns, offset, lastRunAt)
+        val at = nextAlarm(now, zone, failedRuns, time, turns, offset, lastRunAt, allDay = soon)
         checked[7]++
         if (at < now) fail(now, 7, "the alarm at ${local(zone, at)} is in the past")
         val nextChange = changeTimes(now, turns).first { it + offset > now } + offset
@@ -555,7 +589,7 @@ private class SimPhone(val seed: Int) : Phone(
     /**
      * The clock's next check (CLAUDE.md, Turns, the next run): of the change time of now less the
      * offset, the change time, 15 min after it, then hourly within the window (no waiting since
-     * RO1), the window's end, and the next change time, each the
+     * RO1; all day with "As soon as it's out", SO1), the window's end, and the next change time, each the
      * offset later; at once when one passed since the last run's start.
      */
     private fun clockCheck(now: Instant): Instant {
@@ -564,7 +598,7 @@ private class SimPhone(val seed: Int) : Phone(
         val next = times.first { it > now - offset }
         val checks = mutableListOf(last, next, last + window)
         var check = last + firstCheck
-        while (check < next && check < last + window) {
+        while (check < next && (soon || check < last + window)) {
             checks += check
             check += hour
         }
@@ -584,7 +618,8 @@ private class SimPhone(val seed: Int) : Phone(
     /** "Set as wallpaper": the draft saved (now and then a new setup), the records forgotten, then Set's update. */
     private fun tapSet(now: Instant) {
         val new = if (r.nextBoolean()) drawSetup(r).let { if (r.nextBoolean()) it.copy(columns = columns, allSources = allSources) else it } else setup
-        note(now, "Set: $new")
+        if (soonDrawn && soonR.nextInt(4) == 0) soon = !soon
+        note(now, "Set: $new${if (soon) ", as soon as it's out" else ""}")
         val before = columns
         apply(new)
         // The new setup's stand-in, as Store.saveSetup (RO2's fix round): not the one before it.
@@ -680,7 +715,7 @@ private class SimPhone(val seed: Int) : Phone(
         throw SimFailure(
             seed, invariant,
             "seed $seed, invariant $invariant at ${local(zone, now)} ($kind): $what\n" +
-                "  $zone, offset ${offset.seconds} s, from ${local(zone, start)} ${start.atZone(zone).toLocalDate()}; $setup\n" +
+                "  $zone, offset ${offset.seconds} s, from ${local(zone, start)} ${start.atZone(zone).toLocalDate()}; $setup${if (soon) ", as soon as it's out" else ""}\n" +
                 "  records: $records\n" +
                 "  the runs and sets of the day before and the day:\n$lines",
         )

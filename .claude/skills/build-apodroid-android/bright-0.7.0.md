@@ -94,9 +94,23 @@ it as `live.<screen>.whole` is), so the brightness doesn't change as the frame m
 function takes it as a `Paint`, so the engine, the still whole picture and L7's preview darken
 alike.
 
+## Decided (user, 2026-11-14, from BR0's picks)
+
+- **The measure: the top third** of what the screen shows (Fill's frame, or the whole picture on
+  its background), its mean grey by `gray`'s weights on a small grey copy, as measured above.
+- **Target 100, floor ×0.7:** the factor is 1 up to 100, else 100 ÷ the mean, at least 0.7. Why:
+  the best fit of the 50 picks (below), 23 of 50 exactly on the ladder, 44 of 50 within one step.
+- **A switch in Setup, default on**, part of the draft, after "If APOD is a video" (after Size
+  once L6 is in). Label "Darken bright pictures", its ⓘ "Darkens a bright picture a little, so the
+  clock and widgets stay readable." (placeholders until the user approves them from a
+  screenshot). Why on: the user darkened 42 of 50; most people never open Setup.
+- **Every picture:** "my picture" too (Open 4), and a whole picture measured with its background
+  (Open 5).
+
 ## Open
 
-For the user, one at a time, each with a recommendation:
+Answered by the user, 2026-11-14 (Decided above): 1 a switch, on; 2 and 3 from BR0; 4 and 5 yes.
+
 1. **A switch or automatic.** Recommended: a switch in Setup, "Darken bright pictures"
    (placeholder), default on, part of the draft (Set sets the screens afresh with it). Why a
    switch: users would really disagree (the picture as NASA made it against a readable clock), and
@@ -130,7 +144,7 @@ after L4, on `Drawing.kt`). One tablet: BR2's check one session at a time with t
 
 The FP6's look goes into L10 or O17's phone pass with the user.
 
-### [ ] BR0. The picking page (by day, with the user; Opus, medium)
+### [x] BR0. The picking page (by day, with the user; Opus, medium)
 
 A2's way (`plan-0.6.0.md`, A2): an artifact page with a database for the picks, private.
 - **The pictures:** the 40 brightest frames of the 253 APODs and of NASA's and Earth's recent
@@ -144,6 +158,21 @@ A2's way (`plan-0.6.0.md`, A2): an artifact page with a database for the picks, 
   measure (whole frame or top third: which predicts the picks better). Written into this file;
   then Open 1, 4 and 5 asked.
 - **Done when:** the figures and the user's answers in this file; the page's link noted here.
+
+**BR0's results** (2026-11-14; https://claude.ai/code/artifact/29fcf462-3338-4633-8794-b953681f4847,
+private; the picks in its database, collection `picks`). 50 pictures (25 APOD, 17 NASA, 8 Earth:
+the 40 brightest by the larger of whole frame and top third, 10 with the whole frame at 90–110),
+each as an FP6 lock screen (white clock, date, widgets, app labels) at ×1, 0.9, 0.8, 0.7, 0.6,
+0.5 (a fixed ladder rather than the targets 140–80: near the line those would all have been ×1).
+Earth's 40 newest: 31 decoded.
+- **The picks:** ×1 8, ×0.9 2, ×0.8 16, ×0.7 13, ×0.6 9, ×0.5 2. Near the line 7 of 10 as is.
+  The X-59 picture (130 whole, 163 top) ×0.7.
+- **The rule's fit** (factor = clamp(T ÷ mean, floor, 1), snapped to the ladder, mean |error|):
+  top third T 95–100, floor 0.7: 0.068 (100: 23/50 exact, 44/50 within one step); whole frame
+  T 95, floor 0.7: 0.090 (18/50, 42/50); the larger of both T 105: 0.080. Floor 0.6 or 0.5 fits
+  worse at every T: the brightest pictures were picked lighter than the rule would make them.
+- **Implied targets** of the 42 darkened picks: whole frame median 104 (IQR 36), top third 117
+  (IQR 34). The as-is pictures' top third at most 100.
 
 ### [ ] BR1. `:core`: the measure and the factor (Sonnet, medium)
 

@@ -125,7 +125,7 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 24 | SO1 | `:core`: as soon as it's out, the rule and the hourly checks | winston | opus, high | no | RO1 | soon-0.7.0.md SO1 |
 | 25 | SO2 | The switch in Setup, `Store`, `CLAUDE.md` | winston | opus, medium | yes | SO1 | soon-0.7.0.md SO2 |
 | 26 | SO3 | Tablet check: a NASA post in the afternoon | rosie | opus, medium | no | SO2 | soon-0.7.0.md SO3 |
-| 27 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | the user (BR0, bright's Open 1–5) | bright-0.7.0.md BR1 |
+| 27 | BR1 | `:core`: the measure and the factor | winston | sonnet, medium | no | — | bright-0.7.0.md BR1 |
 | 28 | BR2 | `Store.set`: a bright picture through a darkened bitmap | winston | opus, high | yes | BR1, O3, L4 | bright-0.7.0.md BR2 |
 | 29 | BR3 | Live: the engine and the preview darken by the picture's factor | winston | opus, medium | yes | BR2, L7 | bright-0.7.0.md BR3 |
 

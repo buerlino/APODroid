@@ -16,7 +16,7 @@ import java.time.format.DateTimeFormatter
  * A phone running the rules over whole days, for PictureTimeTest's days in real time zones and
  * RulesSimulationTest's random months (SIM): the posts coming out when the sites post them (APOD
  * at 00:05 US Eastern, Earth Observatory at 00:00 US Eastern on weekdays, NASA at 16:30 UTC on
- * weekdays) and a run at each [nextRun], as the alarms start them.
+ * weekdays) and a run at each [nextAlarm], as the alarms start them.
  */
 
 internal val eastern: ZoneId = ZoneId.of("America/New_York")
@@ -76,7 +76,7 @@ internal fun notes(vararg outs: Out) = outs.associate { it.post.source to it.pos
 internal fun Picture.label() = if (this is Picture.Of) "$source ${date.toString().substring(5)}${if (url?.endsWith("-b.jpg") == true) "b" else ""}" else "own"
 
 /**
- * A phone: [records] stored, [posts] coming out, a run at each [nextRun] (the alarms, offset 0)
+ * A phone: [records] stored, [posts] coming out, a run at each [nextAlarm] (the alarms, offset 0)
  * and at each `pages` time (a page open), [sets] logged as "dd HH:mm SOURCE MM-dd" (a screen's
  * name after it when only one was set). Its store is [stored]: here every post out by then (by
  * the start of the [offline] span while in it); RulesSimulationTest's phone stores what its
@@ -146,7 +146,7 @@ internal open class Phone(
             check(now)
             // An offline run fails: the alarms retry it (Background update).
             failures = if (isOffline(now)) failures + 1 else 0
-            now = nextRun(now, zone, failures, time, turns, Duration.ZERO, waiting(columns, records, time, zone, now))
+            now = nextAlarm(now, zone, failures, time, turns, Duration.ZERO, waiting(columns, records, time, zone, now), now)
         }
     }
 }

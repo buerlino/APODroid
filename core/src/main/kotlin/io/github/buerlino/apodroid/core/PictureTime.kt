@@ -88,19 +88,17 @@ data class PictureTime(val pictureAt: Int = DEFAULT_PICTURE_AT, val everyHours: 
 }
 
 /**
- * When the next run should check (J2 arms the alarms for it), at [now] after a run, by the
- * change times of [time] ([turns]: a column takes turns, so its hours count; they include
- * [PictureTime.pictureAt]). The earliest of:
+ * When the next run should check by the clock (J2 arms the alarms for it, [nextAlarm] with a
+ * failed run's retry), at [now], by the change times of [time] ([turns]: a column takes turns, so
+ * its hours count; they include [PictureTime.pictureAt]). The earliest of:
  * - the next change time;
  * - within the [pictureWindow] after the current change time, [firstCheck] after it, then hourly
  *   (06:00, 06:15, 07:15, 08:15: the :05 posts of every whole-hour time zone), and at its end
  *   (09:00: a half-hour zone's post, Tehran's 08:35, published within it; B15);
  * - while a screen [waiting] (several sources, nothing new: [waiting]), the same checks hourly
- *   until the next change time;
- * - after [failures] failed or stopped runs in a row, [firstCheck] after the first, hourly after
- *   more (the alarms retry, not Android's backoff).
- * The clock's checks come [offset] later (0 to [maxOffset], kept in that range); the retries
- * count from [now]. No model of each source's posting time (user, 2026-10-23).
+ *   until the next change time.
+ * The clock's checks come [offset] later (0 to [maxOffset], kept in that range). No model of each
+ * source's posting time (user, 2026-10-23).
  *
  * A check that has passed since [lastRun] (the job's last run's start) is owed: the run comes at
  * [now] (B16). Every arming replaces the pair before it, so a page open, a Set or a clock change
@@ -111,7 +109,6 @@ data class PictureTime(val pictureAt: Int = DEFAULT_PICTURE_AT, val everyHours: 
 fun nextRun(
     now: Instant,
     zone: ZoneId,
-    failures: Int,
     time: PictureTime,
     turns: Boolean,
     offset: Duration,
@@ -133,50 +130,38 @@ fun nextRun(
     }
     val clock = checks.map { it + off }
     if (lastRun != null && clock.any { it > lastRun && it <= now }) return now
-    val retry = retryAfter(failures)?.let { now + it }
-    return (clock.filter { it > now } + listOfNotNull(retry)).min()
-}
-
-/** How long after the last of [failures] failed or stopped runs in a row the alarms retry: null without one. */
-private fun retryAfter(failures: Int): Duration? = when {
-    failures <= 0 -> null
-    failures == 1 -> firstCheck
-    else -> hourly
+    return clock.filter { it > now }.min()
 }
 
 /**
- * How long after a run's start its own retry comes, should it never reach its end (the process
- * killed or frozen), after [failures] failed runs in a row before it (a killed one counted at the
- * next start, B19): it would be one more, so [firstCheck] with none before, an hour after one or
- * more. A crash on every run is retried 15 min later, then hourly, not every 15 min all day.
+ * How long after the start of the last of [failures] failed runs in a row the alarms retry it:
+ * [firstCheck] after the first, an hour after more (a crash on every run is retried 15 min later,
+ * then hourly, not every 15 min all day). A run counts as failed from its start until it ends
+ * well (O4b), so this is also the retry of a run going, should it never end (the process killed
+ * or frozen). With none (a run `DailyJob` couldn't schedule, O4a): [firstCheck].
  */
-fun runRetry(failures: Int): Duration = retryAfter(maxOf(failures, 0) + 1)!!
+fun retryAfter(failures: Int): Duration = if (failures <= 1) firstCheck else hourly
 
 /**
- * When to arm the alarms at [now], also outside a run's end (Set, the daily switch on, a page
- * open, a boot, a clock or time zone change, an app update), which must not move a failed run's
- * retry: [nextRun] by the clock from [now], or the retry of the last of [failures] failed runs in
- * a row, which ended at [failedAt], when that comes first; a retry already due comes at [now],
- * as a check passed since [lastRun] does (B16). At a run's end ([failedAt] = [now]) the same as [nextRun] with [failures].
- * While a run goes ([running], started at [lastRun]; also one that started and never ended, in a
- * new process, B19), no later than [runRetry] after its start (at the earliest [now]): the pair
- * its start armed stays, so a run that never reaches its end (the process killed or frozen) is
- * still retried (B16f1). The last failure's retry then doesn't count: the run going is it.
+ * When to arm the alarms at [now] (a run's start and end, Set, the daily switch on, a page open,
+ * a boot, a clock or time zone change, an app update): [nextRun] by the clock from [now] (a check
+ * passed since [lastRun] at once, B16), or, after [failures] failed runs in a row (a run counts as
+ * failed from its start, [lastRun], until it ends well: a run going, one stopped, one killed or
+ * one that failed, O4b), [retryAfter] after the last one's start when that comes first, at the
+ * earliest [now]. So an arming during a run keeps the pair its start armed (B16f1), one in a new
+ * process after the run was killed keeps it too (B19), and one after a failed run keeps its retry.
  */
 fun nextAlarm(
     now: Instant,
     zone: ZoneId,
     failures: Int,
-    failedAt: Instant?,
     time: PictureTime,
     turns: Boolean,
     offset: Duration,
     waiting: Boolean,
-    lastRun: Instant? = null,
-    running: Boolean = false,
+    lastRun: Instant?,
 ): Instant {
-    val clock = nextRun(now, zone, 0, time, turns, offset, waiting, lastRun)
-    if (running && lastRun != null) return minOf(clock, maxOf(lastRun + runRetry(failures), now))
-    val retry = failedAt?.let { at -> retryAfter(failures)?.let { at + it } } ?: return clock
-    return minOf(clock, maxOf(retry, now))
+    val clock = nextRun(now, zone, time, turns, offset, waiting, lastRun)
+    if (failures <= 0 || lastRun == null) return clock
+    return minOf(clock, maxOf(lastRun + retryAfter(failures), now))
 }

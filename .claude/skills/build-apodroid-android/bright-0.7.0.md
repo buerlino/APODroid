@@ -88,9 +88,10 @@ feed, 56 of its 60 items at `?h=640`, 6 Aug to 30 Oct 2026; Earth's 40 newest po
 - **Android's own dimming** isn't open to apps: `WallpaperManager.setWallpaperDimAmount` is a
   system API (not in API 37's public stubs, checked 2026-11-02).
 
-**With Live** (track L): the engine draws the screen's copy each minute at a moving frame. One
-factor per picture, from the whole picture (measured once when the copy is written, noted beside
-it as `live.<screen>.whole` is), so the brightness doesn't change as the frame moves; L4's drawing
+**With Live** (track L): the engine draws Live's one copy, `live.jpg` (home's picture; no
+per-screen copies since 2026-11-14, `live-0.7.0.md` Decision 10), each minute at a moving frame.
+One factor per picture, from the whole picture (measured once when `setDue` writes `live.jpg`,
+noted beside `live.whole`), so the brightness doesn't change as the frame moves; L4's drawing
 function takes it as a `Paint`, so the engine, the still whole picture and L7's preview darken
 alike.
 
@@ -211,8 +212,9 @@ Earth's 40 newest: 31 decoded.
 ### [ ] BR3. Live: the engine and the preview darken by the picture's factor (Opus, medium)
 
 (After L5; small enough to fold into L5 and L7 if those aren't built yet: then this row goes.)
-- The factor measured once per picture on the whole picture when `setDue` writes the screen's
-  copy, noted beside it; the engine and L7's preview pass it to L4's drawing function.
+- The factor measured once per picture on the whole picture when `setDue` writes `live.jpg`,
+  noted beside `live.whole` (no per-screen copies, `live-0.7.0.md` Decision 10); the engine and
+  L7's preview pass it to L4's drawing function.
 - **Tablet:** Live on with a bright picture: the frame at 06:00, 12:00 and 23:30 (the clock
   stepped forward, the skill's how) equally darkened; a dark one untouched.
 - **Done when:** the tablet passes.
@@ -220,7 +222,7 @@ Earth's 40 newest: 31 decoded.
 ## Seams with tracks O and L
 
 - **`Store.set`** is changed by BR2, by L4 (the drawing moves to `Drawing.kt`) and by L5
-  (`setDue` hands live screens to the engine): BR2 first, then L4 and L5 build on it.
+  (`setDue` hands home to the engine): BR2 first, then L4 and L5 build on it.
 - **L4's check** (the whole picture pixel-identical before and after the move) gains a darkened
   whole picture.
 - **L6's Size row** and BR2's switch, if any, sit together in Setup.

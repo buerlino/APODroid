@@ -947,10 +947,10 @@ Aligned with `live-0.7.0.md`'s "Seams with track O" (2026-10-28).
    reads the engine's oom adj and runs ZUI's cleaner against a live probe; O8's sweep can include
    L's probe if it exists by then.
 3. **The detector and Live** (user, 2026-10-28, `live-0.7.0.md` Decision 9): the detector doesn't
-   suggest Live (Live is a look, Keep running the fix); with APODroid the current live wallpaper
-   and still a miss, it shows the maker's line. "APODroid is the live wallpaper" is L5's
-   `Store.liveOn`, not `getWallpaperInfo()`: below Android 14 that returns null without
-   `QUERY_ALL_PACKAGES`. Keep running stays a plain switch, not turned off by Live.
+   suggest Live (Live is a look, Keep running the fix). **Live doesn't change the detector**
+   (2026-11-14, a review): it fires only when the alarms are gone, i.e. after a force stop, which
+   drops Live on both screens (L1), so "Live on and still a miss" can't happen and the detector
+   needs no `Store.liveOn`. Keep running stays a plain switch, not turned off by Live.
 4. **No shared service:** Keep running is a foreground service that does nothing; Live's engine a
    `WallpaperService`; the runs stay JobScheduler's. All in the app's one process: L must not use
    `android:process` (the prefs, the locks and `JobRuns` are per process).

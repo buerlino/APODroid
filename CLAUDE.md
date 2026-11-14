@@ -1417,7 +1417,8 @@ in [live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md)):
   choose it.
 - **The preview in ⛶ mode:** with Live the frame where the clock has it (no drag); with "Whole
   picture" a screen-shaped preview on its background, drawn by the wallpaper's code.
-- **"My picture" moves too.** **The detector doesn't suggest Live.**
+- **"My picture" moves too.** **The detector doesn't suggest Live**, and Live doesn't change it
+  (2026-11-14: it fires only after a force stop, which drops Live on both screens).
 - **Different pictures on home and lock: Live on home, the lock screen still Fill** (user,
   2026-11-14, from L1 on the tablet; replaces 2026-10-28's second picker trip for a lock-screen
   engine). ZUI's picker offers only "Home screen" or "Home screen and lock screen", and either

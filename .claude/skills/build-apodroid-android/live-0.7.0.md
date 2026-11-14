@@ -3,8 +3,9 @@
 (User, 2026-10-22 evening, 0.7.0's headline; planned 2026-10-28 with the user:
 [Decisions](#decisions-user-2026-10-28); reviewed by reading the same evening against `Store.kt`,
 `PictureTime.kt` and `Frame.kt`: the engine draws its own copy, lost Live gets Fill at once, Set
-waits for the engine after the picker, the shared engine told by the engines' notes, the engine
-can't crash, Decision 10. Rewritten 2026-11-14 after L1's STOP on the tablet, from the user's
+waits for the engine after the picker, the shared engine told by the engines' notes (replaced
+2026-11-14 by the system's answers, Decisions 10–12), the engine can't crash, Decision 10
+(replaced 2026-11-14). Rewritten 2026-11-14 after L1's STOP on the tablet, from the user's
 [Decisions after L1](#decided-after-l1-user-2026-11-14): Live is the home screen's, the lock
 screen Fill when its picture differs, the stale wake frame accepted, both screens Fill when home
 loses Live. What was settled before is in `CLAUDE.md`, Next
@@ -195,7 +196,9 @@ Asked one at a time, each with the recommendation first; every answer was the re
    the day's route, not a preview always shown.
 8. **"My picture" moves too:** Live moves every picture except one set to "Whole picture".
 9. **The detector doesn't suggest Live** (track O's recommendation, decided here): Live is a
-   look, Keep running the fix; with Live on and still a miss the box shows the maker's line.
+   look, Keep running the fix. **Live doesn't change the detector** (2026-11-14, a review): it
+   fires only when the alarms are gone, i.e. after a force stop, which drops Live on both
+   screens, so "Live on and still a miss" can't happen and the detector needs no `Store.liveOn`.
 10. ~~Different pictures on home and lock: Set offers the picker for the lock screen~~ (user,
     2026-10-28 evening; replaced 2026-11-14 by the Decision 10 below: L1 found no way to a lock
     screen engine through ZUI's picker).
@@ -214,8 +217,9 @@ From L1's STOP (rosie, the tablet, `.coord/runs/095-l1/report.md`).
     second engine. A lock screen with a column and no home column (APOD mode's "Where" Lock):
     Fill, no picker. **The same rule on every Android 14+ picker**, also one that offers "Lock
     screen" (LineageOS's on the FP6, L2): a lock screen with an engine of its own isn't counted as
-    live, so its column's next set replaces it with Fill. Changed only if L2 shows a reason
-    (Open).
+    live, so its column's next set replaces it with Fill. Changed only if L2 shows a reason: L6
+    doesn't wait for L2 (user, 2026-11-14), so a finding becomes a fix package for the user to
+    decide (Open).
 11. **The wake frame: accepted.** The lock screen shows the frame drawn before the screen went off
     for about 0.3 s after a wake, then the engine's new one (L1, 2 of 3 captures; the lock screen
     still dim then). No redraw while the screen is off (CLAUDE.md's rule stands).
@@ -256,10 +260,13 @@ From L1's STOP (rosie, the tablet, `.coord/runs/095-l1/report.md`).
   `getWallpaperId(FLAG_LOCK)` -1 (L1: shared → -1, home only → a real id). Never below 14
   (Decision 5), never by an engine of its own (Decision 10). The engine's flags aren't used (L1:
   a stray on the lock screen reports 3). Not `QUERY_ALL_PACKAGES` (a permission).
-- **Set with Live opens Android's picker when a screen Live should cover isn't covered:** home
-  with a column not live, or the lock screen with a column equal to home's (APOD mode's "Where"
-  Both) while home is live but not shared (after a split). Never for the lock screen alone (no
-  home column) or a lock column that differs. The page says which screens are live.
+- **Set with Live opens Android's picker when home isn't covered:** home with a column not live.
+  Also, on 14+ only and at most once per split, when this Set makes the columns equal (the stored
+  columns differed before it) while home is live but not shared: a home-only answer then leaves
+  the lock screen Fill, with no further picker. Never below 14 (`liveShared` is never true
+  there), never for the lock screen alone (no home column) or a lock column that differs, and
+  never again for the same equal columns (else every Set with equal columns, APOD mode's "Where"
+  Both too, would open it). The page says which screens are live.
 - **After the picker, Set waits for the engine:** it notes `getWallpaperId` of both screens
   before opening the picker; when an id changed on the return, it waits up to 3 s for `liveOn`
   (14+: the system's answer; below 14: the engine's note with the new id, written
@@ -273,8 +280,11 @@ From L1's STOP (rosie, the tablet, `.coord/runs/095-l1/report.md`).
   (as Set forgets it), so it's due again and gets Fill at once; home's loss forgets both
   (Decision 12).
 - **D starts the alarms' run** (job 2, `DailyJob.runNow`), not a second run path in the engine
-  (Seams, 1). A stray engine (non-preview, 14+, home not live) counts as a check owed, so the
-  lock screen's Fill (Decision 12) comes at the next screen-on, not the next check time.
+  (Seams, 1). A stray engine (non-preview, 14+, home not live) counts as a check owed while a
+  record is still noted live, so the lock screen's Fill (Decision 12) comes at the next screen-on,
+  not the next check time; the run that handles it removes the notes, also when it found nothing
+  to replace, so a stray left on a lock screen without a column doesn't start a run at every
+  screen-on.
 
 ## The plan
 
@@ -354,7 +364,8 @@ black or on the blurred background: A3's `whole()` today). Its three users:
 - **A stray:** a non-preview engine on 14+ that finds `getWallpaperInfo(FLAG_SYSTEM)` not naming
   it is on the lock screen alone after home's revert; it still draws home's copy, logs
   `Live: home isn't live (stray on the lock screen)`, and when it becomes visible counts as a check
-  owed for D (L8), so the next run sets both screens Fill (Decision 12).
+  owed for D (L8) while a record is noted live, so the next run sets both screens Fill (Decision
+  12).
 - **Logs** under `APODroid`: `Live: engine <flags|preview> created / destroyed` (the flags as
   Android reports them), `Live: drew <picture> p=<0.00> in <n> ms`, `Live: decoded <w>×<h>`.
 
@@ -364,8 +375,10 @@ black or on the blurred background: A3's `whole()` today). Its three users:
   as "Is it on" says. Home: 14+ `getWallpaperInfo(FLAG_SYSTEM)` names `LiveWallpaper`; below 14
   `live.homeId` equals `getWallpaperId(FLAG_SYSTEM)`. Shared: home live and
   `getWallpaperId(FLAG_LOCK)` -1 (14+; L1's table); never below 14. There's no lock-screen engine
-  of its own to ask about (Decision 10). `live.shared` notes `liveShared` at each hand-over to
-  home (for Decision 12's lock screen without a column).
+  of its own to ask about (Decision 10). `live.shared` notes `liveShared` at the start of every
+  run (`Store.update`, before the rules) while home is live, so a re-apply or a split through the
+  system's picker without a hand-over is seen; while home isn't live it keeps its last value,
+  which Decision 12's lock screen without a column reads.
 - **Lost Live** (a review of this plan, 2026-10-28; Decision 12, 2026-11-14): each screen's
   record notes when its picture went to the engine (`wallpaperLive`, `lock.wallpaperLive`; a still
   set removes it). Before the rules run:
@@ -373,8 +386,9 @@ black or on the blurred background: A3's `whole()` today). Its three users:
     revert after two deaths in 10 s): home's record forgotten (`Record.forget()`, as Set does), and
     the lock screen's when it has a column; a lock screen without a column that the engine
     covered (`live.shared`) is due home's picture (the one set with both flags, as a shared still).
-    Every set of the run is then still (home isn't live), so the stray engine on the lock screen
-    is replaced and Live is off on both until the picker. `live.shared` removed.
+    Forgetting removes the records' live notes. Every set of the run is then still (home isn't
+    live), so the stray engine on the lock screen is replaced and Live is off on both until the
+    picker. `live.shared` removed.
   - **the lock screen's record noted live and not shared now** (the user set a lock wallpaper):
     it alone is forgotten, so it gets Fill (Decision 4).
   So `dueWallpapers` makes them due again and they get Fill at once, by the job or a page open.
@@ -402,8 +416,9 @@ black or on the blurred background: A3's `whole()` today). Its three users:
   state), always shown, as "Where". Placeholders: the heading "Size"; the summary " · Live".
 - **Set with Live:**
   1. `saveSetup`.
-  2. If home has a column and isn't live, or the lock screen's column equals home's while home is
-     live but not shared (after a split): note `getWallpaperId` of both screens and open Android's
+  2. If home has a column and isn't live, or (14+ only, once per split) this Set makes the
+     columns equal, the stored ones having differed, while home is live but not shared: note
+     `getWallpaperId` of both screens and open Android's
      picker (`ACTION_CHANGE_LIVE_WALLPAPER` for `LiveWallpaper`, started directly and
      `ActivityNotFoundException` caught: L1's `resolveActivity` is null without `<queries>`;
      failing that `ACTION_LIVE_WALLPAPER_CHOOSER`; failing both a toast, placeholder "This phone
@@ -412,7 +427,9 @@ black or on the blurred background: A3's `whole()` today). Its three users:
   3. On the return (the page's `onResume`): when an id changed, wait up to 3 s for `liveOn(HOME)`
      (this file, "After the picker, Set waits for the engine"). Then Set's `update(set = true)`:
      home to the engine, and the lock screen's still Fill when its picture differs (Decision 10);
-     without a picker at once. Backing out of the picker gives Fill (Decision 4).
+     without a picker at once. Backing out of the picker gives Fill (Decision 4); after the
+     equal-columns trip a home-only answer or a back-out leaves the lock screen Fill, and the next
+     Set with the same columns opens no picker.
 - **The page:** while Size is Live, the daily switch is on and home has a column but isn't live,
   a status line, placeholder "Live isn't on. Set as wallpaper turns it on." (also after Decision
   12's revert). Otherwise the status lines as now.
@@ -507,10 +524,11 @@ the design comes before the package it decides.
 - **For L2** (the FP6's picker, LineageOS, Android 16): does it ask "Lock screen" too, and does
   "Home screen" over a shared still make the engine shared, as ZUI's and AOSP's do? Decision 10's
   rule stays the same everywhere (Live is home's; a lock-screen engine of its own isn't counted
-  and its column's next set replaces it) unless L2 shows a reason, then back to the user.
+  and its column's next set replaces it) unless L2 shows a reason; L6 is built before L2 (user,
+  2026-11-14), so such a finding becomes a fix package for the user to decide.
 - What ZUI's "Home screen" does over a home-only engine with a still lock screen (L1 tried it over
-  a shared still and over a lock-only engine): L6 looks, for Set's picker with equal columns
-  after a split.
+  a shared still and over a lock-only engine): L6 looks, for Set's one picker trip when the
+  columns become equal after a split; a home-only answer is accepted (the lock screen Fill).
 - Android 10–14: untested (E stays the user's call), as for track O.
 - Whether a live wallpaper reverts by itself on the FP6, as on the FP5 (L10).
 - The texts: placeholders until the user approves them from screenshots (L5, L6, L7).
@@ -538,7 +556,7 @@ FP6**.
 | L3 | `:core`: the position by the clock, the decode size, still or engine | Opus, medium | winston, no device | O1, L1 |
 | L4 | The drawing: one function for the whole picture, the engine and the preview | Opus, medium | winston, tablet | O2 |
 | L5 | The engine, and `setDue` leaves a live screen to it | Opus, high | winston, tablet | L1, L3, L4 |
-| L6 | Size [Fill \| Live], Set opens Android's picker, the texts | Opus, high | winston, tablet | L5, L2 |
+| L6 | Size [Fill \| Live], Set opens Android's picker, the texts | Opus, high | winston, tablet | L5 (not L2: user, 2026-11-14) |
 | L7 | The preview in ⛶ mode | Opus, medium | winston, tablet | L6 |
 | L8 | D: the screen-on check starts the alarms' run | Opus, medium | winston, tablet | L5, O4 (and its packages) |
 | L9 | Tablet pass of the track, and two real days with Live | Opus, high | rosie, tablet | L6–L8 |
@@ -868,7 +886,8 @@ engine on home.
   picture whatever its flags, and catches everything in decode and draw, as This file says; the
   stray's log line (A stray).
 - **`Store.liveOn(HOME)`** and `liveShared` from the system's answers (L1's table), the
-  `live.homeId` note below 14; `live.shared` at each hand-over.
+  `live.homeId` note below 14; `live.shared` from `liveShared` at each run's start while home is
+  live.
 - **`setDue`** with L3's rule as for Size Live: home gets its copy, then its record (noted
   `wallpaperLive`) and `wallpaperSetAt`, no `WallpaperManager` call, `setsSinceSetup` true, logged
   `wallpaper shown live: <picture> on <screens>`; the lock screen with another picture, or not
@@ -918,14 +937,16 @@ engine on home.
 
 ### [ ] L6. Size [Fill | Live], Set opens Android's picker, the texts (Opus, high)
 
-(This file, `Store`, Size and Set, its second half. After L5 and L2.)
+(This file, `Store`, Size and Set, its second half. After L5. Built without waiting for L2 (user,
+2026-11-14): an L2 finding on the FP6 later becomes a fix package for the user to decide.)
 - **The pref `size`** (`FILL`, `LIVE`): in `Setup`, `saveSetup`, the draft and its saved state,
   the highlight; Size Fill gives all still sets (L3's rule), a still set replacing APODroid's
   engine.
 - **The row [Fill | Live]** in Setup after "Where" or the list (`Segments`), always shown.
 - **Setup's summary** " · Live".
-- **Set's flow** as This file says: the picker when home has a column and isn't live, or the
-  lock screen's column equals home's and isn't shared (never for the lock screen alone); the
+- **Set's flow** as This file says: the picker when home has a column and isn't live, or, on 14+
+  and once per split, when this Set makes differing stored columns equal while the lock screen
+  isn't shared (never below 14, never for the lock screen alone); the
   intent started directly, the chooser or the toast on `ActivityNotFoundException`; the ids noted
   before, the wait for `liveOn(HOME)` after; the update after the return (the lock screen's still
   Fill when its picture differs, Decision 10), Fill after backing out.
@@ -946,11 +967,13 @@ engine on home.
     picker once; each of "Home screen" and "Home screen and lock screen" in turn: home moving
     (`shown live` on HOME), the lock screen's still Fill of Earth right after (`wallpaper set: …
     on LOCK`, the engine's flags 1); a second Set doesn't open the picker.
-  - **Equal columns after the split:** the columns made equal and Set: the picker opens (the lock
-    screen not covered); "Home screen and lock screen": shared (`getWallpaperId(FLAG_LOCK)` -1),
-    the lock screen's record noted live, no still set. Again from the split with "Home screen":
-    note what ZUI does (Open); if it stays home only, the lock screen Fill of the same picture and
-    the next Set asks again (reported, not a failure).
+  - **Equal columns after the split:** the columns made equal and Set: the picker opens once (the
+    lock screen not covered); "Home screen and lock screen": shared (`getWallpaperId(FLAG_LOCK)`
+    -1), the lock screen's record noted live, no still set. Again from the split with "Home
+    screen", and once with a back-out: note what ZUI does (Open); if it stays home only, the lock
+    screen Fill of the same picture, and a second Set with the same columns opens **no** picker.
+  - Equal columns from the start (APOD mode, "Where" Both), Live on home only (a still set on the
+    lock screen by hand): Set opens no picker, the lock screen Fill.
   - After confirming the picker, Set's update hands the screens to the engine (`shown live`),
     no still set over the live wallpaper just picked (`dumpsys wallpaper`).
   - Another wallpaper picked in the system for home: the next `run -f 1` sets Fill on both, the
@@ -984,8 +1007,9 @@ engine on home.
 (This file, D; `on-time-0.7.0.md`, D and its Seams 1. After L5 and O4 with its packages, which may
 change the run's bookkeeping; with O10 the run is expedited.)
 - **In the engine's `onVisibilityChanged(true)`** (not the preview), while `daily` is on: when
-  `Store.nextAlarm()` ≤ now, or the engine is a stray (14+, home not live; Decision 12), and
-  `lastRunAt` is older than 15 min, `DailyJob.runNow(context)`. Logged `Live: screen on, run
+  `Store.nextAlarm()` ≤ now, or the engine is a stray (14+, home not live; Decision 12) while a
+  record is still noted live (`wallpaperLive` on either screen), and `lastRunAt` is older than
+  15 min, `DailyJob.runNow(context)`. Logged `Live: screen on, run
   owed`. Nothing else: the run is job 2's.
 - **Files:** `LiveWallpaper.kt`; `CLAUDE.md` (Background update: D); the skill.
 - **Tablet:**
@@ -1000,7 +1024,8 @@ change the run's bookkeeping; with O10 the run is expedited.)
     preview.
   - **The stray:** Decision 12's case provoked (L5's notes), nothing owed, `lastRunAt` older than
     15 min: WAKEUP on the lock screen starts the run (`Live: screen on, run owed`), both screens
-    Fill.
+    Fill. With "Where" Home and no `live.shared` (nothing to replace on the lock screen): the first
+    WAKEUP starts one run, which removes the notes; a WAKEUP 15 min later starts none.
   - Then the smoke list.
 - **Done when:** the tablet passes.
 
@@ -1072,10 +1097,10 @@ Aligned with `on-time-0.7.0.md`'s "Seams with track L" (2026-10-28), point by po
    Live on home, Live gives what Keep running gives on ZUI, without the notification; Keep running
    stays a plain switch (3), and a phone whose cleaner force-stops anyway loses Live on both
    screens (both default) and the alarms. A double death reverts home only (Decision 12).
-3. **The detector doesn't suggest Live** (user, 2026-10-28, Decision 9). For "APODroid is the
-   current live wallpaper", **use `Store.liveOn` (L5), not `getWallpaperInfo()`**: below 14 that
-   returns null without `QUERY_ALL_PACKAGES`. Keep running stays a plain switch, not turned off by
-   Live.
+3. **The detector doesn't suggest Live** (user, 2026-10-28, Decision 9), and **Live doesn't
+   change the detector** (2026-11-14): it fires only when the alarms are gone, a force stop, which
+   drops Live on both screens, so it never sees Live on and needs no `Store.liveOn`. Keep running
+   stays a plain switch, not turned off by Live.
 4. **No shared service, one process:** agreed. The engine is a `WallpaperService` in the app's
    process, no `android:process`.
 5. **The set paths:** agreed. `Store.update` stays the one entry point for a run; L5 changes only

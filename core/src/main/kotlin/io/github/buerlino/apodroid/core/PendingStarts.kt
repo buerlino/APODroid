@@ -1,13 +1,15 @@
 package io.github.buerlino.apodroid.core
 
 /**
- * "Keep running"'s starts not yet delivered (O11, fix rounds 1 and 2): `startForegroundService`
+ * "Keep running"'s starts not yet delivered (O11, fix rounds 1 to 3): `startForegroundService`
  * owes Android a `startForeground` in the service's `onStartCommand`, and a `stopService` that
  * comes before it takes the service down owing it, which crashes the app ("did not then call
  * startForeground"): a job run's start read the switch on and started it while the page turned
  * it off. So a stop waits while a start is pending; the pending `onStartCommand` goes foreground,
  * reads the switch off and stops itself. A count, not a flag: two quick starts give two
- * `onStartCommand`s.
+ * `onStartCommand`s. A start stays pending until its `onStartCommand`'s `startForeground` has
+ * gone foreground or been refused (fix round 3: counted off at the top of `onStartCommand`, a stop
+ * in the gap before `startForeground` still crashed the app).
  *
  * Each whole step runs under one lock (fix round 2): [start]'s read of the switch, the count and
  * `startForegroundService`; [stopIf]'s check and `stopService`. Callers write the switch before
@@ -46,8 +48,10 @@ class PendingStarts {
     }
 
     /**
-     * At the top of `onStartCommand`; [fromStart]: it carries an intent (a sticky restart has
-     * none and owes nothing, also in a process whose count is new).
+     * In `onStartCommand`, once its `startForeground` try has ended, foreground or refused (in a
+     * `finally`, before the refusal's `stopSelf` and the switch's read; fix round 3); [fromStart]:
+     * it carries an intent (a sticky restart has none and owes nothing, also in a process whose
+     * count is new).
      */
     @Synchronized
     fun delivered(fromStart: Boolean) {

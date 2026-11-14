@@ -930,7 +930,9 @@ itself; a stop waits while a start is pending (`:core`'s `PendingStarts`, O11's 
 `stopService` before the start's `onStartCommand` crashes the app, "did not then call
 startForeground"), the start's read of the switch and `startForegroundService` under one lock
 with the stop's check and `stopService` (fix round 2: else a start read on, a stop found
-nothing pending, and the two crossed). The notification: channel `keep`, "Keep running", `IMPORTANCE_LOW`, no badge; the text
+nothing pending, and the two crossed); a start stays pending until its `onStartCommand`'s
+`startForeground` has gone foreground or been refused (fix round 3: counted off at the top, a
+stop during the notification's building still crashed the app). The notification: channel `keep`, "Keep running", `IMPORTANCE_LOW`, no badge; the text
 "Keeps the wallpaper changing on time" (the header names the app), ongoing, no time, the small
 icon `ic_keep_running` (the monochrome layer's paths, the inner 72 of 108 units, 24 dp), a tap
 opens the page. **Started** by `KeepRunning.ensure` (while `daily` and `keepRunning`, else it

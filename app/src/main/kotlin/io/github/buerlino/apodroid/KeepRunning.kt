@@ -29,16 +29,24 @@ class KeepRunning : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        pending.delivered(fromStart = intent != null)
-        try {
+        // The start counts as pending until startForeground's try has ended, foreground or
+        // refused (fix round 3): delivered at the top left a gap (the notification's binder
+        // calls) in which a stop found nothing pending and stopService crashed the app.
+        val foreground = try {
             ServiceCompat.startForeground(
                 this,
                 NOTIFICATION,
                 notification(this),
                 if (Build.VERSION.SDK_INT >= 34) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0,
             )
+            true
         } catch (e: Exception) {
             Log.w("APODroid", "Keep running: refused: $e")
+            false
+        } finally {
+            pending.delivered(fromStart = intent != null)
+        }
+        if (!foreground) {
             stopSelf()
             return START_NOT_STICKY
         }
@@ -56,7 +64,7 @@ class KeepRunning : Service() {
         private const val NOTIFICATION = 1
         private const val CHANNEL = "keep"
 
-        /** Starts not yet delivered to [onStartCommand]: [stop] waits for them (fix rounds 1 and 2). */
+        /** Starts whose [onStartCommand] hasn't yet gone foreground or been refused: [stop] waits for them (fix rounds 1 to 3). */
         private val pending = PendingStarts()
 
         /**

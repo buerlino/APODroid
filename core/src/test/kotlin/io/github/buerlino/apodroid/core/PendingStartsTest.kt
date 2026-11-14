@@ -40,6 +40,23 @@ class PendingStartsTest {
         assertEquals(listOf("start", "stop"), events)
     }
 
+    /**
+     * O11's fix round 3: onStartCommand has begun (building the notification, before
+     * startForeground) when a stop comes: still pending, so the stop is skipped; only once the
+     * start has gone foreground (delivered) may a stop run.
+     */
+    @Test
+    fun aStopBeforeStartForegroundIsSkipped() {
+        val starts = PendingStarts()
+        assertTrue(starts.startIf(true))
+        // onStartCommand runs; notification() makes its binder calls; the job's ensure reads off.
+        assertFalse(starts.tryStop())
+        // startForeground's try ends, then delivered.
+        starts.delivered(fromStart = true)
+        assertTrue(starts.tryStop())
+        assertEquals(listOf("start", "stop"), events)
+    }
+
     @Test
     fun twoQuickStartsWaitForBoth() {
         val starts = PendingStarts()

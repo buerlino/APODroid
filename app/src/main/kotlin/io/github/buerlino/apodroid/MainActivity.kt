@@ -99,6 +99,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
@@ -109,7 +110,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
@@ -128,9 +132,11 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
 import io.github.buerlino.apodroid.core.Maker
@@ -147,6 +153,7 @@ import io.github.buerlino.apodroid.core.pictureAtOrDefault
 import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -177,6 +184,15 @@ class MainActivity : ComponentActivity() {
 
     /** Their pictures, decoded for the screen ([decodeForScreen]); none on video days. At most three. */
     private var pictures by mutableStateOf(emptyMap<Source, ImageBitmap>())
+
+    /**
+     * The sizes of the pictures [onStop] let go (O12), until [show] decodes them again: the pages
+     * keep their height meanwhile (an empty box of the picture's shape), so the page doesn't jump.
+     */
+    private var stoppedSizes by mutableStateOf(emptyMap<Source, IntSize>())
+
+    /** [onStop] let the pictures go: the next [load] shows them again, also while one runs. */
+    private var restore = false
 
     /** The shown source's post: the boxes and the caption below the pager, ⛶'s part, Set's crop. */
     private val post
@@ -480,6 +496,26 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
+     * Lets the decoded pictures go (O12: with Keep running or Live the process stays alive for
+     * days, and O7 saw them held in the native heap after Back). The composition holds them while
+     * the page is stopped (it doesn't recompose then), so they're recycled, not only dropped; a
+     * [show] that runs meanwhile ends without drawing (one going now too). [onResume]'s [load]
+     * decodes them again. The draft, crop mode's part and the shown source stay.
+     */
+    override fun onStop() {
+        super.onStop()
+        if (pictures.isEmpty()) return
+        val dropped = pictures.values
+        stoppedSizes = pictures.mapValues { (_, picture) -> IntSize(picture.width, picture.height) }
+        pictures = emptyMap()
+        showing++
+        restore = true
+        // The composition hears of it before its next frame draws (a recycled picture isn't drawn: [PicturePainter]).
+        Snapshot.sendApplyNotifications()
+        dropped.forEach { it.asAndroidBitmap().recycle() }
+    }
+
+    /**
      * Redraws after the job set the wallpaper or stored a post, or a save ended, while the page
      * is open. A [load], a Set or the daily switch's run going redraws after it anyway, so this
      * waits for them (B14: during a Set the page drew the home screen's new line beside the lock
@@ -554,8 +590,9 @@ class MainActivity : ComponentActivity() {
     private fun load(force: Boolean = false) {
         if (loading || switching) {
             loadAgain = force || loadAgain == true
-            // A page a rotation made during the daily switch's run: what's stored meanwhile.
-            if (posts.isEmpty()) lifecycleScope.launch {
+            // A page a rotation made during the daily switch's run: what's stored meanwhile; a page
+            // back from the background (O12): its pictures.
+            if (posts.isEmpty() || restore) lifecycleScope.launch {
                 readStatus()
                 show()
             }
@@ -726,6 +763,8 @@ class MainActivity : ComponentActivity() {
      * crop mode; a changed title or explanation for the same date doesn't.
      */
     private suspend fun show() {
+        // A stopped page decodes nothing (O12): [onResume]'s [load] shows it again.
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return
         val run = ++showing
         val offered = sources
         val latest = offered.mapNotNull { source -> store.post(source)?.let { source to it } }.toMap()
@@ -747,6 +786,8 @@ class MainActivity : ComponentActivity() {
         if (old?.date != new?.date || old?.imageUrl != new?.imageUrl) cropping = false
         posts = latest
         pictures = kept + decoded
+        stoppedSizes = emptyMap()
+        restore = false
         saved = isSaved
     }
 
@@ -1274,6 +1315,12 @@ class MainActivity : ComponentActivity() {
     private fun PicturePage(source: Source) {
         val post = posts[source]
         val picture = pictures[source]
+        // Back from the background (O12): the picture's place until it's decoded again.
+        val stopped = stoppedSizes[source]
+        if (post != null && picture == null && !post.isVideo && stopped != null) {
+            Box(Modifier.fillMaxWidth().aspectRatio(stopped.width.toFloat() / stopped.height))
+            return
+        }
         if (post == null || (picture == null && !post.isVideo)) {
             Box(Modifier.fillMaxWidth().aspectRatio(3f / 2f), contentAlignment = Alignment.Center) {
                 when {
@@ -1295,7 +1342,7 @@ class MainActivity : ComponentActivity() {
         val crop = cropping && source == shown
         Box(contentAlignment = Alignment.BottomEnd) {
             Image(
-                bitmap = picture,
+                painter = remember(picture) { PicturePainter(picture) },
                 contentDescription = post.title,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1392,7 +1439,7 @@ class MainActivity : ComponentActivity() {
     private fun Caption() {
         val apod = apod
         val post = post
-        if (post == null || (post.source !in pictures && !post.isVideo)) {
+        if (post == null || (post.source !in pictures && post.source !in stoppedSizes && !post.isVideo)) {
             BatteryNotice()
             return
         }
@@ -2366,3 +2413,16 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         }.toMap(),
     )
 }.getOrNull()
+
+/**
+ * Draws [picture] as `Image(bitmap = …)` does, but nothing once it's recycled ([MainActivity.onStop],
+ * O12): a frame drawn before the page recomposes mustn't crash.
+ */
+private class PicturePainter(private val picture: ImageBitmap) : Painter() {
+    override val intrinsicSize = Size(picture.width.toFloat(), picture.height.toFloat())
+
+    override fun DrawScope.onDraw() {
+        if (picture.asAndroidBitmap().isRecycled) return
+        drawImage(picture, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()))
+    }
+}

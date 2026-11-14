@@ -302,6 +302,13 @@ packages unattended): `night.md`.
 - A phone's width on the tablet (for font scale 2.0 checks): `wm density 344` (the FP6's 372 dp:
   1116 px at 480 dpi, measured 2026-10-18; 425 dp, used until then, was too wide and hid the
   chips wrapping), `wm density reset` after; the tablet's font scale is 1.1 (2026-10-17).
+- Keep running's notification on 13+ (O15): `pm grant … POST_NOTIFICATIONS` refuses (the app
+  doesn't declare it) and `appops set … POST_NOTIFICATION allow` doesn't post it either; Quick
+  Settings' Active apps (its "N apps are active" button) lists APODroid. `run-as … kill -9` works
+  on debug builds only; on R8 `am kill` leaves a process with Keep running on alone. A held alarm
+  (the `rare` bucket): remove the battery whitelist first (`cmd deviceidle whitelist -<pkg>`),
+  else the bucket stays EXEMPTED; `dumpsys alarm`'s `policyWhenElapsed: … app_standby=+59m…`
+  shows the hold.
 - Whether Android 15+ holds a job back for charging or idle: `Num Required Flexible
   constraints` in its `dumpsys jobscheduler` entry (0 on the tablet, 2026-10-17).
 - Stop a running job as the system would: `adb shell cmd jobscheduler timeout
@@ -383,20 +390,22 @@ what it leaves open.
   `debug-set.png`'s pixels, synthetic pictures only): Android 10–14's codec on an EXIF crop, a
   real wide panorama's frame, the lock screen by eye, the wallpaper colours from a darkened set,
   screen readers' "not set yet", and the FP6.
-- The detector (O14, 2026-11-14; the tablet, Android 15, pipeline run 101: a force stop, the clock
-  stepped, Keep running off and on, a reboot, a page before T + offset + 30 min): a bucket holding
-  the alarm without a force stop (`am set-standby-bucket … rare` didn't take, `DetectorTest` only),
-  the alarms gone with job 2 pending (the landing alarm re-armed the pair), the daily switch, Set
-  and a pull right after a force stop, the one-column layout's scroll to "Keep running", ZUI's
-  cleaner on a real day, the makers' lines on their phones, and the FP6.
-- The alarms' run as an expedited job (O10, 2026-11-14; pipeline run 103, the tablet check not
-  run: the night's serial was the FP6 and adb was denied): the app's own job 2 on any device (O6
-  checked only the probes `.ej` and `.reg`), its "expedited"/"not expedited" start lines, the
-  plain job after `RESULT_FAILURE` (no quota left), a stop at the expedited limit, and 10–11's
-  plain job.
-- The detector's box naming the day of an earlier miss (O14b, 2026-11-14; pipeline run 104, not
-  run on a device for the same reason; `DetectorTest` only), and the day not moving at midnight
-  while the page stays open (it is read when the box draws).
+- The detector (O14, 2026-11-14; the tablet, Android 15, pipeline run 101, and O15, run 115, on
+  debug and R8: a force stop, the clock stepped, Keep running off and on, a reboot, a page before
+  T + offset + 30 min, a bucket holding the alarm without a force stop: the whitelist off and
+  `rare`, the pair held by `app_standby` about an hour, the page found it there, no box): the
+  alarms gone with job 2 pending (the landing alarm's pair still answers `FLAG_NO_CREATE`, so the
+  exclusion isn't reached; no box either way), the daily switch, Set and a pull right after a
+  force stop, the one-column layout's scroll to "Keep running", ZUI's cleaner on a real day, the
+  makers' lines on their phones, and the FP6.
+- The alarms' run as an expedited job (O10, 2026-11-14; checked on the tablet by O15, run 115,
+  debug and R8: Optimized, `rare`, on battery, force-idle and battery saver, "job 2 starts,
+  expedited" and the set within 2 s of the alarm, `started as EJ: true`; under saver with `rare`
+  an alarm within the hour after the last is held by `app_standby`, Android's quota): the plain
+  job after `RESULT_FAILURE` (no quota left), a stop at the expedited limit, and 10–11's plain
+  job.
+- The detector's box naming the day not moving at midnight while the page stays open (it is read
+  when the box draws; O14b's day and today's time alone checked by O15 on debug and R8).
 - Live (L3, L5, L6, 2026-11-14; pipeline runs 105–107, no device check: run 106's serial was the
   FP6 and adb was denied, run 107 found no device): all of L5's and L6's tablet bullets in
   `live-0.7.0.md` (the engine, the pan, the hand-over, the copy not the source's file, lost Live

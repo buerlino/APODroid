@@ -896,7 +896,7 @@ today's stays as built. The text a placeholder until the user approves it from a
   a miss today unchanged.
 - **Done when:** the tests pass; the screenshot in the report's Texts.
 
-### [ ] O15. Tablet pass of the track (Opus, high)
+### [x] O15. Tablet pass of the track (Opus, high)
 
 (Agent rosie, the tablet; V11a's and V11c's form, on the tree with O10–O14.) Debug, then the R8
 build (sign as the skill says); the update from 0.6.0's build with its setup (Keep running off
@@ -907,6 +907,19 @@ Also O14b's (the night of 14 Nov ran no device check): a miss faked for yesterda
 ("the 18:00 change on 16 Nov came late"), one faked for today doesn't.
 `logcat` and `exit-info` without a crash. The texts' screenshots in one folder for the user.
 - **Done when:** every check ran on R8 too; no `BUG:` line, or each one drafted as a package.
+- **Result** (rosie, pipeline run 115, 2026-11-14, the tablet, Android 15): PASS, no `BUG:` line.
+  Debug and R8 (signed with the debug key): the update from 0.6.0's R8 build (APOD and NASA on
+  both, 3 h from 22:00) kept the setup, armed the pair by `MY_PACKAGE_REPLACED` for the same time,
+  set nothing, Keep running off and no service; the expedited run in force-idle and under saver
+  (Optimized, `rare`, on battery) set within 2 s of the alarm (under saver with `rare` an alarm in
+  the hour after the last waited for `app_standby`'s quota: Android's); the service's starts and
+  stops (on, off, the daily switch, `stop-app` and the page, a Recents swipe, `install -r`, a
+  reboot; `kill -9` on debug only: back in 1 s); the detector (off and on, Lenovo's line, the
+  buttons, Dismiss, no box before T + offset + 30 min, after a boot, with the alarm held by the
+  bucket, with job 2 pending); O14b ("the 22:00 change on 15 Nov came late", today's without the
+  day); the pause hint (Lenovo's line, "Battery optimisation" opens Android 15's "App battery
+  usage" list). No crash in `logcat`, `exit-info` or the crash buffer. The notification itself
+  not seen (POST_NOTIFICATIONS can't be granted). Screenshots: `.coord/runs/115-o15/tablet/texts/`.
 
 ### [ ] O16. A week on the tablet with Keep running (Opus, medium)
 

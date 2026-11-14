@@ -607,6 +607,19 @@ two sessions, the probes `.ej` and `.reg`, both Optimized (not on `deviceidle wh
   judged: how late RESTRICTED's alarm came, and the job after it.
 - **Done when:** session 1 ran (user, 2026-11-14), the table and the verdict written, the probes uninstalled,
   the tablet set back.
+- **Result** (rosie, session 1 only, 2026-11-14, pipeline runs 86 and 102; tablet, Android 15,
+  on battery, screen off; `.coord/runs/o6/report.md`): **PASS.** `.ej`'s expedited job started
+  in the same second as its alarm, with HTTP 200, in (a) working_set + forced deep idle, (b) rare +
+  forced deep idle, (d) battery saver (the tablet was also in deep idle) and in (c) restricted +
+  forced deep idle. In idle the alarm pair's `setAndAllowWhileIdle` alarm came at T + 3.0 min every
+  time. `.reg` (the control) never ran while idle or saver held it; out of idle in rare it still
+  waited for the network. (c): RESTRICTED's alarm quota is 1 a day. The day's first alarm came on time
+  and its expedited job ran at once with the network; the pair's second alarm was held 23 h 51 min.
+  So a RESTRICTED app's first alarm of the day runs on time; later alarms that day wait up to a
+  day. Run 86's first (b) was held by the
+  alarm quota (`standby_quota_rare` about 1 an hour, four alarms already delivered that hour), so (b)
+  and (c) ran again on fresh installs. Decides: O10 goes ahead; "Exact timing" (B) doesn't come back.
+  The night (session 2) dropped by the user: the FP6's week with 0.7.0 is the real-night evidence.
 
 ### [ ] O7. Android check: a foreground service's life, look and memory (Opus, medium)
 

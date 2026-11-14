@@ -4,10 +4,12 @@ import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
+import android.app.WallpaperManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -26,6 +28,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -148,6 +151,7 @@ import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Problem
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.Source
+import io.github.buerlino.apodroid.core.Size as Sizing
 import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.maker
@@ -158,6 +162,7 @@ import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -225,6 +230,9 @@ class MainActivity : ComponentActivity() {
     /** What each screen shows, from its record ([Store.screenState]): the chip, the opening page, the status lines. */
     private var screens by mutableStateOf(emptyMap<Screen, ScreenState>())
 
+    /** Size Live set and home with a column, APODroid's live wallpaper not on home ([Store.liveMissing], L6): the status line says so. */
+    private var liveMissing by mutableStateOf(false)
+
     /** APOD mode's screen ([Store.pageScreen]): the lock screen's record with "Where" = Lock. */
     private var pageScreen by mutableStateOf(Screen.HOME)
 
@@ -270,6 +278,9 @@ class MainActivity : ComponentActivity() {
 
     /** "Darken bright pictures" ([Store.darken], BR2): each set darkens a bright picture a little. */
     private var darken by mutableStateOf(true)
+
+    /** Size ([Store.size], L6): Fill, or Live (home's picture moving, drawn by APODroid's live wallpaper). */
+    private var size by mutableStateOf(Sizing.FILL)
 
     /**
      * The list's order ([Store.order], OR2): all three sources, the top first, sorted by drag.
@@ -355,6 +366,16 @@ class MainActivity : ComponentActivity() {
         /** The daily switch's run is going ([switchOn]); Set waits for it. */
         var switching by mutableStateOf(false)
 
+        /**
+         * Set opened Android's live wallpaper picker (L6) and waits for its return and the engine
+         * ([Store.awaitLive]): a page's load waits too ([load]), so it doesn't set a still picture
+         * first over the live wallpaper just picked.
+         */
+        var picking = false
+
+        /** Completed by the picker's return ([livePicker]'s result, or a page's [onResume] as a fallback). */
+        var pickerBack: CompletableDeferred<Unit>? = null
+
         /** ⛶'s ✓ whose set failed ([setPart]): ✓ with that part again isn't "no change". */
         var failedPart: Part? = null
 
@@ -378,6 +399,33 @@ class MainActivity : ComponentActivity() {
 
         /** After a run: each page alive runs what waited for it ([runNext]). */
         fun runAllNext() = live.values.toList().forEach { it.runNext() }
+    }
+
+    /**
+     * Android's live wallpaper picker (L6), opened by Set ([openLivePicker]): whatever it
+     * answers, its return lets Set go on ([pickerBack]). Registered with the page, so a page a
+     * rotation made gets the result too.
+     */
+    private val livePicker = registerForActivityResult(StartActivityForResult()) { pickerBack?.complete(Unit) }
+
+    /**
+     * Opens Android's picker for APODroid's live wallpaper, started directly (L1: `resolveActivity`
+     * is null without `<queries>` while the start works), else the list of live wallpapers; neither:
+     * a toast, and the Set goes on as Fill. Returns whether a picker opened.
+     */
+    private fun openLivePicker(): Boolean {
+        val direct = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
+            .putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, ComponentName(this, LiveWallpaper::class.java))
+        for (intent in listOf(direct, Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER))) {
+            try {
+                livePicker.launch(intent)
+                return true
+            } catch (_: ActivityNotFoundException) {
+                Log.i("APODroid", "Set: no activity for ${intent.action}")
+            }
+        }
+        toast("This phone can't show live wallpapers.")
+        return false
     }
 
     /** This page's id in [live], kept by a rotation. */
@@ -466,7 +514,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -479,6 +527,7 @@ class MainActivity : ComponentActivity() {
         soon = setup.soon
         darken = setup.darken
         order = setup.order
+        size = setup.size
     }
 
     /** The draft's columns: APOD mode's from "Where", else the list. A column with two or more takes turns every [interval]. */
@@ -487,6 +536,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Back from Set's picker without its result (started from a page in the background, L6).
+        pickerBack?.complete(Unit)
         // Hibernation or a force stop deleted the job (scheduling runs it at once) and the alarms.
         if (store.daily && !DailyJob.ensure(this)) Log.w("APODroid", "Couldn't schedule the daily job again")
         // Keep running (O11) back after Task Manager's Stop, a force stop or a refused start: the
@@ -602,7 +653,7 @@ class MainActivity : ComponentActivity() {
      * while the daily switch's run goes ([runNext]).
      */
     private fun load(force: Boolean = false) {
-        if (loading || switching) {
+        if (loading || switching || picking) {
             loadAgain = force || loadAgain == true
             // A page a rotation made during the daily switch's run: what's stored meanwhile; a page
             // back from the background (O12): its pictures.
@@ -676,6 +727,7 @@ class MainActivity : ComponentActivity() {
         apod = store.apod
         pageScreen = store.pageScreen
         screens = Screen.entries.associateWith(store::screenState)
+        liveMissing = store.liveMissing
         standInReady = apod?.isVideo == true && store.sourcePicture(Source.APOD) != null
         missedAt = store.missedAt
         missedKeep = store.missedKeep
@@ -723,9 +775,11 @@ class MainActivity : ComponentActivity() {
      * mode one line, for the screen "Where" names ("Changed 2 Nov, 06:12", "Video day, previous
      * kept"; U0, 2026-11-02). With the switch on one line while both screens show the same
      * picture, else one per screen that was set or kept ("Home: 2 Nov, 06:12 · NASA", "Lock:
-     * video day, previous kept").
+     * video day, previous kept"). Then, with Size Live and home not live, "Live isn't on…" (L6).
      */
-    private fun statusLines(): List<String> {
+    private fun statusLines(): List<String> = changedLines() + listOfNotNull("Live isn't on. Set as wallpaper turns it on.".takeIf { liveMissing })
+
+    private fun changedLines(): List<String> {
         // [name] null: the one line for the whole wallpaper.
         fun line(name: String?, state: ScreenState, setAt: Instant? = state.setAt): String? = when {
             state.kept -> if (name == null) "Video day, previous kept" else "$name: video day, previous kept"
@@ -979,10 +1033,18 @@ class MainActivity : ComponentActivity() {
         val app = applicationContext
         val page = id
         runs.launch {
-            val result = withContext(Dispatchers.IO) {
+            // Not written (a full disk, B20): the sets still run from memory, the toast says so.
+            val saving = withContext(Dispatchers.IO) {
                 runCatching {
-                    // Not written (a full disk, B20): the sets still run from memory, the toast says so.
+                    val before = store.columns
                     val saved = store.saveSetup(setup, pick)
+                    saved to store.opensPicker(before)
+                }
+            }
+            // Size Live (L6): Android's picker when home isn't covered, then the wait for the engine.
+            if (saving.getOrNull()?.second == true) pickLive(store, page)
+            val result = saving.mapCatching { (saved, _) ->
+                withContext(Dispatchers.IO) {
                     Triple(store.update(force = false, page = true, show = offered, set = true), store.setsSinceSetup(), saved)
                 }
             }
@@ -1012,6 +1074,34 @@ class MainActivity : ComponentActivity() {
                 },
             )
             runAllNext()
+        }
+    }
+
+    /**
+     * Set's trip to Android's live wallpaper picker (L6; live-0.7.0.md, Set with Live), after
+     * [Store.saveSetup] and before Set's update: both screens' wallpaper ids noted, the picker
+     * opened from the page that started Set (none left in the foreground, or no picker on the
+     * phone: Fill), its return awaited, then up to 3 s for the engine when an id changed ([Store.awaitLive]). A
+     * page's load waits meanwhile ([picking]). What the user answered decides the update: home
+     * live, its picture goes to the engine (and the lock screen's still Fill when it differs,
+     * Decision 10); backed out, Fill.
+     */
+    private suspend fun pickLive(store: Store, page: String) {
+        val ids = withContext(Dispatchers.IO) { store.wallpaperIds() }
+        val back = CompletableDeferred<Unit>()
+        pickerBack = back
+        picking = true
+        try {
+            // Only from a page in the foreground: a start from the background is blocked without a word.
+            val opened = live[page]?.takeIf { it.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }?.openLivePicker() == true
+            Log.i("APODroid", if (opened) "Set: Android's live wallpaper picker" else "Set: no picker opened, Fill")
+            if (opened) {
+                back.await()
+                withContext(Dispatchers.IO) { store.awaitLive(ids) }
+            }
+        } finally {
+            pickerBack = null
+            picking = false
         }
     }
 
@@ -1679,7 +1769,7 @@ class MainActivity : ComponentActivity() {
      * Wallpaper: the daily switch (at once, S4f2), under it the status lines while it's on. Then
      * "Setup" (S5), a header that opens and closes the draft's settings (closed: the summary of
      * what is stored): the switch "More NASA pictures" at its top (J3), then in APOD mode
-     * "Where", with the switch on the list ("Pictures from"); while the daily switch is on "New
+     * "Where", with the switch on the list ("Pictures from"), then Size [Fill | Live] (L6); while the daily switch is on "New
      * picture at", then, while a column takes turns, "Change every", and "If APOD is a video".
      * The set button, always. Then, while the daily switch is on, "Advanced settings", closed by
      * default: "Save every picture" (it acts at once). A setting the draft changed and Set
@@ -1725,6 +1815,9 @@ class MainActivity : ComponentActivity() {
                 } else {
                     PictureList()
                 }
+                // Always shown (L6), as "Where": never put back.
+                Heading("Size", size != stored.size)
+                Segments(Sizing.entries.map { it to it.label }, size, size != stored.size) { size = it }
                 if (daily) {
                     PictureAtChoice()
                     SoonSwitch()
@@ -1913,7 +2006,7 @@ class MainActivity : ComponentActivity() {
         allSources != stored.allSources ||
             (if (allSources) Source.entries.any(::rowChanged) || order != stored.order else where != stored.where) ||
             interval != stored.interval || pictureAt != stored.pictureAt || soon != stored.soon ||
-            darken != stored.darken || videoDaysChanged()
+            darken != stored.darken || size != stored.size || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
     private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
@@ -1937,7 +2030,8 @@ class MainActivity : ComponentActivity() {
      * 2026-11-02): "APOD, NASA · both screens" while both screens have the same sources, "APOD ·
      * home screen" while only one has any, else "Home: APOD, Earth · Lock: NASA, Earth"; while
      * the daily switch is on " · every 6 h from 06:00" when a screen takes turns, else " · 06:00".
-     * The sources in the list's order (OR2): "NASA, APOD · both screens".
+     * The sources in the list's order (OR2): "NASA, APOD · both screens". With Size Live " · Live"
+     * at the end (L6).
      */
     private fun setupSummary(): String {
         val home = stored.columns[Screen.HOME].orEmpty()
@@ -1955,7 +2049,9 @@ class MainActivity : ComponentActivity() {
             stored.columns.values.any { it.size >= 2 } -> " · every ${stored.interval.label} from $time"
             else -> " · $time"
         }
-        return "$sources$turns"
+        // Size Live (L6): " · Live" at the end.
+        val moving = if (stored.size == Sizing.LIVE) " · Live" else ""
+        return "$sources$turns$moving"
     }
 
     /**
@@ -2444,6 +2540,13 @@ private val Where.label
         Where.BOTH -> "Both"
     }
 
+/** Size's segments (L6). */
+private val Sizing.label
+    get() = when (this) {
+        Sizing.FILL -> "Fill"
+        Sizing.LIVE -> "Live"
+    }
+
 /** "Change every"'s segments and the Setup summary. */
 private val Interval.label
     get() = when (this) {
@@ -2478,6 +2581,7 @@ private fun Setup.toBundle() = Bundle().apply {
     putInt("pictureAt", pictureAt)
     putBoolean("soon", soon)
     putBoolean("darken", darken)
+    putString("size", size.name)
     putString("order", order.joinToString(",") { it.name })
     parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.whole}|${part.url.orEmpty()}") }
 }
@@ -2496,6 +2600,7 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         pictureAt = pictureAtOrDefault(bundle.getInt("pictureAt", DEFAULT_PICTURE_AT)),
         soon = bundle.getBoolean("soon"),
         darken = bundle.getBoolean("darken", true),
+        size = enumValue<Sizing>(bundle.getString("size")) ?: Sizing.FILL,
         order = orderOf(bundle.getString("order")),
         parts = Source.entries.mapNotNull { source ->
             bundle.getString("part.${source.name}")?.split('|', limit = 4)?.let { (date, position, whole, url) ->

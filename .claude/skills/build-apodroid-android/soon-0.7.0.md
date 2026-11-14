@@ -45,7 +45,7 @@ disagree and no default serves both).
 
 (User, 2026-11-14.)
 - **The rules below checked**, without B22's stand-in not twice (the rotation drops it).
-- **Texts, placeholders until approved from the tablet's screenshots:** the label "As soon as
+- **Texts, approved by the user from SO3's screenshots (2026-11-14):** the label "As soon as
   it's out"; the ⓘ "A new picture goes on within the hour after it's out, not only at the change
   time."
 - **Setup's summary doesn't name the switch** (the row stays short).

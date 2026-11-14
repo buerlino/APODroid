@@ -102,8 +102,8 @@ alike.
   the best fit of the 50 picks (below), 23 of 50 exactly on the ladder, 44 of 50 within one step.
 - **A switch in Setup, default on**, part of the draft, after "If APOD is a video" (after Size
   once L6 is in). Label "Darken bright pictures", its ⓘ "Darkens a bright picture a little, so the
-  clock and widgets stay readable." (placeholders until the user approves them from a
-  screenshot). Why on: the user darkened 42 of 50; most people never open Setup.
+  clock and widgets stay readable." (approved by the user from BR2's screenshots,
+  2026-11-14). Why on: the user darkened 42 of 50; most people never open Setup.
 - **Every picture:** "my picture" too (Open 4), and a whole picture measured with its background
   (Open 5).
 

@@ -117,7 +117,7 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 14 | L1 | Android check: the live wallpaper on the tablet | rosie | opus, medium | no | O8 | live-0.7.0.md L1 |
 | 15 | O10 | The alarms' run as an expedited job | winston | opus, medium | yes | O4a, O4b, O4c, O6 | on-time-0.7.0.md O10 |
 | 16 | O11 | Keep running: the service, the setting, its starts | winston | opus, high | yes | O4a, O4b, O4c, O7, O8 | on-time-0.7.0.md O11 |
-| 17 | O12 | The page lets its pictures go while stopped (only if O7's report asks for it: else a report commit saying so, no code) | winston | opus, medium | yes | O11, O7 | on-time-0.7.0.md O12 |
+| 17 | O12 | The page lets its pictures go while stopped (the user: run it, 2026-11-14) | winston | opus, medium | yes | O11, O7 | on-time-0.7.0.md O12 |
 | 18 | O14 | The detector | winston | opus, high | yes | O11, O13 | on-time-0.7.0.md O14 |
 | 19 | O15 | Tablet pass of track O (debug and R8, the update from 0.6.0) | rosie | opus, high | no | O10, O11, O12, O13, O14 | on-time-0.7.0.md O15 |
 | 20 | L3 | `:core`: the position by the clock, the decode size, still or engine | winston | opus, medium | no | O1, L1 | live-0.7.0.md L3 |

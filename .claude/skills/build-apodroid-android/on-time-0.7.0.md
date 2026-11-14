@@ -773,7 +773,9 @@ O8's PASS or the user's word after a STOP; not after O10, which it doesn't need.
   (screenshot); the smoke list.
 - **Done when:** built; the tablet passes; the texts and the two permissions listed.
 
-### [ ] O12. The page lets its pictures go while stopped (Opus, medium; only if O7 asks for it)
+### [ ] O12. The page lets its pictures go while stopped (Opus, medium)
+
+**The user: run it** (2026-11-14, from O7: Home 134.4 MB, Back 105.2 MB, 29.2 MB apart, under the 30 MB rule; but after Back the native heap stays at 30.7 MB against 2.4 MB in a bare process, the decoded pictures kept, and with Keep running the process never ends).
 
 (O7's memory: Home's PSS more than 30 MB above Back's. With Keep running, and with Live, the
 process stays alive for days.) When the page stops (`onStop`) it drops its decoded pictures (up

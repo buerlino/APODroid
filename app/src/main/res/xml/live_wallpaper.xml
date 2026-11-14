@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Live (0.7.0, L5): APODroid's live wallpaper in Android's picker (LiveWallpaper.kt). -->
+<wallpaper xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/live_description"
+    android:settingsActivity="io.github.buerlino.apodroid.MainActivity"
+    android:thumbnail="@mipmap/ic_launcher" />

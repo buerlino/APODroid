@@ -2,6 +2,7 @@ package io.github.buerlino.apodroid
 
 import android.annotation.SuppressLint
 import android.app.WallpaperManager
+import android.content.ComponentName
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.ApplicationInfo
@@ -13,6 +14,7 @@ import android.graphics.Canvas
 import android.graphics.ImageDecoder
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
+import android.os.Build
 import android.os.Environment
 import android.os.SystemClock
 import android.provider.MediaStore
@@ -41,6 +43,10 @@ import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.Stored
 import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
+import io.github.buerlino.apodroid.core.Size as Sizing
+import io.github.buerlino.apodroid.core.livePosition
+import io.github.buerlino.apodroid.core.lostLive
+import io.github.buerlino.apodroid.core.stillOrLive
 import io.github.buerlino.apodroid.core.Lost
 import io.github.buerlino.apodroid.core.alarmsLost
 import io.github.buerlino.apodroid.core.missedChange
@@ -410,9 +416,22 @@ class Store(private val context: Context) {
             (record(screen)?.picture as? Picture.Of)?.takeIf { it.source == post.source && current.isNoted(it.date, it.url) }?.let { screen to it }
         }.toMap()
         val picture = showing.values.firstOrNull() ?: return emptySet()
-        val darker = set(picture, showing.keys, stored)
-        Log.i("APODroid", "Part: wallpaper set: $picture on ${showing.keys.joinToString("+")}$darker")
-        prefs.edit(commit = true) { showing.keys.forEach { putSetAt(it) } }
+        // Live (L5): a screen the engine shows gets the copy again (a changed whole picture), not a still set.
+        val live = liveState()
+        val split = stillOrLive(size, live.home, live.shared, columns[Screen.HOME].orEmpty().isNotEmpty(), record(Screen.HOME)?.picture, listOf(picture to showing.keys))
+        for ((still, screens) in split.still) {
+            val darker = set(still, screens, stored)
+            Log.i("APODroid", "Part: wallpaper set: $still on ${screens.joinToString("+")}$darker")
+            prefs.edit(commit = true) { screens.forEach { putSetAt(it); remove(it.key("wallpaperLive")) } }
+        }
+        split.engine?.let { (shown, screens) ->
+            val whole = copyForLive(shown, stored)
+            Log.i("APODroid", "Part: wallpaper shown live: $shown on ${screens.joinToString("+")}")
+            prefs.edit(commit = true) {
+                putLive(shown, whole)
+                screens.forEach { putSetAt(it); putBoolean(it.key("wallpaperLive"), true) }
+            }
+        }
         showing.keys
     }
 
@@ -455,7 +474,10 @@ class Store(private val context: Context) {
 
     private fun SharedPreferences.Editor.putRestart(restart: Restart) {
         putPlan(restart.plan)
-        restart.drop.forEach { remove(it.key("wallpaperSource")) }
+        restart.drop.forEach {
+            remove(it.key("wallpaperSource"))
+            remove(it.key("wallpaperLive"))
+        }
     }
 
     /**
@@ -749,6 +771,8 @@ class Store(private val context: Context) {
         putString(screen.key("wallpaperDate"), (picture as? Picture.Of)?.date?.toString())
         putString(screen.key("wallpaperUrl"), (picture as? Picture.Of)?.url)
         putLong(screen.key("wallpaperStamp"), record.stamp?.toEpochMilli() ?: 0)
+        // A forgotten picture (Set, lost Live) isn't on the engine any more (L5).
+        if (picture == null) remove(screen.key("wallpaperLive"))
         // The last post shown per source (J1's rule 1: a change skips what this screen has shown).
         for (source in Source.entries) {
             val shown = record.shown[source]
@@ -888,6 +912,7 @@ class Store(private val context: Context) {
         set: Boolean = false,
         stopped: () -> Boolean = { false },
     ): Updated {
+        noteShared()
         var failure: Exception? = null
         for (source in Source.entries) {
             // Asked for each source: APOD's refresh (first) tells whether the stand-in is in use.
@@ -986,42 +1011,99 @@ class Store(private val context: Context) {
      * too (O4c: off is off, also between a switch-on run's two sets), not thrown: what was done
      * is returned, and it gave up (the third value; [Updated.wentToSet] false, so B6's last on
      * runs again).
+     *
+     * **Live** (L5): before the rules a screen noted live (`wallpaperLive`) that isn't live now is
+     * forgotten (`:core`'s [lostLive]; home's loss forgets both, Decision 12), so it's due again
+     * and gets Fill in this run. Then, while home is live ([liveOn]), home's set is the engine's
+     * hand-over ([copyForLive]: Live's copy, no `WallpaperManager` call, the record noted live
+     * and `wallpaperSetAt` as after a set), and the lock screen's too while shared and due home's
+     * picture; else the lock screen's still set with `FLAG_LOCK`, before home's hand-over
+     * (`:core`'s [stillOrLive], Decision 10). A still set removes the live note.
      */
     private fun setDue(pull: Boolean, setAsked: Boolean, stopped: () -> Boolean): Triple<String?, Exception?, Boolean> = synchronized(wallpaperLock) {
         val now = Instant.now()
         val stored = stored()
         val setup = setup
-        val plan = dueWallpapers(setup.columns, records(), stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation)
+        val columns = setup.columns
+        // Lost Live (L5, Decision 12): a screen noted live that isn't live now is forgotten before
+        // the rules, so it's due again and this run sets Fill; home's loss forgets both screens.
+        val live = liveState()
+        val lost = lostLive(
+            homeNoted = prefs.getBoolean(Screen.HOME.key("wallpaperLive"), false),
+            lockNoted = prefs.getBoolean(Screen.LOCK.key("wallpaperLive"), false),
+            homeLive = live.home, shared = live.shared,
+            sharedNote = prefs.getBoolean("live.shared", false),
+            lockColumn = columns[Screen.LOCK].orEmpty().isNotEmpty(),
+        )
+        if (lost.forget.isNotEmpty()) {
+            Log.i("APODroid", "Live: ${if (Screen.HOME in lost.forget) "home isn't live" else "the lock screen isn't live"}, Fill on ${lost.forget.joinToString("+")}")
+        }
+        val records = lost.forgetting(records())
+        val plan = lost.onPlan(dueWallpapers(columns, records, stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation), records)
         val unset = plan.screens.filterValues { !it.set }
-        if (unset.isNotEmpty()) commitBeforeStop(stopped) { putPlan(plan.copy(screens = unset)) }
+        // A forgotten screen the rules leave out (no column) keeps its record, but not the live note.
+        val unnoted = lost.forget - plan.screens.keys
+        if (unset.isNotEmpty() || unnoted.isNotEmpty()) {
+            commitBeforeStop(stopped) {
+                putPlan(plan.copy(screens = unset))
+                unnoted.forEach { remove(it.key("wallpaperLive")) }
+            }
+        }
+        // Size Live (L5: on while the picker put APODroid's engine on home): home's set goes to the
+        // engine, the lock screen's too while shared and due home's picture, else still (`:core`'s
+        // stillOrLive), the lock screen's still set first.
+        val homePicture = plan.screens[Screen.HOME]?.record?.picture ?: records[Screen.HOME]?.picture
+        val split = stillOrLive(size, live.home, live.shared, columns[Screen.HOME].orEmpty().isNotEmpty(), homePicture, plan.sets)
+        val steps = split.still.map { it to false } + listOfNotNull(split.engine?.let { it to true })
         val done = mutableListOf<String>()
+        val shown = mutableListOf<String>()
+        fun said() = listOfNotNull(
+            done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: "),
+            shown.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper shown live: "),
+        ).joinToString("; ").ifEmpty { null }
         var failure: Exception? = null
-        for ((index, entry) in plan.sets.withIndex()) {
+        for ((index, step) in steps.withIndex()) {
+            val (entry, toEngine) = step
             val (picture, screens) = entry
             if (isStopped(stopped)) throw InterruptedException()
             if (index > 0 && !setAsked && !daily) {
-                Log.i("APODroid", "Switched off after: ${done.joinToString().ifEmpty { "nothing" }}")
-                return@synchronized Triple(done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: "), failure, true)
+                Log.i("APODroid", "Switched off after: ${said() ?: "nothing"}")
+                return@synchronized Triple(said(), failure, true)
             }
+            // The engine's hand-over writes Live's copy, no WallpaperManager call; a failed copy is a failed set.
+            var whole = false
             val darker = try {
-                set(picture, screens, stored)
+                if (toEngine) {
+                    whole = copyForLive(picture, stored)
+                    ""
+                } else {
+                    set(picture, screens, stored)
+                }
             } catch (e: Exception) {
                 failure = failure ?: e
                 screens.forEach { setsSinceSetup[it] = false }
                 continue
             }
             screens.forEach { setsSinceSetup[it] = true }
-            done += "$picture on ${screens.joinToString("+")}$darker"
+            (if (toEngine) shown else done) += "$picture on ${screens.joinToString("+")}$darker"
             // A stop during the set (seconds with the whole picture) ends the run here.
             try {
-                commitBeforeStop(stopped) { screens.forEach { putRecord(it, plan.screens.getValue(it).record); putSetAt(it) } }
+                commitBeforeStop(stopped) {
+                    if (toEngine) putLive(picture, whole)
+                    screens.forEach {
+                        putRecord(it, plan.screens.getValue(it).record)
+                        putSetAt(it)
+                        if (toEngine) putBoolean(it.key("wallpaperLive"), true) else remove(it.key("wallpaperLive"))
+                    }
+                }
             } catch (e: InterruptedException) {
-                Log.i("APODroid", "Stopped after: ${done.joinToString()}")
+                Log.i("APODroid", "Stopped after: ${said()}")
                 throw e
             }
         }
+        if (lost.dropShared && failure == null) prefs.edit(commit = true) { remove("live.shared") }
         if (!pull && !setAsked) judgeMiss(plan)
-        Triple(done.takeIf { it.isNotEmpty() }?.joinToString(prefix = "wallpaper set: "), failure, false)
+        Triple(said(), failure, false)
     }
 
     /**
@@ -1093,6 +1175,114 @@ class Store(private val context: Context) {
             val mode = context.getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY).mode
             return Size(minOf(mode.physicalWidth, mode.physicalHeight), maxOf(mode.physicalWidth, mode.physicalHeight))
         }
+
+    // Live (0.7.0, L5; live-0.7.0.md, The engine and "Store, Size and Set"): APODroid's live
+    // wallpaper (LiveWallpaper.kt) draws home's picture from its own copy; the rules decide it.
+
+    /**
+     * Size in Setup ([Sizing], `:core`'s FILL or LIVE). Until L6 adds the setting it's Live: a
+     * still set as 0.6.0 while home isn't live ([liveOn]), the engine while Android's picker put
+     * APODroid's live wallpaper on home.
+     */
+    private val size: Sizing
+        get() = Sizing.LIVE
+
+    /** Live's copy of home's picture, the only picture the engine draws (not the source's file, which changes with every stored post). */
+    val liveFile = File(context.filesDir, "live.jpg")
+
+    /** Whether Live's copy is drawn whole (its post's [Part.whole] at the hand-over), noted beside it (`live.whole`). */
+    val liveWhole: Boolean
+        get() = prefs.getBoolean("live.whole", false)
+
+    /** What Live's copy is, for the engine's log (`live.picture`). */
+    val livePicture: String?
+        get() = prefs.getString("live.picture", null)
+
+    /** Writes the notes beside Live's copy of [picture] ([copyForLive]): its whole flag and its name. */
+    private fun SharedPreferences.Editor.putLive(picture: Picture, whole: Boolean) {
+        putBoolean("live.whole", whole)
+        putString("live.picture", picture.toString())
+    }
+
+    /**
+     * Blocking, under [wallpaperLock]. The engine's hand-over: [picture]'s file (the source's or
+     * the user's own) copied to [liveFile] via a `.part` and renamed, so the engine never reads
+     * half a copy. Returns the whole flag of its post's stored part, for [putLive]. Throws
+     * [StorageFailed] (a full disk): a failed set.
+     */
+    private fun copyForLive(picture: Picture, stored: Stored): Boolean {
+        val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
+        val part = File(context.filesDir, "live.part")
+        try {
+            file.inputStream().use { input -> part.outputStream().use { input.copyTo(it) } }
+            if (!part.renameTo(liveFile)) throw IOException("Couldn't rename ${part.name}")
+        } catch (e: IOException) {
+            part.delete()
+            throw StorageFailed(e)
+        }
+        return (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)?.whole == true
+    }
+
+    /**
+     * What the engine draws without a copy (the picker's preview before the first hand-over, a
+     * fresh install): the stored picture of home's column's first source in the list's order,
+     * else APOD's; null: black.
+     */
+    fun liveFallback(): File? {
+        val column = columns[Screen.HOME].orEmpty()
+        return listOfNotNull(order.firstOrNull { it in column }, Source.APOD).map(::imageFile).firstOrNull { it.exists() }
+    }
+
+    /** Where the engine's frame is at [now] (`:core`'s [livePosition]): home's column's change times, with turns from two sources. */
+    fun liveAt(now: Instant): Float =
+        livePosition(now, ZoneId.systemDefault(), setup.pictureTime, turns = columns[Screen.HOME].orEmpty().size >= 2)
+
+    private val liveComponent = ComponentName(context, LiveWallpaper::class.java)
+
+    /**
+     * Whether APODroid's live wallpaper is on [screen] (L1's table): home on Android 14+ when
+     * `getWallpaperInfo(FLAG_SYSTEM)` names it, below 14 when home's wallpaper id is the one the
+     * engine noted at its start (`live.homeId`: `getWallpaperInfo()` needs `QUERY_ALL_PACKAGES`
+     * there); the lock screen only while home is and the one engine is shared ([liveShared]).
+     * The engine's own flags aren't asked (a stray on the lock screen says 3).
+     */
+    fun liveOn(screen: Screen): Boolean = if (screen == Screen.HOME) liveState().home else liveState().shared
+
+    /** The one engine on the lock screen too: home live and no lock wallpaper of its own (`getWallpaperId(FLAG_LOCK)` -1; 14+ only, L1). */
+    val liveShared: Boolean
+        get() = liveState().shared
+
+    private class LiveState(val home: Boolean, val shared: Boolean)
+
+    private fun liveState(): LiveState {
+        val manager = WallpaperManager.getInstance(context)
+        val home = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                manager.getWallpaperInfo(WallpaperManager.FLAG_SYSTEM)?.component == liveComponent
+            } else {
+                prefs.contains("live.homeId") && prefs.getInt("live.homeId", -1) == manager.getWallpaperId(WallpaperManager.FLAG_SYSTEM)
+            }
+        }.getOrDefault(false)
+        val shared = home && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            runCatching { manager.getWallpaperId(WallpaperManager.FLAG_LOCK) == -1 }.getOrDefault(false)
+        return LiveState(home, shared)
+    }
+
+    /**
+     * At each run's start ([update]): while home is live, notes whether the one engine covers the
+     * lock screen too (`live.shared`), so a re-apply or a split through the system's picker is
+     * seen; while home isn't, the last note stays for Decision 12's lock screen without a column.
+     */
+    private fun noteShared() {
+        val live = liveState()
+        if (live.home) prefs.edit(commit = true) { putBoolean("live.shared", live.shared) }
+    }
+
+    /** Below Android 14 only: the engine notes home's wallpaper id at its start ([liveOn]); any set or clear changes the id. */
+    fun noteHomeId() {
+        val id = runCatching { WallpaperManager.getInstance(context).getWallpaperId(WallpaperManager.FLAG_SYSTEM) }.getOrNull() ?: return
+        prefs.edit(commit = true) { putInt("live.homeId", id) }
+    }
 
     /** ⛶'s stored part per source, for the page's draft ([Setup.parts]) and the job's set ([forPost]). */
     val parts: Map<Source, Part>

@@ -712,6 +712,50 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `FLAG_SYSTEM` alone first moves the shared one to the lock screen and sets home anew;
   `FLAG_LOCK` alone replaces only the lock one; both flags again leave one shared wallpaper and
   no lock one. No screen went blank.
+  **Live** (L5, 2026-11-14; `live-0.7.0.md`, The engine; no setting yet: until L6's Size row
+  the app treats Live as on while Android's picker put APODroid's engine on home, else every
+  set is still, as 0.6.0). `LiveWallpaper.kt`, a `WallpaperService` in the app's one process
+  (exported, guarded by `BIND_WALLPAPER`, `res/xml/live_wallpaper.xml`: the launcher icon, the
+  description "Today's picture, moving across the screen over the day." (`strings.xml`,
+  placeholder), the page as its settings). The engine draws **home's picture** whatever screens
+  it's on (both while shared, home after a split, a stray on the lock screen after home's
+  revert), and **only Live's copy**, `files/live.jpg` with `live.whole` (and `live.picture`, its
+  name for the log) beside it, never the source's file (which changes with every stored post and
+  goes on a video day; so a newer post not yet due, a "Skip it" video day, a kill, a rebind or a
+  reboot don't change what it draws). Without a copy (the picker's preview before the first
+  hand-over) the stored picture of home's first source in the list's order, else APOD's, else
+  black. Panned at `:core`'s `livePosition` for home's column (Live, the day's pan), or whole
+  and still (`wholePicture` at the screen's portrait size, its middle in landscape). A software
+  canvas for the engine's life, a null one skips the frame; decoded once per picture (keyed by
+  the file's time, length and the whole flag) on a background thread at the screen's portrait
+  height within 50 MB (`liveDecodeSize`), out of memory a quarter of the bytes, then again, else
+  black; everything caught and logged `Live: couldn't …` (two crashes within 10 s revert home).
+  Draws at `onSurfaceChanged`, `onSurfaceRedrawNeeded`, when it becomes visible (re-reading the
+  copy: an interrupted thread's commit skips the listeners, B16), when the copy changes
+  (`Store.watch`) and once a minute while visible when the frame moved a pixel; never on a tick
+  while invisible. Colours from a 112 px high copy of the whole picture, once per picture.
+  Logs: `Live: engine <flags|preview|home> created/destroyed`, `Live: engine flags <n>`,
+  `Live: decoded <w>×<h> in <n> ms`, `Live: drew <picture> p=<0.00> in <n> ms`, and a stray's
+  `Live: home isn't live (stray on the lock screen)` (14+, non-preview, at a visibility).
+  **Is it on** (`Store.liveOn`, L1's table): home on 14+ when `getWallpaperInfo(FLAG_SYSTEM)`
+  names `LiveWallpaper`, below 14 when `getWallpaperId(FLAG_SYSTEM)` is the id a non-preview
+  engine noted at its start (`live.homeId`; untested, E); the lock screen (`liveShared`) only on
+  14+ while home is and `getWallpaperId(FLAG_LOCK)` is -1. The engine's flags aren't trusted.
+  Each `Store.update` notes `live.shared` at its start while home is live. **`setDue`** (and
+  ⛶'s ✓, `setPart`) splits the sets by `:core`'s `stillOrLive`: while home is live home's set
+  is the **hand-over**: the picture's file copied to `live.jpg` via `live.part`, then in one
+  commit the notes, home's record noted live (`wallpaperLive`) and `wallpaperSetAt`; no
+  `WallpaperManager` call, counted in `setsSinceSetup`, logged `wallpaper shown live: <picture>
+  on <screens>` (a failed copy is a failed set); the lock screen goes with it while shared and
+  due home's picture (`lock.wallpaperLive`), else it gets its still set with `FLAG_LOCK` first
+  (the engine moves to home, Decision 10). A still set, a forgotten record (Set) and a removed
+  one drop the live note. **Lost Live** (`:core`'s `lostLive`, before the rules): home's record
+  noted live and home not live (another wallpaper, a force stop, Android's revert) forgets
+  home's record and the lock screen's when it has a column (a lock screen without one that the
+  engine covered, `live.shared`, takes home's picture), so the same run sets both still, a
+  stray replaced; the lock screen's alone noted live and not shared forgets it alone. Logged
+  `Live: home isn't live, Fill on HOME+LOCK`. `live.shared` goes after such a run without a
+  failed set. The darkening isn't the engine's yet (BR3).
 - **Choosing the part (user, 2026-10-05):** a ⛶ at the bottom left of the picture (mirroring
   the star, none on video days) shows the frame: as large as fits, the rest dimmed. It slides
   along the one direction it can move (left–right; up–down on a picture taller than the
@@ -1457,7 +1501,8 @@ in [live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md)):
   picker. The same for any loss on home (another wallpaper, a force stop).
 - The engine draws only Live's own copy of home's picture (`live.jpg`, written when home is
   handed to it), never the source's file; a software canvas, at most 50 MB a decoded picture
-  (L1). No new permission.
+  (L1). No new permission. **Built** (L5, 2026-11-14): The app, Wallpaper: Live (the engine,
+  is it on, the hand-over, lost Live); Size, Set's picker and the status line are L6's.
 
 **0.7.0: on time on any phone** (user, 2026-10-25, after a friend's Chinese phone had no
 "Unrestricted"; planned again 2026-10-28 after W's tablet day; after 0.6.0 ships, the freeze; the

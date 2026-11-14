@@ -56,7 +56,7 @@ class KeepRunning : Service() {
         private const val NOTIFICATION = 1
         private const val CHANNEL = "keep"
 
-        /** Starts not yet delivered to [onStartCommand]: [stop] waits for them (fix round 1). */
+        /** Starts not yet delivered to [onStartCommand]: [stop] waits for them (fix rounds 1 and 2). */
         private val pending = PendingStarts()
 
         /**
@@ -66,25 +66,27 @@ class KeepRunning : Service() {
          */
         fun ensure(context: Context) {
             val store = Store(context)
-            if (!store.daily || !store.keepRunning) return stop(context)
-            pending.starting()
-            try {
-                context.startForegroundService(Intent(context, KeepRunning::class.java))
+            // The switch's read and the start under one lock with [stop]'s (fix round 2).
+            val started = try {
+                pending.start({ store.daily && store.keepRunning }) {
+                    context.startForegroundService(Intent(context, KeepRunning::class.java))
+                }
             } catch (e: Exception) {
-                pending.failed()
                 Log.w("APODroid", "Keep running: couldn't start: $e")
+                return
             }
+            if (!started) stop(context)
         }
 
         /**
          * Stops the service (the switch off, the daily switch off), unless a start is still
          * pending: a `stopService` before its `onStartCommand` takes the service down owing
          * `startForeground`, and the app crashes. The pending `onStartCommand` goes foreground,
-         * reads the switch off and stops itself (callers write the switch before this).
+         * reads the switch off and stops itself (callers write the switch before this). The
+         * check and `stopService` run under the lock [ensure]'s start holds (fix round 2).
          */
         fun stop(context: Context) {
-            if (!pending.mayStop()) return
-            context.stopService(Intent(context, KeepRunning::class.java))
+            pending.stopIf { context.stopService(Intent(context, KeepRunning::class.java)) }
         }
 
         /** The channel "Keep running" (low: no sound, no peek; no badge) and its notification; a tap opens the page. */

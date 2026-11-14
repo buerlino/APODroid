@@ -556,7 +556,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
   read once more). **Pull to refresh** (user,
   2026-10-16; material3's `PullToRefreshBox`) always fetches, also when it comes during a
   running update (the run after it keeps the force); a new picture is set at once while
-  the stored daily switch is on, nothing is set while it's off. A changed title or explanation for the same
+  the stored daily switch is on, nothing is set while it's off. **A stopped page lets its pictures
+  go** (O12, 2026-11-14; O7: with Keep running or Live the process lives for days): `onStop`
+  recycles the decoded pictures (the composition would hold them while stopped), `onResume`'s
+  load decodes them again (also while a load runs), each page keeping its height meanwhile (an
+  empty box of the picture's shape); the draft, ⛶'s part, the shown source and Setup's and
+  Advanced's state stay. A changed title or explanation for the same
   date is stored. A new date closes crop mode, a same-date change doesn't. A failed refresh keeps the
   stored picture; only with none is there an error with a retry button. Video days show "Video"
   after the date. The page fetches the sources it offers (`update`'s `show`: the draft's mode's,
@@ -945,7 +950,7 @@ O7: refused while Optimized). **Stopped:** the switch off, the daily switch off 
 `DailyJob.cancel`). **Refused** (`ForegroundServiceStartNotAllowedException`, 12+; also a
 sticky restart's `startForeground`): caught, logged ("Keep running: couldn't start: …" or
 "Keep running: refused: …"), the service stops; nothing on the page. With it on the process
-stays resident (O7: about 105 MB PSS after Back with the decoded pictures, O12's question).
+stays resident (O7: about 105 MB PSS after Back, the decoded pictures still in the native heap; O12: the page lets them go when it stops).
 
 Each run (either id), and each page open or pull (2026-10-16, one path): `Store.update(force)`,
 `refresh(source)` for each source in use unless its stored post is today's (always with

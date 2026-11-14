@@ -44,7 +44,7 @@ import io.github.buerlino.apodroid.core.fetchLatest
 import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.nextAlarm as coreNextAlarm
 import io.github.buerlino.apodroid.core.randomOffset
-import io.github.buerlino.apodroid.core.runRetry as coreRunRetry
+import io.github.buerlino.apodroid.core.retryAfter
 import io.github.buerlino.apodroid.core.originalUrl
 import io.github.buerlino.apodroid.core.pictureAtOrDefault
 import io.github.buerlino.apodroid.core.restartAndForget
@@ -178,6 +178,7 @@ class Store(private val context: Context) {
      * "Lock" case run twice would copy home's cleared record over the lock screen's.
      */
     private fun migrateOnce(): Unit = synchronized(migrationLock) {
+        foldRunGoing()
         if (prefs.contains("allSources")) return
         val keys = listOf("sources", "where", "wallpaperSource", "wallpaperDate", "wallpaperUrl", "wallpaperSetAt", "turnStartedAt")
         val all = prefs.all
@@ -196,6 +197,24 @@ class Store(private val context: Context) {
             }
         }
         Log.i("APODroid", "Migrated from 0.5.0: $migration")
+    }
+
+    /**
+     * 0.6.0's run bookkeeping → 0.7.0's (O4b), once: 0.6.0 noted a run going (`runGoing`) and a
+     * failed run's end (`failedAt`); 0.7.0 counts a run as failed from its start. A `runGoing`
+     * left by 0.6.0 (the update's `install -r` killed a run, V11a) is counted once in
+     * `failedRuns`, as 0.6.0's next start would have, so its retry stays; both keys go. Drop it two
+     * releases after F-Droid ships past 0.7.0. The caller holds [migrationLock].
+     */
+    private fun foldRunGoing() {
+        if (!prefs.contains("runGoing") && !prefs.contains("failedAt")) return
+        val killed = prefs.getBoolean("runGoing", false)
+        prefs.edit(commit = true) {
+            if (killed) putInt("failedRuns", prefs.getInt("failedRuns", 0) + 1)
+            remove("runGoing")
+            remove("failedAt")
+        }
+        Log.i("APODroid", "Migrated 0.6.0's run notes${if (killed) ": a killed run counted as failed" else ""}")
     }
 
     /** [source]'s picture: `apod.jpg`, `nasa.jpg`, `earth.jpg` (whatever the format). */
@@ -335,16 +354,14 @@ class Store(private val context: Context) {
     /**
      * The daily switch, at once (not part of [Setup]): writes [daily] (the caller cancels the
      * jobs and the alarms, or arms them) and forgets the job's failed runs, both ways (off is off;
-     * on starts afresh), and a run's note that it goes (`runGoing`, B19: a run from before it no
-     * longer counts). Turning it on, the caller then runs [startAfresh] and [update] with `set`,
-     * which counts as the last run's start (`lastRunAt`, B16): the checks before it aren't owed.
+     * on starts afresh), a run going among them (a run from before it no longer counts, B19).
+     * Turning it on, the caller then runs [startAfresh] and [update] with `set`, which counts as
+     * the last run's start (`lastRunAt`, B16): the checks before it aren't owed.
      */
     fun switchDaily(on: Boolean) {
         prefs.edit(commit = true) {
             putBoolean("daily", on)
             remove("failedRuns")
-            remove("failedAt")
-            remove("runGoing")
             if (on) putLong("lastRunAt", System.currentTimeMillis()) else remove("lastRunAt")
         }
     }
@@ -410,62 +427,43 @@ class Store(private val context: Context) {
         }
 
     /**
-     * The job's run starts ([DailyJob]): notes when (`lastRunAt`), so a check that passes after it
-     * and before the next run is armed at once ([nextAlarm], B16), not dropped by a re-arming, and
-     * that it goes (`runGoing`, until [ranJob] or [switchDaily]), so an arming in a new process
-     * after it was killed keeps its retry (B19). A note still there from the run before (killed
-     * before its end: `install -r`, `kill -9`, the low-memory killer, a Recents swipe) counts that
-     * one as failed first (`failedRuns`, `failedAt` now), as a stop by Android does. `true` then.
+     * The job's run starts ([DailyJob]): it counts as failed until it ends well (`failedRuns` + 1,
+     * O4b; [ranWell] forgets them), so a run that never reaches its end (killed: `install -r`,
+     * `kill -9`, the low-memory killer, a Recents swipe; or stopped by Android) stays counted and
+     * an arming in a new process keeps its retry (B19); and notes when (`lastRunAt`), so the retry
+     * counts from it and a check that passes after it and before the next run is armed at once
+     * ([nextAlarm], B16), not dropped by a re-arming. One commit.
      */
-    fun runStarts(): Boolean {
-        val killed = prefs.getBoolean("runGoing", false)
-        prefs.edit(commit = true) {
-            if (killed) {
-                putInt("failedRuns", prefs.getInt("failedRuns", 0) + 1)
-                putLong("failedAt", System.currentTimeMillis())
-            }
-            putLong("lastRunAt", System.currentTimeMillis())
-            putBoolean("runGoing", true)
-        }
-        return killed
+    fun runStarts() = prefs.edit(commit = true) {
+        putInt("failedRuns", prefs.getInt("failedRuns", 0) + 1)
+        putLong("lastRunAt", System.currentTimeMillis())
     }
 
     /**
-     * How long after a run's start the alarms retry it should it never end ([runRetry]): 15 min,
-     * an hour after one or more failed runs in a row (a killed one counted by [runStarts]).
+     * How long after the last failed run's start the alarms retry ([retryAfter]): 15 min after the
+     * first, an hour after more; during a run (counted by [runStarts]) its own retry, should it
+     * never end. 15 min with none (a run that couldn't be scheduled, O4a).
      */
-    fun runRetry(): Duration = coreRunRetry(prefs.getInt("failedRuns", 0))
+    fun runRetry(): Duration = retryAfter(prefs.getInt("failedRuns", 0))
 
-    /**
-     * The job's run ended ([DailyJob]): a good one forgets the failed runs; a failed or stopped one
-     * counts them (`failedRuns`) and notes its end (`failedAt`), so the alarms retry 15 min later,
-     * then hourly ([nextAlarm]), also when armed again before the retry (a Set, a page open).
-     * Either way the run no longer goes (`runGoing` removed).
-     */
-    fun ranJob(failed: Boolean) = prefs.edit(commit = true) {
-        remove("runGoing")
-        if (!failed) {
-            remove("failedRuns")
-            remove("failedAt")
-        } else {
-            putInt("failedRuns", prefs.getInt("failedRuns", 0) + 1)
-            putLong("failedAt", System.currentTimeMillis())
-        }
-    }
+    /** The job's run ended well ([DailyJob]): the failed runs forgotten, this one's count with them. A failed or stopped run stays counted. */
+    fun ranWell() = prefs.edit(commit = true) { remove("failedRuns") }
 
     /**
      * When the alarms should start the next run ([nextAlarm]): the change times of the stored
      * setup, with their checks (15 min after a change time, then hourly in its window, hourly
-     * while a screen waits) and this device's [offset], or a failed run's retry when that comes
-     * first; at once when a check passed since the last run's start (`lastRunAt`, B16); while a run goes ([running], or one
-     * that started in another process and never ended, `runGoing`, B19) no later than [runRetry] after its start (B16f1). Not under the wallpaper lock: the page's `onResume` and the alarms' receiver call it
-     * on the main thread, and a set holds that lock for seconds.
+     * while a screen waits) and this device's [offset], or, after failed runs (a run going among
+     * them, O4b), [runRetry] after the last one's start (`lastRunAt`) when that comes first; at
+     * once when a check passed since the last run's start (B16). So an arming during a run keeps
+     * the pair its start armed (B16f1), also in a new process after it was killed (B19). Not under
+     * the wallpaper lock: the page's `onResume` and the alarms' receiver call it on the main
+     * thread, and a set holds that lock for seconds.
      */
-    fun nextAlarm(running: Boolean): Instant {
+    fun nextAlarm(): Instant {
         val now = Instant.now()
         val zone = ZoneId.systemDefault()
         val time = setup.pictureTime
-        return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), instant("failedAt"), time, hasTurns, offset, waiting(columns, records(), time, zone, now), instant("lastRunAt"), running || prefs.getBoolean("runGoing", false))
+        return coreNextAlarm(now, zone, prefs.getInt("failedRuns", 0), time, hasTurns, offset, waiting(columns, records(), time, zone, now), instant("lastRunAt"))
     }
 
     /**

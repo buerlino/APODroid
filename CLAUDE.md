@@ -754,7 +754,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   picture still, as 0.6.0). `LiveWallpaper.kt`, a `WallpaperService` in the app's one process
   (exported, guarded by `BIND_WALLPAPER`, `res/xml/live_wallpaper.xml`: the launcher icon, the
   description "Today's picture, moving across the screen over the day." (`strings.xml`,
-  placeholder), the page as its settings). The engine draws **home's picture** whatever screens
+  placeholder), no settings entry: R2b, 2026-11-15, a page the picker's Settings started ended Set's wait for the picker). The engine draws **home's picture** whatever screens
   it's on (both while shared, home after a split, a stray on the lock screen after home's
   revert), and **only Live's copy**, `files/live.jpg` with `live.whole` (and `live.picture`, its
   name for the log) beside it, never the source's file (which changes with every stored post and

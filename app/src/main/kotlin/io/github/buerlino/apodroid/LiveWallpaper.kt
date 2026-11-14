@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.ImageDecoder
 import android.graphics.Rect
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -135,6 +136,24 @@ class LiveWallpaper : WallpaperService() {
         override fun onWallpaperFlagsChanged(which: Int) {
             Log.i(TAG, "Live: engine flags $which")
             draw()
+        }
+
+        /**
+         * R2a: below 14 Android 11–13 answers the same live wallpaper picked again (the system's
+         * wallpaper app) with [COMMAND_REAPPLY] to this engine instead of a new one, and with a new
+         * wallpaper id; noting it again keeps [Store.liveOn] true (else the next run's lostLive set
+         * Fill over Live). 14+ asks `getWallpaperInfo`: nothing to note. Whether Android 10 sends
+         * the command is unchecked.
+         */
+        override fun onCommand(action: String?, x: Int, y: Int, z: Int, extras: Bundle?, resultRequested: Boolean): Bundle? {
+            if (action == COMMAND_REAPPLY && !isPreview && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                safely("note the re-apply") {
+                    Log.i(TAG, "Live: engine re-applied")
+                    store?.noteHomeId()
+                }
+                reload()
+            }
+            return super.onCommand(action, x, y, z, extras, resultRequested)
         }
 
         override fun onComputeColors(): WallpaperColors? = colors
@@ -343,6 +362,9 @@ class LiveWallpaper : WallpaperService() {
 
     private companion object {
         const val TAG = "APODroid"
+
+        /** `WallpaperManager.COMMAND_REAPPLY`, hidden in the SDK (AOSP's value since Android 11). */
+        const val COMMAND_REAPPLY = "android.wallpaper.reapply"
 
         /** While visible, a frame a minute (only when it moved a pixel). */
         const val TICK_MS = 60_000L

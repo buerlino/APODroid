@@ -144,7 +144,8 @@ packages unattended): `night.md`.
   `wholePicture` (that on a bitmap of the screen's size), `wallpaperFrame` (`:core`'s as a `Rect`).
 - `app/.../LiveWallpaper.kt` (L5): APODroid's live wallpaper (`WallpaperService`, in the manifest exported with
   `BIND_WALLPAPER`, `res/xml/live_wallpaper.xml`, `res/values/strings.xml`'s `live_description`). `LiveEngine`:
-  `onCreate` (a `Store`, `Live: engine … created`, `noteHomeId` below 14, `Store.watch` → `reload`), `reload` (the
+  `onCreate` (a `Store`, `Live: engine … created`, `noteHomeId` below 14, `Store.watch` → `reload`), `onCommand` (R2a: `COMMAND_REAPPLY` below 14 notes the id
+  again, then `reload`), `reload` (the
   copy or `liveFallback`, keyed by path, time, length, whole and `Store.liveDarken` (BR3: `live.darken`, the
   factor `copyForLive` measured; `draw` passes it to `drawPanned`, `colorsOf` darkens its copy by it); decoded on the `live-decode` thread by `decode`:
   panned at `liveDecodeSize`, a quarter of the bytes after an out of memory, twice; whole by `wholePicture`; `smallCopy`
@@ -419,8 +420,8 @@ what it leaves open.
   `live-0.7.0.md` (the engine, the pan, the hand-over, the copy not the source's file, lost Live
   and Decision 12, no crash, Size and its row, Set's picker and its return, Decision 10, the
   status line, " · Live"); `unnotedLive` and `lockFollowsHome` (`LiveTest` and SIM only), `handOverWaits` (L6f1, `LiveTest`); a
-  maker's picker refusing the start (`firstStarted`, unit-tested only); below 14 (`live.homeId`,
-  E); the FP6's picker (L2).
+  maker's picker refusing the start (`firstStarted`, unit-tested only); below 14 (`live.homeId`, and R2a's re-apply
+  noting it again: read from AOSP, 15's smoke check only; Android 10's command unknown; E); the FP6's picker (L2).
 - ⛶'s preview (L7, 2026-11-14; pipeline run 109, no device found): the Live frame by the clock
   (no drag, the minute tick, TalkBack offering no drag action), a lock-only source dragging as
   Fill, the whole picture's preview beside the wallpaper set (black and blur).

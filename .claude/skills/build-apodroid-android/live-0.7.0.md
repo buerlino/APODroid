@@ -358,7 +358,10 @@ black or on the blurred background: A3's `whole()` today). Its three users:
 - **The colours:** computed with the decode (`WallpaperColors.fromBitmap` on a small copy of the
   whole picture), returned by `onComputeColors`, `notifyColorsChanged()` after each new picture.
 - **The note** (below 14 only): a non-preview engine writes `live.homeId`,
-  `getWallpaperId(FLAG_SYSTEM)`, when it starts. On 14+ the system answers (`Store.liveOn`), and
+  `getWallpaperId(FLAG_SYSTEM)`, when it starts, and again at `COMMAND_REAPPLY` (R2a, 2026-11-15,
+  from the release audit: on 11–13 the same component picked again gets a new id and the engine
+  the command, not a new engine, so the old note made `lostLive` set Fill over Live; Android 10
+  unchecked). On 14+ the system answers (`Store.liveOn`), and
   the flags aren't noted (L1: wrong after a revert). A note left by a killed process is harmless:
   any set or clear changes the id.
 - **A stray:** a non-preview engine on 14+ that finds `getWallpaperInfo(FLAG_SYSTEM)` not naming

@@ -778,7 +778,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `Live: home isn't live (stray on the lock screen)` (14+, non-preview, at a visibility).
   **Is it on** (`Store.liveOn`, L1's table): home on 14+ when `getWallpaperInfo(FLAG_SYSTEM)`
   names `LiveWallpaper`, below 14 when `getWallpaperId(FLAG_SYSTEM)` is the id a non-preview
-  engine noted at its start (`live.homeId`; untested, E); the lock screen (`liveShared`) only on
+  engine noted at its start (`live.homeId`; untested, E), and again when the same live wallpaper
+  is picked again (R2a, 2026-11-15: Android 11–13 give a new id and send the engine
+  `COMMAND_REAPPLY`, `"android.wallpaper.reapply"`, hidden in the SDK, instead of a new engine;
+  `LiveEngine.onCommand` notes it and reloads, logged `Live: engine re-applied`; read from AOSP,
+  unchecked, E; whether Android 10 sends the command unchecked); the lock screen (`liveShared`) only on
   14+ while home is and `getWallpaperId(FLAG_LOCK)` is -1. The engine's flags aren't trusted.
   Each `Store.update` notes `live.shared` at its start while home is live. **`setDue`** (and
   ⛶'s ✓, `setPart`) splits the sets by `:core`'s `stillOrLive`: while home is live home's set

@@ -59,3 +59,26 @@ fun sidewaysFrame(width: Int, height: Int, screenWidth: Int, screenHeight: Int, 
 
 /** Whether turning a [width]×[height] picture sideways can help: only a landscape one gains. */
 fun sidewaysHelps(width: Int, height: Int): Boolean = width > height
+
+/**
+ * Whether "Wide pictures sideways" (SW3) turns a [width]×[height] picture (upright, EXIF applied)
+ * by default: 3:2 or wider (width ≥ 1.5 × height; night default, the alternative 1.4:1).
+ */
+fun sidewaysByDefault(width: Int, height: Int): Boolean = height > 0 && width.toLong() * 2 >= height.toLong() * 3
+
+/**
+ * Whether a picture goes on sideways (SW3): its part's [noted] value when there is one (⛶'s
+ * pill, true or false), else [sidewaysByDefault] of its upright [size] while [wideSideways]
+ * ("Wide pictures sideways", the stored switch) is on, else upright. [size] is read only then
+ * (null: unknown, upright).
+ */
+fun sidewaysOf(noted: Boolean?, wideSideways: Boolean, size: () -> Pair<Int, Int>?): Boolean =
+    noted ?: (wideSideways && size()?.let { (w, h) -> sidewaysByDefault(w, h) } == true)
+
+/**
+ * A [width]×[height] picture's upright size by its EXIF [orientation] (SW3, the app's
+ * `uprightSize`): 5 to 8 transpose it (a camera photo turned a quarter), so width and height
+ * swap; 1 to 4 (as stored, mirrored, turned half) and anything else keep them.
+ */
+fun uprightOf(width: Int, height: Int, orientation: Int): Pair<Int, Int> =
+    if (orientation in 5..8) height to width else width to height

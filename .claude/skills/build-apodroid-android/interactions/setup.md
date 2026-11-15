@@ -54,9 +54,9 @@ Leaf format: **id**: pre → steps → screen / log / adb. "Set" = tap "Set as w
 ### A. The Setup row and its summary
 - **A1** closed at a fresh start (Recents-swipe, open): row "Setup", summary under it = stored setup, "▾". B0: "Home: NASA · Lock: APOD · 06:00 · Live". Tap → opens ("▴", summary hidden). Tap again → closes.
 - **A2** auto-open: any draft change that makes the draft differ opens it (LaunchedEffect, MainActivity.kt:1911); closing it by hand is allowed while highlighted; a rotation reopens it (the effect runs again on recreation).
-- **A3** highlight: title "Setup" in tertiary while anything shown in Setup differs (MainActivity.kt:2122-2126): mode switch, shown mode's Where (APOD mode) or list rows / order (list mode), Size, New picture at, As soon as it's out, Change every, If APOD is a video, Darken. Not the daily switch, not Advanced. Changing a value and back = no highlight.
+- **A3** highlight: title "Setup" in tertiary while anything shown in Setup differs (MainActivity.kt:2122-2126): mode switch, shown mode's Where (APOD mode) or list rows / order (list mode), Size, New picture at, As soon as it's out, Change every, If APOD is a video, Darken, Wide pictures sideways (SW3). Not the daily switch, not Advanced. Changing a value and back = no highlight.
 - **A4** after a Set that saved and didn't fail: Setup closes (also after `NTS`) (MainActivity.kt:1095); summary shows the new stored setup.
-- **A5** summary forms (MainActivity.kt:2153-2172): "X · both screens" when both columns have the same sources; "X · home screen"/"X · lock screen" when one is empty; else "Home: X · Lock: Y"; names in the stored order; then " · every 24 h from 06:00" when a column has ≥2 (daily on), " · 06:00" otherwise, nothing with daily off; " · Live" with Size Live. "As soon as it's out" and Darken never appear.
+- **A5** summary forms (MainActivity.kt:2153-2172): "X · both screens" when both columns have the same sources; "X · home screen"/"X · lock screen" when one is empty; else "Home: X · Lock: Y"; names in the stored order; then " · every 24 h from 06:00" when a column has ≥2 (daily on), " · 06:00" otherwise, nothing with daily off; " · Live" with Size Live. "As soon as it's out", Darken and Wide pictures sideways never appear.
 - **A6** summary is the stored setup: while the draft differs and Setup is closed, the summary still shows the stored one.
 
 ### B. "More NASA pictures" (mode switch, draft)
@@ -134,6 +134,31 @@ Order (≡ drag, "Move up"/"Move down")
 - **I2** off + Set → `Wset`; `Set:` entries have no `, darker` suffix. Visual: a bright picture is brighter than before.
 - **I3** on + Set → entries carry `, darker ×0.xx (grey nnn)` for a picture whose top third is > 100 grey; else identical.
 
+### X. Wide pictures sideways (always shown; SW3, 0.8.0; texts placeholders)
+The switch after "Darken bright pictures", the pref `wideSideways`, default off; the rule `:core`'s
+`sidewaysByDefault` (width ≥ 1.5 × height, by the file's upright size, `Store.kt`'s `uprightSize`), the
+value used `Store.turnsSideways` (the part's noted `<source>.sideways`, else the rule while the
+**stored** switch is on). Needs a 3:2 or wider picture on a screen (9 Nov's APOD faked into `files/`
+with the skill's recipe), a 1.2:1 one and a portrait one for the upright cases.
+- **X1** ⓘ "About Wide pictures sideways" → dialog "Turns a wide picture a quarter turn, so more of it
+  fills the screen. ⛶ › Sideways changes one picture." → OK. Toggle on → label and switch tertiary,
+  screen readers "On, not set yet"; Setup's title tertiary (also with the daily switch off: never
+  hidden, never put back); the summary unchanged (it never names it).
+- **X2** on + Set → `Wset`; each screen set afresh: a 3:2 or wider picture without a noted part
+  `Set: wallpaper set: <pic> on <screens>, sideways[, darker …]` (`debug-set.png` turned); a 1.2:1, a
+  portrait or square one, and "my picture", without ", sideways" (`setStream`, upright). Not "the
+  order alone": a Set of the switch with a new order sets.
+- **X3** a part noted by ⛶'s pill wins: one ✓'d "Sideways" off (`<source>.sideways=false`) stays
+  upright with the switch on; one ✓'d on stays sideways with the switch off. An untouched pill at ✓
+  leaves the key missing (the switch's default).
+- **X4** off + Set → `Wset`; the wide picture upright again (no ", sideways"), a noted "on" part
+  still sideways.
+- **X5** with Live on home (Size Live): the hand-over of a wide picture without a noted part notes
+  `live.sideways=true`, `wallpaper shown live: <pic> on HOME[, …], sideways`; the engine's `Live:
+  decoded W×H` portrait-shaped.
+- **X6** a rotation and the system killing the app (P19's way) keep the draft's switch and its
+  highlight; a Recents swipe drops it.
+
 ### J. Size Fill (Live itself out of scope)
 - **J1** from B0 (Live on home): Size "Fill" → segment tertiary, Setup highlighted → Set → no picker dialog (opensPicker false for Fill) → `Wset`; `Set: wallpaper set: N13 on HOME, A15 on LOCK`; dumpsys: home ImageWallpaper (APODroid's LiveWallpaper gone; maybe `Live: engine … destroyed`); summary "Home: NASA · Lock: APOD · 06:00" (no " · Live"); no "Live isn't on" line.
 - **J2** with Fill and a column on home emptied later, the home wallpaper is just left alone.
@@ -209,6 +234,10 @@ Each step starts where the previous ended. Before every Set: `adb logcat -c`; af
 | P28 | K5 | "Change automatically": off, on, off, on in quick taps. | Ends on; one `Switch on: wallpaper set:` (an extra one accepted if the taps straddle the redraw); alarms armed. |
 | P29 | **H8 S3** (optional, only with the user's OK; changes "my picture" for good) | If APOD is a video "Use my picture" → pick a photo → "Skip it" → Set → then "Use my picture" again → "Skip it". | Code: no highlight before Set, `Wset`; afterwards "Use my picture" opens no picker (the abandoned pick became `fallback.jpg`). |
 | P30 | restore | Setup ▾ → mode off → Where W0 → mode on → If APOD is a video "Skip it" → Size "Live" → Set → dialog "Next, in Android's preview: Set wallpaper › Home screen  Back there: nothing changes." → OK → Android's preview "Set wallpaper" → "Home screen". | `Wset`; log `Set: Android's live wallpaper picker`, `Live: back from the picker, a wallpaper changed, home live`, `Live: the engine is on HOME, not noted live`, `Daily job: alarms for 2026-11-16T05:0…Z`, `Set: wallpaper set: A15 on LOCK; wallpaper shown live: N13 on HOME`; summary "Home: NASA · Lock: APOD · 06:00 · Live"; home LiveWallpaper, lock ImageWallpaper. Then Setup ▾: mode off shows Where W0 (if P4 showed Where isn't saved while hidden, do an APOD-mode Set of W0 before this step), Earth's greyed dropdown E0, order APOD, NASA, Earth, nothing highlighted. |
+| P31 | X1, X6 | (SW3; the emulator or a phone with a 3:2 picture on a screen) Setup ▾ → "Wide pictures sideways" ⓘ → read → OK → toggle on → screenshot → rotate → screenshot. | Dialog text as X1; label and switch tertiary, Setup title tertiary, summary unchanged; after the rotation still on and tertiary. |
+| P32 | X2 | Set. | `Wset`; `Set: wallpaper set: <wide pic> on …, sideways`; a 1.2:1 or portrait picture on a screen without ", sideways". |
+| P33 | X3 | ⛶ on the wide picture → "✓ Sideways" shown (white) → tap it off → ✓. | `Wset`; `Part: wallpaper set: … ` without ", sideways"; `<source>.sideways=false` (debug). The next post of that source sideways again (page.md K24). |
+| P34 | X4 | Setup ▾ → toggle off → Set. | `Wset`; the wide picture upright (no ", sideways"); a part ✓'d "Sideways" on still turned. Restores the switch's default. |
 
 Restored by P30: mode on, list home NASA / lock APOD, order default, Where W0, Size Live, 06:00, As soon off, Skip it, Darken on, 24 h, daily on, Earth's and NASA's lastScreens. Not restorable: `orderFrom` (16 Nov), `lastRunAt`/`failedRuns` (the switch rewrites them), wallpaper ids, and `fallback.jpg` if P29 ran.
 Expected later after P30 (not testable now): 16 Nov ~06:15+off lock gets APOD 16 Nov (if an image); home stays NASA 13 Nov (the engine) until 17 Nov 06:00, since Monday's NASA post comes after the 06:00–09:00 window.

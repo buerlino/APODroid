@@ -167,6 +167,7 @@ import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.sidewaysHelps
+import io.github.buerlino.apodroid.core.sidewaysOf
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -201,6 +202,9 @@ class MainActivity : ComponentActivity() {
 
     /** Their pictures, decoded for the screen ([decodeForScreen]); none on video days. At most three. */
     private var pictures by mutableStateOf(emptyMap<Source, ImageBitmap>())
+
+    /** Their files' upright sizes ([uprightSize], EXIF applied), for ⛶'s pill and the sideways rule (SW3). */
+    private var uprightSizes by mutableStateOf(emptyMap<Source, IntSize>())
 
     /**
      * VS1: the still from APOD's video, decoded, behind ▶ ([VideoTile]); the page only. Let go
@@ -293,6 +297,9 @@ class MainActivity : ComponentActivity() {
     /** "Darken bright pictures" ([Store.darken], BR2): each set darkens a bright picture a little. */
     private var darken by mutableStateOf(true)
 
+    /** "Wide pictures sideways" ([Store.wideSideways], SW3): a picture 3:2 or wider goes on sideways unless ⛶ noted otherwise. */
+    private var wideSideways by mutableStateOf(false)
+
     /** Size ([Store.size], L6): Fill, or Live (home's picture moving, drawn by APODroid's live wallpaper). */
     private var size by mutableStateOf(Sizing.FILL)
 
@@ -361,8 +368,17 @@ class MainActivity : ComponentActivity() {
     /** Crop mode's "Whole picture" toggle (A4): ✓ keeps it in the draft with the part, Back drops it. */
     private var cropWhole by mutableStateOf(false)
 
-    /** Crop mode's "Sideways" toggle (SW2, issue #4): the picture turned 90° clockwise; ✓ saves and sets it, Back drops it. */
+    /**
+     * Crop mode's "Sideways" toggle (SW2, issue #4): the picture turned 90° clockwise; ✓ saves and
+     * sets it, Back drops it. It opens on the effective value ([turnsSideways], SW3).
+     */
     private var cropSideways by mutableStateOf(false)
+
+    /**
+     * Whether the pill was touched since ⛶ opened (SW3): ✓ then notes its value; untouched, ✓ keeps
+     * the part's previous one (null stays the switch's default, so a later switch change applies).
+     */
+    private var cropSidewaysTouched by mutableStateOf(false)
 
     /** The clock ⛶'s Live frame follows (L7): moved on by a minute tick while it's open. */
     private var liveNow by mutableStateOf(Instant.now())
@@ -558,7 +574,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, wideSideways)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -570,6 +586,7 @@ class MainActivity : ComponentActivity() {
         pictureAt = setup.pictureAt
         soon = setup.soon
         darken = setup.darken
+        wideSideways = setup.wideSideways
         order = setup.order
         size = setup.size
     }
@@ -906,6 +923,11 @@ class MainActivity : ComponentActivity() {
                 store.imageFile(source).takeIf { it.exists() }?.let { decodeForScreen(it) }?.let { source to it.asImageBitmap() }
             }.toMap()
         }
+        val sizes = withContext(Dispatchers.IO) {
+            latest.filter { (_, post) -> !post.isVideo }.mapNotNull { (source, _) ->
+                uprightSize(store.imageFile(source))?.let { source to IntSize(it.width, it.height) }
+            }.toMap()
+        }
         val isSaved = withContext(Dispatchers.IO) { offered.filter(store::isSaved).toSet() }
         // VS1: APOD's video still, decoded once per post; made once when the video is NASA's mp4.
         val video = latest[Source.APOD]?.takeIf { it.isVideo && it.videoUrl != null }
@@ -923,6 +945,7 @@ class MainActivity : ComponentActivity() {
         if (old?.date != new?.date || old?.imageUrl != new?.imageUrl) cropping = false
         posts = latest
         pictures = kept + decoded
+        uprightSizes = sizes
         stoppedSizes = emptyMap()
         restore = false
         saved = isSaved
@@ -1398,11 +1421,25 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Crop mode closes; the frame's place and the "Whole picture" and "Sideways" toggles are [post]'s part in the draft. */
+    /**
+     * Crop mode closes; the frame's place and the "Whole picture" and "Sideways" toggles are
+     * [post]'s part in the draft. An untouched "Sideways" keeps the part's previous value (SW3:
+     * null, the switch's default, stays null).
+     */
     private fun keepPart(post: Post) {
-        parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition, cropWhole, cropSideways))
+        val sideways = if (cropSidewaysTouched) cropSideways else parts.forPost(post)?.sideways
+        parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition, cropWhole, sideways))
         cropping = false
     }
+
+    /**
+     * Whether [source]'s picture goes on sideways with a part noting [sideways] (SW3, `:core`'s
+     * [sidewaysOf], as [Store.turnsSideways]): that value, else the rule by its [uprightSizes]
+     * while the **stored** "Wide pictures sideways" is on. Stored, not the draft's: ✓ sets at once
+     * by the stored setup (as ⛶ with Live, T04).
+     */
+    private fun turnsSideways(source: Source, sideways: Boolean?): Boolean =
+        sidewaysOf(sideways, stored.wideSideways) { uprightSizes[source]?.let { it.width to it.height } }
 
     /**
      * ✓ (U0, 2026-11-02: users expected ✓ to set it): [keepPart], then, when the part differs from
@@ -1418,8 +1455,15 @@ class MainActivity : ComponentActivity() {
         val part = parts.getValue(post.source)
         val saved = stored.parts.forPost(post)
         if (part.position == (saved?.position ?: 0.5f) && part.whole == (saved?.whole == true) &&
-            part.sideways == (saved?.sideways == true) && part != failedPart
-        ) return
+            turnsSideways(post.source, part.sideways) == turnsSideways(post.source, saved?.sideways) && part != failedPart
+        ) {
+            // The same picture on the screen, but a touched pill notes its value (SW3): saved, no set.
+            if (part.sideways != saved?.sideways) {
+                store.savePart(post.source, part)
+                readStatus()
+            }
+            return
+        }
         store.savePart(post.source, part)
         readStatus()
         val store = store
@@ -1442,12 +1486,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** ⛶: crop mode opens on [post]'s draft part, whole picture and sideways: the middle, upright, not whole, unless ✓ noted one for this post. */
+    /**
+     * ⛶: crop mode opens on [post]'s draft part, whole picture and sideways: the middle, not
+     * whole, unless ✓ noted one for this post; sideways as it goes on ([turnsSideways], SW3).
+     */
     private fun startCrop(post: Post) {
         val part = parts.forPost(post)
         cropPosition = part?.position ?: 0.5f
         cropWhole = part?.whole == true
-        cropSideways = part?.sideways == true
+        cropSideways = turnsSideways(post.source, part?.sideways)
+        cropSidewaysTouched = false
         cropping = true
     }
 
@@ -1675,9 +1723,11 @@ class MainActivity : ComponentActivity() {
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
-            // Crop mode's "Sideways" (SW2), at the top right: only a landscape picture gains by the turn.
-            if (crop && sidewaysHelps(picture.width, picture.height)) {
-                val sidewaysChanged = cropSideways != (stored.parts.forPost(post)?.sideways == true)
+            // Crop mode's "Sideways" (SW2), at the top right: only a landscape picture gains by the turn
+            // (by its file's upright size, SW3, the page's decoded picture as a fallback).
+            val upright = uprightSizes[source] ?: IntSize(picture.width, picture.height)
+            if (crop && sidewaysHelps(upright.width, upright.height)) {
+                val sidewaysChanged = cropSideways != turnsSideways(source, stored.parts.forPost(post)?.sideways)
                 Text(
                     (if (cropSideways) "✓ " else "") + "Sideways",
                     Modifier
@@ -1685,7 +1735,10 @@ class MainActivity : ComponentActivity() {
                         .padding(8.dp)
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.4f))
-                        .toggleable(cropSideways, role = Role.Switch) { cropSideways = it }
+                        .toggleable(cropSideways, role = Role.Switch) {
+                            cropSideways = it
+                            cropSidewaysTouched = true
+                        }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                         .clearAndSetSemantics {
                             contentDescription = "Sideways"
@@ -2107,6 +2160,11 @@ class MainActivity : ComponentActivity() {
                     "Darken bright pictures", darken, stored.darken, about = "About Darken bright pictures",
                     info = "Darkens a bright picture a little, so the clock and widgets stay readable.",
                 ) { darken = it }
+                // SW3: always shown, so never put back; the effective value is the stored switch's (Store.turnsSideways).
+                DraftSwitch(
+                    "Wide pictures sideways", wideSideways, stored.wideSideways, about = "About Wide pictures sideways",
+                    info = "Turns a wide picture a quarter turn, so more of it fills the screen. ⛶ › Sideways changes one picture.",
+                ) { wideSideways = it }
             }
             // One button, both modes, the daily switch on or off: it applies the whole draft.
             Button(
@@ -2269,7 +2327,7 @@ class MainActivity : ComponentActivity() {
         allSources != stored.allSources ||
             (if (allSources) Source.entries.any(::rowChanged) || order != stored.order else where != stored.where) ||
             interval != stored.interval || pictureAt != stored.pictureAt || soon != stored.soon ||
-            darken != stored.darken || size != stored.size || videoDaysChanged()
+            darken != stored.darken || wideSideways != stored.wideSideways || size != stored.size || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
     private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
@@ -2870,6 +2928,7 @@ private fun Setup.toBundle() = Bundle().apply {
     putInt("pictureAt", pictureAt)
     putBoolean("soon", soon)
     putBoolean("darken", darken)
+    putBoolean("wideSideways", wideSideways)
     putString("size", size.name)
     putString("order", order.joinToString(",") { it.name })
     parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.whole}|${part.sideways}|${part.url.orEmpty()}") }
@@ -2889,11 +2948,12 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         pictureAt = pictureAtOrDefault(bundle.getInt("pictureAt", DEFAULT_PICTURE_AT)),
         soon = bundle.getBoolean("soon"),
         darken = bundle.getBoolean("darken", true),
+        wideSideways = bundle.getBoolean("wideSideways", false),
         size = enumValue<Sizing>(bundle.getString("size")) ?: Sizing.FILL,
         order = orderOf(bundle.getString("order")),
         parts = Source.entries.mapNotNull { source ->
             bundle.getString("part.${source.name}")?.split('|', limit = 5)?.let { (date, position, whole, sideways, url) ->
-                source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict(), sideways.toBooleanStrict())
+                source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict(), sideways.toBooleanStrictOrNull())
             }
         }.toMap(),
     )

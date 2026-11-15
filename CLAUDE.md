@@ -316,7 +316,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (Setup is the draft, Advanced acts at once), then in APOD mode **Where**, with the switch on
   **Pictures from** (the list); then, always, **Size**; while the daily switch is on **New picture at**, "As soon as
   it's out" under it, then, while a column takes turns, "Change every", and "If APOD is a video";
-  then, always, "Darken bright pictures". Closed at a fresh start; it
+  then, always, "Darken bright pictures" and "Wide pictures sideways". Closed at a fresh start; it
   opens by itself while the draft differs from the store in it, when "More NASA pictures" is
   turned (the area swaps), and closes after a Set that saved (also "Setup saved. Nothing to set
   yet."; a failed set leaves it open). Its state and Advanced's survive a rotation (the saved
@@ -348,6 +348,19 @@ set it as wallpaper, and on video days kept the old wallpaper.
     default: a one-off Set darkens too, so the page shows what it uses; never hidden, so never
     put back). Set sets each screen afresh, so a change shows at once. Setup's summary doesn't
     name it (as "As soon as it's out"). After Size (L6's row stands after "Where" or the list).
+  - **Wide pictures sideways** (SW3, 2026-11-15; `sideways-0.8.0.md`, Option C; the label and
+    the ⓘ placeholders until the user's look from rosie's screenshots): a switch after "Darken
+    bright pictures" with a small ⓘ ("About Wide pictures sideways"; its dialog "Turns a wide
+    picture a quarter turn, so more of it fills the screen. ⛶ › Sideways changes one
+    picture."), the pref `wideSideways` (`Setup.wideSideways`), default off (an update from
+    0.7.0 changes nothing, no migration). On: a picture 3:2 or wider (`:core`'s
+    `sidewaysByDefault`: width ≥ 1.5 × height, by its upright size, night default; the
+    alternative 1.4:1) goes on sideways (Wallpaper: the sideways set) unless its part notes
+    otherwise (Choosing the part, Sideways), every source, under Live too (night default);
+    "my picture" never (no part, Fill centred). Part of the draft as "Darken bright pictures"
+    (the highlight, "On, not set yet", the saved state; always shown, so never put back; a
+    change isn't "the order alone"). Set sets each screen afresh. Setup's summary doesn't name
+    it.
   - **Size** (L6, 2026-11-14; `live-0.7.0.md`, "Store, Size and Set"; the heading "Size" and
     the segments "Fill" and "Live" approved by the user, 2026-11-15): a segmented row [Fill | Live] after "Where" or the list, always shown (never
     put back), the pref `size` (`FILL`, `LIVE`; default Fill, so an update from 0.6.0 changes
@@ -372,7 +385,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "Setup" row's title while anything in it differs (the shown mode's "Where" or list and its
     order, the
     mode switch, Size, "New picture at", "As soon as it's out", "Change every", "If APOD is a
-    video", "Darken bright pictures"; not ⛶). Not the daily
+    video", "Darken bright pictures", "Wide pictures sideways"; not ⛶). Not the daily
     switch, nor Advanced (they act at once). Screen readers: a highlighted control's state adds
     "not set yet" ("Selected, not set yet", "Checked, not set yet", "On, not set yet"; the rows
     "collapsed, not set yet").
@@ -380,7 +393,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks, dropdowns and
     order), Size,
     "New picture at", "As soon as it's out", "Change every", "If APOD is a video", "Darken
-    bright pictures", a newly picked "my picture" and the switch "More NASA pictures" change only the page
+    bright pictures", "Wide pictures sideways", a newly picked "my picture" and the switch "More NASA pictures" change only the page
     (`MainActivity`'s draft state; no pref is written, no set, no scheduling). **A hidden
     setting goes back to the stored one** (user, 2026-10-22: else Set saved a hidden "Change
     every", and "Setup" stayed highlighted with nothing in it highlighted): "Change every" while
@@ -580,7 +593,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Keep running, Background update).
+    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Wide pictures sideways, SW3; Keep running, Background update).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. **The still behind ▶**
   (VS1, 2026-11-15; `video-0.8.0.md`; Open question 2): when the video is NASA's own mp4
@@ -1004,8 +1017,21 @@ set it as wallpaper, and on video days kept the old wallpaper.
   drop it, reopening ⛶ shows the stored one, a Set from open crop mode stores it, the saved
   state carries it with the part. The toggle shows in `tertiary` while it differs from the
   stored one; screen readers: "Sideways", a switch, "On"/"Off" with ", not set yet" while it
-  differs. Clockwise only (user, 2026-11-15). Setup's switch for it is SW3 (queued
-  after SW2, user, 2026-11-15; its texts placeholders until the user's look). Checked on the
+  differs. Clockwise only (user, 2026-11-15). **Three values** (SW3, 2026-11-15, Setup's
+  "Wide pictures sideways"): `Part.sideways` is true or false as the pill noted it, or null
+  (the pref `<source>.sideways` missing, a part from 0.7.0 too) for the switch's default; the
+  value used (`:core`'s `sidewaysOf`, `Store.turnsSideways`, the page's `turnsSideways`) is the
+  noted one, else `sidewaysByDefault` while the **stored** switch is on, else upright, by the
+  picture file's upright size (`Store.kt`'s `uprightSize`: `imageBounds` swapped when the EXIF
+  orientation transposes it, `:core`'s `uprightOf`; for `set`, `copyForLive`, so `live.sideways`
+  and B27's keep, and ⛶'s pill, read by `show()` as `uprightSizes`). ⛶ opens on that value by
+  the stored switch, not the draft's (night default, as ⛶ with Live: ✓ sets by the stored
+  setup; the alternative the draft's switch). An untouched pill keeps the part's value at ✓
+  (null stays null, so a later switch change applies to it; a touched flag in crop mode's
+  state), a touched one notes its value; ✓'s no-change check compares the values used, and a
+  touched pill whose value is the one used anyway is saved without a set. A part's position
+  keeps its number when the switch turns that picture sideways, so it then moves along the
+  other axis (night default). Checked on the
   Android 14 emulator (SW2T, 2026-11-15: Fill, both screens and the lock screen alone, Whole, the
   darkening, Live, the job, a new post; `sideways-0.8.0.md`, SW2); the FP6's look on 17 Nov.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
@@ -1933,7 +1959,8 @@ shows about a² more of a picture a:1 wide, sharper; [sideways-0.8.0.md](.claude
 Decided: a toggle per picture in ⛶ mode first (A), a Setup switch defaulting it on for wide
 pictures later (C, SW3), a rule without a setting only if neither is good enough (B); clockwise
 only; with Live too. **Built** (SW1 `:core`'s `sidewaysFrame`, SW2 the set, the measure, Whole,
-Live and ⛶'s pill, 2026-11-15): The app, Choosing the part; Wallpaper: the sideways set; Live.
+Live and ⛶'s pill, SW3 the Setup switch "Wide pictures sideways" and the part's three values,
+2026-11-15): The app, Settings; Choosing the part; Wallpaper: the sideways set; Live.
 
 **0.8.0: Fill's frame on the subject** (user, 2026-11-02, from issue #3: "for 0.8.0";
 [subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md)). A saliency map

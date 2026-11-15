@@ -152,9 +152,10 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 49 | VS1 | A still from the video behind ▶ on video days | winston | opus, medium | yes | SW2 | video-0.8.0.md VS1 |
 | 50 | SW3 | Sideways: the Setup switch for wide pictures (texts placeholders) | winston | opus, high | yes | SW2 | sideways-0.8.0.md SW3 |
 | 51 | SA2 | `:core`: the subject's position from the map | winston | opus, high | no | — | subject-0.8.0.md SA2 |
-| 52 | SA3 | The subject's position once per post; Size Centre, Auto, Live; Advanced's fallback switch | winston | opus, high | yes | SA2, SW3 | subject-0.8.0.md SA3 |
-| 53 | R3 | The release's texts: versionCode 12, the changelog | winston | sonnet, medium | no | SW3, VS1, D1, SA3 | release-0.8.0.md R3 |
-| 54 | T3 | Final tablet pass on the combined tree (R8, the update from 0.7.0) | rosie | opus, high | no | R3 | release-0.8.0.md T3 |
+| 52 | SA3a | The wallpaper side: Size Centre, Auto, Live; the subject noted; Auto in the set | winston | opus, high | yes | SA2, SW3 | subject-0.8.0.md SA3a |
+| 53 | SA3b | The page side: ⛶ from the subject, an undragged part, Advanced's switch | winston | opus, high | yes | SA3a | subject-0.8.0.md SA3b |
+| 54 | R3 | The release's texts: versionCode 12, the changelog | winston | sonnet, medium | no | SW3, VS1, D1, SA3b | release-0.8.0.md R3 |
+| 55 | T3 | Final tablet pass on the combined tree (R8, the update from 0.7.0) | rosie | opus, high | no | R3 | release-0.8.0.md T3 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

@@ -73,6 +73,10 @@ Both stay inside "no library". SA0 tests them beside the model itself.
 
 ## How it would fit (by reading, 2026-11-02)
 
+(Superseded where "Decided" and "Then, the same evening" below differ: Size [Centre | Auto |
+Live] and an Advanced switch, not "no setting"; the packages SA2, SA3a, SA3b are the how.)
+
+
 - **The position only.** ⛶'s part is a position 0–1 along the one direction the frame moves
   (`wallpaperFrame`, `Part.position`, looked up by `parts.forPost(post)` since O2); 0.5 is the
   middle. The subject's frame is a default position per post, nothing else: the user's part when
@@ -143,7 +147,8 @@ questions it depends on.
 | SA0 | The test on the desktop: each method's frame against the user's picks, and a new picking round | Opus, high | a day session, **the user** | 0.7.0 shipped |
 | SA1 | The runtime check, only if a library is still in the race: APK size, F-Droid, reproducible build | Opus, medium | a day session, no device | SA0, the user's answer to 2 |
 | SA2 | `:core`: the map (if by hand), the position from the map, tests | Opus, high | winston, no device | SA0, the user (SA1 skipped) |
-| SA3 | `Store`: the position once per post; Size [Centre | Auto | Live]; Advanced's fallback switch | Opus, high | winston, the emulator | SA2, SW3 |
+| SA3a | The wallpaper side: Size [Centre / Auto / Live], the subject noted, Auto in the set | Opus, high | winston, the emulator | SA2, SW3 |
+| SA3b | The page side: ⛶ from the subject, an undragged part, Advanced's switch | Opus, high | winston, the emulator | SA3a |
 | SA4 | Tablet pass, then the FP6 with the user | Opus, high | rosie, then a day session with **the user** | SA3 |
 
 ### [ ] SA0. The test on the desktop (Opus, high; a day session with the user)
@@ -167,9 +172,9 @@ pictures from `private/pictures/` and, for NASA and Earth, small copies fetched 
 - **Done when:** the numbers and the user's answers are in this file; the page's link noted.
 
 **SA0's results so far** (2026-11-15 evening, an agent on the desktop; the scripts and outputs
-in the session's scratchpad `sa0/`, the ranking page
+in `private/sa0/`, the ranking page
 https://claude.ai/code/artifact/ad836ce0-373f-476d-8bc6-935aacaa81c2, private, its database
-collection `ranks`). Every map on a copy 128 px high, summed over the frame's full height; the
+collection `ranks`). Every map on a copy 128 px across the frame's moving direction (SA2), summed over the frame's full height; the
 position is the frame with the largest sum; "pull": score = sum ÷ sum(middle) − 0.10·(2(p−0.5))²
 (an edge frame needs 10% more than the middle; set before looking at the picks).
 - **brightest:** grey blurred by a Gaussian of σ = 5% of the short side (no pull; the old page's
@@ -215,8 +220,8 @@ position is the frame with the largest sum; "pull": score = sum ÷ sum(middle) �
   becomes [Centre | Auto | Live]**, replacing [Fill | Live]; **Auto the default** (an update's
   `FILL` reads as Auto, the same change as the switch's default on); the segments' texts
   "Centre", "Auto", "Live" chosen by the user. Auto keeps the fallback (the middle when the
-  frame would move less than 0.2: small moves were 46 : 51 for the middle over both rounds,
-  clear ones 35 : 15 for auto), and **a switch in Advanced settings turns the fallback off**
+  frame would move less than 0.2: small moves were auto 46 : middle 51 over both rounds,
+  clear ones auto 35 : middle 15), and **a switch in Advanced settings turns the fallback off**
   ("only auto, no fallback to center on any picture", the user).
 
 ### [ ] SA1. The runtime check (Opus, medium; only if a library is still in the race)
@@ -227,82 +232,138 @@ position is the frame with the largest sum; "pull": score = sum ÷ sum(middle) �
   recipes of apps that use it); whether the build stays reproducible (two builds, `diff -r`).
 - **Decides** with the user: the library, the hand-written inference, or no model.
 
-### [ ] SA2. `:core`: the position from the map (Opus, high)
+### [ ] SA2. `:core`: the subject's position, an exact port of SA0's map (Opus, high)
 
-Read first: this file's "How it would fit", "For the 17 Nov deadline" and SA0's results and
-"Decided" above, and release-0.8.0.md's "Rules for every 0.8.0 package".
-- **The map, exactly SA0's importance** (`private/sa0/compute.py`, its `importance` and
-  `position`; port it, don't retune): on a copy `WORK_H` = 128 px high (the long side for a tall
-  picture), RGB 0–1; brightness = the grey Gaussian-smoothed (σ as `compute.py`), detail = the
-  Sobel gradient magnitude of the grey, smoothed, saturation × value; each shifted to 0 and
-  divided by its 99.5th percentile, clipped to 0–1; the map = Gaussian(0.4 · bright + 0.4 ·
-  detail + 0.2 · sat, σ = 0.04 × the short side). Plain Kotlin (a separable Gaussian, a 3×3
-  Sobel, a percentile by sort): no library. The input an Android-free `IntArray` of ARGB pixels
-  with its width and height (`:app`'s `Drawing.kt` decodes the copy, SA3).
-- `subjectPosition(map, mapW, mapH, screenW, screenH, sideways): Float`: `position()`'s score per
-  frame place (the map's column or row sums, the frame's share against the middle frame's, minus
-  `PULL` = 0.10 × (2(p − 0.5))²), its best p, **without** the fallback (a flat or empty map:
-  0.5). `autoPosition(p, fallback: Boolean)`: with `fallback`, 0.5 when |p − 0.5| <
-  `SUBJECT_MIN_MOVE` = 0.2 (its reason: both rounds' numbers), else p. The raw p is what's
-  stored, so Advanced's switch applies at the set.
-  `sideways`: the map turned clockwise, (h, w), position 0 the original's bottom band, so it
-  agrees with `sidewaysFrame` (Frame.kt) and SW2's band.
-- **Tests:** a map with its peak left, right, in the middle, flat; the pull; the threshold
-  (`autoPosition(0.65, true)` → 0.5, `(0.75, true)` → 0.75, `(0.65, false)` → 0.65); sideways against `sidewaysFrame`'s
-  invariant; **the desktop's positions**: for every picture in `private/pictures/` and
-  `private/pictures-oct-nov/` (`assumeTrue` on the folders), decoded on the JVM (`ImageIO`, test
-  code only) to the same 128 px copy, `importance_pull` within 0.03 of `private/sa0/positions-
-  253.csv` / `positions-round2.csv` for at least 95% of them (report the misses; JPEG decoders
-  and resampling differ a little).
+Read first: this file's "Decided" and "Then, the same evening", and release-0.8.0.md's "Rules for every 0.8.0 package". Port
+`private/sa0/compute.py`'s `map_importance` and `position` (gitignored, on disk) **exactly**; don't
+retune. Plain Kotlin in `:core`, Double throughout, no library.
+- **The copy:** `subjectCopySize(w, h, screenW, screenH)`: `horiz` as `wallpaperFrame` (the
+  picture wider than the screen's shape); `sc = 128 / (horiz ? h : w)` (the side across the
+  frame's moving direction is 128; compute.py's comment saying "long side" is wrong); the size
+  `max(4, round(w·sc)) × max(4, round(h·sc))` with Python's round (half to even:
+  `kotlin.math.round`, not `roundToInt`).
+- **`boxResize(argb, w, h, newW, newH)`:** PIL `Image.BOX`, an area average with fractional edge
+  weights. Used by the test and by the app (SA3a); never a bilinear one-step scale (measured on
+  all 295 pictures: box matches the CSVs exactly, a bilinear step is off by up to 0.69).
+- **The map** on the copy (RGB 0–1; "short" = the copy's shorter side; G(x, σ) =
+  scipy's `gaussian_filter`: separable, normalised `exp(−x²/2σ²)`, radius `int(4σ + 0.5)`, edges
+  mode `reflect` = half-sample reflection, d c b a | a b c d):
+  grey = 0.299R + 0.587G + 0.114B; gb = G(grey, max(0.7, 0.01·short));
+  bright = norm(gb);
+  detail = norm(G(hypot(Sobel_x(gb), Sobel_y(gb)), 0.04·short)) (scipy's `sobel`: [−1 0 1] along
+  the axis, [1 2 1] across, unnormalised, the same reflect edges; of the **smoothed** grey;
+  smoothed **before** norm);
+  sat = norm(G(max − min where max > 0.05 else 0, 0.04·short)) (max, min over R, G, B);
+  map = G(0.4·bright + 0.4·detail + 0.2·sat, 0.04·short).
+  norm(m): m − min(m), divided by numpy's 99.5th percentile (linear interpolation at index
+  0.995·(N − 1) of the sorted values), clipped to 0–1; **when that percentile is 0, return the
+  shifted m as it is** (undivided, unclipped).
+- **`position`:** along the moving direction, the column (or row) sums of the map; `n` their
+  count; `frac` = the frame's length ÷ the picture's length in the **original** picture's size
+  (pass it: `subjectPosition` takes the original w, h too); `fl = max(1, round(frac·n))`; fl ≥ n →
+  0.5; the window sums by a cumulative sum, `len = n − fl + 1`, `ps = i / (len − 1)`; total ≤ 0 →
+  0.5; `mid = sums[round(0.5·(len − 1))]`; mid ≤ 0 → the argmax of the sums **without the pull**;
+  else score = sums ÷ mid − 0.10·(2(ps − 0.5))², the argmax taking the **first** maximum (strict
+  `>`). That's `subjectPosition(argb, copyW, copyH, w, h, screenW, screenH, sideways): Float`, raw.
+- **Sideways:** turn the copy clockwise (`turned[x'][y'] = copy[x = y'][y = H − 1 − x']`, size
+  (H, W)) and run the same upright `position` with the turned original size (h, w); so it agrees
+  with `sidewaysFrame` in every case (also a panorama wider than about 2.23:1, whose turned frame
+  moves vertically).
+- **`autoPosition(raw, fallback)`:** with `fallback`, 0.5 when |raw − 0.5| < `SUBJECT_MIN_MOVE` =
+  0.2 (its reason: both rounds' numbers), else raw.
+- **Tests:** maps with the peak left, right, in the middle, flat, a zero percentile; the pull;
+  the first maximum; `autoPosition(0.65, true)` → 0.5, `(0.75, true)` → 0.75, `(0.65, false)` →
+  0.65; sideways against `sidewaysFrame`'s invariant and a panorama; `boxResize` against a tiny
+  hand-computed case; **the desktop's positions** (`assumeTrue` on the folders), screen
+  **1080×2408** (compute.py's): every picture in `private/pictures/` and, for dates ≥
+  2026-10-02 only, `private/pictures-oct-nov/`, decoded with ImageIO's `ImageReader` and
+  `ImageReadParam.setSourceSubsampling(k, k)` (k the largest power of 2 keeping min(w, h)/k ≥
+  512; a full decode of the 8857×6785 one would blow the test heap), the raster's samples read
+  directly (2026-02-07 is greyscale: no `getRGB` gamma), `boxResize` to `subjectCopySize`, then
+  `subjectPosition`: against `importance_pull` in `private/sa0/positions-253.csv` and
+  `positions-round2.csv` (CRLF line endings: trim `\r`), **≥ 95% within 0.03 and none off by
+  more than 0.1** (report the misses).
 - **Done when:** the tests pass; `CLAUDE.md` (Next features, 0.8.0's subject frame: the method,
-  the threshold and both rounds' numbers) and the skill's "Where things are".
+  the threshold, both rounds' numbers) and the skill's "Where things are".
 
-### [ ] SA3. `Store`: the position once per post; Size [Centre | Auto | Live]; Advanced's switch (Opus, high)
+### [ ] SA3a. The wallpaper side: Size [Centre | Auto | Live], the subject noted, Auto in the set (Opus, high)
 
-Read first: this file's "How it would fit", "For the 17 Nov deadline", "Decided" and "Then, the
-same evening", and release-0.8.0.md's "Rules for every 0.8.0 package". After SA2 and SW3.
-- `refresh`, after a stored download (~869-897, after the `renameTo`), decodes a copy 128 px
-  high (`Drawing.kt`, upright) and notes both raw positions (`<source>.subjectPosition` and
-  `<source>.subjectSideways`, keyed by the post's date and picture URL as `cropDate`/`cropUrl`);
-  on a failure nothing (logged; the middle). Logged `Subject: APOD 2026-11-16 p=0.78 (sideways
-  0.50) in <n> ms`. A post stored before 0.8.0 gets none (no migration): the middle until the
-  next post.
-- **Size [Centre | Auto | Live]** (the user's texts, 2026-11-15): the segmented row L6 built,
-  three segments, the pref `size` `CENTRE`, `AUTO`, `LIVE`; **default `AUTO`**; a stored `FILL`
-  (0.7.0) reads as `AUTO` (no write, no migration code; `:core`'s reading of the pref, tested).
-  Everything L6 did for "not Live" (Fill: every set still, `opensPicker`, `stillOrLive`,
-  `sharedLockFollows`, Setup's summary " · Live", the status line, the highlight, the saved
-  state, "the order alone") holds for Centre and Auto alike: grep every `Size.FILL` and
-  `== LIVE`/`!= LIVE`. Setup's summary doesn't name Centre or Auto. The segments wrap or shrink
-  in the tablet's and the FP6's landscape panes as "Change every"'s do (equal heights).
-- **Advanced settings: the fallback switch** (acts at once, not part of the draft, never
-  highlighted; while the daily switch is on, as Advanced's others; after "Save every picture"'s
-  group, before "Keep running"), the pref `autoFallback`, **default on**. Placeholder texts:
-  the label "Auto: centre when unsure", a small ⓘ "About Auto: centre when unsure", its dialog
-  "With Size Auto, a picture whose subject is only slightly off the middle stays centred. Off:
-  Auto places every frame." Add the ⓘ to `CLAUDE.md`'s list of allowed help texts. Night
-  default: it takes effect at the next set (a change time, Set, ✓), no set at once (the
-  alternative: a set like ⛶'s ✓ at once).
-- **Where the position applies** with the stored Size Auto (the user's part from ⛶ always wins;
-  Centre: 0.5, as 0.7.0's Fill): `autoPosition(raw, autoFallback)` in `Store.set` (`part?.position
-  ?: 0.5f`, ~1565), the measure (`frameGrey` gets the same position), ⛶'s start (`startCrop`
-  ~1405), and `setPart`'s no-change check (~1377: compare with that position, else ✓ without a
-  drag saves and sets again). Not Live (`copyForLive`: Live pans by the clock). The effective
-  sideways value (SW3) picks which raw position; toggling the pill moves an undragged frame to
-  that orientation's position. ⛶ follows the stored Size (night default).
-- **Device** (rosie, the emulator): a picture whose subject is clearly off the middle
-  (`private/sa0/positions-round2.csv`, `importance_pull` ≥ 0.75 or ≤ 0.25) and one with a small
-  move (0.55–0.65), faked into `files/` as the skill says: with Auto and `run -f 1` the first's
-  frame on the subject, the second's in the middle (`debug-set.png`, the `Subject:` line);
-  Advanced's switch off and the next set: the second moves too; Centre and Set: both in the
-  middle; ⛶ opens at the used position, ✓ elsewhere wins; sideways uses the sideways position;
-  Live as before; an update from 0.7.0's Fill shows Auto selected and nothing set; a broken
-  picture gives the middle; screenshots of the row (portrait and the landscape pane), the
-  Advanced switch and its ⓘ; the smoke list.
-- **Done when:** the tests and the device pass; `CLAUDE.md` (The app, Settings: Size and
-  Advanced, the help-text list; Wallpaper and Choosing the part; Next features); the maps
-  (`setup.md`'s Size section, `page.md` K for ⛶'s start and Advanced's switch,
-  `background.md` the job's set).
+Read first: this file's "Decided" and "Then, the same evening", and release-0.8.0.md's "Rules for every 0.8.0 package". After SA2
+and SW3. D1 changed `refresh`: find places by their anchors, not line numbers.
+- **Size** (`:core`'s `Live.kt`): the enum `CENTRE, AUTO, LIVE` in this order (the page's
+  `Segments(Sizing.entries…)` takes the order from it); `sizeOf(name: String?): Size =
+  Size.entries.firstOrNull { it.name == name } ?: Size.AUTO`, tested (a stored `FILL` from 0.7.0
+  reads as AUTO; the first Set rewrites the pref), used for the pref (`Store`'s read, its KDoc)
+  and the saved state (MainActivity's `enumValue` for the size). Every `Size.FILL` becomes CENTRE
+  or AUTO by meaning; all logic is `== LIVE`/`!= LIVE` (`Live.kt`, `Store`, MainActivity) and
+  stays. The defaults (`Setup`'s, `Store`'s read, MainActivity's draft) AUTO. The labels
+  "Centre", "Auto", "Live" (the user's, 2026-11-15) where "Fill" was. `LiveTest`'s `Size.FILL`
+  uses; **`RulesSimulationTest`**: `if (liveR.nextBoolean()) LIVE else FILL` and the toggle
+  become AUTO 1:1, no new draw on `liveR` (else every seed shifts). The log lines' "Fill on …"
+  stay as they are (they mean "still"; the maps grep them).
+- **The subject noted** in `refresh`: whenever the stored post's picture exists and no subject
+  is noted for its date and picture URL (so after a download, after a fake, after the update
+  for the current post, and after a death between the `renameTo` and the note), decode a copy
+  (`ImageDecoder`, upright with EXIF, `setTargetSampleSize(k)` by SA2's rule as `blurred` does,
+  `ALLOCATOR_SOFTWARE`, `getPixels`, `boxResize` to `subjectCopySize`; never `setTargetSize`),
+  `subjectPosition` upright, and sideways only when `sidewaysHelps`; note
+  `<source>.subjectDate`, `subjectUrl`, `subjectPosition`, `subjectSideways` in one commit. A
+  failure (`runCatching`, OOM included) is noted too (`subjectPosition` absent, the date and URL
+  set), so it isn't retried every run, and never fails `refresh`. Logged `Subject: APOD
+  2026-11-16 p=0.78 (sideways 0.50) in <n> ms` or `Subject: APOD … couldn't: …`. "My picture"
+  has none (centred).
+- **`framePosition(size, partPosition: Float?, subjectRaw: Float?, fallback: Boolean): Float`**
+  in `:core`, tested: the part's position when not null, else with AUTO `autoPosition(subjectRaw,
+  fallback)` (no subject: 0.5), else 0.5. `Store.set` uses it (where `part?.position ?: 0.5f`
+  is), the measure follows through `setFile`. The effective sideways value (SW3) picks the raw
+  position (upright or sideways). Under Size Live the screens that stay still (a lock screen with
+  its own column, home after a lost Live) use the middle, as 0.7.0 (night default; the
+  alternative: Auto). `copyForLive` unchanged (Live pans by the clock).
+- `Store.autoFallback` (the pref `autoFallback`, default on), read by `set`; its switch is SA3b's.
+  `Store.subject(post)` for the page.
+- **Device** (rosie, the emulator): a picture with `importance_pull` ≥ 0.75 or ≤ 0.25 and one at
+  0.55–0.65 (`private/sa0/positions-round2.csv`), each faked into `files/` as the skill says, the
+  `<source>.subject*` keys removed, `run -f 1`: the `Subject:` line; with Auto the first's frame
+  on the subject (`debug-set.png`), the second's in the middle; the `autoFallback` pref false by
+  `run-as` and the next set: the second moves; Centre and Set: both in the middle; Live as
+  before; an update over 0.7.0's Fill shows Auto selected and sets nothing; a broken picture:
+  the `couldn't` line and the middle; screenshots of the three-segment row in portrait and in
+  the landscape pane; the smoke list.
+- **Done when:** the tests and the device pass; `CLAUDE.md` (The app, Settings: Size; Wallpaper;
+  the lines naming [Fill | Live]); the maps (`interactions/setup.md`'s Size section,
+  `background.md` the job's set, `live.md`: its title "Size [Fill | Live] × the picker" and its
+  Fill mentions where they mean the setting, `README.md`).
+
+### [ ] SA3b. The page side: ⛶ from the subject, an undragged part, Advanced's switch (Opus, high)
+
+Read first: this file's "Decided" and "Then, the same evening", SA3a above, and release-0.8.0.md's "Rules for every 0.8.0 package".
+After SA3a.
+- **The page reads the subject:** `Store.subject(post)` and `Store.autoFallback` in `readStatus`
+  (as `saveEvery`).
+- **`Part.position: Float?`**, null = not dragged (mirrors SW3's `sideways: Boolean?`): a
+  `cropMoved` flag set by the drag's move and cleared by `startCrop`; ✓ notes the position only
+  when moved, else keeps the part's previous value (null stays null); `putPart` removes
+  `cropPosition` for null; `parts` reads it with `contains`; the bundle writes and reads "null".
+  So Centre ↔ Auto, Advanced's switch and SW3's switch keep applying to a picture ✓'d only for
+  "Whole picture" or the pill.
+- **⛶ starts at** `framePosition(...)` for the stored Size and the effective sideways value
+  (`startCrop` in MainActivity); `setPart`'s no-change check (MainActivity's, not `Store.setPart`)
+  compares with that; toggling the pill moves an undragged frame to that orientation's position.
+- **Advanced settings: "Auto: centre when unsure"** (placeholder; a small ⓘ "About Auto: centre
+  when unsure", its dialog "With Size Auto, a picture whose subject is only slightly off the
+  middle stays centred. Off: Auto places every frame."), the pref `autoFallback`, default on,
+  acting at once (no set; the next set uses it: Advanced's "they change no picture"), never
+  highlighted, after "Save every picture"'s group, before "Keep running". Shown only while the
+  daily switch is on, as Advanced is; a one-off Set with it off still uses the stored pref
+  (accepted, night default). Add the ⓘ to `CLAUDE.md`'s list of allowed help texts.
+- **Device** (rosie, the emulator): ⛶ on the subject picture opens at the subject; ✓ without a
+  drag sets nothing ("no change"); a drag and ✓ wins over Auto; Whole picture ✓ without a drag,
+  then Size Centre and Set: the middle (the part stayed undragged); the pill on an undragged
+  frame moves it to the sideways position; the Advanced switch off: the next `run -f 1` moves the
+  small-move picture; a rotation in ⛶; screenshots of the switch and its ⓘ; the smoke list.
+- **Done when:** the tests (the null part through `Store` and the bundle) and the device pass;
+  `CLAUDE.md` (Choosing the part; Settings: Advanced; the help-text list); `interactions/page.md`
+  (K for ⛶'s start, the undragged part, Advanced's switch).
 
 ### [ ] SA4. Tablet pass, then the FP6 with the user (Opus, high)
 

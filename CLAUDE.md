@@ -1659,10 +1659,17 @@ changelog `11.txt` and the store description; the night's items as recommended (
 ~0.8 s of black accepted, a look again in 0.7.1; the picker's Settings entry stays removed; R2a,
 L6's "not noted live" rule and BR3's defaults kept; O6's RESTRICTED finding written in, The
 alarms). **Left for the tag** (the user releases later on 15 Nov):
-- **SPLIT, "once per split" fixed** (user, 2026-11-15; **built** 2026-11-15, `wp/split`, unchecked
-  on a device): The app, Set as wallpaper, The picker. Left: `interactions/live.md`'s map.
-- **The FP6 re-test** of the 15 Nov fixes (the user-signed build installed 15:15; the cases in
-  `interactions/README.md`), with SPLIT's build; the phone unlocked, about 30 min.
+- **SPLIT, "once per split" fixed** (user, 2026-11-15; **built** 2026-11-15, mapped in
+  `interactions/live.md`, Q1–Q8): The app, Set as wallpaper, The picker. **Tablet PASS**
+  (2026-11-15, debug and an R8 smoke: T05–T09, T11, T28, T33, T37, the home-not-live dialog; ZUI's
+  "Home screen" over a live home shared the engine, Q7's third outcome; T36 FP6 only).
+- **The tablet re-test** of the 15 Nov fixes (2026-11-15, master 5af1061, debug): live S5, S7, S9,
+  setup S1–S3, page C8, K12, BP2, BH4, S4a PASS; live S4 and its log line not run (ZUI has no
+  "Lock screen" alone), background N1 not run (a race). The tablet is 711 dp both ways, so C8's
+  crossing of the 600 dp layouts is the FP6's.
+- **The FP6 re-test** of the 15 Nov fixes and SPLIT (the cases in `interactions/README.md`;
+  first the FP6-only ones: live S3, S4, T36, C8's layout crossing), with the release-signed
+  build of SPLIT's tree; the phone unlocked, about 30 min.
 - The day's use of the FP6 (L2, O17, L10's first day).
 
 **0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline, right after 0.6.0):

@@ -66,5 +66,6 @@ for a file deleted while the page stays resumed (☆ again after Home and reopen
 
 **Not yet re-run on the FP6:** the fixes above (the signed build is installed since 15 Nov 15:15;
 the re-test waits for the phone to be unlocked), and SPLIT, which needs its build (live T05–T09,
-T11, T33, T36, T37). A tablet re-test of SPLIT runs on 15 Nov (its cases: all those but T36); no
-result in these maps yet.
+T11, T33, T36, T37). **On the tablet** (15 Nov, CLAUDE.md, Left for the tag): the fixes PASS but
+live S4, its log line and background N1 (not run); SPLIT's cases PASS but T36 (FP6 only); ZUI's
+"Home screen" over a live home gave T37 Q7's shared outcome.

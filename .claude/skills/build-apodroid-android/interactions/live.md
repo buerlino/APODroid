@@ -586,6 +586,22 @@ Check the gap between `Live: engine 1 created` and `Live: back from the picker` 
 **A6** ⛶ on the APOD page (lock's source only): drag works (Fill); ✓ after a drag → Toast WS, lock
 still at the new part. Log `Part: wallpaper set: Of(source=APOD…) on LOCK`.
 
+**A5s** ⛶ with Live and "Sideways" (SW2, 0.8.0; a landscape picture in home's column, page.md K16–K22).
+- Screen: "Sideways" at the picture's top right; on, the frame becomes the turned band (a horizontal
+  band across the page's picture) at the clock's position (`livePosition`; p = 0 the picture's bottom
+  band, p = 1 its top), no drag, moved by the minute tick. ✓ → Toast WS; the home screen pans across
+  the turned picture (the original's top at the right). Off and ✓ → upright again.
+- Log: `Part: wallpaper shown live: Of(source=…) on HOME, sideways[, darker ×0.xx (grey nnn)]` (the
+  measure of the turned picture's top third), `Part: <source> <date> set on HOME`; then the engine
+  `Live: decoded W×H in N ms` **portrait-shaped** (W < H, H the screen's portrait height or the
+  picture's width if smaller: the turned picture), `Live: drew <picture> p=0.NN …`.
+- Prefs grep (`run-as … cat shared_prefs/*.xml | grep live\.`): `live.sideways` true (false after
+  the off ✓), beside `live.whole` and `live.darken`.
+- With "Whole picture" too: `live.whole` and `live.sideways` both true, the engine draws the turned
+  whole picture still (`p=0.50`).
+- With the lock screen shared (equal columns, the engine on both): both pan the turned picture; the
+  lock screen kept by B27 (background.md) is a still of the turned picture at the clock's position.
+
 **A7** (SUSPECT) Draft Size Fill (not Set yet) while stored Live and home live; ⛶ on the NASA page.
 - Screen: the frame **drags** (⛶ follows the draft's Size, MainActivity.kt:1801); ✓ → Toast WS, but the
   home screen doesn't change position: `setPart` uses the stored Size Live and hands the picture to the

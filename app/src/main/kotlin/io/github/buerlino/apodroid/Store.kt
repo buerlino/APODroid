@@ -112,9 +112,11 @@ enum class Where(val screens: Set<Screen>) {
 
 /**
  * ⛶'s part of a source's post: the post's [date] and picture [url], where the frame sits
- * ([position], 0–1), and whether the wallpaper shows the [whole] picture instead (A3).
+ * ([position], 0–1), whether the wallpaper shows the [whole] picture instead (A3), and whether
+ * the picture goes on turned 90° clockwise, [sideways] (0.8.0, SW2, issue #4: its top at the
+ * screen's right; the frame then `:core`'s sidewaysFrame, position 0 the bottom band).
  */
-data class Part(val date: LocalDate, val url: String?, val position: Float, val whole: Boolean)
+data class Part(val date: LocalDate, val url: String?, val position: Float, val whole: Boolean, val sideways: Boolean = false)
 
 /**
  * [post]'s part: its source's, when noted for this very post (date and picture URL, so a new
@@ -404,12 +406,13 @@ class Store(private val context: Context) {
         saved
     }
 
-    /** ⛶'s part of [source]'s post (its date and picture URL, the frame's place, the whole picture). */
+    /** ⛶'s part of [source]'s post (its date and picture URL, the frame's place, the whole picture, sideways). */
     private fun SharedPreferences.Editor.putPart(source: Source, part: Part) {
         putString(source.key("cropDate"), part.date.toString())
         putString(source.key("cropUrl"), part.url)
         putFloat(source.key("cropPosition"), part.position)
         putBoolean(source.key("whole"), part.whole)
+        putBoolean(source.key("sideways"), part.sideways)
     }
 
     /**
@@ -446,7 +449,7 @@ class Store(private val context: Context) {
         }
         split.engine?.let { (shown, screens) ->
             val copy = copyForLive(shown, stored)
-            Log.i("APODroid", "Part: wallpaper shown live: $shown on ${screens.joinToString("+")}${darker(copy.factor, copy.grey)}")
+            Log.i("APODroid", "Part: wallpaper shown live: $shown on ${screens.joinToString("+")}${liveNote(copy)}")
             prefs.edit(commit = true) {
                 putLive(shown, copy)
                 screens.forEach { putSetAt(it); putBoolean(it.key("wallpaperLive"), true) }
@@ -1145,7 +1148,10 @@ class Store(private val context: Context) {
             if (isStopped(stopped)) throw InterruptedException()
             val copy = file == liveFile
             try {
-                setFile(file, setOf(Screen.LOCK), liveAt(now), whole = copy && liveWhole, factor = if (copy) liveDarken else 1f)
+                setFile(
+                    file, setOf(Screen.LOCK), liveAt(now), whole = copy && liveWhole, sideways = copy && liveSideways,
+                    factor = if (copy) liveDarken else 1f,
+                )
             } catch (e: Exception) {
                 Log.w("APODroid", "Live: the lock screen's still set of what the engine draws failed: $e")
                 failure = e
@@ -1176,7 +1182,7 @@ class Store(private val context: Context) {
             var copy: LiveCopy? = null
             val darker = try {
                 if (toEngine) {
-                    copyForLive(picture, stored).also { copy = it }.let { darker(it.factor, it.grey) }
+                    copyForLive(picture, stored).also { copy = it }.let(::liveNote)
                 } else {
                     set(picture, screens, stored)
                 }
@@ -1339,6 +1345,13 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("live.whole", false)
 
     /**
+     * Whether Live's copy is drawn turned 90° clockwise (its post's [Part.sideways] at the
+     * hand-over, SW2), noted beside it (`live.sideways`); false for a copy from before 0.8.0.
+     */
+    val liveSideways: Boolean
+        get() = prefs.getBoolean("live.sideways", false)
+
+    /**
      * The darkening of Live's copy (BR3), `:core`'s [darkening] of its one measure at the
      * hand-over ([copyForLive]), noted beside it (`live.darken`); 1 while "Darken bright pictures"
      * is off, for a dark picture, a failed measure and a copy from before BR3.
@@ -1350,12 +1363,16 @@ class Store(private val context: Context) {
     val livePicture: String?
         get() = prefs.getString("live.picture", null)
 
-    /** What [copyForLive] noted of Live's copy: its whole flag, its darkening and the measure (null: not measured). */
-    private data class LiveCopy(val whole: Boolean, val factor: Float, val grey: Double?)
+    /** What [copyForLive] noted of Live's copy: its whole and sideways flags, its darkening and the measure (null: not measured). */
+    private data class LiveCopy(val whole: Boolean, val sideways: Boolean, val factor: Float, val grey: Double?)
 
-    /** Writes the notes beside Live's copy of [picture] ([copyForLive]): its whole flag, its darkening and its name. */
+    /** The hand-over's log note: ", sideways" (SW2) and [darker]'s. */
+    private fun liveNote(copy: LiveCopy) = sidewaysNote(copy.sideways) + darker(copy.factor, copy.grey)
+
+    /** Writes the notes beside Live's copy of [picture] ([copyForLive]): its whole and sideways flags, its darkening and its name. */
     private fun SharedPreferences.Editor.putLive(picture: Picture, copy: LiveCopy) {
         putBoolean("live.whole", copy.whole)
+        putBoolean("live.sideways", copy.sideways)
         putFloat("live.darken", copy.factor)
         putString("live.picture", picture.toString())
     }
@@ -1363,11 +1380,11 @@ class Store(private val context: Context) {
     /**
      * Blocking, under [wallpaperLock]. The engine's hand-over: [picture]'s file (the source's or
      * the user's own) copied to [liveFile] via a `.part` and renamed, so the engine never reads
-     * half a copy. Returns the whole flag of its post's stored part and, with [darken], the
-     * darkening (BR3), measured once per picture so it doesn't change as the frame moves: the
-     * whole picture's top third ([pictureGrey]), or a whole one's on its background ([wholeGrey]),
-     * for [putLive]; a failed measure leaves it at 1 (logged). Throws [StorageFailed] (a full
-     * disk): a failed set.
+     * half a copy. Returns the whole and sideways flags of its post's stored part and, with
+     * [darken], the darkening (BR3), measured once per picture so it doesn't change as the frame
+     * moves: the whole picture's top third ([pictureGrey]), or a whole one's on its background
+     * ([wholeGrey]), turned when sideways (SW2), for [putLive]; a failed measure leaves it at 1
+     * (logged). Throws [StorageFailed] (a full disk): a failed set.
      */
     private fun copyForLive(picture: Picture, stored: Stored): LiveCopy {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
@@ -1379,10 +1396,12 @@ class Store(private val context: Context) {
             part.delete()
             throw StorageFailed(e)
         }
-        val whole = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)?.whole == true
-        val grey = if (!darken) null else runCatching { if (whole) wholeGrey(liveFile, screen) else pictureGrey(liveFile) }
+        val noted = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
+        val whole = noted?.whole == true
+        val sideways = noted?.sideways == true
+        val grey = if (!darken) null else runCatching { if (whole) wholeGrey(liveFile, screen, sideways) else pictureGrey(liveFile, sideways) }
             .onFailure { Log.w("APODroid", "Live: couldn't measure the brightness: $it") }.getOrNull()
-        return LiveCopy(whole, grey?.let(::darkening) ?: 1f, grey)
+        return LiveCopy(whole, sideways, grey?.let(::darkening) ?: 1f, grey)
     }
 
     /**
@@ -1520,6 +1539,7 @@ class Store(private val context: Context) {
                     prefs.getString(source.key("cropUrl"), null),
                     prefs.getFloat(source.key("cropPosition"), 0.5f),
                     prefs.getBoolean(source.key("whole"), false),
+                    prefs.getBoolean(source.key("sideways"), false),
                 )
             }
         }.toMap()
@@ -1535,20 +1555,24 @@ class Store(private val context: Context) {
      * [topThirdGrey], [frameGrey]); a bright one (`:core`'s [darkening] below 1) goes on through a bitmap of
      * the screen's size drawn with the darkening (Fill's frame [decodeFrame]d alone, the EXIF
      * photo too; the whole picture darkened as drawn), all of it the hint. A factor of 1 leaves
-     * every path as 0.6.0's. Writes no record. Returns the log's note: ", darker ×0.78 (grey 141)",
-     * or "".
+     * every path as 0.6.0's. [Part.sideways] (SW2): the picture turned 90° clockwise, measured and
+     * drawn turned, always through a bitmap (`setStream` can't turn). Writes no record. Returns the
+     * log's note: ", sideways" and ", darker ×0.78 (grey 141)", or "".
      */
     private fun set(picture: Picture, screens: Set<Screen>, stored: Stored): String {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
         val part = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
-        return setFile(file, screens, part?.position ?: 0.5f, part?.whole == true, factor = null)
+        return setFile(file, screens, part?.position ?: 0.5f, part?.whole == true, part?.sideways == true, factor = null)
     }
 
     /**
-     * Blocking. [set]'s drawing of [file] on [screens]: Fill at [position], or [whole]; darkened
-     * by [factor], or with null by the measure while [darken] is on. Writes no record.
+     * Blocking. [set]'s drawing of [file] on [screens]: Fill at [position], or [whole]; turned 90°
+     * clockwise when [sideways] (the frame `:core`'s sidewaysFrame, the band drawn through a
+     * rotating matrix into a bitmap of the screen's size, `setBitmap`); darkened by [factor], or
+     * with null by the measure while [darken] is on. An upright picture keeps every path as it
+     * was. Writes no record.
      */
-    private fun setFile(file: File, screens: Set<Screen>, position: Float, whole: Boolean, factor: Float?): String {
+    private fun setFile(file: File, screens: Set<Screen>, position: Float, whole: Boolean, sideways: Boolean, factor: Float?): String {
         val flags = screens.fold(0) { flags, it -> flags or if (it == Screen.HOME) WallpaperManager.FLAG_SYSTEM else WallpaperManager.FLAG_LOCK }
         val manager = WallpaperManager.getInstance(context)
         val screen = screen
@@ -1556,24 +1580,25 @@ class Store(private val context: Context) {
         val fixed = factor
         if (whole) {
             // The screen's size already: the hint is all of it. Measured with its background (Open 5).
-            val whole = wholePicture(file, screen)
+            val whole = wholePicture(file, screen, sideways)
             dumpWhole(whole)
             val grey = if (darken) topThirdGrey(whole) else null
             val factor = fixed ?: grey?.let(::darkening) ?: 1f
             val bitmap = if (factor < 1f) darkened(whole, factor) else whole
             dumpSet(bitmap)
             manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
-            return darker(factor, grey)
+            return sidewaysNote(sideways) + darker(factor, grey)
         }
         // A failed measure leaves the picture as it is: the set matters more than the darkening.
-        val grey = if (!darken) null else runCatching { frameGrey(file, screen, position) }
+        val grey = if (!darken) null else runCatching { frameGrey(file, screen, position, sideways) }
             .onFailure { Log.w("APODroid", "Couldn't measure the brightness: $it") }.getOrNull()
         val factor = fixed ?: grey?.let(::darkening) ?: 1f
-        if (factor < 1f) {
-            // Only the frame is decoded, at the screen's size, upright (an EXIF photo too).
-            val frame = decodeFrame(file, screen, position, screen.height)
+        if (factor < 1f || sideways) {
+            // Only the frame is decoded, at the screen's size, upright (an EXIF photo too); a
+            // sideways band turned as it's drawn, no turned copy.
+            val frame = decodeFrame(file, screen, position, screen.height, sideways)
             val bitmap = createBitmap(screen.width, screen.height)
-            drawPanned(Canvas(bitmap), frame, screen, position, factor)
+            if (sideways) drawSideways(Canvas(bitmap), frame, screen, factor) else drawPanned(Canvas(bitmap), frame, screen, position, factor)
             frame.recycle()
             dumpSet(bitmap)
             manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
@@ -1587,8 +1612,11 @@ class Store(private val context: Context) {
             val crop = imageBounds(file)?.let { wallpaperFrame(it.outWidth, it.outHeight, screen, position) }
             file.inputStream().use { manager.setStream(it, crop, true, flags) }
         }
-        return darker(factor, grey)
+        return sidewaysNote(sideways) + darker(factor, grey)
     }
+
+    /** The log's note of a sideways set or hand-over (SW2): ", sideways", or "". */
+    private fun sidewaysNote(sideways: Boolean) = if (sideways) ", sideways" else ""
 
     /** The log's note of a darkened set ([set]): ", darker ×0.78 (grey 141)", or "" at 1. */
     private fun darker(factor: Float, grey: Double?) =

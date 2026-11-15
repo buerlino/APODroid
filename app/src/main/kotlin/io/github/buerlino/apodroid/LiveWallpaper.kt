@@ -64,7 +64,7 @@ class LiveWallpaper : WallpaperService() {
         private var name = "nothing"
         private var colors: WallpaperColors? = null
 
-        /** The key of the picture decoded ([shownKey]) and of the one asked for ([wantedKey]): the file, its time and length, the whole flag, the darkening. */
+        /** The key of the picture decoded ([shownKey]) and of the one asked for ([wantedKey]): the file, its time and length, the whole and sideways flags, the darkening. */
         private var shownKey: String? = null
         private var wantedKey: String? = null
 
@@ -222,20 +222,23 @@ class LiveWallpaper : WallpaperService() {
                 val copy = store.liveFile
                 val file: File?
                 val wantWhole: Boolean
+                val wantSideways: Boolean
                 val wantFactor: Float
                 val wantName: String
                 if (copy.exists()) {
                     file = copy
                     wantWhole = store.liveWhole
+                    wantSideways = store.liveSideways
                     wantFactor = store.liveDarken
                     wantName = store.livePicture ?: copy.name
                 } else {
                     file = store.liveFallback()
                     wantWhole = false
+                    wantSideways = false
                     wantFactor = 1f
                     wantName = file?.name?.let { "$it (no copy)" } ?: "nothing"
                 }
-                val key = file?.let { "${it.path}:${it.lastModified()}:${it.length()}:$wantWhole:$wantFactor" }
+                val key = file?.let { "${it.path}:${it.lastModified()}:${it.length()}:$wantWhole:$wantSideways:$wantFactor" }
                 if (key == wantedKey) return@safely
                 wantedKey = key
                 if (file == null) {
@@ -245,7 +248,7 @@ class LiveWallpaper : WallpaperService() {
                 val screen = store.screen
                 decoder.execute {
                     val start = SystemClock.uptimeMillis()
-                    val bitmap = decode(file, wantWhole, screen)
+                    val bitmap = decode(file, wantWhole, wantSideways, screen)
                     if (bitmap != null) Log.i(TAG, "Live: decoded ${bitmap.width}×${bitmap.height} in ${SystemClock.uptimeMillis() - start} ms")
                     // L9a: the small copy first, while the bitmap is still this thread's (show may
                     // recycle it), then the picture shown at once; the colours (WallpaperColors.fromBitmap,
@@ -282,11 +285,14 @@ class LiveWallpaper : WallpaperService() {
          * On [decoder]. Panned: upright, at the screen's portrait height within the budget; out of
          * memory decodes at half the size, then again, else null (black). Whole: the picture on its
          * background at the screen's portrait size ([wholePicture]), drawn still. A broken copy: null.
+         * [sideways] (SW2): turned 90° clockwise, the turned picture's height the screen's (the
+         * axes swapped for [liveDecodeSize]), decoded upright and turned once ([turned]); the
+         * engine then pans the one turned copy as any other.
          */
-        private fun decode(file: File, whole: Boolean, screen: Size): Bitmap? {
+        private fun decode(file: File, whole: Boolean, sideways: Boolean, screen: Size): Bitmap? {
             if (whole) {
                 return try {
-                    wholePicture(file, screen)
+                    wholePicture(file, screen, sideways)
                 } catch (e: Throwable) {
                     Log.w(TAG, "Live: couldn't decode ${file.name} whole: $e")
                     null
@@ -296,10 +302,11 @@ class LiveWallpaper : WallpaperService() {
             repeat(3) {
                 try {
                     return ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
-                        val (w, h) = liveDecodeSize(info.size.width, info.size.height, screen.height, budget)
-                        if (w != info.size.width || h != info.size.height) decoder.setTargetSize(w, h)
+                        val (iw, ih) = info.size.width to info.size.height
+                        val (w, h) = if (sideways) liveDecodeSize(ih, iw, screen.height, budget).let { (tw, th) -> th to tw } else liveDecodeSize(iw, ih, screen.height, budget)
+                        if (w != iw || h != ih) decoder.setTargetSize(w, h)
                         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-                    }
+                    }.let { if (sideways) turned(it) else it }
                 } catch (e: OutOfMemoryError) {
                     Log.w(TAG, "Live: couldn't decode ${file.name} within $budget bytes: $e")
                     budget /= 4

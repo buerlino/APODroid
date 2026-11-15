@@ -39,7 +39,8 @@ there is 0.7.1 or folds into 0.8.0, whichever ships first.
 
 ## The order (the queue, night.md)
 
-SW1 → SW2 → SW2T → D1 → VS1 → SW3 → SA2 → SA3a → SA3b → R3 → T3. One device, one pipeline
+SW1 → SW2 → SW2T → D1 → VS1 → SW3 → SA2 → SA3a → SA3b → R3 → T3 → SW3f1 → SA3c → D1f1 (the
+user's answers of 15 Nov night; T3 had started), then the night's test pass below. One device, one pipeline
 at a time. D1, VS1 and SW3 each wait only for SW2 (one that isn't merged doesn't hold the others
 back); SW3's texts are placeholders until the morning. SA2 waits for nothing (decided 15 Nov evening); SA3a for SA2 and
 SW3, SA3b for SA3a.
@@ -97,6 +98,32 @@ ever stored, most at US Eastern midnight; never seen in the real feeds).
   question 3 closed); the map (`interactions/background.md` E1, "No fetch", and E3's problem
   box for this case).
 
+### [ ] D1f1. Seed 1204: confirm the app, tighten invariant 12 (Opus, medium)
+
+(User, 2026-11-15 night: "redo" D1's widened invariant; the more maintainable way, recommended
+and taken: keep the app, make the test's exception exact.) D1 widened SIM's invariant 12 (a Set
+of the order alone sets only the owner's picture) to also accept `leads[screen]?.picture`, the
+kept record's own picture, for seed 1204 of 2000 (D1's report: the picker shared the engine,
+`unnotedLive` forgot the lock record, and with equal columns the lock screen got home's kept APOD
+05-16 while APOD's newest was the 05-17 video with "Skip it").
+Read first: CLAUDE.md, Turns ("Equal columns": the lock screen takes home's record and picture)
+and Wallpaper: Live ("The engine on a screen not noted live"); `RulesSimulationTest`'s invariant
+12 (`orderAlone`, ~1036-1056 on dev; `leads` ~1020, `equalColumns()` ~437); D1's commit message
+(`git log -1 f269339^2`). Seed 1204 runs only with `SIM_SEEDS=2000` or `SIM_ONLY=1204` (~96-99).
+- **Replay** seed 1204 (`SIM_SEEDS`/`SIM_ONLY` as the test reads them) with D1's widening
+  removed and trace the failing Set: each screen's record before and after, the columns, what
+  `unnotedLive` forgot, what was set.
+- **If** the lock screen got exactly the picture home's record names in that same run with
+  equal columns: replace the widening with that exact exception, `screen == LOCK &&
+  equalColumns() && picture == records[HOME]?.picture` (with equal columns `leads[LOCK]` is
+  already `prior[HOME]`, so this narrows D1's to equal columns and home's record after the run),
+  with a comment naming CLAUDE.md's rule; SIM 240 seeds
+  both tests and `SIM_SEEDS=2000` pass. No app code changes.
+- **Else** (another picture, or columns that differ): don't change the app tonight; put seed
+  1204 in `knownBugs` with its `@Ignore`d test, restore invariant 12 as before D1, and report
+  the trace as a QUESTION.
+- **Done when:** the tests pass; the report names which case it was.
+
 ### [ ] R3. The release's texts: versionCode 12, the changelog (Sonnet, medium)
 
 Read first: release-0.8.0.md's "Rules for every 0.8.0 package". After the last feature package merged (SW3, VS1, D1, SA3b).
@@ -123,3 +150,34 @@ Read first: release-0.8.0.md's "Rules for every 0.8.0 package".
   post` log line, SA3a's and SA3b's), the smoke list, and the regression's core paths (Set, the
   daily switch, a run by `run -f 1`, Live, ⛶ and ✓). Screenshots for the user.
 - **Done when:** PASS, or each FIX as a package for Tue 17 Nov morning, before the noon cut.
+
+## The night's test pass (user, 2026-11-15 night: "test and then fix any issues")
+
+After `night.sh`'s SHIFT DONE (its regression and report done), by the main session, on the
+emulator `emulator-5564` (Android 14) and dev's debug build; nothing pushed, master untouched.
+1. **The maps current:** one reading agent compares `interactions/*.md` with
+   `git diff 7299474..dev` (0.8.0's packages added their leaves; SW3f1, SA3c, D1f1 too) and adds
+   what's missing, with phone cases; committed on dev under `scripts/devlock.sh acquire integ
+   maps 600`.
+2. **Testers, one map at a time** (one device): setup, page, live, background; rosie by hand,
+   each the map's whole phone case list that an Android 14 emulator can run, at most about
+   75 min each, each holding `scripts/devlock.sh acquire tablet tester-<map> 1800` (released at
+   its end), so no TP run's device check overlaps a tester (pipeline.sh merges with NOT RUN when
+   the lock stays busy). The rules: `tester-rules.md` adapted
+   (`interactions/tester-rules-emulator.md`, written by the main session before the first tester):
+   the emulator is ours, so installs, `pm clear`, `adb root`, `run-as`, the clock stepped and set
+   back, force stops and ★ saves are allowed; no real timing (Doze, buckets); the state left
+   as found for the next tester (Setup and the wallpaper as the start screenshots). Reports with
+   PASS / FAIL / DIFFERENT / SKIPPED per case to `.coord/test-pass-0.8.0/<map>.md`.
+3. **Each FAIL or DIFFERENT** that is our bug: a fix package (`TP<n>`, its section below this
+   one, `### [ ] TP<n>. <title> (<model>, <effort>)` under this `##`, Read first lines, the
+   case ids, a regression test where `:core`), checked by a second agent before it runs, a queue
+   row in night.md (the next Step number, Agent winston, Tablet yes, Spec `release-0.8.0.md
+   TP<n>`; `scripts/pipeline.test.sh` resolves it), then `APODROID_TABLET=emulator-5564
+   scripts/pipeline.sh TP<n>` by hand (winston, susanna, rosie on the emulator; the default is
+   the tablet), only while no tester holds the device; merged on dev; the map's failed cases run
+   again after. A finding that
+   needs the user's decision (a text, a rule) becomes a QUESTION for the morning, not a fix.
+4. **Last:** an R8 smoke of the final dev (T3's recipe: R8 debug-signed over v0.7.0's), and the
+   morning report `.coord/test-pass-0.8.0/report.md`: what ran, what failed, what was fixed,
+   the questions.

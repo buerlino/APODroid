@@ -369,3 +369,45 @@ After SA3a.
 
 R8 build (the runtime or the inference under R8 isn't covered by unit tests), an update from
 0.7.0's build, a week of real pictures read each morning; then the user's look on the FP6.
+
+### [ ] SA3c. The sideways subject from its own copy (Opus, high)
+
+(User, 2026-11-15 night: "redo" SA3a's night default.) SA3a turns the upright copy's pixels and
+computes a map on them (Subject.kt ~308-315), so the turned copy keeps the upright copy's scale:
+the original's height is 128 px (a 3:2 picture gives 128×192), while SA0's method on the turned
+picture makes its own copy 128 px across the turned frame's moving direction (85×128). The map's
+blur radii are relative to the copy's sides, so the positions differ. The reference, made on the
+desktop (2026-11-15 night, `private/sa0/sideways.py`, SA0's `compute.py` functions unchanged), has
+172 landscape pictures from `private/pictures` and `private/pictures-oct-nov`.
+
+Read first: SA2 and SA3a in this file (built), `Subject.kt` and `SubjectTest` on dev,
+`Store.kt`'s `noteSubject` (~974), release-0.8.0.md's "Rules for every 0.8.0 package".
+- **The method:** for the sideways position, the picture turned 90° clockwise (`img.transpose(
+  ROTATE_270)` in PIL: the top goes to the right) is treated as its own picture: its own
+  `subjectCopySize` (128 px across the turned frame's moving direction), its own BOX-resized
+  copy, its own map, `position` with the pull: PIL's order, turn first, then BOX. In the app, no
+  second decode: `noteSubject` still holds the decoded pixels (`pixels`, dw×dh, Store.kt
+  ~990-995); one `:core` function turns them clockwise, `boxResize`s them to
+  `subjectCopySize(h, w, …)` and runs `subjectPosition(…, h, w, sideways = false)`, so the
+  real-picture test runs the app's own path. `subjectPosition`'s `sideways` branch goes (its
+  callers use the new function); SubjectTest's `sidewaysFindsTheBandSidewaysFrameShows` and
+  `sidewaysOnAPanoramaMovesAlongIt` (~179-205) move to it. Only for a landscape picture
+  (w > h), where sideways can apply; a portrait one as SA3a does now.
+- **The reference:** `private/sa0/positions-sideways.csv` (gitignored; columns `date, w, h,
+  turned_frame_frac, horizontal, sideways_pull, turned_map_pull, diff`; `sideways_pull` is the
+  position along the turned picture's moving axis, 0 = its left or top, at a 1080×2408 screen,
+  as `positions-253.csv`). A test like SA2's real-picture test (`assumeTrue` on `private/`):
+  ≥95% within 0.03 of `sideways_pull`, and none over 0.1 where 1 − `turned_frame_frac` ≥ 0.1
+  (where the frame covers 90% or more of the turned picture, 2026-01-26 and 2026-06-01, a step
+  is a third or more; report those). `sidewaysFrame` is `wallpaperFrame` of the turned picture
+  (Frame.kt ~55-57), so `sideways_pull` is the app's sideways position directly (compare p, not
+  1 − p; `transpose(ROTATE_270)` is clockwise); the made-up disc test confirms it.
+- **The note:** `<source>.subjectSideways` from the new method; the time logged in the
+  `Subject: …` line as now. No migration
+  (0.8.0 isn't released; the emulator's notes come again with a new post or a cleared note).
+- **Device** (rosie, the emulator): first remove the post's subject note (`run-as`, the
+  `<source>.subject*` keys; `noteSubject` returns while one exists, Store.kt ~977). A landscape
+  picture with Size Auto and the switch "Wide pictures sideways" on: the `Subject:` log line names both positions; the set's frame from the
+  sideways one (`files/debug-set.png`); ⛶ opens there; the smoke list.
+- **Done when:** the tests and the device pass; `CLAUDE.md` where SA2 says "Sideways: the copy
+  turned …" (~2051-2053) and where SA3a describes the subject's note (~830); report the old and new position for the two pictures that differ by more than 0.1.

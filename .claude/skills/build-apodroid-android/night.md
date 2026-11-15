@@ -156,6 +156,9 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 53 | SA3b | The page side: ⛶ from the subject, an undragged part, Advanced's switch | winston | opus, high | yes | SA3a | subject-0.8.0.md SA3b |
 | 54 | R3 | The release's texts: versionCode 12, the changelog | winston | sonnet, medium | no | SW3, VS1, D1, SA3b | release-0.8.0.md R3 |
 | 55 | T3 | Final tablet pass on the combined tree (R8, the update from 0.7.0) | rosie | opus, high | no | R3 | release-0.8.0.md T3 |
+| 56 | SW3f1 | The switch Wide pictures sideways for Centre and Auto only, greyed under Live | winston | opus, medium | yes | SW3 | sideways-0.8.0.md SW3f1 |
+| 57 | SA3c | The sideways subject from its own copy | winston | opus, high | yes | SA3a | subject-0.8.0.md SA3c |
+| 58 | D1f1 | Seed 1204: confirm the app, tighten invariant 12 | winston | opus, medium | no | D1 | release-0.8.0.md D1f1 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

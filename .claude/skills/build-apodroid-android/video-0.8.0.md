@@ -21,7 +21,7 @@
 - **The page only, never the wallpaper** (2026-10-18's idea; a still is often not the subject).
 - **NASA's mp4 only;** YouTube (about 1 in 6) keeps the black tile: `img.youtube.com` is a new
   host, not worth it alone (2026-10-18).
-- **Dimmed behind ▶**, the tile's 3:2 shape filled (cropped to the middle), about 40% black over
+- **Dimmed behind ▶** (40% approved by the user, 2026-11-15 night, from VS1's screenshot), the tile's 3:2 shape filled (cropped to the middle), about 40% black over
   it so ▶ stays the thing to tap. Screen readers unchanged (the tile's label as now). No new
   text.
 - **Once per post:** the frame about 3 s in (`OPTION_CLOSEST_SYNC`), at the tile's size (the

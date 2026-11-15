@@ -41,6 +41,11 @@ of space here orientation is irrelevant anyway."
 4. **With Live too**, as "Whole picture": ⛶ decides what the screen shows; a sideways 3:2
    picture pans about a third of its width over the day.
 5. **0.8.0** (0.7.1 stays for the FP6 week's fixes).
+6. **SW3's texts and rule** (user, 2026-11-15 night, from rosie's screenshots): "Wide pictures
+   sideways" and its ⓘ approved as built; wide is 3:2 or wider (`sidewaysByDefault`, as built);
+   **Fill only**: the switch turns pictures only while Size is Centre or Auto, never with Live,
+   and is greyed out while the draft's Size is Live (as "If APOD is a video" without APOD
+   ticked: the page doesn't move). ⛶'s own Sideways still works with Live (Decided 4). SW3f1.
 
 ## How it fits (by reading, ed9148b, 2026-11-15; line numbers drift)
 
@@ -229,3 +234,34 @@ approves them from rosie's screenshots on 16 Nov.
   `CLAUDE.md` (The app, Settings: the switch and the help-text list; Choosing the part); the
   maps (`setup.md` a section as "Darken bright pictures"'s; `page.md`'s pill with the switch;
   `background.md` the job's set by the rule).
+
+### [ ] SW3f1. The switch "Wide pictures sideways" for Centre and Auto only (Opus, medium)
+
+Read first: this file's "Decided" 6 and SW3 (built: `Setup.wideSideways`, `sidewaysByDefault`,
+`Part.sideways: Boolean?` with null = the switch's default), and release-0.8.0.md's "Rules for
+every 0.8.0 package".
+- **The rule:** the effective sideways of a part whose `sideways` is null is
+  `wideSideways && size != Size.LIVE && sidewaysByDefault(w, h)`, by the **stored** Size, for
+  both screens (with Live the lock screen's still is centred, SA3a, and stays upright too: one
+  rule). An explicit `true`/`false` part is unchanged under every Size. `:core` already has the
+  one function, `sidewaysOf(noted, wideSideways, size)` (Frame.kt ~75), with two callers,
+  `Store.turnsSideways` (~575) and `MainActivity.turnsSideways` (~1481), through which every
+  reader goes (`set`, `copyForLive`, B27's keep via `liveSideways`, `startCrop`, the pill's
+  `sidewaysChanged`, `setPart`'s check, `frameOf`): add the stored `Size` as its parameter;
+  `Store.turnsSideways` passes `size`, MainActivity's `stored.size` (the app imports `:core`'s
+  Size as `Sizing`). No second function. `FrameTest`: each Size × null/true/false × wide/not
+  wide.
+- **The page:** the switch's row greyed out (disabled, `onSurface` at 38% as Android does, the ⓘ
+  still opens) while the draft's Size is Live; it keeps its value, is saved by Set as before
+  (no put-back: it applies again when Size goes back), and its highlight works as before. Screen
+  readers: Compose's "Disabled". No new text.
+- **⛶:** with the stored Size Live the pill opens on the part's explicit value, else upright.
+- **Device** (rosie, the emulator): the switch on, Size Auto, Set: a 3:2 picture sideways
+  (log ", sideways"); Size Live (the picker, "Home screen"), Set: the switch greyed, home's
+  hand-over upright (`live.sideways` false), the lock screen's still upright; ⛶ › Sideways ✓
+  under Live: that picture sideways in the engine; Size back to Auto and Set: the switch
+  enabled, the 3:2 picture sideways again; a screenshot of the greyed row; the smoke list.
+- **Done when:** the tests and the device pass; `CLAUDE.md` (The app, Settings, the switch,
+  where it says "every source, under Live too (night default)"; Choosing the part, the three
+  values' rule; Wallpaper: Live), the maps (`setup.md`'s switch section, `live.md` where the
+  hand-over reads the part).

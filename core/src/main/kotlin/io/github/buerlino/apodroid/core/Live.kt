@@ -157,6 +157,11 @@ data class LostLive(val forget: Set<Screen> = emptySet(), val lockTakesHome: Boo
  *   is forgotten (its own still Fill); without one home's, and the lock screen takes home's
  *   picture (one set with both flags, a shared wallpaper as before the pick). Else the engine
  *   stayed there for good, drawing a stale copy.
+ * - **Else the engine on the lock screen alone while home is live too and the lock screen has a
+ *   column** (APODroid's live wallpaper picked again for the lock screen alone; FP6, 2026-11-15:
+ *   it drew home's picture and pan while the lock screen's record named its own): the lock
+ *   screen's record is forgotten, so it gets its own still Fill (`FLAG_LOCK`, home's engine
+ *   untouched). Without a column the lock screen isn't APODroid's: left as it is.
  * - **Else the lock screen's record noted live and not [shared]** (the user set a lock
  *   wallpaper): it alone is forgotten.
  * - Else nothing.
@@ -180,8 +185,25 @@ fun lostLive(
         lockTakesHome = !lockColumn,
         dropShared = true,
     )
+    lockEngine && lockColumn -> LostLive(forget = setOf(Screen.LOCK))
     lockNoted && !(homeLive && shared) -> LostLive(forget = setOf(Screen.LOCK))
     else -> LostLive()
+}
+
+/**
+ * A shared engine's lock screen without a column follows home's still set (FP6, 2026-11-15, T34):
+ * while the one engine covers both screens ([shared]) and Size isn't [Size.LIVE] (so home's set is
+ * still, [stillOrLive]), a still set of home alone (`FLAG_SYSTEM`) moves the engine to the lock
+ * screen, where it went on drawing until the next run. So when [plan] sets home and the lock
+ * screen has no column ([lockColumn] false), the lock screen is due home's record too: one set with
+ * both flags ([Plan.sets]), a shared still, as Decision 12's lock screen without a column. With a
+ * column its own rules decide (and [lostLive]'s lock-engine branch repairs it in the next run).
+ * Shared means the lock screen has no wallpaper of its own, so this never covers the user's.
+ */
+fun sharedLockFollows(plan: Plan, size: Size, shared: Boolean, lockColumn: Boolean): Plan {
+    if (size == Size.LIVE || !shared || lockColumn || Screen.LOCK in plan.screens) return plan
+    val home = plan.screens[Screen.HOME]?.takeIf { it.set && it.record.picture != null } ?: return plan
+    return Plan(plan.screens + (Screen.LOCK to Due(home.record, set = true)))
 }
 
 /**

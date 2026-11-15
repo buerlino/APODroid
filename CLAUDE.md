@@ -20,6 +20,8 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - How-tos, phone testing and what's still untested: [.claude/skills/build-apodroid-android/SKILL.md](.claude/skills/build-apodroid-android/SKILL.md).
   Where it and this file disagree, this file wins.
 - Declutter passes: [.claude/skills/build-apodroid-android/declutter.md](.claude/skills/build-apodroid-android/declutter.md).
+- Interaction maps (every user path as a decision tree with the expected outcome and phone cases;
+  2026-11-15, the FP6's 113 cases): [.claude/skills/build-apodroid-android/interactions/README.md](.claude/skills/build-apodroid-android/interactions/README.md).
 - Planned features, how and checklist: [.claude/skills/build-apodroid-android/features.md](.claude/skills/build-apodroid-android/features.md)
   (decisions in [Next features](#next-features)).
 - 0.4.0's and 0.5.0's plans (done) and the code reviews CR and CR2 (fixed): in git, deleted
@@ -68,6 +70,11 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
   their merges into `dev`, never on master and never pushed. The packages then run one after another without
   waiting; the user reviews `dev` in the morning and fast-forwards master (night.md).
 - When reporting back, say what was actually tested and what wasn't.
+- **Each new feature gets its map** (user, 2026-11-15): an agent adds the feature's paths to the
+  interaction maps (`interactions/`, the skill's; a new map for a new area): the user's paths,
+  the expected outcomes, the log lines, the phone cases. Winston in a night package (night.md,
+  Definition of done), else a fresh agent after the feature is built, from the code. Why: the
+  maps found 13 bugs in one FP6 pass, and they only help while they're current.
 
 ## Stack (decided by the user, 2026-10-01)
 
@@ -297,7 +304,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   home screen" or "… · lock screen" while only one has any, else "Home: APOD, Earth · Lock:
   NASA, Earth" (the sources in the list's order, OR2: "NASA, APOD · both screens"); then, while
   the daily switch is on, " · every 6 h from 06:00" while a screen
-  takes turns, else " · 06:00", 12/24 h as the system says; then " · Live" with Size Live (L6).
+  takes turns, else " · 06:00", 12/24 h as the system says; then " · Live" with Size Live and a
+  home column (L6; Live is home's, FP6 tests, 2026-11-15).
   At its top the switch **More NASA pictures**
   (Setup is the draft, Advanced acts at once), then in APOD mode **Where**, with the switch on
   **Pictures from** (the list); then, always, **Size**; while the daily switch is on **New picture at**, "As soon as
@@ -373,7 +381,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
     every", and "Setup" stayed highlighted with nothing in it highlighted): "Change every" while
     it's hidden (no column with two or more, or the daily switch off), "New picture at", "As
     soon as it's out", "If APOD is a video" and a newly picked "my picture" while the daily switch is off; so Set
-    saves, and "Setup" highlights, only what the page shows. A rotation and the system killing
+    saves, and "Setup" highlights, only what the page shows. Likewise the mode the page doesn't
+    show (FP6 tests, 2026-11-15, P4 and P17: saved unmarked, and a hidden "Where" spoiled "the
+    order alone"): Set saves the stored "Where" while the list shows and the stored list in
+    APOD mode (the draft keeps the edits; they show highlighted when the mode is turned back),
+    and renames a picked "my picture" only while "Use my picture" is chosen. A rotation and the system killing
     the app keep the draft (`onSaveInstanceState`); closing the app drops it (a start without a
     saved draft deletes `files/fallback-draft.jpg`). **One page:** another start while the page
     is on top (the launcher, a shortcut, `am start -n`) reuses it (`launchMode="singleTop"`;
@@ -449,7 +461,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     for a lock column that differs (the lock screen Fill, Decision 10). **First a dialog**
     (2026-11-15, user: "I didn't know what to pick"; `PickerDialog`, placeholder texts with the
     FP6 picker's own labels, AOSP's LiveWallpapersPicker): "Next, in Android's preview: / Set
-    wallpaper › Home screen / Back there: nothing changes.", "Home screen and lock screen" instead
+    wallpaper › Home screen" (user, 2026-11-15: no line about Back), "Home screen and lock screen" instead
     on 14+ when the draft's columns are equal (the one engine on both, B28), else "Home screen"
     (home only, different columns, 10–13); OK opens the picker, Cancel (Back, a tap outside, the
     page closed for good) is a back-out. Process-wide (`pickerAsk`), so a rotation shows it again;
@@ -465,13 +477,18 @@ set it as wallpaper, and on video days kept the old wallpaper.
     `onResume` ends the wait as a fallback). On the return, when an id changed, up to 3 s for
     `liveOn(HOME)` (`Store.awaitLive`; below 14 the engine notes its id asynchronously), then
     `saveSetup` and Set's update: home live, its picture to the engine and the lock screen's
-    still Fill when its picture differs (Decision 10); a wallpaper changed and home not live
-    (the lock screen picked alone), Fill, the engine there replaced by the run (Lost Live).
-    **Back without a pick** (the dialog's Cancel, or no id changed while home wasn't live before:
-    re-picking a live home may keep its id, that Set goes on; user, 2026-11-15, from the FP6:
-    Set saved Size Live, set Fill and toasted "Wallpaper set" after a back-out): nothing saved,
-    nothing set, no toast, the draft and its highlight stay as before (logged `Set: no pick,
-    nothing saved`). Accepted: a job's run in the seconds between a pick and the save still has
+    still Fill when its picture differs (Decision 10); below 14 a home not live in time, Fill.
+    **Back without a pick** (the dialog's Cancel, or no wallpaper id changed: also a "Home
+    screen" re-pick of a live home that keeps its id, the dialog asked for both screens then;
+    user, 2026-11-15, from the FP6: Set saved Size Live, set Fill and toasted "Wallpaper set"
+    after a back-out): nothing saved, nothing set, no toast, the draft and its highlight stay as
+    before (logged `Set: no pick, nothing saved`). **"Lock screen" picked alone** (14+, before
+    `awaitLive`: home's id the same, the lock screen's changed, `Store.lockEngine`; FP6 tests,
+    T22: it saved Size Live and toasted "Wallpaper set" with Live not on): nothing saved either,
+    then a run of the stored setup (`update` with `set`, also with the daily switch off, which may
+    put on what the clock says is due) puts the lock screen back (Lost Live, the engine on the
+    lock screen alone), and the toast "Live goes on the home screen. Setup not saved."
+    (placeholder); logged `Live: back from the picker, the lock screen alone`. Accepted: a job's run in the seconds between a pick and the save still has
     the old Size and may set a still over the engine just picked, when a change falls due then. The picker's preview
     draws the stored setup's home picture (the draft isn't saved yet). A page's load waits while the picker is
     open (`picking`), so it can't set a still picture first. Logged `Set: Android's live
@@ -640,7 +657,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
   picture or tile (orange for problems only: a failing app must look failing, the other boxes
   are neutral), with "since <day>" when `checkedAt` is more than a day old. Only "Dismiss": it
   hides that problem until its kind or HTTP code changes or a new day starts
-  (`problemNoticeKey`, e.g. `http:503:2026-10-16`); no "Don't show again", a failing app must
+  (`problemNoticeKey`, e.g. `http:503:2026-10-16`, one per source since the FP6 tests,
+  2026-11-15: one shared slot brought the first source's box back after the second's Dismiss;
+  and the box takes the first candidate whose problem isn't dismissed, so a dismissed APOD
+  problem no longer hides NASA's); no "Don't show again", a failing app must
   not look like a working one. **All boxes that apply show at once** (user, 2026-10-16), stacked
   below the picture or tile, above the title: problem, video notice, the detector's box, battery
   hint (Background update), each with its own buttons. The empty state shows the text above
@@ -704,7 +724,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
 - **Explanation (user, 2026-10-17):** its first two lines under
   the title, with "more" below while they cut it off; a tap on it or the title shows it all,
   another hides it. A short one (Earth's one sentence) has no "more" and doesn't expand. Screen
-  readers: "Show explanation" / "Hide explanation" as the tap's label.
+  readers: "Show explanation" / "Hide explanation" as the tap's label. The open explanation, an
+  open ⓘ dialog and the pause hint's "Hide" question survive a rotation as page state
+  (`openInfo`, `expandedPost`, `pauseConfirm` in the saved state; FP6 tests, 2026-11-15:
+  `rememberSaveable` lost them between the one-column and two-pane layouts).
   Long press (user, 2026-10-07; the picture already opens the page): on the title block copies
   the page link, on the explanation its text. A toast confirms
   it only below Android 13, which shows its own confirmation. No `SelectionContainer`: its long
@@ -825,7 +848,16 @@ set it as wallpaper, and on video days kept the old wallpaper.
   forgotten (its own still Fill), without one home's, and the lock screen takes home's picture
   (one set with both flags, a shared wallpaper); before, it stayed there for good, drawing a
   stale `live.jpg`. Any run; logged `Live: the engine is on the lock screen alone, Fill on …`.
-  Not when home's owner has nothing to show (as Decision 12). **The engine on a screen not noted live** (L6, from SIM; `:core`'s `unnotedLive`,
+  Not when home's owner has nothing to show (as Decision 12). **Also while home is live** (FP6
+  tests, T16: APODroid picked again for the lock screen alone drew home's picture and pan while
+  the page named the lock screen's own): a lock screen with a column is forgotten and gets its
+  own still Fill (`FLAG_LOCK`, home's engine untouched); without one it isn't APODroid's, left
+  as it is. **A shared engine's lock screen without a column follows home's still set** (FP6
+  tests, T34: Size Fill and "Where" Home from the engine on both: home's still set with
+  `FLAG_SYSTEM` alone moved the engine to the lock screen until the next run; `:core`'s
+  `sharedLockFollows`, applied to each plan): while the engine is shared and Size isn't Live, a
+  plan that sets home gets the lock screen due home's record too, one set with both flags, a
+  shared still (shared: the lock screen has no wallpaper of its own, so never the user's). **The engine on a screen not noted live** (L6, from SIM; `:core`'s `unnotedLive`,
   before the rules, with Size Live and home live): home with a column and not noted live, and
   the lock screen with one while shared and not noted, are forgotten too, so the same run hands
   them over (else after the picker a Set of the order alone, or one with nothing due, left the
@@ -889,10 +921,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
   only (date and picture URL), so each new picture starts centred (a new post drops a draft
   part); the job uses only the stored one. The user's own picture (video days) is always
   centred.
-  **With Live** (L7, 2026-11-14; Decision 7): while the draft's Size is Live and the shown
-  source is in the draft's home column, ⛶'s frame stands where the engine has it now
-  (`livePosition` by the draft's "New picture at", "Change every" and home's column, turns from
-  two sources) and doesn't move by drag (no drag action for screen readers either); a minute
+  **With Live** (L7, 2026-11-14; Decision 7): while the **stored** Size is Live, Live is on
+  home (no "Live isn't on" line) and the shown source is in the stored home column (FP6 tests,
+  2026-11-15, T04: with the draft's, ⛶ dragged while ✓, which acts on the stored setup, handed
+  the picture to the engine), ⛶'s frame stands where the engine has it now (`livePosition` by
+  the stored "New picture at", "Change every" and home's column, turns from two sources) and doesn't move by drag (no drag action for screen readers either); a minute
   tick moves it while open. ✓ then saves the stored part's position unchanged (Fill's, for the
   lock screen and Fill) and the whole picture. A source only on the lock screen, or Size Fill:
   ⛶ as above (the lock screen is Fill, Decision 10).
@@ -926,7 +959,8 @@ since one save runs at a time; each save and the page's first start delete a lef
 save killed with the process leaves one) and copies it; if that fails, the stored picture (the
 rendition), and a toast says it's a smaller copy. While it downloads, ☆ is dimmed ("Saving" for
 screen readers) and taps do nothing; one save at a time in the app, so a tap after a rotation
-says "Still saving", and the rotated page fills ★ when it ends. After a save each page's ★ shows its own source's
+says "Still saving", and the rotated page fills ★ when it ends (the save's end runs in the
+process, `runs`, so its toast survives a rotation or Back too). After a save each page's ★ shows its own source's
 state. ☆ = not saved, ★ = saved; a second tap (or a quick double tap) doesn't save again. Text glyphs, no icon library. Written
 with `MediaStore` (`IS_PENDING`), which needs no permission on Android 10+, hence `minSdk 29`
 (user chose that over `WRITE_EXTERNAL_STORAGE` for Android 8–9, or a "Save as" dialog each
@@ -1009,7 +1043,8 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   ran; so did a run's end when the run did its update before the check. The checks are taken
   from the change time of now less the offset, so the one before's stay in view until the
   current one's offset has passed. Without a `lastRunAt` (a fresh install) nothing is owed.
-- **Armed again** (`DailyJob.ensure`, while `daily` is on): after each run's end (either id),
+- **Armed again** (`DailyJob.ensure`, while `daily` is on, read again under the job's lock,
+  2026-11-15: an arming beside a run's start could replace that run's retry pair): after each run's end (either id),
   Set, the daily switch on, each `onResume`; at boot, after a time zone or clock change and after
   an update of the app (`AlarmReceiver` in the manifest, not exported: `BOOT_COMPLETED`,
   `TIMEZONE_CHANGED`, `TIME_SET`, `MY_PACKAGE_REPLACED`; alarms are absolute times and survive
@@ -1378,7 +1413,8 @@ that isn't opened, and the job doesn't count as use: the restricted bucket after
 (Android 13+; later or never before) and hibernation after about 3 months (12+), which deletes
 the job. While the stored daily switch is on, a hint in a neutral box below the picture (user, 2026-10-16) names only what's missing, one line each:
 battery Unrestricted (checked on API 33+ only, 2026-10-04 evening: on 10–12 the 8 days aren't
-true) and "pause/manage app if unused" off (API 31+; on Android 12, API 31–32, its own App
+true) and "Manage app if unused" (API 35+) or "Pause app activity if unused" (33–34) off (Android's
+labels word for word, 2026-11-15; API 31+; on Android 12, API 31–32, its own App
 info's `Unused apps → "Remove permissions and free up space": off`, B25). Under the line
 "Android pauses apps you don't open." each line is a path starting where it starts ("App info ›
 …", user, 2026-10-04: "Unrestricted" alone didn't say where; O13, 2026-11-13, placeholders until
@@ -1601,7 +1637,18 @@ both columns are equal: the real night's finding, user-approved). **The tablet's
 Unrestricted; `.coord/real-night-2026-11-15/morning.md`): four runs, all expedited job 2 from the
 alarms, 4–10 min after each alarm, none failed; APOD's 06:05 post on both screens at 06:12; Live and
 the service alive all night, no crash. The FP6 runs b8957ca since 09:30 on 15 Nov (the user's release
-key, over 0.6.0: setup kept, alarms armed by `MY_PACKAGE_REPLACED`). Left for the tag: the user's
+key, over 0.6.0: setup kept, alarms armed by `MY_PACKAGE_REPLACED`). **The FP6 tests** (2026-11-15, the user away: four maps of every interaction by reading, 113
+cases run on the FP6 over adb on 7299474, no crash; reports in the session's scratchpad): the
+fixes of that day (the picker's back-out and "Lock screen" alone, Lost Live's lock-screen engine
+and shared lock screen, ⛶ with Live by the stored setup, the hidden mode not saved, an abandoned
+"my picture" pick, per-source Dismiss, rotation state, ★'s end, the pause hint's label, the
+arming under the job's lock) are described where they apply. Accepted: once both columns are
+equal and the lock screen is still, Set offers no picker again (once per split); a page a
+rotation makes during Set shows the forgotten records for a moment (APOD's page, no " · NASA");
+a lost Live whose screen has nothing to show keeps a stale record (as Decision 12); a live
+wallpaper picked by hand with Size Fill draws Live's old copy; ~70 ms of black after a process
+death (L9a); the reopened page after a Recents swipe during the picker held the old draft (gone
+with the back-out fix: nothing is saved then). Left for the tag: the user's
 approval of the texts (the sign-off page, https://claude.ai/code/artifact/80368bf4-5b9b-4e79-912a-f943c33d82d0,
 private) and the day's use of the FP6 (L2, O17, L10's first day).
 

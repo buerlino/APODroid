@@ -420,13 +420,15 @@ what it leaves open.
   job.
 - The detector's box naming the day not moving at midnight while the page stays open (it is read
   when the box draws; O14b's day and today's time alone checked by O15 on debug and R8).
-- Live (L3, L5, L6, 2026-11-14; pipeline runs 105–107, no device check: run 106's serial was the
-  FP6 and adb was denied, run 107 found no device): all of L5's and L6's tablet bullets in
-  `live-0.7.0.md` (the engine, the pan, the hand-over, the copy not the source's file, lost Live
-  and Decision 12, no crash, Size and its row, Set's picker and its return, Decision 10, the
-  status line, " · Live"); `unnotedLive` and `lockFollowsHome` (`LiveTest` and SIM only), `handOverWaits` (L6f1, `LiveTest`); a
-  maker's picker refusing the start (`firstStarted`, unit-tested only); below 14 (`live.homeId`, and R2a's re-apply
-  noting it again: read from AOSP, 15's smoke check only; Android 10's command unknown; E); the FP6's picker (L2).
+- Live (L3, L5, L6; the tablet since: L9, T2, regression 13; the FP6 on 15 Nov, 7299474, the 35
+  cases of `interactions/live.md`: the dialog and the picker's every answer, the back-out, the
+  hand-over, lost Live, Decision 10, " · Live", the status line, `unnotedLive`): the fixes of 15 Nov
+  on the FP6 (the back-out with home live, "Lock screen" alone, the lock-only engine while home is
+  live, `sharedLockFollows`; the signed build installed 15 Nov 15:15, the re-test waits for the
+  phone unlocked); the picker not opened after OK (live S8); `lockFollowsHome` and `handOverWaits`
+  (L6f1) not looked for on a device; a maker's picker refusing the start (`firstStarted`,
+  unit-tested only); below 14 (`live.homeId`, and R2a's re-apply noting it again: read from AOSP,
+  15's smoke check only; Android 10's command unknown; E).
 - ⛶'s preview (L7, 2026-11-14; pipeline run 109, no device found): the Live frame by the clock
   (no drag, the minute tick, TalkBack offering no drag action), a lock-only source dragging as
   Fill, the whole picture's preview beside the wallpaper set (black and blur).
@@ -438,6 +440,8 @@ what it leaves open.
   nothing owed, with the daily switch off or from the picker's preview; the stray's run; whether
   `RUN_ANY_IN_BACKGROUND ignore` can stand in for a maker's lost alarms (`screenOnRunOwed`,
   `LiveTest` only).
+  On the FP6 (15 Nov) job 2 waiting for the network wasn't seen: its Tailscale VPN stays validated
+  in airplane mode, so the run starts at once and fails offline.
 
 **The update from 0.5.0:**
 - The migration race (the page and the job at once) with "Where" Home or Both (V4: Lock only).
@@ -456,6 +460,8 @@ what it leaves open.
 - The problem box's Dismiss across a faked day; each source on each screen one by one (V10).
 - The toast "Setup saved. Nothing to set yet." (regression 2: toasts weren't caught then).
 - Crop mode kept during a same-date pull. A day without an explanation.
+- ★ after its gallery file is deleted while the page stays resumed (page S2a in `interactions/`:
+  "Already saved" until Home and reopen, by reading; the testers may not delete a gallery file).
 - The crop on a picture the page down-samples, and on a real tall picture (none posted by
   2026-10-22); dragging the frame with TalkBack (it has no screen-reader action).
 

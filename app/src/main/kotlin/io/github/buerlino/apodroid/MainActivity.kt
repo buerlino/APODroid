@@ -102,7 +102,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
@@ -302,6 +301,16 @@ class MainActivity : ComponentActivity() {
     private var draftFallback by mutableStateOf(false)
 
     /**
+     * Page state a rotation keeps (FP6, 2026-11-15, C8): the open ⓘ dialog (its "About …" name),
+     * the post whose explanation is open ("SOURCE:date"), the pause hint's "Hide" question. Not
+     * `rememberSaveable`: the one-column and two-pane layouts compose them in different places, so
+     * a rotation across 600 dp lost them (and an old state came back at a later rotation).
+     */
+    private var openInfo by mutableStateOf<String?>(null)
+    private var expandedPost by mutableStateOf<String?>(null)
+    private var pauseConfirm by mutableStateOf(false)
+
+    /**
      * The setup last set ([Store.setup]), which the job follows: what reports what is set reads
      * it (the status lines, the chip, the video notice, the problem box, the battery hint, the
      * opening page), the controls the draft.
@@ -472,6 +481,9 @@ class MainActivity : ComponentActivity() {
         live[id] = this
         weekdayDialog = savedInstanceState?.getBoolean("weekdayDialog") == true
         setupOpen = savedInstanceState?.getBoolean("setupOpen") == true
+        openInfo = savedInstanceState?.getString("openInfo")
+        expandedPost = savedInstanceState?.getString("expandedPost")
+        pauseConfirm = savedInstanceState?.getBoolean("pauseConfirm") == true
         advancedOpen = savedInstanceState?.getBoolean("advancedOpen") == true
         chosenSource = enumValue<Source>(savedInstanceState?.getString("chosenSource"))
         daily = store.daily
@@ -481,7 +493,6 @@ class MainActivity : ComponentActivity() {
         pauseHintHidden = store.pauseHintHidden
         videoNoticeDate = store.videoNoticeDate
         videoNoticeHidden = store.videoNoticeHidden
-        problemNoticeKey = store.problemNoticeKey
         weekdayNoticeHidden = store.weekdayNoticeHidden
         stored = store.setup
         hasFallback = store.fallbackFile.exists()
@@ -521,6 +532,9 @@ class MainActivity : ComponentActivity() {
         outState.putString("chosenSource", chosenSource?.name)
         outState.putBoolean("weekdayDialog", weekdayDialog)
         outState.putBoolean("setupOpen", setupOpen)
+        outState.putString("openInfo", openInfo)
+        outState.putString("expandedPost", expandedPost)
+        outState.putBoolean("pauseConfirm", pauseConfirm)
         outState.putBoolean("advancedOpen", advancedOpen)
         outState.putBundle("draft", draft().toBundle())
         outState.putBoolean("draftFallback", draftFallback)
@@ -756,7 +770,8 @@ class MainActivity : ComponentActivity() {
     /**
      * One problem box, by the stored setup. In APOD mode the first of APOD and its video-day
      * source with a problem (APOD's first). With the switch on the shown source's, else the first
-     * ticked source's.
+     * ticked source's. A problem dismissed today ([dismissProblem]) gives way to the next one
+     * that isn't (FP6 tests' review, 2026-11-15: a dismissed APOD problem hid NASA's).
      */
     private fun readProblem() {
         val candidates = if (stored.allSources) {
@@ -764,8 +779,11 @@ class MainActivity : ComponentActivity() {
         } else {
             listOfNotNull(Source.APOD, stored.videoDays.source.takeIf { apod?.isVideo == true })
         }
-        problemSource = candidates.firstOrNull { store.problem(it) != null } ?: shown
+        val failing = candidates.filter { store.problem(it) != null }
+        problemSource = failing.firstOrNull { source -> store.problem(source)?.let { problemKey(it, source) } != store.problemNoticeKey(source) }
+            ?: failing.firstOrNull() ?: shown
         problem = store.problem(problemSource)
+        problemNoticeKey = store.problemNoticeKey(problemSource)
         checkedAt = store.checkedAt(problemSource)
     }
 
@@ -1016,16 +1034,16 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Kind, code and day: what [dismissProblem] hides until one of them changes. */
-    private fun problemKey(problem: Problem): String {
+    private fun problemKey(problem: Problem, of: Source = problemSource): String {
         val kind = if (problem is Problem.Http) "${problem.key}:${problem.code}" else problem.key
-        val source = if (problemSource == Source.APOD) "" else "${problemSource.name.lowercase()}:"
+        val source = if (of == Source.APOD) "" else "${of.name.lowercase()}:"
         return "$source$kind:${LocalDate.now()}"
     }
 
     private fun dismissProblem(problem: Problem) {
         val key = problemKey(problem)
         problemNoticeKey = key
-        store.problemNoticeKey = key
+        store.dismissProblem(problemSource, key)
     }
 
     /**
@@ -1041,10 +1059,13 @@ class MainActivity : ComponentActivity() {
         setting = true
         // Crop mode still open: the dragged part counts, as after ✓.
         if (cropping) post?.let { keepPart(it) }
-        val setup = draft()
+        // Only what the page shows is saved (2026-11-15, FP6 P4 and P17): the hidden mode's settings
+        // stay as stored, "Where" while the list shows, the list in APOD mode (the order already is).
+        val setup = draft().let { if (it.allSources) it.copy(where = store.where) else it.copy(list = store.list) }
         val offered = sources
         // Only this page's own pick is renamed: another page's draft picture stays its own (B11).
-        val pick = draftFallback
+        // And only while "Use my picture" is chosen: an abandoned pick doesn't replace the stored one.
+        val pick = draftFallback && setup.videoDays == VideoDays.MINE
         // The list as the store derives it from "Where" (never saved): it follows the new "Where" (CR 3).
         val derivedList = !store.hasList && list == store.list
         val store = store
@@ -1055,18 +1076,27 @@ class MainActivity : ComponentActivity() {
             // before anything is saved: back from it without a pick, nothing is saved or set and the
             // draft stays as it was (user, 2026-11-15). Whatever fails on the way (L6 fix round 1):
             // Fill, and Set goes on to its save and update and resets `setting`.
+            // "Lock screen" picked alone (2026-11-15, FP6 T22): nothing saved either, and the lock
+            // screen put back by a run of the stored setup (`:core`'s lostLive replaces the engine there).
             val opens = withContext(Dispatchers.IO) { runCatching { store.opensPicker(setup) }.getOrDefault(false) }
             if (opens) {
-                val picked = try {
+                val answer = try {
                     pickLive(store, page, setup)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
                     Log.w("APODroid", "Set: the picker failed, Fill: $e", e)
-                    true
+                    Pick.GO
                 }
-                if (!picked) {
+                if (answer != Pick.GO) {
                     Log.i("APODroid", "Set: no pick, nothing saved")
+                    if (answer == Pick.LOCK_ONLY) {
+                        val repaired = withContext(Dispatchers.IO) { runCatching { store.update(force = false, page = true, show = offered, set = true) } }
+                        repaired.exceptionOrNull()?.let { Log.w("APODroid", "Set: the lock screen's repair failed: $it", it) }
+                        repaired.getOrNull()?.done?.let { Log.i("APODroid", "Set: the lock screen put back: $it") }
+                        live[page]?.run { redrawAfterRun(failed = repaired.getOrNull()?.failure != null || repaired.isFailure) }
+                        toast(app, "Live goes on the home screen. Setup not saved.")
+                    }
                     setting = false
                     runAllNext()
                     return@launch
@@ -1115,16 +1145,16 @@ class MainActivity : ComponentActivity() {
      * screen"). On OK both screens' wallpaper ids noted, the picker opened from the page that
      * started Set (none left in the foreground, or no picker on the phone: Fill), its return
      * awaited, then up to 3 s for the engine when an id changed ([Store.awaitLive]). A page's load
-     * waits meanwhile, the dialog too ([picking]). Returns false for a back-out: Cancel, or no
-     * wallpaper changed while home wasn't live before (re-picking a live home may keep its id: that
-     * Set goes on). Set then saves and sets nothing. Else the answer decides Set's update: home
-     * live, its picture goes to the engine (and the lock screen's still Fill when it differs,
-     * Decision 10); "Lock screen" alone, Fill, the engine there replaced (`:core`'s [lostLive]).
+     * waits meanwhile, the dialog too ([picking]). [Pick.NONE] for a back-out: Cancel, or no
+     * wallpaper changed (a "Home screen" re-pick of a live home that keeps its id too: the dialog
+     * asked for both screens then); [Pick.LOCK_ONLY] for "Lock screen" alone (14+: home's id the
+     * same, the lock screen's changed, APODroid's engine there): Set then saves and sets nothing.
+     * [Pick.GO]: home live, its picture goes to the engine (and the lock screen's still Fill when
+     * it differs, Decision 10); no picker, or below 14 a home not live in time: Fill.
      */
-    private suspend fun pickLive(store: Store, page: String, draft: Setup): Boolean {
+    private suspend fun pickLive(store: Store, page: String, draft: Setup): Pick {
         picking = true
         try {
-            val homeWasLive = withContext(Dispatchers.IO) { store.liveOn(Screen.HOME) }
             val ask = PickerAsk(page, both = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && equalColumns(draft.columns))
             pickerAsk = ask
             val ok = try {
@@ -1134,7 +1164,7 @@ class MainActivity : ComponentActivity() {
             }
             if (!ok) {
                 Log.i("APODroid", "Set: the picker's dialog cancelled")
-                return false
+                return Pick.NONE
             }
             val ids = withContext(Dispatchers.IO) { store.wallpaperIds() }
             // Only after OK: a page's onResume while the dialog shows would complete it early.
@@ -1143,10 +1173,18 @@ class MainActivity : ComponentActivity() {
             // Only from a page in the foreground: a start from the background is blocked without a word.
             val opened = live[page]?.takeIf { it.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }?.openLivePicker() == true
             Log.i("APODroid", if (opened) "Set: Android's live wallpaper picker" else "Set: no picker opened, Fill")
-            if (!opened) return true
+            if (!opened) return Pick.GO
             back.await()
+            val lockOnly = withContext(Dispatchers.IO) {
+                val now = store.wallpaperIds()
+                now[0] == ids[0] && now[1] != ids[1] && store.lockEngine()
+            }
+            if (lockOnly) {
+                Log.i("APODroid", "Live: back from the picker, the lock screen alone")
+                return Pick.LOCK_ONLY
+            }
             val changed = withContext(Dispatchers.IO) { store.awaitLive(ids) }
-            return changed || homeWasLive
+            return if (changed) Pick.GO else Pick.NONE
         } finally {
             pickerBack = null
             picking = false
@@ -1242,22 +1280,29 @@ class MainActivity : ComponentActivity() {
             return
         }
         saving = true
-        lifecycleScope.launch {
+        val store = store
+        val app = applicationContext
+        val page = id
+        // In [runs], so a rotation or Back during the download keeps its end: the toast and ★
+        // (FP6 tests, 2026-11-15, S4a: the page's own scope was cancelled with it).
+        runs.launch {
             val result = withContext(Dispatchers.IO) { runCatching { store.save(post) } }
             saving = false
+            live[page]?.saving = false
             result.onFailure { Log.w("APODroid", "Save failed: $it", it) }
             if (result.getOrNull() == Saved.BUSY) {
-                toast("Still saving")
+                toast(app, "Still saving")
                 return@launch
             }
             if (result.getOrNull() == Saved.STALE) {
-                toast("Not saved: a new picture came in")
-                load()
+                toast(app, "Not saved: a new picture came in")
+                live[page]?.load()
                 return@launch
             }
             // Each page's own, which may not be the saved one's any more.
-            readSaved()
+            live.values.toList().forEach { it.readSaved() }
             toast(
+                app,
                 when (result.getOrNull()) {
                     Saved.ORIGINAL -> "Saved to Pictures/APODroid"
                     Saved.RENDITION -> "Saved a smaller copy: the original didn't load"
@@ -1625,7 +1670,8 @@ class MainActivity : ComponentActivity() {
             BatteryNotice()
             return
         }
-        var expanded by rememberSaveable(post.source, post.date) { mutableStateOf(false) }
+        val postKey = "${post.source}:${post.date}"
+        val expanded = expandedPost == postKey
         // Whether the two-line preview cuts the explanation off; a short one has nothing to expand.
         var cut by remember(post.explanation) { mutableStateOf(false) }
         var creditCut by remember(post.credit) { mutableStateOf(false) }
@@ -1647,7 +1693,7 @@ class MainActivity : ComponentActivity() {
                 Modifier
                     .fillMaxWidth()
                     .combinedClickable(
-                        onClick = { if (expandable) expanded = !expanded },
+                        onClick = { if (expandable) expandedPost = if (expanded) null else postKey },
                         onLongClickLabel = "Copy link",
                         onLongClick = { copy("Link", post.pageUrl) },
                     )
@@ -1683,7 +1729,7 @@ class MainActivity : ComponentActivity() {
                         .fillMaxWidth()
                         .combinedClickable(
                             onClickLabel = if (!expandable) null else if (expanded) "Hide explanation" else "Show explanation",
-                            onClick = { if (expandable) expanded = !expanded },
+                            onClick = { if (expandable) expandedPost = if (expanded) null else postKey },
                             onLongClickLabel = "Copy explanation",
                             onLongClick = { copy("Explanation", post.explanation) },
                         )
@@ -1794,15 +1840,17 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Whether ⛶ shows [source]'s frame as Live moves it (L7): the draft's Size Live and [source] in
-     * the draft's home column. A source only on the lock screen crops as Fill (the lock screen is
-     * Fill, Decision 10).
+     * Whether ⛶ shows [source]'s frame as Live moves it (L7): the stored Size Live, Live on home
+     * and [source] in the stored home column, since ✓ acts at once on the stored setup (FP6,
+     * 2026-11-15, T04: with the draft's it dragged while ✓ handed over to the engine). A source
+     * only on the lock screen, or Live not on, crops as Fill (✓ then sets Fill at the part).
      */
-    private fun livesOnHome(source: Source) = size == Sizing.LIVE && source in columns[Screen.HOME].orEmpty()
+    private fun livesOnHome(source: Source) =
+        stored.size == Sizing.LIVE && !liveMissing && source in stored.columns[Screen.HOME].orEmpty()
 
-    /** Where the engine's frame is at [liveNow] (`:core`'s [livePosition]) by the draft's home column and change times. */
+    /** Where the engine's frame is at [liveNow] (`:core`'s [livePosition]) by the stored home column and change times. */
     private fun livePreviewPosition(): Float =
-        livePosition(liveNow, ZoneId.systemDefault(), draft().pictureTime, turns = columns[Screen.HOME].orEmpty().size >= 2)
+        livePosition(liveNow, ZoneId.systemDefault(), stored.pictureTime, turns = stored.columns[Screen.HOME].orEmpty().size >= 2)
 
     /**
      * "Whole picture"'s preview (L7, Decision 7): [source]'s stored picture drawn whole on a
@@ -2041,7 +2089,6 @@ class MainActivity : ComponentActivity() {
      */
     @Composable
     private fun DraftSwitch(label: String, checked: Boolean, stored: Boolean, about: String, info: String, onChange: (Boolean) -> Unit) {
-        var showInfo by rememberSaveable { mutableStateOf(false) }
         val changed = checked != stored
         Row(
             Modifier
@@ -2055,7 +2102,7 @@ class MainActivity : ComponentActivity() {
                 Text(
                     "ⓘ",
                     Modifier
-                        .clickable(role = Role.Button, onClick = { showInfo = true })
+                        .clickable(role = Role.Button, onClick = { openInfo = about })
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                         .clearAndSetSemantics { contentDescription = about },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2073,10 +2120,10 @@ class MainActivity : ComponentActivity() {
                 ),
             )
         }
-        if (showInfo) {
+        if (openInfo == about) {
             AlertDialog(
-                onDismissRequest = { showInfo = false },
-                confirmButton = { TextButton(onClick = { showInfo = false }) { Text("OK") } },
+                onDismissRequest = { openInfo = null },
+                confirmButton = { TextButton(onClick = { openInfo = null }) { Text("OK") } },
                 text = { Text(info) },
             )
         }
@@ -2088,22 +2135,21 @@ class MainActivity : ComponentActivity() {
      */
     @Composable
     private fun ChangeEveryHeading(changed: Boolean) {
-        var info by rememberSaveable { mutableStateOf(false) }
         Row(verticalAlignment = Alignment.Bottom) {
             Heading("Change every", changed)
             Text(
                 "ⓘ",
                 Modifier
-                    .clickable(role = Role.Button, onClick = { info = true })
+                    .clickable(role = Role.Button, onClick = { openInfo = "About Change every" })
                     .padding(horizontal = 8.dp)
                     .clearAndSetSemantics { contentDescription = "About Change every" },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (info) {
+        if (openInfo == "About Change every") {
             AlertDialog(
-                onDismissRequest = { info = false },
-                confirmButton = { TextButton(onClick = { info = false }) { Text("OK") } },
+                onDismissRequest = { openInfo = null },
+                confirmButton = { TextButton(onClick = { openInfo = null }) { Text("OK") } },
                 text = {
                     Text(
                         "Every ${interval.label} from ${hourLabel(pictureAt)}, each screen switches to its next source in the list; " +
@@ -2147,7 +2193,7 @@ class MainActivity : ComponentActivity() {
      * 2026-11-02): "APOD, NASA · both screens" while both screens have the same sources, "APOD ·
      * home screen" while only one has any, else "Home: APOD, Earth · Lock: NASA, Earth"; while
      * the daily switch is on " · every 6 h from 06:00" when a screen takes turns, else " · 06:00".
-     * The sources in the list's order (OR2): "NASA, APOD · both screens". With Size Live " · Live"
+     * The sources in the list's order (OR2): "NASA, APOD · both screens". With Size Live and a home column " · Live"
      * at the end (L6).
      */
     private fun setupSummary(): String {
@@ -2167,7 +2213,8 @@ class MainActivity : ComponentActivity() {
             else -> " · $time"
         }
         // Size Live (L6): " · Live" at the end.
-        val moving = if (stored.size == Sizing.LIVE) " · Live" else ""
+        // Only with a home column: Live is home's (FP6, 2026-11-15, T31).
+        val moving = if (stored.size == Sizing.LIVE && home.isNotEmpty()) " · Live" else ""
         return "$sources$turns$moving"
     }
 
@@ -2437,7 +2484,6 @@ class MainActivity : ComponentActivity() {
      */
     @Composable
     private fun SaveEverySwitch() {
-        var info by rememberSaveable { mutableStateOf(false) }
         Row(
             Modifier.fillMaxWidth().toggleable(saveEvery, role = Role.Switch, onValueChange = ::switchSaveEvery),
             verticalAlignment = Alignment.CenterVertically,
@@ -2450,7 +2496,7 @@ class MainActivity : ComponentActivity() {
                 Text(
                     "ⓘ",
                     Modifier
-                        .clickable(role = Role.Button, onClick = { info = true })
+                        .clickable(role = Role.Button, onClick = { openInfo = "About saving" })
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                         .clearAndSetSemantics { contentDescription = "About saving" },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2468,10 +2514,10 @@ class MainActivity : ComponentActivity() {
                 Dropdown("Largest original", listOf(10, 20, 50, 100, 0), saveLimit, ::limitLabel) { chooseSaveLimit(it) }
             }
         }
-        if (info) {
+        if (openInfo == "About saving") {
             AlertDialog(
-                onDismissRequest = { info = false },
-                confirmButton = { TextButton(onClick = { info = false }) { Text("OK") } },
+                onDismissRequest = { openInfo = null },
+                confirmButton = { TextButton(onClick = { openInfo = null }) { Text("OK") } },
                 text = {
                     Text(
                         "Saves each new picture to Pictures/APODroid: full size up to the limit, else screen size. " +
@@ -2497,7 +2543,7 @@ class MainActivity : ComponentActivity() {
             onDismissRequest = { ask.answer.complete(false) },
             confirmButton = { TextButton(onClick = { ask.answer.complete(true) }) { Text("OK") } },
             dismissButton = { TextButton(onClick = { ask.answer.complete(false) }) { Text("Cancel") } },
-            text = { Text("Next, in Android's preview:\nSet wallpaper › $screens\n\nBack there: nothing changes.") },
+            text = { Text("Next, in Android's preview:\nSet wallpaper › $screens") },
         )
     }
 
@@ -2573,10 +2619,10 @@ class MainActivity : ComponentActivity() {
     /** Names only the settings still missing; hiding it asks first, with what will happen. */
     @Composable
     private fun PauseHint() {
-        var confirm by rememberSaveable { mutableStateOf(false) }
         val unused = if (Build.VERSION.SDK_INT >= 33) {
             // Stock Android 13–14: "Pause app activity if unused"; the test phone (Android 16): "Manage app if unused".
-            "App info › Unused app settings › \"Pause or manage app if unused\": off"
+            // Android's label word for word (the FP6's Settings: unused_apps_switch_v2 on 15+, unused_apps_switch before).
+            "App info › Unused app settings › \"${if (Build.VERSION.SDK_INT >= 35) "Manage app if unused" else "Pause app activity if unused"}\": off"
         } else {
             // Android 12 (API 31–32): "Unused apps" with "Remove permissions and free up space" (B25).
             "App info › Unused apps › \"Remove permissions and free up space\": off"
@@ -2590,18 +2636,18 @@ class MainActivity : ComponentActivity() {
         NoticeBox({
             TextButton(onClick = ::openAppInfo) { Text("App info") }
             if (batteryLimited) TextButton(onClick = ::openBatteryOptimisation) { Text("Battery optimisation") }
-            TextButton(onClick = { confirm = true }) { Text("Don't show again") }
+            TextButton(onClick = { pauseConfirm = true }) { Text("Don't show again") }
         }) {
             Text("Android pauses apps you don't open.", style = MaterialTheme.typography.bodyMedium)
             missing.forEach {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        if (confirm) {
+        if (pauseConfirm) {
             AlertDialog(
-                onDismissRequest = { confirm = false },
-                confirmButton = { TextButton(onClick = { confirm = false; hidePauseHint() }) { Text("Hide") } },
-                dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } },
+                onDismissRequest = { pauseConfirm = false },
+                confirmButton = { TextButton(onClick = { pauseConfirm = false; hidePauseHint() }) { Text("Hide") } },
+                dismissButton = { TextButton(onClick = { pauseConfirm = false }) { Text("Cancel") } },
                 title = { Text("Hide this hint?") },
                 text = { Text("If you don't open APODroid, $effect.") },
             )
@@ -2761,3 +2807,6 @@ private class PicturePainter(private val picture: ImageBitmap) : Painter() {
 class PickerAsk(val page: String, val both: Boolean) {
     val answer = CompletableDeferred<Boolean>()
 }
+
+/** What Set's trip to the picker came to ([MainActivity.pickLive]). */
+enum class Pick { NONE, LOCK_ONLY, GO }

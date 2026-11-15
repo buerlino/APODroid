@@ -153,10 +153,15 @@ class DailyJob : JobService() {
          * there with the right timing: hibernation or a force stop deletes it, and a 0.5.0 or
          * 0.6.0-test install has a turns job (3 h, 15 min flex) to replace once. The fallback not
          * while a run goes: scheduling its id again would stop it (the run's end calls this
-         * again). The caller checks [Store.daily]. `false` when the fallback couldn't be scheduled.
+         * again). The callers check [Store.daily] and it's read again here (off: nothing, `true`). `false` when the fallback couldn't be scheduled.
          * The first arming in a process first asks whether the alarms are gone ([checkAlarms]).
+         * Under [lock] (FP6 tests' review, 2026-11-15, N1): else a page's or a receiver's arming
+         * could read [Store.nextAlarm] just before a run's start ([started]) armed its retry and
+         * then replace that pair with the clock's later time; and an off between the caller's check
+         * and the arming would leave alarms armed. So the switch is read again here.
          */
-        fun ensure(context: Context): Boolean {
+        fun ensure(context: Context): Boolean = synchronized(lock) {
+            if (!Store(context).daily) return true
             checkAlarms(context)
             arm(context)
             if (runs.going) return true

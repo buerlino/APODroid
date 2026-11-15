@@ -96,8 +96,7 @@ class LiveWallpaper : WallpaperService() {
             safely("start") {
                 setOffsetNotificationsEnabled(false)
                 val store = Store(applicationContext).also { store = it }
-                val flags = if (isPreview) "preview" else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) "$wallpaperFlags" else "home"
-                Log.i(TAG, "Live: engine $flags created")
+                Log.i(TAG, "Live: engine ${label()} created")
                 // Home's id says whether home is live: below 14 the system can't say without QUERY_ALL_PACKAGES,
                 // and on 14+ a rebind after a process death may not say it for minutes (noted only while it does).
                 if (!isPreview) store.noteHomeId()
@@ -108,6 +107,9 @@ class LiveWallpaper : WallpaperService() {
             }
         }
 
+        /** The log's name for this engine: preview, its screens' flags on 14+ (1 home, 2 lock, 3 both), else home. */
+        private fun label() = if (isPreview) "preview" else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) "$wallpaperFlags" else "home"
+
         override fun onDestroy() {
             destroyed = true
             handler.removeCallbacksAndMessages(null)
@@ -116,7 +118,7 @@ class LiveWallpaper : WallpaperService() {
                 decoder.shutdownNow()
                 picture?.recycle()
                 picture = null
-                Log.i(TAG, "Live: engine ${if (isPreview) "preview" else "home"} destroyed")
+                Log.i(TAG, "Live: engine ${label()} destroyed")
             }
             super.onDestroy()
         }

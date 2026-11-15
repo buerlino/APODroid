@@ -51,6 +51,7 @@ import io.github.buerlino.apodroid.core.handOverWaits
 import io.github.buerlino.apodroid.core.lockFollowsHome
 import io.github.buerlino.apodroid.core.lostLive
 import io.github.buerlino.apodroid.core.opensPicker
+import io.github.buerlino.apodroid.core.sharedLockFollows
 import io.github.buerlino.apodroid.core.stillOrLive
 import io.github.buerlino.apodroid.core.unnotedLive
 import io.github.buerlino.apodroid.core.Lost
@@ -709,10 +710,15 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("videoNoticeHidden", false)
         set(value) = prefs.edit { putBoolean("videoNoticeHidden", value) }
 
-    /** The problem the user dismissed, as kind and day (`http:503:2026-10-16`); a different kind, code or day shows it again. */
-    var problemNoticeKey: String?
-        get() = prefs.getString("problemNoticeKey", null)
-        set(value) = prefs.edit { putString("problemNoticeKey", value) }
+    /**
+     * The problem the user dismissed for [source], as kind and day (`http:503:2026-10-16`, NASA's
+     * with `nasa:` first); a different kind, code or day shows it again. One per source (FP6,
+     * 2026-11-15, BP2: one shared slot brought the first source's box back after the second's
+     * Dismiss); APOD's is the pref of before, so no migration.
+     */
+    fun problemNoticeKey(source: Source): String? = prefs.getString(source.key("problemNoticeKey"), null)
+
+    fun dismissProblem(source: Source, key: String) = prefs.edit { putString(source.key("problemNoticeKey"), key) }
 
     /** The stored APOD. */
     val apod: Post?
@@ -1045,13 +1051,14 @@ class Store(private val context: Context) {
         // Lost Live (L5, Decision 12): a screen noted live that isn't live now is forgotten before
         // the rules, so it's due again and this run sets Fill; home's loss forgets both screens.
         val live = liveState()
+        val onLock = lockEngine()
         val lost = lostLive(
             homeNoted = prefs.getBoolean(Screen.HOME.key("wallpaperLive"), false),
             lockNoted = prefs.getBoolean(Screen.LOCK.key("wallpaperLive"), false),
             homeLive = live.home, shared = live.shared,
             sharedNote = prefs.getBoolean("live.shared", false),
             lockColumn = columns[Screen.LOCK].orEmpty().isNotEmpty(),
-            lockEngine = !live.home && lockEngine(),
+            lockEngine = onLock,
         )
         // L8f1: in a process Android just started to rebind the engine (a process death with Live
         // on) a screen that only looks not live isn't lost: nothing set, the run failed, retried.
@@ -1061,8 +1068,8 @@ class Store(private val context: Context) {
         }
         if (lost.forget.isNotEmpty()) {
             val why = when {
-                prefs.getBoolean(Screen.HOME.key("wallpaperLive"), false) -> "home isn't live"
-                !prefs.getBoolean(Screen.LOCK.key("wallpaperLive"), false) -> "the engine is on the lock screen alone"
+                prefs.getBoolean(Screen.HOME.key("wallpaperLive"), false) && !live.home -> "home isn't live"
+                onLock -> "the engine is on the lock screen alone"
                 else -> "the lock screen isn't live"
             }
             Log.i("APODroid", "Live: $why, Fill on ${lost.forget.joinToString("+")}${if (lost.lockTakesHome) ", the lock screen takes home's" else ""}")
@@ -1077,7 +1084,11 @@ class Store(private val context: Context) {
         )
         if (unnotedLive.isNotEmpty()) Log.i("APODroid", "Live: the engine is on ${unnotedLive.joinToString("+")}, not noted live")
         var records = lost.forgetting(records()).mapValues { (screen, record) -> if (screen in unnotedLive) record.forget() else record }
-        fun plan(records: Map<Screen, Record>) = lost.onPlan(dueWallpapers(columns, records, stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation), records)
+        // A shared engine's lock screen without a column takes home's still set along (`:core`'s sharedLockFollows).
+        fun plan(records: Map<Screen, Record>) = sharedLockFollows(
+            lost.onPlan(dueWallpapers(columns, records, stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation), records),
+            setup.size, live.shared, lockColumn = columns[Screen.LOCK].orEmpty().isNotEmpty(),
+        )
         fun split(plan: Plan) = stillOrLive(setup.size, live.home, live.shared, columns, plan.screens[Screen.HOME]?.record?.picture ?: records[Screen.HOME]?.picture, plan.sets)
         var plan = plan(records)
         // L6: home's hand-over would show its new picture on a lock screen the engine covers that
@@ -1463,9 +1474,10 @@ class Store(private val context: Context) {
      * 14+: whether the lock screen's own wallpaper is APODroid's engine (`getWallpaperInfo(FLAG_LOCK)`
      * names it and the lock screen has a wallpaper of its own, `getWallpaperId(FLAG_LOCK)` not -1):
      * "Lock screen" picked in Android's picker, or home reverted (Decision 12). `:core`'s [lostLive]
-     * replaces it while home isn't live. Below 14: false.
+     * replaces it while home isn't live, and while home is live when the lock screen has a column;
+     * Set's picker reads it for a "Lock screen" answer. Below 14: false.
      */
-    private fun lockEngine(): Boolean {
+    fun lockEngine(): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return false
         val manager = WallpaperManager.getInstance(context)
         return runCatching {

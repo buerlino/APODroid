@@ -349,13 +349,39 @@ class LiveTest {
     }
 
     @Test
-    fun theEngineOnTheLockScreenIsLeftWhileHomeIsLive() {
-        // Two engines, or home's own: home live, nothing lost; Decision 12's branch comes first.
-        assertEquals(LostLive(), lostLive(homeNoted = false, lockNoted = false, homeLive = true, shared = false, sharedNote = false, lockColumn = true, lockEngine = true))
+    fun theEngineOnTheLockScreenWhileHomeIsLiveGivesALockColumnItsOwn() {
+        // Picked again for the lock screen alone while home is live (FP6, T16): a lock column gets its own still.
+        val columns = mapOf(HOME to listOf(NASA), LOCK to listOf(APOD))
+        val records = settled(columns)
+        val lost = lostLive(homeNoted = true, lockNoted = false, homeLive = true, shared = false, sharedNote = false, lockColumn = true, lockEngine = true)
+        assertEquals(LostLive(forget = setOf(LOCK)), lost)
+        val plan = lost.onPlan(due(columns, lost.forgetting(records)), records)
+        assertEquals(listOf(records.getValue(LOCK).picture!! to setOf(LOCK)), plan.sets)
+        // Still: the engine doesn't share the lock screen (its own id there).
+        assertEquals(LiveSets(plan.sets), stillOrLive(Size.LIVE, true, false, columns, records.getValue(HOME).picture, plan.sets))
+        // Without a column the lock screen isn't APODroid's: left alone, but a stale lock note still goes.
+        assertEquals(LostLive(), lostLive(homeNoted = false, lockNoted = false, homeLive = true, shared = false, sharedNote = false, lockColumn = false, lockEngine = true))
+        assertEquals(LostLive(forget = setOf(LOCK)), lostLive(homeNoted = false, lockNoted = true, homeLive = true, shared = false, sharedNote = false, lockColumn = false, lockEngine = true))
         assertEquals(
             LostLive(forget = setOf(HOME, LOCK), dropShared = true),
             lostLive(homeNoted = true, lockNoted = false, homeLive = false, shared = false, sharedNote = false, lockColumn = true, lockEngine = true),
         )
+    }
+
+    @Test
+    fun aSharedLockScreenWithoutAColumnFollowsHomesStillSet() {
+        // Size Fill, "Where" Home, the engine on both (FP6, T34): home's still set takes the lock screen along.
+        val columns = mapOf(HOME to listOf(APOD), LOCK to emptyList())
+        val plan = due(columns, emptyMap(), t0 + Duration.ofMinutes(30))
+        val home = plan.screens.getValue(HOME).record
+        val followed = sharedLockFollows(plan, Size.FILL, shared = true, lockColumn = false)
+        assertEquals(listOf(home.picture!! to setOf(HOME, LOCK)), followed.sets)
+        assertEquals(home, followed.screens.getValue(LOCK).record)
+        // Not with Live (home goes to the engine), not unshared, not with a lock column, not without a set for home.
+        assertEquals(plan, sharedLockFollows(plan, Size.LIVE, shared = true, lockColumn = false))
+        assertEquals(plan, sharedLockFollows(plan, Size.FILL, shared = false, lockColumn = false))
+        assertEquals(plan, sharedLockFollows(plan, Size.FILL, shared = true, lockColumn = true))
+        assertEquals(Plan(emptyMap()), sharedLockFollows(Plan(emptyMap()), Size.FILL, shared = true, lockColumn = false))
     }
 
     @Test

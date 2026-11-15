@@ -210,6 +210,8 @@ susanna, rosie and the Opus pass read it with `git log -1`.
   reproducible (no timestamps, no machine paths).
 - New `:core` logic has tests; a fixed bug has a regression test.
 - `CLAUDE.md` says what the package changed, where its "Done when" asks. No help text beyond those `CLAUDE.md` lists.
+- A package that adds a feature or changes what a user path does updates its interaction map
+  (`interactions/`, README, Keeping it current): the new or changed leaves, their phone cases (user, 2026-11-15).
 - Commits with the model's trailer, the report commit last.
 
 ## For susanna: the audit

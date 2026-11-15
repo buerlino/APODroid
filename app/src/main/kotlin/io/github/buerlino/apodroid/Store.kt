@@ -52,6 +52,7 @@ import io.github.buerlino.apodroid.core.Part
 import io.github.buerlino.apodroid.core.forPost
 import io.github.buerlino.apodroid.core.framePosition
 import io.github.buerlino.apodroid.core.sidewaysHelps
+import io.github.buerlino.apodroid.core.sidewaysSubjectPosition
 import io.github.buerlino.apodroid.core.sizeOf
 import io.github.buerlino.apodroid.core.subjectCopySize
 import io.github.buerlino.apodroid.core.subjectPosition
@@ -967,7 +968,8 @@ class Store(private val context: Context) {
      * [source]'s stored post has its picture and no subject is noted for it ([subject]): a copy
      * decoded upright (`ImageDecoder` turns an EXIF photo), sampled by SA2's rule (the largest
      * power of 2 keeping the shorter side at least 512 px), box-resized to [subjectCopySize],
-     * then `:core`'s [subjectPosition] upright and, while [sidewaysHelps], sideways; noted with
+     * then `:core`'s [subjectPosition] upright and, while [sidewaysHelps], sideways
+     * ([sidewaysSubjectPosition]: the same decoded pixels turned clockwise, their own copy); noted with
      * the post's date and picture URL in one edit. A failure (out of memory too) is noted
      * without positions, so it isn't tried again for that post, and never fails the refresh.
      */
@@ -994,8 +996,8 @@ class Store(private val context: Context) {
             val (cw, ch) = subjectCopySize(w, h, screen.width, screen.height)
             val copy = boxResize(pixels, dw, dh, cw, ch)
             Subject(
-                subjectPosition(copy, cw, ch, w, h, screen.width, screen.height, sideways = false),
-                if (sidewaysHelps(w, h)) subjectPosition(copy, cw, ch, w, h, screen.width, screen.height, sideways = true) else null,
+                subjectPosition(copy, cw, ch, w, h, screen.width, screen.height),
+                if (sidewaysHelps(w, h)) sidewaysSubjectPosition(pixels, dw, dh, w, h, screen.width, screen.height) else null,
             )
         }
         val ms = SystemClock.elapsedRealtime() - started

@@ -291,28 +291,40 @@ internal fun mapPosition(map: DoubleArray, w: Int, h: Int, horizontal: Boolean, 
 }
 
 /**
- * The subject's position (0–1, raw) for Fill's frame on a [w]×[h] picture shown on a
+ * The subject's position (0–1, raw) for Fill's frame on a [w]×[h] picture shown upright on a
  * [screenW]×[screenH] screen, from its [copyW]×[copyH] copy ([argb], made by [boxResize] to
- * [subjectCopySize]). [sideways]: the position of [sidewaysFrame]'s band, the copy turned
- * clockwise (its top to the right) and measured as an upright picture of [h]×[w].
+ * [subjectCopySize]). The sideways position: [sidewaysSubjectPosition].
  */
 fun subjectPosition(
-    argb: IntArray, copyW: Int, copyH: Int, w: Int, h: Int, screenW: Int, screenH: Int, sideways: Boolean,
+    argb: IntArray, copyW: Int, copyH: Int, w: Int, h: Int, screenW: Int, screenH: Int,
 ): Float {
     require(copyW > 0 && copyH > 0 && argb.size >= copyW * copyH && w > 0 && h > 0)
-    var px = argb
-    var cw = copyW
-    var ch = copyH
-    var pw = w
-    var pH = h
-    if (sideways) {
-        // turned[x'][y'] = copy[x = y'][y = H − 1 − x'], size H × W.
-        px = IntArray(copyW * copyH) { i -> val xt = i % copyH; val yt = i / copyH; argb[(copyH - 1 - xt) * copyW + yt] }
-        cw = copyH; ch = copyW; pw = h; pH = w
-    }
-    val horizontal = movesSideways(pw, pH, screenW, screenH)
-    val frac = if (horizontal) pH.toDouble() * screenW / screenH / pw else pw.toDouble() * screenH / screenW / pH
-    return mapPosition(subjectMap(px, cw, ch), cw, ch, horizontal, frac).toFloat()
+    val horizontal = movesSideways(w, h, screenW, screenH)
+    val frac = if (horizontal) h.toDouble() * screenW / screenH / w else w.toDouble() * screenH / screenW / h
+    return mapPosition(subjectMap(argb, copyW, copyH), copyW, copyH, horizontal, frac).toFloat()
+}
+
+/**
+ * A [w]×[h] picture ([argb] row by row) turned 90° clockwise, its top to the right: [h]×[w]
+ * (PIL's `transpose(ROTATE_270)`).
+ */
+internal fun turnClockwise(argb: IntArray, w: Int, h: Int): IntArray =
+    // turned(x', y') = picture(x = y', y = h − 1 − x'), the turned picture h wide.
+    IntArray(w * h) { i -> argb[(h - 1 - i % h) * w + i / h] }
+
+/**
+ * The subject's position (0–1, raw) of [sidewaysFrame]'s band on a [w]×[h] picture (SA3c), from
+ * the decoded picture's [pixels] ([dw]×[dh], any scale, upright): the picture turned clockwise and
+ * treated as its own [h]×[w] picture, as SA0's method on the turned picture (`sideways.py`): its
+ * own [subjectCopySize] (128 across the turned frame's moving direction), its own [boxResize]d
+ * copy (turned first, then resized, PIL's order), its own map and position with the pull. Since
+ * [sidewaysFrame] is [wallpaperFrame] of the turned picture, the position is that band's directly.
+ */
+fun sidewaysSubjectPosition(pixels: IntArray, dw: Int, dh: Int, w: Int, h: Int, screenW: Int, screenH: Int): Float {
+    require(dw > 0 && dh > 0 && pixels.size >= dw * dh && w > 0 && h > 0)
+    val (cw, ch) = subjectCopySize(h, w, screenW, screenH)
+    val copy = boxResize(turnClockwise(pixels, dw, dh), dh, dw, cw, ch)
+    return subjectPosition(copy, cw, ch, h, w, screenW, screenH)
 }
 
 /**

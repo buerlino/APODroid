@@ -987,8 +987,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   drop it, reopening ⛶ shows the stored one, a Set from open crop mode stores it, the saved
   state carries it with the part. The toggle shows in `tertiary` while it differs from the
   stored one; screen readers: "Sideways", a switch, "On"/"Off" with ", not set yet" while it
-  differs. Clockwise only (user, 2026-11-15). Setup's switch for it (SW3) waits for the
-  user's look on the FP6.
+  differs. Clockwise only (user, 2026-11-15). Setup's switch for it is SW3 (queued
+  after SW2, user, 2026-11-15; its texts placeholders until the user's look).
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title. The one exception is Keep running's (O11, Background update): a
   foreground service must have one; the permission is still never asked, so on Android 13+ it

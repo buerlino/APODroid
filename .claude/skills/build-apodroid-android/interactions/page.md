@@ -1,10 +1,10 @@
 # APODroid's page outside Setup: decision tree for a phone test
 
-> A snapshot read at 7299474 (15 Nov 2026); line numbers are of that commit (`git show 7299474:<path>`).
-> The SUSPECTs below were fixed or accepted since: see [README.md](README.md). Newer changes: README, Keeping it current.
+> Read at 7299474 (15 Nov 2026), checked against 3a4db15 (16 Nov: 0.8.0); line numbers are of 3a4db15.
+> The SUSPECTs below were fixed or accepted since (README.md): their quoted code is 7299474's, the fixed
+> outcome is in the leaf or the test list. Newer changes: README, Keeping it current.
 
-Read from commit 7299474 (the working tree differs only in the picker dialog's text, out of scope;
-line numbers match the phone's build). Files: `app/src/main/kotlin/io/github/buerlino/apodroid/`
+Read from commit 7299474, line numbers of 3a4db15. Files: `app/src/main/kotlin/io/github/buerlino/apodroid/`
 `MainActivity.kt` (MA), `Store.kt` (ST), `DailyJob.kt` (DJ), `KeepRunning.kt` (KR),
 `LiveWallpaper.kt` (LW). Spec: CLAUDE.md, "The app" and "Background update".
 
@@ -36,13 +36,13 @@ Toolkit:
 - **Logs:** don't `logcat -c` (the user's week of logs). Before each case
   `T=$(adb shell date +'%m-%d %H:%M:%S.000')`; after it `adb logcat -d -v time -T "$T" -s APODroid`.
 - **Every page resume** (open, back from the browser, App info, Gallery) logs
-  `Daily job: alarms for <instant>` (MA:560 → DJ:184) while the daily switch is on: the next check,
+  `Daily job: alarms for <instant>` (MA:624 → DJ:189) while the daily switch is on: the next check,
   normally tomorrow's 06:00 + the phone's 0–10 min offset (`2026-11-16T05:0x:xxZ` in CET), hourly with
   "As soon as it's out" on. A resume that sets nothing logs nothing else (no `Page:` line).
 - **UI tree:** `adb exec-out uiautomator dump /dev/tty`. The title is a content-desc
   (`Picture from: NASA Image of the Day`), not text; ⛶ is `Choose the wallpaper's part`, ✓ `Done`,
   ★ `Save` / `Saved` / `Saving`, the toggle in crop mode `Whole picture`. "more" is hidden from
-  accessibility (MA:1704): check it on a screenshot. The explanation node's text is always the whole
+  accessibility (MA:1931): check it on a screenshot. The explanation node's text is always the whole
   text; its bounds' height tells two lines from all.
 - **Taps:** `adb shell input tap X Y` from the dump's bounds; swipe `input swipe X1 Y X2 Y 300`;
   long press `input swipe X Y X Y 900`; pull to refresh `input swipe 540 500 540 1600 600` with the
@@ -64,13 +64,13 @@ Toolkit:
 
 ## 1. The decision tree
 
-### T. The title above the picture (MA:1449-1476)
+### T. The title above the picture (MA:1648-1675)
 
 Precondition for all: S0, the page open, three sources offered (the switch "More NASA pictures" on),
 so the title is "<name> ▾" and a dropdown.
 
 - **T1 Open fresh, opening page.** Close the page with Back, start it again. NOW.
-  Expected: it opens on **NASA** (home's picture's source; `shown`, MA:659-663, with the stored switch
+  Expected: it opens on **NASA** (home's picture's source; `shown`, MA:725-729, with the stored switch
   on home first, then lock). Title "NASA ▾"; chip "On home screen"; source line "NASA Image of the Day
   · 13 November 2026". Log: `Daily job: alarms for …` only. Check: dump, content-desc
   `Picture from: NASA Image of the Day`.
@@ -78,13 +78,13 @@ so the title is "<name> ▾" and a dropdown.
   "✓" before NASA. Check: dump shows three menu items.
   - **T2a Choose Earth.** The pager slides (through NASA's neighbour) to Earth; title "Earth ▾"; no
     chip; source line "Earth Observatory · <date>"; the boxes and caption are Earth's. No log.
-  - **T2b Choose the shown one (NASA).** Menu closes, nothing moves (MA:1469).
+  - **T2b Choose the shown one (NASA).** Menu closes, nothing moves (MA:1668).
   - **T2c Tap outside / Back.** Menu closes, nothing else (Back doesn't leave the page).
-  - **T2d Open the menu, rotate.** The menu closes (plain `remember`, MA:1452); the shown source stays.
+  - **T2d Open the menu, rotate.** The menu closes (plain `remember`, MA:1651); the shown source stays.
 - **T3 One source offered** (APOD mode, no video day): the title "APOD" without ▾, not tappable.
   NOT NOW here (needs the draft's switch off: Setup's agent).
 
-### W. The swipe (pager, MA:1405-1443)
+### W. The swipe (pager, MA:1604-1642)
 
 Pages are always APOD, NASA, Earth (index 0, 1, 2).
 - **W1 Swipe left on NASA** (finger right to left). NOW. Title and picture slide to Earth with the
@@ -96,9 +96,9 @@ Pages are always APOD, NASA, Earth (index 0, 1, 2).
 - **W4 Half a swipe, release.** NOW. Snaps back to the page it started on; the caption never changed.
 - **W5 Chosen source survives a rotation** (O-group) and the system killing the app; a Back + restart
   forgets it (T1 again). NOW (rotation); `am kill` while in the background is optional.
-- **W6 In crop mode the pager doesn't move** (`userScrollEnabled = !cropping`, MA:1431): see K10.
+- **W6 In crop mode the pager doesn't move** (`userScrollEnabled = !cropping`, MA:1630): see K10.
 
-### P. The picture tap (MA:1534)
+### P. The picture tap (MA:1733)
 
 - **P1 Tap the picture** (not in crop mode). NOW. The browser opens the post's page: APOD →
   `science.nasa.gov/…apod…`, NASA → `www.nasa.gov/image-detail/…`, Earth → its science.nasa.gov page.
@@ -123,9 +123,9 @@ Pages are always APOD, NASA, Earth (index 0, 1, 2).
     notes; a new video tries once. NOT NOW.
   - **P3f The page stops** (Home, Back): the still is recycled with the pictures (O12) and decoded
     from the file at the next open. NOT NOW.
-- **P4 Tap in crop mode:** nothing opens (the modifier is the frame's, MA:1531-1533). NOW (K-group).
+- **P4 Tap in crop mode:** nothing opens (the modifier is the frame's, MA:1730-1732). NOW (K-group).
 
-### C. The caption (MA:1619-1710)
+### C. The caption (MA:1845-1937)
 
 With three sources: a source line "<full name> · d MMMM yyyy" (" · Video" on a video day), then the
 title, then (APOD only) the credit, then the explanation (2 lines, "more" when cut).
@@ -139,23 +139,25 @@ title, then (APOD only) the credit, then the explanation (2 lines, "more" when c
 - **C4 An explanation that fits two lines** (likely Earth's one sentence only on a wide pane; on the
   FP6's portrait it may well take three lines and show "more"). NOW: note which. If it fits: no "more",
   a tap does nothing (a ripple only).
-- **C5 Swipe away and back after expanding.** NOW. Collapsed again (`rememberSaveable(post.source,
-  post.date)` resets when the shown post changes, MA:1628).
+- **C5 Swipe away and back after expanding.** NOW. Still expanded (since C8's fix one page state,
+  `expandedPost` = "SOURCE:date", MA:1855; 7299474 collapsed it). Expanding another page's
+  explanation collapses the first.
 - **C6 Long press the title block.** NOW. Copies the post's page link. Android 16 shows its own
   clipboard overlay (bottom left, a preview of the link); the app shows no toast (only below 13,
-  MA:1361). The click doesn't toggle. Check: the overlay on a screenshot within 2 s
+  MA:1560). The click doesn't toggle. Check: the overlay on a screenshot within 2 s
   (`adb shell cmd clipboard get-primary-clip` if that build has it). No log.
 - **C7 Long press the explanation.** NOW. Copies the explanation's text, same overlay. A long press on
   the credit copies the **link** (the credit is inside the title block).
 - **C8 Rotate with the explanation open.** NOW. **SUSPECT:** it comes back collapsed. On the FP6 the
   rotation crosses 600 dp, so portrait and landscape compose different branches of `Page()`
-  (MA:1373 one column vs MA:1381-1392 two panes) and `rememberSaveable`'s position key differs: the
-  saved `expanded` (MA:1628) isn't found. The same loses an open ⓘ dialog (MA:2044, 2091, 2440) and
-  the pause hint's "Hide this hint?" dialog (MA:2576) on rotation. Expected by the code: collapsed /
-  dialog gone. The user may expect what Setup's and Advanced's open state do (they survive: saved in
-  `onSaveInstanceState`, MA:523-524).
+  (MA:1572 one column vs MA:1580-1591 two panes) and `rememberSaveable`'s position key differs: the
+  saved `expanded` (MA:1855) isn't found. The same loses an open ⓘ dialog (MA:2310, 2366, 2715) and
+  the pause hint's "Hide this hint?" dialog (MA:2859) on rotation. **Fixed:** `openInfo`,
+  `expandedPost`, `pauseConfirm` in the saved state (MA:583-587): expected open / the dialog still
+  there after each rotation, both ways. The user may expect what Setup's and Advanced's open state do (they survive: saved in
+  `onSaveInstanceState`, MA:583-587).
 
-### H. The chip (MA:832-842, 1508, 1542-1553)
+### H. The chip (MA:908-918, 1707, 1741-1752)
 
 From the stored records (`Store.screenState`); with three sources only; hidden in crop mode.
 - **H1 NASA page:** "On home screen". **APOD page:** "On lock screen". **Earth page:** no chip. NOW.
@@ -163,11 +165,12 @@ From the stored records (`Store.screenState`); with three sources only; hidden i
 - **H3 In crop mode** the chip's place holds the "Whole picture" toggle. NOW (K-group). The top
   right holds "Sideways" on a landscape picture (K16), so the chip's corner stays the top left.
 
-### K. ⛶ crop mode (MA:1300-1348, 1510-1592, 1796-1883; ST:405-454)
+### K. ⛶ crop mode (MA:1450-1547, 1709-1818, 2033-2136; ST:413-465)
 
 ⛶ bottom left of the picture (not on video days); disabled (dimmed) while Set or the daily switch's
-run goes (MA:1576). Which kind of frame: **Live's** when the draft's Size is Live and the shown source
-is in the draft's home column (MA:1801): today NASA. **Draggable Fill** otherwise: APOD (lock) and
+run goes (MA:1802). Which kind of frame: **Live's** when the **stored** Size is Live, Live is on home
+(no "Live isn't on" line) and the shown source is in the stored home column (MA:2039; S9's fix, was
+the draft's): today NASA. **Draggable Fill** otherwise: APOD (lock) and
 Earth (on no screen).
 
 Fill sources (APOD, Earth):
@@ -181,10 +184,10 @@ Fill sources (APOD, Earth):
     (none dragged: Size's, K27). No log, nothing set.
   - **K1c ✓ after a drag, Earth on no screen.** Crop mode closes; the part saved at once
     (`savePart`), `Store.setPart` finds no screen showing Earth: **no toast and no log line at all**
-    (MA:1330, 1335-1338). ⛶ again opens where it was left. Doc-intended ("only saved, no toast"), but
+    (MA:1522, 1527-1530). ⛶ again opens where it was left. Doc-intended ("only saved, no toast"), but
     the user gets no sign that ✓ did anything. Leaves a stored part for Earth's 13 Nov post (harmless:
     Earth is on no screen; a new Earth post drops it).
-  - **K1d ✓ without a change.** Crop mode closes, nothing saved, no toast (MA:1319). Without a drag
+  - **K1d ✓ without a change.** Crop mode closes, nothing saved, no toast (MA:1501). Without a drag
     the frame where it opened counts as no change (SA3b, K28).
 - **K2 ⛶ on APOD (lock, still), "Whole picture" on, ✓.** NOW, reversible by K3.
   Toggle: text "✓ Whole picture" in the theme's tertiary colour (differs from stored), the picture's
@@ -204,11 +207,11 @@ Fill sources (APOD, Earth):
   same part retries (`failedPart`). NOT NOW (needs a failing `WallpaperManager`).
 
 Live source (NASA on home):
-- **K6 Tap ⛶ on NASA.** NOW. The frame stands where the engine draws it now (`livePosition`, MA:1804):
+- **K6 Tap ⛶ on NASA.** NOW. The frame stands where the engine draws it now (`livePosition`, MA:2043):
   no drag (a drag does nothing, the page may scroll vertically); it moves on each minute. Compare with
-  the engine's last `Live: drew <picture> p=0.NN …` line (LW:372) and a home-screen screencap: the
+  the engine's last `Live: drew <picture> p=0.NN …` line (LW:381) and a home-screen screencap: the
   frame's left edge ≈ p × (picture width − frame width), from 06:00 (p=0) to 24:00 (p=1).
-  - **K6a ✓ without a change.** Crop mode closes, no toast, no log (position = stored, MA:1319).
+  - **K6a ✓ without a change.** Crop mode closes, no toast, no log (position = stored, MA:1501).
   - **K6b Back.** Closes, nothing.
 - **K7 ⛶ on NASA, "Whole picture" on, ✓.** NOW, reversible by K8. Toast "Wallpaper set"; logs
   `Part: wallpaper shown live: Of(source=NASA, date=2026-11-13, url=…) on HOME[, darker ×…]` and
@@ -225,14 +228,14 @@ Crop mode and the rest of the page:
 - **K10 Swipe in crop mode.** NOW. The pager doesn't move (on APOD/Earth a horizontal drag moves the
   frame instead).
 - **K11 Title dropdown in crop mode, choose another source.** NOW. Crop mode closes without keeping
-  (`showSource`, MA:886), the new source shows.
+  (`showSource`, MA:995), the new source shows.
 - **K12 Rotate in crop mode.** NOW. Crop mode closes, a dragged part not kept with ✓ is dropped
   (`cropping` isn't saved); shown source, Setup's and Advanced's state stay.
 - **K13 Home key in crop mode, then back.** NOW. Crop mode is still open after the picture is decoded
   again (O12: an empty box of the picture's height meanwhile), the dragged position kept.
 - **K14 ⛶ while Set or the daily switch's run goes:** dimmed, a tap does nothing. NOW only briefly
   (during D2's run, ~1 s): optional.
-- **K15 ★ in crop mode:** still works (MA:1593). NOW, optional.
+- **K15 ★ in crop mode:** still works (MA:1819). NOW, optional.
 
 Sideways (SW2, 0.8.0; `cropSideways`, the pill in `PicturePage`, `pictureFrame`, `Store.setFile`'s
 sideways branch). Needs a landscape picture on the shown page (today's, or 9 Nov's APOD faked into
@@ -332,7 +335,7 @@ the frame is dragged. Set up: a picture whose noted subject moves the frame 0.2 
   shows as the system wallpaper's `mWhich=3`, `mSystemWasBoth=true`. With Live the pills overlap the
   band's top edge when it stands near p=1 (cosmetic, for the user's look).
 
-### S. ★ save to the gallery (MA:1238-1268, 1593-1610; ST:1607-1704)
+### S. ★ save to the gallery (MA:1381-1418, 1819-1836; ST:1864-1961)
 
 ☆ bottom right (not on video days); saves the **original** (`originalUrl`: APOD/Earth `content/dam`,
 NASA the feed's enclosure, up to 97 MB, no size limit for ★) to `Pictures/APODroid/`
@@ -343,15 +346,15 @@ on NASA check its size on the computer:
   Pictures/APODroid"**; ★ filled ("Saved"). No log line on success. Check: the content query lists a
   new `EO_2026-11-13_….jpg` (note its `_id` for deletion).
   - **S1a Quick double tap on ☆** (instead of S1's single tap). One save, one toast, one row (the second
-    tap returns silently while `saving`, MA:1239).
+    tap returns silently while `saving`, MA:1382).
   - **S1b Tap ★ again.** Toast "Already saved", nothing downloaded, no new row.
 - **S2 Delete the saved file in the gallery** (Files/Gallery app, or
   `adb shell content delete --uri content://media/external/images/media/<_id>`; or
   `adb shell rm "/sdcard/Pictures/APODroid/<name>"`), then come back to the page. NOW. On resume ★
-  turns ☆ (`isSaved` queries the URI, ST:1608-1617; re-read at the load's end, MA:698).
+  turns ☆ (`isSaved` queries the URI, ST:1865-1874; re-read at the load's end, MA:764).
   - **S2a SUSPECT, deleted while the page stays resumed** (adb delete with the page in front, or split
     screen): ★ stays filled and a tap says "Already saved" though there is no file. The page re-reads
-    `saved` only on load, show, ✓ and the prefs watcher (MA:730-733, 1240; ST:831-835 has no MediaStore
+    `saved` only on load, show, ✓ and the prefs watcher (MA:801-804, 1383; ST:877-881 has no MediaStore
     key). Check: delete with adb while the page is in front, tap ★: "Already saved"; Home + reopen: ☆.
 - **S3 ☆ in airplane mode.** NOW (airplane mode). The original fails, the stored rendition is copied:
   toast **"Saved a smaller copy: the original didn't load"**, ★ filled. Log (W):
@@ -360,17 +363,18 @@ on NASA check its size on the computer:
 - **S4 Rotate during the download, then tap ☆ in the new page.** NOW if the download outlasts a
   rotation (NASA's or APOD's original of several MB; check size first). The new page's ☆ is **not**
   dimmed (its `saving` is fresh); a tap: toast "Still saving" (`Saved.BUSY`, process-wide flag,
-  ST:1630). When the download ends the new page's ★ fills (watcher on `savedUri`).
+  ST:1887). When the download ends the new page's ★ fills (watcher on `savedUri`).
   - **S4a SUSPECT: no result toast after a rotation or Back during the save.** The save's end runs in
-    the page's `lifecycleScope` (MA:1245), cancelled by the rotation: "Saved to Pictures/APODroid",
+    the page's `lifecycleScope` (MA:1393), cancelled by the rotation: "Saved to Pictures/APODroid",
     "Saved a smaller copy…" and "Couldn't save the picture" never show, although the file is written.
-    ✓ and Set use the process-wide `runs` for exactly this (MA:1325, 1053; "a rotation keeps its
-    end"). Expected by the code: no toast. Check the gallery row and ★.
+    ✓ and Set use the process-wide `runs` for exactly this (MA:1517, 1165; "a rotation keeps its
+    end"). **Fixed:** the save runs in `runs` (MA:1393): the result toast shows after a rotation (and
+    after Back, unless Android suppresses a background toast); ★ fills in the new page.
 - **S5 "Not saved: a new picture came in"** (a newer post stored during the download) and **"Couldn't
   save the picture"** (MediaStore failure). NOT NOW.
 - **S6 Saving after "Clear storage" adds "… (1).jpg".** NOT NOW (clearing data is forbidden).
 
-### R. Pull to refresh (MA:844-847, 673-704, 1372-1394; ST:925-951)
+### R. Pull to refresh (MA:920-923, 739-770, 1571-1593; ST:1127-1153)
 
 Portrait: the whole page (picture and settings) is in the pull box; landscape: the left pane only.
 A pull always fetches the three offered sources (APOD too, `force`), downloads only a new picture, and
@@ -378,19 +382,19 @@ sets a newer picture of each screen's source at once while the daily switch is o
 - **R1 Pull on NASA's page, network on, nothing new (Sunday).** NOW. The spinner shows and goes;
   nothing changes; no toast; **no APODroid log line** (a pull that sets nothing logs nothing).
 - **R2 Pull in airplane mode.** NOW. Spinner, then an orange box under the picture:
-  **"NASA Image of the Day: no connection."** (named: two sources ticked, MA:780; no "since" as the last
+  **"NASA Image of the Day: no connection."** (named: two sources ticked, MA:856; no "since" as the last
   good check is recent). The stored pictures stay. Log (W): `Update failed: <UnknownHostException …>`.
   All three sources now have a stored problem.
   - **R2a Swipe to APOD:** "Astronomy Picture of the Day: no connection."; **Earth:** "Earth
-    Observatory: no connection." (each page shows the shown source's problem first, MA:762-767).
+    Observatory: no connection." (each page shows the shown source's problem first, MA:835-840).
 - **R3 Network back, return to the page or pull.** NOW. The boxes go (APOD's check succeeds without a
   fetch, its post is today's; NASA's and Earth's fetch again). No log unless something is set.
 - **R4 Pull while the page's own load runs** (pull right after opening): the spinner stays until the
-  forced run after it ends (MA:701). NOW, hard to time; optional.
+  forced run after it ends (MA:767). NOW, hard to time; optional.
 - **R5 Pull in landscape on the right pane:** nothing (the settings pane has no pull). NOW (O-group).
 - **R6 Pull with the daily switch off:** fetches, sets nothing. NOW, optional (during D1).
 
-### B. The boxes below the picture (MA:1634-1643, 1743-1767, 2517-2632)
+### B. The boxes below the picture (MA:1861-1870, 1980-2004, 2801-2916)
 
 Order: problem, video notice, detector, pause hint; each with its own buttons.
 
@@ -399,9 +403,11 @@ Problem box (orange):
   `nasa:network:2026-11-15` is stored; another failing pull of NASA today keeps it hidden.
 - **BP2 SUSPECT: one dismissed problem at a time across sources.** NOW (airplane mode). After BP1,
   swipe to APOD: its box shows (another key); Dismiss; swipe back to NASA: **NASA's box shows again**.
-  `problemNoticeKey` is a single slot overwritten by each Dismiss (MA:1019-1029, ST:712-715), so with
+  `problemNoticeKey` is a single slot overwritten by each Dismiss (MA:1128-1138, ST:750-758), so with
   "More NASA pictures" on a user who dismisses on two pages sees the first come back. CLAUDE.md says a
   dismissed problem stays hidden "until its kind or HTTP code changes or a new day starts".
+  **Fixed:** one key per source (`<source>.problemNoticeKey`, ST:756), and the box takes the first
+  candidate not dismissed (MA:840): NASA's stays hidden.
 - **BP3 "… since <day>"**, HTTP "error 503 … Trying again later.", "… has changed … An app update may
   be needed.", the storage text. NOT NOW (need a day-old failure, a 5xx, a site change, a full disk).
 - **BP4 A new day shows a dismissed problem again** (the key holds the date). NOT NOW.
@@ -424,13 +430,14 @@ battery setting and "Manage app if unused"):
   optimisation list (`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`), else App info. Back returns.
 - **BH3 "Don't show again" → dialog "Hide this hint?"** with "If you don't open APODroid, after about 8
   days …" / "… after about 3 months …"; **Cancel only** (Hide is irreversible). The box stays.
-  - **BH3a Rotate with the dialog open:** it closes (see C8).
+  - **BH3a Rotate with the dialog open:** it stays (C8's fix).
 - **BH4 SUSPECT (text, only if the unused line shows):** "App info › Unused app settings › "Pause or
-  manage app if unused": off" (MA:2579) matches no Android version word for word (Android 13–14 "Pause
+  manage app if unused": off" (MA:2863) matches no Android version word for word (Android 13–14 "Pause
   app activity if unused", 15–16 "Manage app if unused"), against CLAUDE.md's "Android's own labels
-  word for word". Check the FP6's App info wording.
+  word for word". **Fixed:** "Manage app if unused" on API 35+, "Pause app activity if unused" on 33–34
+  (MA:2863); the emulator (API 34) shows the latter.
 
-### L. The status lines (MA:790-824, 1921-1925)
+### L. The status lines (MA:866-900, 2174-2178)
 
 Under "Change automatically" while it's on, from the stored records.
 - **L1 Read them.** NOW. Home and lock show different pictures, so two lines:
@@ -444,17 +451,17 @@ Under "Change automatically" while it's on, from the stored records.
 - **L5 The system's 12/24 h switched while the page is open:** follows at the next resume. NOT NOW
   (an Android setting).
 
-### E. The empty state (MA:1492-1502)
+### E. The empty state (MA:1691-1701)
 
 - **E1 No stored post for the shown source:** a spinner while loading, then the problem's text or
   "Couldn't load today's picture." with "Try again"; only the detector box and pause hint below. NOT
   NOW (all three sources have a stored post; clearing data is forbidden).
 
-### O. Rotation, two panes, background (MA:468-599, 1366-1397)
+### O. Rotation, two panes, background (MA:525-665, 1565-1596)
 
 - **O1 Rotate to landscape.** NOW. Two panes (~55/45): picture side left, settings right, each
   scrolling alone; the shown source, Setup's and Advanced's open state kept; crop mode and open menus
-  close; the explanation collapses and ⓘ dialogs close (C8). Log: `Daily job: alarms for …`.
+  close; the explanation and an open ⓘ dialog stay (C8's fix). Log: `Daily job: alarms for …`.
 - **O2 Pull on the left pane in landscape:** R1's result; on the right pane: nothing (R5).
 - **O3 Back to portrait.** One column again, same state rules.
 - **O4 Home key, then back (O12).** NOW. The pictures are let go at onStop and decoded again; the page
@@ -463,7 +470,7 @@ Under "Change automatically" while it's on, from the stored records.
 - **O5 Back, start again.** NOW. A fresh page: opens on home's source (T1), the draft and the chosen
   source dropped.
 
-### A. Advanced settings (MA:1970-1991, 2036-2083, 2434-2485; KR)
+### A. Advanced settings (MA:2230-2258, 2303-2359, 2710-2760; KR)
 
 Shown only while the daily switch is on; closed by default; act at once (no highlight).
 - **A1 Tap "Advanced settings".** NOW. Opens ("▴"): "Save every picture" + ⓘ + switch, then (if on)
@@ -495,7 +502,7 @@ Shown only while the daily switch is on; closed by default; act at once (no high
   (`, auto 0.6x`); ⛶ on it opens there (K27). On again: the middle at the next set. A one-off Set with
   the daily switch off (the switch hidden) uses the stored pref.
 
-### D. "Change automatically" (MA:906-968, 1914-1920; ST:473-479; DJ:290-303)
+### D. "Change automatically" (MA:1015-1077, 2167-2173; ST:484-490; DJ:295-308)
 
 - **D1 Turn it off.** NOW (D2 restores). At once: the status lines, "Advanced settings", the pause hint
   and the detector box disappear; Setup's summary loses " · 06:00"; the chip and pictures stay; the
@@ -505,7 +512,7 @@ Shown only while the daily switch is on; closed by default; act at once (no high
   - **D1a A pull or a page open while off:** fetches, sets nothing (no `Page:` line).
 - **D2 Turn it on.** NOW. Both screens are set afresh with the stored setup (the same pictures):
   toast **"Wallpaper set"**; status lines with both times now. Logs, in about this order:
-  `Live: the engine is on HOME, not noted live` (startAfresh dropped the live note, ST:792),
+  `Live: the engine is on HOME, not noted live` (startAfresh dropped the live note, ST:838),
   `Daily job: alarms for 2026-11-16T05:0x:xxZ` (or the next hour with "As soon as it's out"),
   `Switch on: wallpaper set: Of(source=APOD, date=2026-11-15, …) on LOCK[, darker…]; wallpaper shown live: Of(source=NASA, date=2026-11-13, …) on HOME[, darker…]`,
   then the freshly scheduled fallback runs at once: `Daily job: job 1 starts, not expedited`,
@@ -529,7 +536,8 @@ Shown only while the daily switch is on; closed by default; act at once (no high
   with the user's OK, it isn't reversible by hand). Not testable now: 22 (video day: P3, BV1–6;
   detector: BD1–2; failing site, set or disk: P2, K5, S5, BP3; time or new day: BP4, L5; empty store or
   Clear storage: E1, S6; another setup or a lost Live: T3, H2, K9, L4, D3).
-- SUSPECT: 5 (C8, S2a, S4a, BP2, BH4); K1c is a UX note (doc-intended). None blocks the tag by itself.
+- SUSPECT: 5 (C8, S2a, S4a, BP2, BH4); K1c is a UX note (doc-intended). C8, S4a, BP2, BH4 fixed since
+  (README); S2a open.
 
 ## 3. Prioritized phone test list (≤30, each from the previous end state)
 
@@ -542,11 +550,12 @@ settings). Deletions and restores are part of the list.
    **W1–W3** (swipe left to Earth, right to NASA and APOD, end stops).
 3. **T2/T2a/T2c** dropdown from APOD: order and ✓, choose Earth, then open and dismiss with Back.
 4. **C1–C3, C5** on APOD (swipe there): source line, credit, "more", expand/collapse by the
-   explanation and by the title block; swipe away and back: collapsed.
+   explanation and by the title block; swipe away and back: still expanded (C5).
 5. **C6, C7** long presses on APOD (link, explanation, credit copies the link); no app toast.
-6. **C8 (SUSPECT)**: expand APOD's explanation, rotate to landscape: collapsed? **O1, O2/R5** two panes,
-   pull on each pane; **A1, A2** open Advanced, open the ⓘ, rotate back to portrait: Advanced open,
-   ⓘ dialog gone? (**O3**).
+6. **C8 (fixed)**: expand APOD's explanation, rotate to landscape: still expanded. **O1, O2/R5** two
+   panes (the emulator: 411 dp wide in portrait, about 900 dp in landscape: two panes), pull on each
+   pane; **A1, A2** open Advanced, open the ⓘ, rotate back to portrait: Advanced open, the ⓘ dialog
+   still open (**O3**).
 7. **P1** tap APOD's picture: browser; Back: APOD still shown; `Daily job: alarms …` logged.
 8. **S1a** quick double tap ☆ on Earth: one toast, one `EO_…` row; **S1b** tap again: "Already saved".
 9. **S2a (SUSPECT)**: with the page in front, delete that row by adb; tap ★: "Already saved"?
@@ -569,11 +578,11 @@ settings). Deletions and restores are part of the list.
 21. Airplane mode on (USB adb). **S3** ☆ on Earth: "Saved a smaller copy…", the W log line.
 22. **R2, R2a** pull: "NASA Image of the Day: no connection.", W `Update failed`; swipe to APOD and
     Earth: their own texts.
-23. **BP1, BP2 (SUSPECT)**: Dismiss on Earth, swipe to APOD (shows), Dismiss, swipe to Earth: shows
-    again? Swipe to NASA (shows): Dismiss.
+23. **BP1, BP2 (fixed)**: Dismiss on Earth, swipe to APOD (shows), Dismiss, swipe to Earth: stays
+    hidden. Swipe to NASA (shows): Dismiss.
 24. Airplane mode off (undo, ping works). **R3** Home + reopen: all boxes gone.
-25. **S4, S4a (SUSPECT)** only if an original is several MB (check size): ☆ on it, rotate at once, tap
-    ☆ in the new page: "Still saving"; at the end ★ fills, no "Saved…" toast? (Else skip.)
+25. **S4, S4a (fixed)** only if an original is several MB (check size): ☆ on it, rotate at once, tap
+    ☆ in the new page: "Still saving"; at the end ★ fills and "Saved to Pictures/APODroid" shows. (Else skip.)
 26. **BH0–BH3** if the pause hint shows: App info → Back; Battery optimisation → Back; Don't show
     again → Cancel (**BH4** compare the wording with App info). Else note "no hint".
 27. **A3, A3a, A3b** Save every on, Largest original 50 MB, back to S0's value, Save every back to
@@ -590,3 +599,20 @@ settings). Deletions and restores are part of the list.
     reopen: opens on NASA. Leftovers to report: Earth's stored part for its 13 Nov post (step 12),
     `problemNoticeKey` for today (step 23: a real problem of that kind today stays hidden on that
     source's page until midnight), the moved status-line times.
+
+## 4. 0.8.0's cases for the emulator (after the list above; debug build, `run-as`)
+
+31. **P3a, P3c, P3d** (VS1): fake an APOD video day (SKILL.md's "Fake an old day", `isVideo` true,
+    `videoUrl` = 16 Oct's mp4); open: `Video still: <ms> ms, <w>×<h>`, the dimmed still behind ▶; a
+    second open after `am kill`: no line. **P3c** airplane mode on a fresh fake (`videoStillTried`
+    removed): `Video still: couldn't make one of …`, black tile, no try at the next open. **P3d**
+    `videoUrl` removed: black, no line. Restore the real post with a pull.
+32. **K16, K16b, K17, K18** (SW2): a landscape picture faked; the pill, the band, ✓ `…, sideways`, off
+    again. **K24, K24a–c** with "Wide pictures sideways" stored on (setup.md P31–P32 first).
+33. **K27, K28, K29, K31** (SA3b): a picture whose `Subject:` line's `p=` is ≥ 0.2 off the middle,
+    Size Auto stored: ⛶ opens at it; ✓ untouched: nothing; drag ✓: `cropPosition`, no `, auto`; the
+    pill on an undragged frame jumps to `subjectSideways`.
+34. **A7, A8** (SA3b): the ⓘ text; off: `autoFallback=false`, nothing set; then a picture with
+    `p=0.55`–`0.65` set again (forget its record, `run -f 1`): `, auto 0.6x`; on again.
+35. **K30, K33**: an undragged Whole part, Size Centre ↔ Auto and Set: the undragged frame follows
+    Size, a dragged one stays.

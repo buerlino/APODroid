@@ -5,9 +5,10 @@
 > default, the frame on the subject, Centre the middle). "Fill" left in a log line or for a still set
 > means a still set, as before (`Live: home isn't live, Fill on HOME+LOCK` is unchanged).
 
-> A snapshot read at 7299474 (15 Nov 2026); line numbers are of that commit (`git show 7299474:<path>`).
-> The SUSPECTs below were fixed or accepted since: see [README.md](README.md). Newer changes: README, Keeping it current.
-> SPLIT (087856c, read there) is mapped: §0's last paragraph, §2's tree, the Q leaves, S2, T05–T09, T11, T33, T36, T37.
+> Read at 7299474 (15 Nov 2026), checked against 3a4db15 (16 Nov: 0.8.0); line numbers are of 3a4db15.
+> The SUSPECTs below were fixed or accepted since (README.md): their quoted code is 7299474's, the fixed
+> outcome is in the leaf or the test list. Newer changes: README, Keeping it current.
+> SPLIT (087856c; its line numbers moved to 3a4db15 too) is mapped: §0's last paragraph, §2's tree, the Q leaves, S2, T05–T09, T11, T33, T36, T37.
 
 What happens for each user path, read from master 7299474 (what the phone runs; the working tree
 differs only by the dialog's last line). Read-only. No build, no device touched.
@@ -17,16 +18,16 @@ below-14 branch is left out.
 Sources read: CLAUDE.md (Settings: Size, Set as wallpaper with "The picker" and "Back without a pick",
 the daily switch, Wallpaper: Live, Is it on, Lost Live, The engine on the lock screen alone, A shared
 lock screen follows home, B27/B28, Choosing the part: With Live, D, Next features 0.7.0: Live);
-`MainActivity.kt` (setAsWallpaper 1039–1109, pickLive 1124–1154, openLivePicker 432–443,
-PickerDialog 2493–2502, onCreate/onDestroy/onResume 468–570, load 673–704, switchDaily/switchOn
-918–968, statusLines 798, setupSummary 2153–2172, ⛶ 1301–1340, 1512, 1801); `Store.kt`
-(saveSetup 363–403, setPart 428–454, update 925–951, setDue 1040–1197, opensPicker 1287–1290,
-liveMissing 1297–1298, wallpaperIds 1301–1304, awaitLive 1313–1319, copyForLive 1359–1373,
-liveFallback 1380–1383, liveState 1440–1450, lockEngine 1468–1475); `LiveWallpaper.kt`
-(onCreate 94–109, onVisibilityChanged 140–154, checkStray 188–193, runIfOwed 201–210, reload 216–260);
-`core/.../Live.kt` (stillOrLive 87–115, lostLive 164–185, lockFollowsHome 200–205, handOverWaits
-215–216, unnotedLive 229–235, equalColumns 238–241, opensPicker 259–263); `core/.../Screens.kt`
-(Plan.sets 170–175, restartAndForget 408–430, keepUntilAnchor 446+).
+`MainActivity.kt` (setAsWallpaper 1148–1231, pickLive 1250–1291, openLivePicker 489–500,
+PickerDialog 2770–2786, onCreate/onDestroy/onResume 525–634, load 739–770, switchDaily/switchOn
+1027–1077, statusLines 874, setupSummary 2428–2448, ⛶ 1456–1547, 1711, livesOnHome 2039); `Store.kt`
+(saveSetup 370–411, setPart 439–465, update 1127–1153, setDue 1242–1407, opensPicker 1510–1513,
+liveMissing 1520–1521, wallpaperIds 1524–1527, awaitLive 1536–1542, copyForLive 1593–1609,
+liveFallback 1616–1619, liveState 1676–1686, lockEngine 1705–1712); `LiveWallpaper.kt`
+(onCreate 94–108, onVisibilityChanged 142–156, checkStray 190–195, runIfOwed 203–212, reload 218–265);
+`core/.../Live.kt` (stillOrLive 97–125, lostLive 179–201, sharedLockFollows 213–227, lockFollowsHome
+232–237, handOverWaits 247–248, unnotedLive 261–267, equalColumns 270–273, opensPicker 293–298);
+`core/.../Screens.kt` (Plan.sets 170–175, restartAndForget 408–430, keepUntilAnchor 446+).
 
 ---
 
@@ -36,22 +37,25 @@ Tap "Set as wallpaper" → `setting = true` → `Store.opensPicker(draft)` (`:co
 **stored** columns as "before", the **draft's** columns and Size, and whether home is live now):
 - **No picker** (Size Centre or Auto; or no home column; or home live and not (14+, lock not shared, draft
   columns equal, stored columns differ)): `saveSetup` (records of screens with a column forgotten,
-  their `wallpaperLive` notes removed, Store.kt:792) → `update(set = true)` → `setDue` → toast.
-- **Picker**: `pickLive` (MainActivity.kt:1124): `homeWasLive` read, then the **dialog** (process-wide
+  their `wallpaperLive` notes removed, Store.kt:838) → `update(set = true)` → `setDue` → toast.
+- **Picker**: `pickLive` (MainActivity.kt:1250): the **dialog** (process-wide
   `pickerAsk`): "Next, in Android's preview:\nSet wallpaper › Home screen" (or "› Home screen and lock
-  screen" when the **draft's** columns are equal); **the phone's build also shows "\n\nBack there:
-  nothing changes."** Cancel / system Back / tap outside / the page destroyed for good → `false` →
+  screen" on 14+ when the **draft's** columns are equal); 7299474's "\n\nBack there: nothing changes."
+  is gone. Cancel / system Back / tap outside / the page destroyed for good → `Pick.NONE` →
   logs `Set: the picker's dialog cancelled`, `Set: no pick, nothing saved`, nothing saved, no toast.
   OK → wallpaper ids of both screens noted → picker started only if the page is RESUMED (else
   `Set: no picker opened, Fill` and Set **goes on**) → `Set: Android's live wallpaper picker` → wait
   for the activity result (or any page's `onResume`) → `awaitLive`: `changed` = an id differs; if
   changed, up to 3 s for home live; logs `Live: back from the picker, <a wallpaper changed|nothing
-  changed>, home <live|not live>[, shared]` → returns `changed || homeWasLive`. False → `Set: no pick,
-  nothing saved` (no toast, draft and highlight stay). True → `saveSetup` → `update(set = true)` →
+  changed>, home <live|not live>[, shared]` → `Pick.GO` when an id changed, else `Pick.NONE` (S1's fix;
+  7299474: `changed || homeWasLive`); first, home's id kept and the lock screen's changed to APODroid's
+  engine → `Live: back from the picker, the lock screen alone`, `Pick.LOCK_ONLY` (Q8, S3's fix).
+  `NONE`/`LOCK_ONLY` → `Set: no pick,
+  nothing saved` (no toast, draft and highlight stay). `GO` → `saveSetup` → `update(set = true)` →
   toast. After any Set that got to `saveSetup`: `scheduleJob` (daily on: `Daily job: alarms for …`)
   or `DailyJob.cancel` (daily off).
 
-Inside `setDue` (Store.kt:1040), in this order: `lostLive` (Live.kt:164: home noted live and home not
+Inside `setDue` (Store.kt:1242), in this order: `lostLive` (Live.kt:179: home noted live and home not
 live → forget home (+lock with a column) → `Live: home isn't live, Fill on HOME+LOCK`; **else** the
 engine on the lock screen alone while home isn't live → forget LOCK (lock column) or HOME + lock takes
 home's (no lock column) → `Live: the engine is on the lock screen alone, Fill on …`; else lock noted
@@ -64,16 +68,16 @@ lock-screen still sets, then the hand-over. Log line of the run:
 `Set: wallpaper set: <A> on LOCK; wallpaper shown live: <B> on HOME` where a picture prints as
 `Of(source=NASA, date=2026-11-13, url=https://…)`, optionally with `, darker ×0.78 (grey 141)`.
 
-**Since SPLIT (087856c).** `opensPicker` (Live.kt:283) takes the draft's columns only (no "before")
+**Since SPLIT (087856c).** `opensPicker` (Live.kt:293) takes the draft's columns only (no "before")
 and returns a `PickerTrip`: `HOME` (Size Live, a home column, home not live: the dialog above,
 Cancel = nothing saved, unchanged); `LOCK_TOO` (14+, Size Live, a home column, home live, the lock
 screen not shared, the draft's columns equal as sets: **every** such Set, not once per split);
-`NONE` otherwise. `LOCK_TOO`'s dialog (MainActivity.kt:2551): "Live on the lock screen too?\nNext,
+`NONE` otherwise. `LOCK_TOO`'s dialog (MainActivity.kt:2771): "Live on the lock screen too?\nNext,
 in Android's preview:\nSet wallpaper › Home screen and lock screen", buttons **"Not now"** and
 **"OK"** (no Cancel). "Not now" → `Set: Live on the lock screen not now` → `Pick.GO` without the
 picker → `saveSetup` → `update(set = true)` as a Set without a dialog (lock its own still). Back, a
 tap outside, the page closed for good → `Set: the picker's dialog cancelled`, `Set: no pick, nothing
-saved`. OK → the picker as above (MainActivity.kt:1160–1206): back-out or a kept id → nothing saved;
+saved`. OK → the picker as above (MainActivity.kt:1250–1296): back-out or a kept id → nothing saved;
 "Lock screen" alone → `Pick.LOCK_ONLY` (nothing saved, the stored setup run, the toast "Live goes on
 the home screen. Setup not saved."); an id changed → saved and set.
 
@@ -99,28 +103,32 @@ the home screen. Setup not saved."); an id changed → saved and set.
 
 **Pruning (combinations whose outcome can't differ)**
 1. **A-B ≡ M-EQ** and **A-L ≡ M-HE** for everything here: the code only looks at the columns map
-   (`equalColumns`, `columns[HOME].isEmpty()`), never at the mode (Live.kt:95, 238–241, 259–263).
+   (`equalColumns`, `columns[HOME].isEmpty()`), never at the mode (Live.kt:105, 270–273, 293–298).
    Kept separately only where the page texts differ (status line, summary).
-2. **Size Centre or Auto never opens the dialog or the picker** in any state (Live.kt:260): one leaf per
+2. **Size Centre or Auto never opens the dialog or the picker** in any state (Live.kt:294): one leaf per
    relevant start state (N1–N3, N11).
-3. **Dialog Cancel ≡ system Back ≡ tap outside**: all call `ask.answer.complete(false)`
-   (MainActivity.kt:2496–2498). Kept as three leaves only because they are three taps to check.
+3. **Dialog Cancel ≡ system Back ≡ tap outside**: all call `ask.answer.complete(PickerAnswer.CANCEL)`
+   (MainActivity.kt:2774–2776). Kept as three leaves only because they are three taps to check.
    SPLIT's question dialog has no Cancel: Back ≡ tap outside ≡ the page gone (`PickerAnswer.CANCEL`);
    its "Not now" saves (Q1).
 4. **Daily switch off ≡ on for the Set/picker flow**: `opensPicker` ignores it, `update(set = true)`
-   sets either way (Store.kt:947); only the status lines (hidden), the summary (no time), Advanced
+   sets either way (Store.kt:1149); only the status lines (hidden), the summary (no time), Advanced
    (hidden) and the job (cancelled) differ. One leaf (N10), plus P3 below.
 5. **P4a ≡ P0** for Set (home not live, nothing noted live). **P4b** never reaches Set with the daily
    switch on: the page's own load at `onResume` already sets Fill on both (X5). With it off, ≡ P0.
 6. **P3 with the daily switch on** doesn't survive opening the app: the page's load runs `setDue`,
    whose `lostLive` replaces it (X8). So "Set from P3" only with the daily switch off (K17, K18).
-7. **P2 never opens the picker** (Live.kt:262 needs `!shared`; Live.kt:261 needs home not live).
-8. **P1 opens the picker only when the draft makes different stored columns equal** (Live.kt:262);
+7. **P2 never opens the picker** (Live.kt:296 needs `!shared`; Live.kt:295 needs home not live).
+8. **P1 opens the picker only when the draft makes different stored columns equal** (Live.kt:296);
    any other P1 draft is the no-picker branch (N4, N6, N7, N9). **Since SPLIT:** P1 asks whenever
    the draft's columns are equal, whatever the stored ones (Q1–Q8); N7 is gone (now Q2).
 9. **"Back from the choice sheet"** ≡ staying in the preview (the sheet is a dialog inside the preview
    activity; confirm on the phone); the outcome is decided by how the preview is left.
 10. Below-14 paths (`lockShares` false, the engine noting its id, R2a's re-apply) are out: the FP6 is 16.
+    The Android 14 emulator takes the 14+ branches too.
+11. **R2b:** APODroid's preview has no "Settings" entry (no `settingsActivity` in
+    `live_wallpaper.xml`): a page that the picker's Settings started can't end Set's wait. Check
+    once in any picker case (T25, T35): no Settings button for APODroid.
 
 **Standard checks (refer to them as C1–C5)**
 - **C1 log**: `adb logcat -v time -s APODroid:*` (start before each case; the engine logs under the
@@ -135,13 +143,13 @@ the home screen. Setup not saved."); an id changed → saved and set.
 - **C5 page**: status lines under "Change automatically", Setup row title colour (tertiary =
   highlighted) and summary, Setup open/closed, Size segment highlight, the toast.
 
-Setup summary formats (stored setup, MainActivity.kt:2153): "Home: NASA · Lock: APOD · 06:00 · Live"
+Setup summary formats (stored setup, MainActivity.kt:2428): "Home: NASA · Lock: APOD · 06:00 · Live"
 (M-DIFF), "NASA · both screens · 06:00 · Live" (M-EQ), "APOD · home screen · …", "APOD · lock screen ·
 …", "APOD · both screens · …"; without the time while the daily switch is off; " · Live" only with
-stored Size Live. Status lines (daily on only): "Home: 15 Nov, 11:02 · NASA" / "Lock: 15 Nov, 11:02 ·
+stored Size Live and a home column (S7's fix). Status lines (daily on only): "Home: 15 Nov, 11:02 · NASA" / "Lock: 15 Nov, 11:02 ·
 APOD", one line "Changed 15 Nov, 11:02 · NASA" when both screens' records name the same picture
 (APOD mode: one line for the screen "Where" names, no " · APOD" suffix); plus "Live isn't on. Set as
-wallpaper turns it on." while stored Size Live, a home column, home not live (Store.kt:1298).
+wallpaper turns it on." while stored Size Live, a home column, home not live (Store.kt:1521).
 
 ---
 
@@ -189,9 +197,9 @@ Format: **id** — preconditions | steps | expected screen | expected log | adb 
   13 Nov still (the stored ⛶ part, else Auto's subject); lock: APOD 15 Nov still. Status lines Home/Lock, no "Live
   isn't on".
 - Log: `Set: wallpaper set: Of(source=NASA, date=2026-11-13, …) on HOME, Of(source=APOD, date=2026-11-15, …) on LOCK`
-  (order HOME, LOCK), `Live: engine home destroyed`, `Daily job: alarms for …`. No `not noted live`
-  (Size Auto, Live.kt:230).
-- adb: C2 both ImageWallpaper, two ids; C3 `size=FILL`, no `wallpaperLive` keys.
+  (order HOME, LOCK), `Live: engine 1 destroyed` (14+: its flags, as at its creation; 7299474 logged "home"), `Daily job: alarms for …`. No `not noted live`
+  (Size Auto, Live.kt:262).
+- adb: C2 both ImageWallpaper, two ids; C3 `size=AUTO`, no `wallpaperLive` keys.
 - Next job: at 06:00 + offset tomorrow the lock screen's APOD 16 Nov (out 06:05 Zurich) at the 06:15
   check, still; home NASA unchanged unless NASA posted before 09:00.
 
@@ -199,14 +207,14 @@ Format: **id** — preconditions | steps | expected screen | expected log | adb 
 - Steps: Size › Auto; Set.
 - Screen: Toast WS; one set with both flags: both screens the same still; one status line "Changed …
   · NASA".
-- Log: `Set: wallpaper set: Of(source=NASA…) on HOME+LOCK`, `Live: engine home destroyed`.
+- Log: `Set: wallpaper set: Of(source=NASA…) on HOME+LOCK`, `Live: engine <flags> destroyed`.
 - adb: C2 one ImageWallpaper, lock block empty (shared still).
 
 **N3** Size Auto from P3 (daily switch off, so P3 survived; M-DIFF).
 - Steps: Size › Auto; Set.
 - Screen: Toast WS; both stills; the engine gone from the lock screen.
 - Log: `Live: the engine is on the lock screen alone, Fill on LOCK` (lostLive's second branch runs for
-  Centre and Auto too: Store.kt:1054, Live.kt:178), then `Set: wallpaper set: … on HOME, … on LOCK`.
+  Centre and Auto too: Store.kt:1257, Live.kt:193), then `Set: wallpaper set: … on HOME, … on LOCK`.
 - adb: C2 no APODroid component anywhere.
 
 **N4** Size Live from P1, draft unchanged or with other non-column changes (the phone now).
@@ -214,7 +222,7 @@ Format: **id** — preconditions | steps | expected screen | expected log | adb 
 - Screen: no dialog. Toast WS. Setup stays closed (it closes after any good Set). Home: engine, NASA
   13 Nov panning; lock: APOD 15 Nov still (set again: a short flicker). Status Home/Lock with the new
   time.
-- Log: `Live: the engine is on HOME, not noted live` (the Set forgot the record, Store.kt:792, so
+- Log: `Live: the engine is on HOME, not noted live` (the Set forgot the record, Store.kt:838, so
   `unnotedLive` fires), `Set: wallpaper set: Of(source=APOD…) on LOCK; wallpaper shown live:
   Of(source=NASA…) on HOME`, `Live: decoded …` only if `live.jpg`'s key changed (same file rewritten:
   its time changes, so yes), `Live: drew Of(source=NASA…) p=0.xx …`.
@@ -239,7 +247,7 @@ still of the same picture), Set again.
 - Screen: no dialog, Toast WS, lock stays a still forever; nothing in APODroid offers the lock screen
   the engine again until the columns are split and made equal again.
 - Log: `Live: the engine is on HOME, not noted live`, `Set: wallpaper set: … on LOCK; wallpaper shown live: … on HOME`.
-- SUSPECT: Live.kt:262 `!equalColumns(before)`: "once per split". After K13 (a plain Back) or K7
+- SUSPECT: Live.kt:296 `!equalColumns(before)`: "once per split". After K13 (a plain Back) or K7
   (the "wrong" answer) the user can't get both screens live from the app. Workaround: X3.
 - **Fixed by SPLIT (087856c):** this Set asks the question every time (Q2); "Not now" gives this
   leaf's outcome, OK the picker.
@@ -251,8 +259,8 @@ still of the same picture), Set again.
   "APOD · lock screen · 06:00 · Live". **No "Live isn't on" line** and no hint anywhere that Live does
   nothing here.
 - Log: `Set: wallpaper set: Of(source=APOD…) on LOCK` only.
-- SUSPECT: Live.kt:260 (no picker without a home column), Store.kt:1298 (`liveMissing` needs a home
-  column), MainActivity.kt:2170 (" · Live" from the stored Size alone): a setting that is saved and
+- SUSPECT: Live.kt:294 (no picker without a home column), Store.kt:1521 (`liveMissing` needs a home
+  column), MainActivity.kt:2445 (" · Live" from the stored Size alone): a setting that is saved and
   shown but has no effect, silently.
 
 **N9** Size Live, A-H, P1 (home live), Set.
@@ -279,9 +287,9 @@ state), i.e. the lock screen has no column but shows APODroid's engine.
   view), maybe `Live: screen on, run owed`, then `Live: the lock screen isn't live, Fill on HOME, the
   lock screen takes home's` (the "why" text is computed from `lock.wallpaperLive`=true, so it says
   "the lock screen isn't live", not "the engine is on the lock screen alone") and `… wallpaper set: … on HOME+LOCK`.
-- SUSPECT: Store.kt:1054 `lockEngine` is read before the sets (home still live then), Live.kt:95
+- SUSPECT: Store.kt:1257 `lockEngine` is read before the sets (home still live then), Live.kt:105
   (Auto: the lock screen, without a column, gets no set), so the Set itself leaves a live lock screen.
-  Also Store.kt:1063–1067: the log's "why" mislabels this case.
+  Also Store.kt:1266–1270: the log's "why" mislabels this case.
 
 ### D: the dialog (Size Live, the dialog opened; any start that opens it)
 
@@ -313,7 +321,7 @@ state), i.e. the lock screen has no column but shows APODroid's engine.
 **D6** Swipe APODroid away in Recents with the dialog open.
 - D6a process survives (Keep running on, or the home engine keeps it bound; check C4): at the swipe
   `Set: the picker's dialog cancelled`, `Set: no pick, nothing saved` (onDestroy, not a configuration
-  change, MainActivity.kt:515). Reopening: a fresh page with the **stored** setup (the draft is lost),
+  change, MainActivity.kt:575). Reopening: a fresh page with the **stored** setup (the draft is lost),
   Setup closed, nothing set.
 - D6b process killed: no log line; reopening = a cold start with the stored setup. If Live was on home,
   the engine rebinds in a new process (`Live: engine 1 created`, L8f1's grace).
@@ -321,9 +329,9 @@ state), i.e. the lock screen has no column but shows APODroid's engine.
 **D8** (SUSPECT, timing-dependent) OK, then rotate or press Home within the fraction of a second before
 the picker starts.
 - By the code: `live[page]` is missing or not RESUMED → `Set: no picker opened, Fill` → `pickLive`
-  returns true (MainActivity.kt:1146) → Size Live saved, both screens set still, Toast WS, "Live isn't
+  returns true (MainActivity.kt:1275) → Size Live saved, both screens set still, Toast WS, "Live isn't
   on" line: exactly the old outcome 7299474 meant to remove for a back-out.
-- SUSPECT: MainActivity.kt:1144–1146. Hard to hit by hand; optional.
+- SUSPECT: MainActivity.kt:1273–1275. Hard to hit by hand; optional.
 
 ### K: in the picker (after OK)
 
@@ -353,9 +361,9 @@ the picker starts.
 - Log: `Live: engine 2 created`, possibly `Live: home isn't live (stray on the lock screen)`,
   `Live: back from the picker, a wallpaper changed, home not live`, `Live: the engine is on the lock
   screen alone, Fill on LOCK`, `Set: wallpaper set: Of(source=NASA…) on HOME, Of(source=APOD…) on
-  LOCK`, `Live: engine home destroyed`.
+  LOCK`, `Live: engine <flags> destroyed`.
 - adb: C2 no APODroid component; C3 `size=LIVE`.
-- SUSPECT: MainActivity.kt:1149 (`changed` true for any id change) and 1103: the wrong answer gives
+- SUSPECT: MainActivity.kt:1286 (`changed` true for any id change) and 1103: the wrong answer gives
   "Wallpaper set", Size Live saved and Fill set, the outcome the commit removed for a back-out; the
   user has to tap Set again to get the dialog. Arguably it should count as a back-out (nothing saved)
   or say "Live isn't on" in the toast.
@@ -378,7 +386,7 @@ the picker starts.
   picker for the lock screen (N7).
 - Log: `Live: engine 1 created`, `… a wallpaper changed, home live`, `Live: the engine is on HOME, not
   noted live`, `Set: wallpaper set: Of(…) on LOCK; wallpaper shown live: Of(…) on HOME`.
-- SUSPECT: Live.kt:262 as N7. **Fixed by SPLIT:** the next Set asks again (Q2).
+- SUSPECT: Live.kt:296 as N7. **Fixed by SPLIT:** the next Set asks again (Q2).
 
 **K8** (SUSPECT) Same start, "Lock screen".
 - Screen: as K4 but one still with both flags (equal columns): both screens the same still; "Live
@@ -420,7 +428,7 @@ since S1's and S3's fixes a Back or "Lock screen" alone saves nothing.
 - Log: `Set: Android's live wallpaper picker`, preview engine lines, `Live: back from the picker,
   nothing changed, home live`, `Live: the engine is on HOME, not noted live`, `Set: wallpaper set:
   Of(source=NASA…) on LOCK; wallpaper shown live: Of(source=NASA…) on HOME`. No `Set: no pick`.
-- SUSPECT: MainActivity.kt:1149 `return changed || homeWasLive`: whenever the picker opens with home
+- SUSPECT: MainActivity.kt:1286 `return changed || homeWasLive`: whenever the picker opens with home
   live (only this equalising case), every exit but the dialog's Cancel saves and sets. With the phone's
   dialog text (MainActivity.kt:2500 in 7299474) it contradicts the screen. CLAUDE.md documents it
   ("re-picking a live home may keep its id, that Set goes on"), but a plain Back can't be told from a
@@ -447,7 +455,7 @@ since S1's and S3's fixes a Back or "Lock screen" alone saves nothing.
   still NASA (the lock screen's record was forgotten by Set, so it's due). Home engine.
 - Log: `Live: engine 2 created`, `… a wallpaper changed, home live`, `Live: the engine is on HOME, not
   noted live`, `Set: wallpaper set: Of(source=NASA…) on LOCK; wallpaper shown live: … on HOME`, the
-  second engine's `Live: engine home destroyed`.
+  second engine's `Live: engine <flags> destroyed`.
 
 **K17** From P3 with the daily switch off (lock: APODroid's engine alone, home a still), Size Live,
 M-DIFF, dialog "› Home screen" → OK → "Home screen".
@@ -517,7 +525,7 @@ block empty; C3 both `wallpaperLive=true`, `live.shared=true`. The next Set: no 
 - Log: `Live: engine 2 created`, `Live: back from the picker, the lock screen alone`, `Set: no pick,
   nothing saved`, `Live: the engine is on the lock screen alone, Fill on LOCK`, `Set: the lock
   screen put back: wallpaper set: Of(source=APOD…) on LOCK`.
-- By the code: needs home's id unchanged (MainActivity.kt:1187–1194; else Q7's id-changed outcome,
+- By the code: needs home's id unchanged (MainActivity.kt:1277–1284; else Q7's id-changed outcome,
   Set's run replacing the lock engine); note C2's ids before and after. Stored setup without a lock
   column (Q3's start, A-H): nothing replaces the lock screen's engine (lostLive leaves an engine on a
   screen without a column, by design), the toast still says "Setup not saved."
@@ -550,8 +558,8 @@ block empty; C3 both `wallpaperLive=true`, `live.shared=true`. The next Set: no 
   HOME`, Toast WS, the stored columns now equal (the new page reads them: summary "NASA · both screens
   · …"). The user swiped the app away and gets a changed setup.
 - D-b killed: nothing saved.
-- SUSPECT: MainActivity.kt:556 (any page's onResume completes the old Set's wait) with
-  MainActivity.kt:1149 (`homeWasLive`).
+- SUSPECT: MainActivity.kt:620 (any page's onResume completes the old Set's wait) with
+  MainActivity.kt:1286 (`homeWasLive`).
 
 **L6** Swipe away while the preview is open, then don't reopen the app (process alive).
 - Expected: Set stays pending (`setting`, `picking` true) in the process; the job still runs on the
@@ -612,14 +620,14 @@ still at the new part. Log `Part: wallpaper set: Of(source=APOD…) on LOCK`.
   lock screen kept by B27 (background.md) is a still of the turned picture at the clock's position.
 
 **A7** (SUSPECT) Draft Size Auto (not Set yet) while stored Live and home live; ⛶ on the NASA page.
-- Screen: the frame **drags** (⛶ follows the draft's Size, MainActivity.kt:1801); ✓ → Toast WS, but the
+- Screen: the frame **drags** (⛶ follows the draft's Size, MainActivity.kt:2039); ✓ → Toast WS, but the
   home screen doesn't change position: `setPart` uses the stored Size Live and hands the picture to the
-  engine, which pans by the clock (Store.kt:439). The dragged part is saved (used later by the still sets).
+  engine, which pans by the clock (Store.kt:450). The dragged part is saved (used later by the still sets).
 - Log: `Part: wallpaper shown live: Of(source=NASA…) on HOME`.
 - SUSPECT: draft Size vs stored Size mismatch: "Wallpaper set" for a change that isn't visible.
 
 **A8** "Live isn't on. Set as wallpaper turns it on." rules: shown only while the daily switch is on,
-the **stored** Size is Live, the stored home column isn't empty and home isn't live (Store.kt:1298);
+the **stored** Size is Live, the stored home column isn't empty and home isn't live (Store.kt:1521);
 re-read at each resume, load end and Set end. Not shown for A-L/M-HE (N8) nor with daily off.
 
 **A9** The next job run from the phone's current state (T0): Monday 16 Nov, 06:00 + offset, then
@@ -654,8 +662,8 @@ owed`, then `Daily job: job 2 starts …`.
   hands over (Size Auto), shows no status line; the engine stays until home's next change time sets a
   still over it.
 - Log: `Live: engine 1 created`, `Live: drew <live.picture> …`; no `not noted live`.
-- SUSPECT: LiveWallpaper.kt:225–229 draws `live.jpg` whenever it exists; `live.jpg` is never deleted
-  (Store.kt:1322, no delete anywhere); Live.kt:230 (no hand-over with Centre or Auto). The same stale copy shows
+- SUSPECT: LiveWallpaper.kt:228–233 draws `live.jpg` whenever it exists; `live.jpg` is never deleted
+  (Store.kt:1545, no delete anywhere); Live.kt:262 (no hand-over with Centre or Auto). The same stale copy shows
   in Set's own picker preview (K1), while CLAUDE.md says the preview "draws the stored setup's home
   picture".
 
@@ -673,9 +681,9 @@ APODroid's still again.
   lock screen's record and status line say APOD. APODroid leaves it: no run replaces it until the lock
   screen's next due set (its next change time, or a Set).
 - Log: `Live: engine 2 created`; nothing from the page's load.
-- SUSPECT: Live.kt:178 (`lockEngine && !homeLive`: only while home isn't live), Store.kt:1054;
+- SUSPECT: Live.kt:193 (`lockEngine && !homeLive`: only while home isn't live), Store.kt:1257;
   `LiveTest.theEngineOnTheLockScreenIsLeftWhileHomeIsLive` asserts this. `unnotedLive` doesn't catch
-  it either (Live.kt:233 needs `shared`).
+  it either (Live.kt:265 needs `shared`).
 
 **X8** Stored Live, home **not** live (after K4), daily on, pick APODroid's live wallpaper by hand for
 "Lock screen", return.
@@ -685,7 +693,7 @@ APODroid's still again.
   wallpaper set: Of(source=APOD…) on LOCK`.
 
 **X9** As X8 with the daily switch off: nothing replaces it (the page's update ends before `setDue`,
-Store.kt:947) until Set (K17/K18) or the switch on.
+Store.kt:1149) until Set (K17/K18) or the switch on.
 
 ---
 
@@ -693,19 +701,23 @@ Store.kt:947) until Set (K17/K18) or the switch on.
 
 | # | Leaf | What | Evidence |
 |---|---|---|---|
-| S1 | K13, L5 | With home live before (the equalising case), Back from the preview, or a Recents swipe followed by reopening the app, saves and sets the draft ("Wallpaper set"); the phone's dialog says "Back there: nothing changes." | MainActivity.kt:1149 `changed \|\| homeWasLive`; :556 onResume completes the old wait; :2500 (7299474 text) |
-| S2 | N7, K7, K15 | Equal columns with the lock screen still are never offered the picker again ("once per split"); after S1's Back or a "Home screen" answer the user can't get both screens live from the app; Cancel drops the whole Set. **Fixed by SPLIT (087856c):** every such Set asks "Live on the lock screen too?"; "Not now" saves, OK the picker, Back nothing (Q1–Q8) | core Live.kt:262 `!equalColumns(before)`; now Live.kt:283–287, MainActivity.kt:1170–1177, 2551–2566 |
-| S3 | K4, K8 | "Lock screen" in the picker: Size Live saved, Fill set, "Wallpaper set", "Live isn't on": the outcome 7299474 removed for a back-out | MainActivity.kt:1149, 1103; Store.kt:1318 |
-| S4 | X7 | APODroid's engine picked for the lock screen alone while home is live: kept, drawing home's picture with home's pan; the status line names the lock screen's own picture | core Live.kt:178, 233; Store.kt:1054; LiveTest |
-| S5 | N11 | Size Auto with Where Home while the engine is shared: the Set leaves the engine on the lock screen; the next run then puts home's still on the lock screen (Where Home); its log says "the lock screen isn't live" | Store.kt:1054 (read before the sets), core Live.kt:95; Store.kt:1063–1067 |
-| S6 | X4, K1 | The engine (and Set's picker preview) draws `live.jpg`, the last hand-over, possibly stale; never deleted; with Centre or Auto a hand-picked engine is never handed over | LiveWallpaper.kt:225–229; Store.kt:1322; core Live.kt:230 |
-| S7 | N8 | Size Live with no home column: saved, " · Live" in the summary, no picker, no status line, no effect | core Live.kt:260; Store.kt:1298; MainActivity.kt:2170 |
-| S8 | D8 | The picker not opened after OK (page not resumed: a rotation or Home right after OK): Set goes on, Size Live saved, Fill set, "Wallpaper set" | MainActivity.kt:1144–1146 |
-| S9 | A7 | ⛶ follows the draft's Size, ✓ sets by the stored Size: draft Auto + stored Live drags, "Wallpaper set", nothing moves | MainActivity.kt:1801 vs Store.kt:439 |
+| S1 | K13, L5 | With home live before (the equalising case), Back from the preview, or a Recents swipe followed by reopening the app, saves and sets the draft ("Wallpaper set"); the phone's dialog says "Back there: nothing changes." | MainActivity.kt:1286 `changed \|\| homeWasLive`; :556 onResume completes the old wait; :2500 (7299474 text) |
+| S2 | N7, K7, K15 | Equal columns with the lock screen still are never offered the picker again ("once per split"); after S1's Back or a "Home screen" answer the user can't get both screens live from the app; Cancel drops the whole Set. **Fixed by SPLIT (087856c):** every such Set asks "Live on the lock screen too?"; "Not now" saves, OK the picker, Back nothing (Q1–Q8) | core Live.kt:296 `!equalColumns(before)`; now Live.kt:293–297, MainActivity.kt:1260–1267, 2771–2786 |
+| S3 | K4, K8 | "Lock screen" in the picker: Size Live saved, Fill set, "Wallpaper set", "Live isn't on": the outcome 7299474 removed for a back-out | MainActivity.kt:1286, 1225; Store.kt:1541 |
+| S4 | X7 | APODroid's engine picked for the lock screen alone while home is live: kept, drawing home's picture with home's pan; the status line names the lock screen's own picture | core Live.kt:193, 265; Store.kt:1257; LiveTest |
+| S5 | N11 | Size Auto with Where Home while the engine is shared: the Set leaves the engine on the lock screen; the next run then puts home's still on the lock screen (Where Home); its log says "the lock screen isn't live" | Store.kt:1257 (read before the sets), core Live.kt:105; Store.kt:1266–1270 |
+| S6 | X4, K1 | The engine (and Set's picker preview) draws `live.jpg`, the last hand-over, possibly stale; never deleted; with Centre or Auto a hand-picked engine is never handed over | LiveWallpaper.kt:228–233; Store.kt:1545; core Live.kt:262 |
+| S7 | N8 | Size Live with no home column: saved, " · Live" in the summary, no picker, no status line, no effect | core Live.kt:294; Store.kt:1521; MainActivity.kt:2445 |
+| S8 | D8 | The picker not opened after OK (page not resumed: a rotation or Home right after OK): Set goes on, Size Live saved, Fill set, "Wallpaper set" | MainActivity.kt:1273–1275 |
+| S9 | A7 | ⛶ follows the draft's Size, ✓ sets by the stored Size: draft Auto + stored Live drags, "Wallpaper set", nothing moves | MainActivity.kt:2039 vs Store.kt:450 |
 
 ---
 
-## 5. Test list for the FP6 (37 cases, in order; each starts where the previous ended)
+## 5. Test list for the FP6 (39 cases, in order; each starts where the previous ended)
+
+On the Android 14 emulator (AOSP's picker; tester-rules-emulator.md): all but what a real phone's
+picker or settings offer (T16, T22, T36: SKIPPED when AOSP 14 has no "Lock screen" answer); ZUI
+notes are the tablet's.
 
 Start state **T0** (the phone now): More NASA pictures on; list: NASA ticked "Home screen", APOD ticked
 "Lock screen", Earth unticked; Size Live; Live on home (NASA 13 Nov), lock APOD 15 Nov still; daily
@@ -724,7 +736,7 @@ T36; in T37 ZUI may share the engine.
 | T01 | baseline | C2, C3 (note whether `run-as` works), C4, C5 | summary "Home: NASA · Lock: APOD · 06:00 · Live", status Home/Lock, no "Live isn't on"; C2 home APODroid, lock own still | T0 |
 | T02 | N4 | Set (no change) | no dialog, Toast WS, `Live: the engine is on HOME, not noted live`, `…wallpaper set: …APOD… on LOCK; wallpaper shown live: …NASA… on HOME` | T0 |
 | T03 | A5 | NASA page › ⛶ (frame fixed, no drag; wait a minute: it may move a pixel) › Whole picture › ✓; then ⛶ › Whole picture off › ✓ | each ✓ Toast WS, `Part: wallpaper shown live: … on HOME`; home whole, then back | T0 |
-| T04 | A7 (S9) | Size › Auto (don't Set); NASA page › ⛶ › drag › ✓; then ⛶ › drag back to the middle › ✓; Size › Live | ⛶ drags; Toast WS; home doesn't move; `Part: wallpaper shown live`; Size highlight gone at the end | T0 (NASA's stored part ≈ middle) |
+| T04 | A7 (S9) | Size › Auto (don't Set); NASA page › ⛶ › try a drag › ✓; Size › Live | since S9's fix ⛶ follows the **stored** Size: Live's frame at the clock, no drag; ✓ unchanged: no toast, no log; Size highlight gone at the end | T0 |
 | T05 | Q4 (D2) | equalise; Set | the question "Live on the lock screen too?\nNext, in Android's preview:\nSet wallpaper › Home screen and lock screen", buttons "Not now", "OK" (no Cancel); system Back → no toast, `Set: the picker's dialog cancelled`, `Set: no pick, nothing saved`, Setup open, NASA/APOD rows tertiary | T0 + equal draft |
 | T06 | Q4 (D3) | Set › tap outside | as T05 | same |
 | T07 | Q4 (D4, D5) | Set › rotate (the question again, "Not now" still) › rotate back › Home › launcher icon (still) › Home › Recents › APODroid (still) › Back | the question survives all; as T05 at the end | same |
@@ -736,28 +748,30 @@ T36; in T37 ZUI may share the engine.
 | T13 | A1, A2 | daily switch off (C5, C2: engine stays); on | off: lines gone; on: Toast WS, `Switch on: wallpaper shown live: … on HOME+LOCK` | P2 |
 | T14 | A4 | pull to refresh | no toast, nothing set | P2 |
 | T15 | N6 | split back; Set | no dialog, Toast WS, lock APOD still, `Live: engine flags 1` | T0 |
-| T16 | X7 (S4) | Android's wallpaper settings › Live wallpapers › APODroid › Set wallpaper › Lock screen; return to APODroid; lock the phone and look | lock shows NASA panning (second engine) while status says Lock: APOD; no APODroid log beyond `Live: engine 2 created`. Then Set → lock APOD still again | T0 |
-| T17 | N1 | Size › Auto; Set | Toast WS, both stills, summary without " · Live", `Live: engine home destroyed` | P0 Auto |
+| T16 | X7 (S4) | Android's wallpaper settings › Live wallpapers › APODroid › Set wallpaper › Lock screen (the emulator: SKIPPED when AOSP's settings don't offer it); return to APODroid | `Live: engine 2 created`; since S4's fix the page's load replaces it: `Live: the engine is on the lock screen alone, Fill on LOCK`, `Page: wallpaper set: …APOD… on LOCK`; C2 home APODroid (id unchanged), lock its own still | T0 |
+| T17 | N1 | Size › Auto; Set | Toast WS, both stills, summary without " · Live", `Live: engine <flags> destroyed` | P0 Auto |
 | T18 | X4 (S6) | Android's settings › APODroid live › Home screen (note what the preview draws); return; then Set | no hand-over, no status line; engine draws `live.jpg` (`Live: drew Of(source=NASA…)`); Set (Auto) → home still again | P0 Auto |
 | T19 | D1 | Size › Live; Set; Cancel | dialog "…› Home screen"; as T05 | P0, draft Live |
 | T20 | K1, K2 | Set › OK › Set wallpaper › (sheet) Back › Back from preview | no toast, `…nothing changed, home not live`, `Set: no pick, nothing saved`; note the preview's picture | same |
 | T21 | L1, L2, L7 | Set › OK › Home › launcher icon (picker on top?) › Home › Recents › APODroid › Back | note whether the picker comes back; ends as T20; no `back from the picker` line while away | same |
-| T22 | K4 (S3) | Set › OK › Set wallpaper › Lock screen | ~3 s, Toast WS, both stills, "Live isn't on", summary " · Live", `the engine is on the lock screen alone, Fill on LOCK` | P0, stored Live, liveMissing |
-| T23 | X8 | Android's settings › APODroid live › Lock screen; return | page load: `Live: the engine is on the lock screen alone, Fill on LOCK`, `Page: wallpaper set: …APOD… on LOCK`; "Live isn't on" stays | same |
-| T24 | A3 | daily switch off, on | Toast WS, both stills, no dialog; "Live isn't on" stays | same |
+| T22 | K4 (S3) | Set › OK › Set wallpaper › Lock screen (real phone's picker; the emulator: SKIPPED when AOSP 14's preview has no "Lock screen") | since S3's fix: toast "Live goes on the home screen. Setup not saved.", `Live: back from the picker, the lock screen alone`, `Set: no pick, nothing saved`, `Live: the engine is on the lock screen alone, Fill on LOCK`, `Set: the lock screen put back: …`; Size Live stays a highlighted draft; summary without " · Live" | P0 Auto, draft Live |
+| T23 | X8 | Android's settings › APODroid live › Lock screen; return | page load: `Live: the engine is on the lock screen alone, Fill on LOCK`, `Page: wallpaper set: …APOD… on LOCK`; no "Live isn't on" (stored Auto since T22's fix) | same |
+| T24 | A3 | daily switch off, on | Toast WS, both stills, no dialog, no "Live isn't on" | same |
 | T25 | L3, K3 | Set › dialog "› Home screen" › OK › rotate › Set wallpaper › Home screen; rotate back | Toast WS, Setup closes, home live NASA, lock APOD still, "Live isn't on" gone | T0 |
 | T26 | X5 | Android's settings › any built-in still › Set wallpaper › Home screen; return | at once both APODroid stills, `Live: home isn't live, Fill on HOME+LOCK`, "Live isn't on" | P0, stored Live |
 | T27 | K5 | Set › OK › Set wallpaper › Home screen and lock screen | Toast WS, home live, lock APOD still, `…home live, shared`, `Live: engine flags 1` | T0 |
 | T28 | L5 (S1) | equalise; Set › the question › OK › preview › Recents › swipe APODroid away; C4; wait 10 s; open APODroid | since S1's fix nothing saved either way: alive, at the reopening `Live: back from the picker, nothing changed, home live`, `Set: no pick, nothing saved`, the stored setup; killed: a cold start | T0 |
 | T29 | split | only if T28 saved (it shouldn't since S1's fix): split back; Set | as T10 | T0 |
 | T30 | D6 | equalise; Set › dialog › Recents › swipe; C4; reopen | alive: `the picker's dialog cancelled` at the swipe; reopened page shows the stored setup, Setup closed | T0 |
-| T31 | N8 (S7) | More NASA pictures off; Where › Lock screen; Size Live; Set | no dialog, Toast WS, lock APOD still, home keeps the engine (NASA, old copy); summary "APOD · lock screen · 06:00 · Live"; no "Live isn't on" | A-L |
+| T31 | N8 (S7) | More NASA pictures off; Where › Lock screen; Size Live; Set | no dialog, Toast WS, lock APOD still, home keeps the engine (NASA, old copy); summary "APOD · lock screen · 06:00" (S7's fix: no " · Live" without a home column); no "Live isn't on" | A-L |
 | T32 | N9 | Where › Home screen; Set | no dialog, Toast WS, `shown live: …APOD… on HOME`, lock unchanged | A-H, home live |
 | T33 | Q3, Q5 (A-B) | Where › Both; Set › the question › Not now; Set › the question › OK › Set wallpaper › Home screen and lock screen | Not now: `Set: Live on the lock screen not now`, Toast WS, home live APOD, lock an APOD still, one line "Changed …"; OK: Toast WS, both live APOD, `shown live: … on HOME+LOCK` | A-B, P2 |
-| T34 | N11 (S5) | Where › Home screen; Size › Auto; Set; C2; lock the phone, wake it, look at the lock screen; reopen APODroid | Set: `wallpaper set: … on HOME` only; C2: does the lock screen keep APODroid's engine? Then at the next screen-on or app open `Live: the lock screen isn't live, Fill on HOME, the lock screen takes home's`, both APOD still | A-H Auto, P0 |
+| T34 | N11 (S5) | Where › Home screen; Size › Auto; Set; C2 | since S5's fix (`sharedLockFollows`) one set in the same run: `Set: wallpaper set: …APOD… on HOME+LOCK[, auto 0.xx]`; C2 one shared still, no APODroid engine | A-H Auto, P0 |
 | T35 | restore | More NASA pictures on (the list returns: NASA Home screen, APOD Lock screen); Size › Live; Set › dialog "› Home screen" › OK › Set wallpaper › Home screen | Toast WS; C2 home APODroid, lock own still; C5 summary "Home: NASA · Lock: APOD · 06:00 · Live", status Home/Lock, no "Live isn't on"; compare the notes from T01 (New picture at, Change every, order, Advanced) | **T0** |
-| T36 | Q8 (FP6 only) | equalise; Set › the question › OK › Set wallpaper › Lock screen; C2 before and after | toast "Live goes on the home screen. Setup not saved.", Setup open with the highlight; `Live: back from the picker, the lock screen alone`, `Set: no pick, nothing saved`, `Live: the engine is on the lock screen alone, Fill on LOCK`, `Set: the lock screen put back: wallpaper set: …APOD… on LOCK`; C2 home APODroid (same id), lock its own still | T0 + equal draft |
+| T36 | Q8 (a real phone's picker: the FP6; the emulator only if AOSP 14's preview offers "Lock screen", else SKIPPED) | equalise; Set › the question › OK › Set wallpaper › Lock screen; C2 before and after | toast "Live goes on the home screen. Setup not saved.", Setup open with the highlight; `Live: back from the picker, the lock screen alone`, `Set: no pick, nothing saved`, `Live: the engine is on the lock screen alone, Fill on LOCK`, `Set: the lock screen put back: wallpaper set: …APOD… on LOCK`; C2 home APODroid (same id), lock its own still | T0 + equal draft |
 | T37 | Q7 | Set › the question › OK › Set wallpaper › Home screen; C2 before and after; then, if saved, split back and Set (no dialog), else split back in the draft | note which: id kept → no toast, `… nothing changed, home live`, `Set: no pick, nothing saved`; id changed → Toast WS, `… a wallpaper changed, home live`, lock a NASA still; `…, shared` → as T11 | **T0** |
+| T38 | N1 (Centre, SA3a) | from T0: Size › Centre; Set; then Size › Live; Set › dialog "› Home screen" › OK › Home screen | Centre: no dialog, Toast WS, `Set: wallpaper set: …NASA… on HOME, …APOD… on LOCK` without `, auto`, `Live: engine 1 destroyed`, C3 `size=CENTRE`; back to T0 as T35 | **T0** |
+| T39 | A5s (SW2) | a landscape picture in home's column (faked, the skill's recipe); ⛶ › Sideways › ✓; then ⛶ › Sideways off › ✓ | `Part: wallpaper shown live: … on HOME, sideways`, `live.sideways=true`, `Live: decoded W×H` with W < H; off: no `, sideways`, `live.sideways=false` | **T0** |
 
 Not in the list (lower value or hard to trigger): D8 (S8, a race), K11/K12 (A-H answers), K16, K17/K18
 and X9 (need the daily switch off with a lock-only engine), X1–X3 (hand-picked Live while stored Live),

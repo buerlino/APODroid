@@ -206,10 +206,11 @@ or days of time.
   part (page.md K17), then `adb shell cmd jobscheduler run -f io.github.buerlino.apodroid 1` after
   forgetting the record (or at the next change time): set sideways again. A new post of that source
   (a faked date) drops the part: the next set upright, no ", sideways".
+  PASS on the Android 14 emulator (SW2T, 2026-11-15; the tablet HA24BZ2Y not run): `run -f 1`
+  with the record faked a day back gave `Daily job: wallpaper set: … on HOME+LOCK, sideways`,
+  `debug-set.png` turned; a faked new post went on upright.
 
 ## G. Live (`Store.setDue` Live part `Store.kt:1045-1197`, `Live.kt`, `LiveWallpaper.kt`)
-
-  PASS on the Android 14 emulator (SW2T, 2026-11-15): `Daily job: wallpaper set: … on HOME+LOCK, sideways`, `debug-set.png` turned; the hand-over's `live.sideways=true` (G2) seen with the picker, B27's keep not (G11: not a phone case).
 - **G1 Is home live (`liveState`, `Store.kt:1440-1450`).** 14+: `getWallpaperInfo(FLAG_SYSTEM)`
   names APODroid's, or home's wallpaper id equals `live.homeId` (noted while it named it). Shared:
   home live and `getWallpaperId(FLAG_LOCK)` = -1. Phone: `dumpsys wallpaper`: note home's
@@ -220,6 +221,9 @@ or days of time.
   <picture> on HOME[, sideways][, darker ×k (grey g)]`; the engine: `Live: decoded W×H in N ms`
   (portrait-shaped when sideways: the turned picture), `Live: drew <picture> p=…`. No WallpaperManager call (home's id unchanged). Phone: Tuesday morning (F3),
   or P1's switch-on.
+  Sideways: PASS on the Android 14 emulator (SW2T, 2026-11-15; the tablet not run): after the
+  picker's "Home screen and lock screen", `wallpaper shown live … on HOME+LOCK, sideways`,
+  `live.sideways=true`, `Live: decoded 1592×2400`.
 - **G3 The lock screen's still set with home live, columns differ.** `FLAG_LOCK` set first,
   `wallpaper set: … on LOCK`; home's engine untouched (home's id unchanged, component still
   APODroid's). Phone: Monday 06:15 (P16) and P1's switch-on.
@@ -249,6 +253,7 @@ or days of time.
   still `setFile`) honours `live.sideways` (SW2) with `live.whole` and `live.darken`: a sideways
   copy is kept turned, at the clock's position (`liveAt`), its log `Live: the lock screen keeps
   <picture>, still`; the set itself logs nothing more (no record written). Not the phone.
+  B27's keep with a sideways copy: not run in SW2T (the emulator, 2026-11-15; unit and reading only).
 - **G12 A failed lock set holds the hand-over (`handOverWaits`).** Unit only.
 - **G13 The engine's lock-only pick (7299474, `lostLive` branch 2).** Not the phone.
 - **G14 SUSPECT: a lost-Live screen with nothing to show keeps a stale record.** See SUSPECTs.

@@ -602,6 +602,10 @@ still at the new part. Log `Part: wallpaper set: Of(source=APOD…) on LOCK`.
   picture's width if smaller: the turned picture), `Live: drew <picture> p=0.NN …`.
 - Prefs grep (`run-as … cat shared_prefs/*.xml | grep live\.`): `live.sideways` true (false after
   the off ✓), beside `live.whole` and `live.darken`.
+- The hand-over reads the part only (SW3f1): a part not noted by the pill (`<source>.sideways`
+  missing) hands over upright under Live whatever "Wide pictures sideways" says (`live.sideways`
+  false, no ", sideways"; the switch is greyed out while the draft's Size is Live, setup.md X5); the
+  lock screen's own still under Live upright too.
 - With "Whole picture" too: `live.whole` and `live.sideways` both true, the engine draws the turned
   whole picture still (`p=0.50`).
 - With the lock screen shared (equal columns, the engine on both): both pan the turned picture; the

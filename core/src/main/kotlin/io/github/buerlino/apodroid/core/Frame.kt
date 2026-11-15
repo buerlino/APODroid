@@ -68,12 +68,14 @@ fun sidewaysByDefault(width: Int, height: Int): Boolean = height > 0 && width.to
 
 /**
  * Whether a picture goes on sideways (SW3): its part's [noted] value when there is one (⛶'s
- * pill, true or false), else [sidewaysByDefault] of its upright [size] while [wideSideways]
- * ("Wide pictures sideways", the stored switch) is on, else upright. [size] is read only then
- * (null: unknown, upright).
+ * pill, true or false, under every Size), else [sidewaysByDefault] of its upright [picture] size
+ * while [wideSideways] ("Wide pictures sideways", the stored switch) is on and the stored [size]
+ * isn't [Size.LIVE] (SW3f1: the switch is Centre's and Auto's; with Live home's hand-over and the
+ * lock screen's still stay upright), else upright. [picture] is read only then (null: unknown,
+ * upright).
  */
-fun sidewaysOf(noted: Boolean?, wideSideways: Boolean, size: () -> Pair<Int, Int>?): Boolean =
-    noted ?: (wideSideways && size()?.let { (w, h) -> sidewaysByDefault(w, h) } == true)
+fun sidewaysOf(noted: Boolean?, wideSideways: Boolean, size: Size, picture: () -> Pair<Int, Int>?): Boolean =
+    noted ?: (wideSideways && size != Size.LIVE && picture()?.let { (w, h) -> sidewaysByDefault(w, h) } == true)
 
 /**
  * A [width]×[height] picture's upright size by its EXIF [orientation] (SW3, the app's

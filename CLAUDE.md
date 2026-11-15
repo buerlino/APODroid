@@ -368,10 +368,15 @@ set it as wallpaper, and on video days kept the old wallpaper.
     0.7.0 changes nothing, no migration). On: a picture 3:2 or wider (`:core`'s
     `sidewaysByDefault`: width ≥ 1.5 × height, by its upright size, night default; the
     alternative 1.4:1) goes on sideways (Wallpaper: the sideways set) unless its part notes
-    otherwise (Choosing the part, Sideways), every source, under Live too (night default);
-    "my picture" never (no part, Fill centred). Part of the draft as "Darken bright pictures"
-    (the highlight, "On, not set yet", the saved state; always shown, so never put back; a
-    change isn't "the order alone"). Set sets each screen afresh. Setup's summary doesn't name
+    otherwise (Choosing the part, Sideways), every source, with Size Centre or Auto only
+    (SW3f1, user, 2026-11-15: by the stored Size; with Live both screens stay upright, home's
+    hand-over and the lock screen's still alike, one rule; a part noted by ⛶'s pill is
+    unchanged under every Size); "my picture" never (no part, Fill centred). Part of the draft
+    as "Darken bright pictures" (the highlight, "On, not set yet", the saved state; always
+    shown, so never put back; a change isn't "the order alone"). Greyed out (disabled, the
+    label at 38% as Android does, the ⓘ still opens; screen readers "Disabled") while the
+    draft's Size is Live; it keeps its value, Set saves it, and it applies again when Size goes
+    back. Set sets each screen afresh. Setup's summary doesn't name
     it.
   - **Size** (L6, 2026-11-14; `live-0.7.0.md`, "Store, Size and Set"; the heading "Size" and
     the segments "Fill" and "Live" approved by the user, 2026-11-15; since 0.8.0, SA3a,
@@ -895,7 +900,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   canvas for the engine's life, a null one skips the frame; decoded once per picture (keyed by
   the file's time, length, the whole and sideways flags and the darkening) on a background thread at the screen's portrait
   height within 50 MB (`liveDecodeSize`), out of memory a quarter of the bytes, then again, else
-  black; **sideways** (SW2, `live.sideways`, the hand-over's note of its post's `Part.sideways`,
+  black; **sideways** (SW2, `live.sideways`, the hand-over's note of its post's `Part.sideways`
+  as noted by ⛶'s pill, never by "Wide pictures sideways", which is Centre's and Auto's, SW3f1,
   false for a copy from before 0.8.0): `liveDecodeSize` on the turned size (the axes swapped),
   decoded upright and turned once (`turned`: a turned landscape picture at most the screen's
   height squared, about 23 MB on the FP6, 46 MB at the peak while turning), then panned as any
@@ -1075,7 +1081,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   "Wide pictures sideways"): `Part.sideways` is true or false as the pill noted it, or null
   (the pref `<source>.sideways` missing, a part from 0.7.0 too) for the switch's default; the
   value used (`:core`'s `sidewaysOf`, `Store.turnsSideways`, the page's `turnsSideways`) is the
-  noted one, else `sidewaysByDefault` while the **stored** switch is on, else upright, by the
+  noted one, else `sidewaysByDefault` while the **stored** switch is on and the **stored** Size
+  isn't Live (SW3f1: `sidewaysOf`'s `size`; so with Live ⛶'s pill opens on the part's explicit
+  value, else upright), else upright, by the
   picture file's upright size (`Store.kt`'s `uprightSize`: `imageBounds` swapped when the EXIF
   orientation transposes it, `:core`'s `uprightOf`; for `set`, `copyForLive`, so `live.sideways`
   and B27's keep, and ⛶'s pill, read by `show()` as `uprightSizes`). ⛶ opens on that value by

@@ -1475,11 +1475,12 @@ class MainActivity : ComponentActivity() {
     /**
      * Whether [source]'s picture goes on sideways with a part noting [sideways] (SW3, `:core`'s
      * [sidewaysOf], as [Store.turnsSideways]): that value, else the rule by its [uprightSizes]
-     * while the **stored** "Wide pictures sideways" is on. Stored, not the draft's: ✓ sets at once
+     * while the **stored** "Wide pictures sideways" is on and the stored Size isn't Live (SW3f1: under
+     * Live ⛶'s pill opens on the part's explicit value, else upright). Stored, not the draft's: ✓ sets at once
      * by the stored setup (as ⛶ with Live, T04).
      */
     private fun turnsSideways(source: Source, sideways: Boolean?): Boolean =
-        sidewaysOf(sideways, stored.wideSideways) { uprightSizes[source]?.let { it.width to it.height } }
+        sidewaysOf(sideways, stored.wideSideways, stored.size) { uprightSizes[source]?.let { it.width to it.height } }
 
     /**
      * ✓ (U0, 2026-11-02: users expected ✓ to set it): [keepPart], then, when the part differs from
@@ -2212,9 +2213,11 @@ class MainActivity : ComponentActivity() {
                     info = "Darkens a bright picture a little, so the clock and widgets stay readable.",
                 ) { darken = it }
                 // SW3: always shown, so never put back; the effective value is the stored switch's (Store.turnsSideways).
+                // SW3f1: Centre's and Auto's, so greyed out while the draft's Size is Live; it keeps its value and Set saves it.
                 DraftSwitch(
                     "Wide pictures sideways", wideSideways, stored.wideSideways, about = "About Wide pictures sideways",
                     info = "Turns a wide picture a quarter turn, so more of it fills the screen. ⛶ › Sideways changes one picture.",
+                    enabled = size != Sizing.LIVE,
                 ) { wideSideways = it }
             }
             // One button, both modes, the daily switch on or off: it applies the whole draft.
@@ -2304,17 +2307,26 @@ class MainActivity : ComponentActivity() {
      * Also "Keep running" (O11), which acts at once: [stored] is [checked], so no highlight.
      */
     @Composable
-    private fun DraftSwitch(label: String, checked: Boolean, stored: Boolean, about: String, info: String, onChange: (Boolean) -> Unit) {
+    private fun DraftSwitch(
+        label: String, checked: Boolean, stored: Boolean, about: String, info: String, enabled: Boolean = true,
+        onChange: (Boolean) -> Unit,
+    ) {
         val changed = checked != stored
+        // Disabled (SW3f1): the label at 38% as Android greys out (the highlight's tertiary too), the ⓘ still opens.
+        val labelColor = when {
+            enabled -> highlight(changed)
+            changed -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.38f)
+            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        }
         Row(
             Modifier
                 .fillMaxWidth()
-                .toggleable(checked, role = Role.Switch, onValueChange = onChange)
+                .toggleable(checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)
                 .semantics { if (changed) stateDescription = "${if (checked) "On" else "Off"}, not set yet" },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                Text(label, Modifier.weight(1f, fill = false), color = highlight(changed))
+                Text(label, Modifier.weight(1f, fill = false), color = labelColor)
                 Text(
                     "ⓘ",
                     Modifier
@@ -2328,6 +2340,7 @@ class MainActivity : ComponentActivity() {
             Switch(
                 checked = checked,
                 onCheckedChange = null,
+                enabled = enabled,
                 colors = if (!changed) SwitchDefaults.colors() else SwitchDefaults.colors(
                     checkedTrackColor = colors.tertiary,
                     checkedThumbColor = colors.onTertiary,

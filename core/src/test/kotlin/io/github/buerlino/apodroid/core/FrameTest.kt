@@ -122,19 +122,34 @@ class FrameTest {
         val narrow = { 1200 to 1000 }
         // Noted by ⛶'s pill: as noted, whatever the switch and the size.
         for (on in listOf(true, false)) {
-            assert(sidewaysOf(true, on, narrow) && sidewaysOf(true, on, wide))
-            assert(!sidewaysOf(false, on, wide) && !sidewaysOf(false, on, narrow))
+            assert(sidewaysOf(true, on, Size.AUTO, narrow) && sidewaysOf(true, on, Size.AUTO, wide))
+            assert(!sidewaysOf(false, on, Size.AUTO, wide) && !sidewaysOf(false, on, Size.AUTO, narrow))
         }
         // Not noted (null): the rule while the switch is on, else upright.
-        assert(sidewaysOf(null, true, wide) && !sidewaysOf(null, true, narrow) && !sidewaysOf(null, true) { null })
-        assert(!sidewaysOf(null, false, wide))
+        assert(sidewaysOf(null, true, Size.AUTO, wide) && !sidewaysOf(null, true, Size.AUTO, narrow) && !sidewaysOf(null, true, Size.AUTO) { null })
+        assert(!sidewaysOf(null, false, Size.AUTO, wide))
         // The size is read only when the rule needs it.
         var read = 0
-        sidewaysOf(true, true) { read++; 3630 to 2408 }
-        sidewaysOf(null, false) { read++; 3630 to 2408 }
+        sidewaysOf(true, true, Size.AUTO) { read++; 3630 to 2408 }
+        sidewaysOf(null, false, Size.AUTO) { read++; 3630 to 2408 }
         assertEquals(0, read)
-        assert(sidewaysOf(null, true) { read++; 3630 to 2408 })
+        assert(sidewaysOf(null, true, Size.AUTO) { read++; 3630 to 2408 })
         assertEquals(1, read)
+        sidewaysOf(null, true, Size.LIVE) { read++; 3630 to 2408 }
+        assertEquals(1, read)
+    }
+
+    @Test
+    fun theSwitchIsCentresAndAutosAnExplicitPartEverySizes() {
+        // SW3f1: each Size × noted null/true/false × wide/not wide.
+        val wide = { 3630 to 2408 }
+        val narrow = { 1200 to 1000 }
+        for (size in Size.entries) for (on in listOf(true, false)) {
+            assert(sidewaysOf(true, on, size, wide) && sidewaysOf(true, on, size, narrow))
+            assert(!sidewaysOf(false, on, size, wide) && !sidewaysOf(false, on, size, narrow))
+            assert(!sidewaysOf(null, on, size, narrow))
+            assertEquals(on && size != Size.LIVE, sidewaysOf(null, on, size, wide))
+        }
     }
 
     @Test

@@ -322,7 +322,19 @@ set it as wallpaper, and on video days kept the old wallpaper.
   yet."; a failed set leaves it open). Its state and Advanced's survive a rotation (the saved
   state). **Set as wallpaper**, always, after Setup. **Advanced settings**, the same kind of
   row (no summary), closed by default, only while the daily switch is on (empty otherwise):
-  "Save every picture" with "Largest original" under it while on, then "Keep running" (O11).
+  "Save every picture" with "Largest original" under it while on, then "Auto: centre when
+  unsure" (SA3b), then "Keep running" (O11).
+  - **Auto: centre when unsure** (SA3b, 2026-11-15; Next features, 0.8.0: Fill's frame on the
+    subject; the label and the ⓘ placeholders until the user's look): a switch in Advanced
+    settings after "Save every picture"'s group, before "Keep running", with a small ⓘ ("About
+    Auto: centre when unsure"; its dialog "With Size Auto, a picture whose subject is only
+    slightly off the middle stays centred. Off: Auto places every frame."), the pref
+    `autoFallback` (`Store.autoFallback`), default on, acting at once (not part of the draft,
+    never highlighted, nothing set: the next set uses it, as "Save every picture" changes no
+    picture). On: Auto keeps the middle for a subject that moves the frame less than 0.2 of
+    its travel (Wallpaper: Auto, the subject); off: Auto places every frame on its subject.
+    Shown only while the daily switch is on, as Advanced is; a one-off Set with the daily switch
+    off uses the stored pref (night default).
   - **New picture at** (the label and the times approved by the user, 2026-10-24): a dropdown
     as "Largest original", the button "06:00 ▾" (12/24 h as the system says: "6:00 AM ▾"), a
     menu of 00:00 … 23:00 with ✓ before the chosen one, screen readers "New picture at: 06:00".
@@ -445,8 +457,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
     box, the battery hint, the opening page. **The job follows the stored setup only:**
     `onResume`'s `DailyJob.ensure` reads `store.daily`, the stored mode and columns; only Set
     and the daily switch schedule or cancel (Set by the stored switch, after saving the draft).
-    **At once:** Advanced ("Save every picture", "Largest original": they change no picture;
-    "Keep running", which starts or stops its service),
+    **At once:** Advanced ("Save every picture", "Largest original", "Auto: centre when
+    unsure": they change no picture, the next set uses the last; "Keep running", which starts or
+    stops its service),
     ★, and ⛶'s ✓ (U0, 2026-11-02: Choosing the part).
   - **Set as wallpaper**: one button at the end of the Wallpaper section, both modes, the daily
     switch on or off, no Home / Lock / Both menu, enabled unless a Set or the daily switch's run goes. It saves the whole
@@ -597,7 +610,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Wide pictures sideways, SW3; Keep running, Background update).
+    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Wide pictures sideways, SW3; Auto: centre when unsure, SA3b; Keep running, Background update).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. **The still behind ▶**
   (VS1, 2026-11-15; `video-0.8.0.md`; Open question 2): when the video is NASA's own mp4
@@ -818,12 +831,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
   memory too) is noted without positions (not tried again for that post) and never fails the
   refresh. Logged `Subject: APOD 2026-11-16 p=0.78 (sideways 0.50) in <n> ms` or `Subject:
   APOD 2026-11-16 couldn't: …`. Each still set's position is `:core`'s `framePosition`: ⛶'s
-  part when there is one, else with Size Auto `autoPosition` of the noted position for the
+  dragged part when there is one (SA3b: `Part.position` null while ⛶'s frame wasn't dragged), else with Size Auto `autoPosition` of the noted position for the
   picture's orientation (the sideways one while it goes on sideways; none noted or found: the
   middle), else the middle (Centre; under Size Live the screens that stay still, a lock screen
   with its own column, home after a lost Live: night default, the alternative Auto); the measure
   follows the same frame. `autoPosition` keeps the middle for a move under 0.2 while the pref
-  `autoFallback` is on (default; `Store.autoFallback`, its switch in Advanced is SA3b's). The
+  `autoFallback` is on (default; `Store.autoFallback`, Advanced's "Auto: centre when unsure"). The
   set's log line notes ", auto 0.78" (the position used) while Auto placed it by a subject.
   "My picture" has none (centred); Live's pan and its copy unchanged.
   **The darkening** (BR2, 2026-11-14; GitHub issue #2; the figures in Next features, 0.7.0:
@@ -1002,9 +1015,24 @@ set it as wallpaper, and on video days kept the old wallpaper.
   and closes an open dropdown; the draft, Setup's and Advanced's state and the shown source
   survive (user, 2026-10-22: left as is). A Set while crop mode is open keeps the dragged part
   in its draft and stores it with the setup. The position (0–1) is per source for that post
-  only (date and picture URL), so each new picture starts centred (a new post drops a draft
-  part); the job uses only the stored one. The user's own picture (video days) is always
-  centred.
+  only (date and picture URL), so each new picture starts where the stored Size puts it (a new
+  post drops a draft part); the job uses only the stored one. The user's own picture (video
+  days) is always centred.
+  **⛶ from the subject, an undragged part** (SA3b, 2026-11-15; Next features, 0.8.0: Fill's
+  frame on the subject): ⛶ opens where the screen has the frame, `:core`'s `framePosition` for
+  the **stored** Size and the sideways value used (the dragged part's position, else with Auto
+  the subject's, `Store.subject`, by the stored `autoFallback`, else the middle; stored, not the
+  draft's, as ⛶ with Live: ✓ sets by the stored setup). `Part.position` is null until the frame
+  is dragged (`:core`'s `Part`, `Part.kt`, as `Part.sideways`: a `cropMoved` flag set by the
+  drag, cleared when ⛶ opens; ✓ notes the position only after a drag, else keeps the part's
+  previous one, `notedPosition`, null staying null; the pref `<source>.cropPosition` removed for
+  null, read only when there; the saved state's line writes and reads "null", `Part.toText`,
+  `partOf`; a part from 0.7.0 keeps its number). So a part ✓'d only for "Whole picture" or the
+  "Sideways" pill keeps following Size (Centre ↔ Auto), "Auto: centre when unsure" and "Wide
+  pictures sideways". Toggling the pill moves an undragged frame to that orientation's position
+  (a dragged one keeps its number). ✓'s no-change check (the page's) compares where the frames
+  stand, so ✓ without a drag on a frame at the subject sets nothing; a drag that ends where the
+  frame stood anyway is saved without a set (as a touched pill, SW3).
   **With Live** (L7, 2026-11-14; Decision 7): while the **stored** Size is Live, Live is on
   home (no "Live isn't on" line) and the shown source is in the stored home column (FP6 tests,
   2026-11-15, T04: with the draft's, ⛶ dragged while ✓, which acts on the stored setup, handed
@@ -2027,8 +2055,9 @@ the copy turned clockwise and measured as an upright picture of h × w, so it ag
 294 of 295 within 0.03 of compute.py's, the one miss 0.032 (2026-04-27); on Pillow's own copies
 the map agrees to 1e-15 and the positions exactly (10 pictures, by hand). **Built** (SA3a,
 2026-11-15): Size [Centre | Auto | Live] (The app, Settings: Size), the subject noted per post
-and Auto in each still set (Wallpaper: Auto, the subject). ⛶ from the subject, an undragged
-part and Advanced's switch are SA3b's; until then ⛶ opens at the part or the middle.
+and Auto in each still set (Wallpaper: Auto, the subject); (SA3b, 2026-11-15) ⛶ from the
+subject, an undragged part (The app, Choosing the part) and Advanced's "Auto: centre when
+unsure" (The app, Settings).
 
 **0.6.0: APOD first** (user, 2026-10-19; built 2026-10-20 to 24; the how in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different

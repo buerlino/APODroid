@@ -469,6 +469,14 @@ not live: the lock screen after Android's revert of home) counts as a check owed
   job's own: no second run path.
 - With O10 the job is expedited.
 - The screen being on means no Doze, and the process runs at foreground-service level while awake.
+- **A process death isn't a revert** (L8f1, 2026-11-15, regression 12): after `kill -9` with Live on,
+  Android rebinds the engine in a new process, and on the tablet `getWallpaperInfo(FLAG_SYSTEM)` then
+  didn't name APODroid's for a moment, so the new engine was taken for a stray, owed a run, and the run
+  set Fill on both. For `:core`'s `liveReconnect` (15 s) after the start of a process a non-preview
+  engine was created in (`liveSettling`), "home isn't live" isn't trusted: no stray (`liveStray`;
+  the engine asks again at the grace's end), and a run that would forget a screen noted live sets
+  nothing and counts as failed (`liveHolds`; the alarms retry 15 min after its start). Android's
+  revert (two deaths within 10 s) is still seen after the grace: Fill on both by that run.
 
 ## Checks before building (J0's way)
 

@@ -1102,6 +1102,15 @@ Decision 12's Fill on both comes at that screen-on; the run removes the notes, s
 on a lock screen doesn't start one at every screen-on. `:core`'s `screenOnRunOwed`
 (`LiveTest`), `Store.screenOnRunOwed`. Logged `Live: screen on, run owed`. So a phone whose
 maker holds the alarms gets the picture when the user first looks at it, Live on.
+**A process death isn't a revert** (L8f1, 2026-11-15, regression 12: one `kill -9` with Live on and
+`lastRunAt` over 15 min old set Fill on both screens): Android rebinds the engine in a new process, and
+for a moment then `getWallpaperInfo(FLAG_SYSTEM)` may not name APODroid's, so for 15 s after the start
+of a process a non-preview engine was created in (`:core`'s `liveSettling`, `liveReconnect`;
+`Process.getStartElapsedRealtime`) the engine isn't a stray (it asks again at the grace's end) and a
+run that would forget a screen noted live sets nothing and counts as failed (`liveHolds`, logged
+`Live: HOME+LOCK not live yet, the engine's process 2 s old: nothing set`; the alarms retry 15 min
+after its start); Android's revert after two deaths within 10 s is still found after the grace,
+Fill on both (Decision 12).
 
 **The detector** (O14, 2026-11-14; on-time-0.7.0.md, The detector; the texts placeholders until
 the user approves them from the tablet's screenshots): the page notices that the phone stopped

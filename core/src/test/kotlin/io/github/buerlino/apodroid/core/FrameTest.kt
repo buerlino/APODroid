@@ -105,4 +105,35 @@ class FrameTest {
         }
         assert(sidewaysHelps(3630, 2408) && !sidewaysHelps(500, 500) && !sidewaysHelps(400, 1200))
     }
+
+    @Test
+    fun wideSidewaysTurns3To2AndWider() {
+        // 3:2 exactly and wider turn; 1.2:1, a square, a portrait and an unknown size don't.
+        assert(sidewaysByDefault(3000, 2000) && sidewaysByDefault(3630, 2408) && sidewaysByDefault(6000, 1000))
+        assert(!sidewaysByDefault(2999, 2000) && !sidewaysByDefault(1200, 1000) && !sidewaysByDefault(500, 500))
+        assert(!sidewaysByDefault(1000, 1500) && !sidewaysByDefault(0, 0) && !sidewaysByDefault(10, 0))
+        // No overflow on huge sizes.
+        assert(sidewaysByDefault(Int.MAX_VALUE, Int.MAX_VALUE / 2) && !sidewaysByDefault(Int.MAX_VALUE / 2, Int.MAX_VALUE / 2))
+    }
+
+    @Test
+    fun aNotedPartWinsElseTheSwitchsRule() {
+        val wide = { 3630 to 2408 }
+        val narrow = { 1200 to 1000 }
+        // Noted by ⛶'s pill: as noted, whatever the switch and the size.
+        for (on in listOf(true, false)) {
+            assert(sidewaysOf(true, on, narrow) && sidewaysOf(true, on, wide))
+            assert(!sidewaysOf(false, on, wide) && !sidewaysOf(false, on, narrow))
+        }
+        // Not noted (null): the rule while the switch is on, else upright.
+        assert(sidewaysOf(null, true, wide) && !sidewaysOf(null, true, narrow) && !sidewaysOf(null, true) { null })
+        assert(!sidewaysOf(null, false, wide))
+        // The size is read only when the rule needs it.
+        var read = 0
+        sidewaysOf(true, true) { read++; 3630 to 2408 }
+        sidewaysOf(null, false) { read++; 3630 to 2408 }
+        assertEquals(0, read)
+        assert(sidewaysOf(null, true) { read++; 3630 to 2408 })
+        assertEquals(1, read)
+    }
 }

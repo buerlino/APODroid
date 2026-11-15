@@ -251,7 +251,7 @@ sideways branch). Needs a landscape picture on the shown page (today's, or 9 Nov
     picture's bottom); horizontal drags do nothing (on a panorama whose turned picture is taller than
     the screen: a strip moving left to right). Vertical drags outside the band also move it (the
     whole picture is the drag area, as K1a's).
-- **K17 Sideways on, ✓, Size Fill.** Toast "Wallpaper set". Log: `Part: wallpaper set: Of(source=…)
+- **K17 Sideways on, ✓, Size Centre or Auto.** Toast "Wallpaper set". Log: `Part: wallpaper set: Of(source=…)
   on <screens>, sideways[, darker ×0.xx (grey nnn)]`, then `Part: <source> <date> set on <screens>`.
   `files/debug-set.png` (debug build) is portrait, the screen's size, the picture turned clockwise
   (the original's top at the right, its bottom band at position 0 at the left edge of the turned

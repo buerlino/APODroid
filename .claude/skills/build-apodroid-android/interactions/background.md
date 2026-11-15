@@ -186,14 +186,18 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
   and a page open that skips today's stored post: when the stored post's picture exists and no
   subject is noted for its date and picture URL (a new download, a fake, the update from 0.7.0, a
   death before the note), `noteSubject` decodes a copy (≥ 512 px on the shorter side, upright),
-  computes `:core`'s `subjectPosition` upright and (a landscape picture) sideways, and notes
+  computes `:core`'s `subjectPosition` upright and (a landscape picture) sideways (SA3c:
+  `sidewaysSubjectPosition`, the decoded pixels turned clockwise, their own copy), and notes
   `<source>.subjectDate`, `subjectUrl`, `subjectPosition`, `subjectSideways` in one edit: `Subject:
   APOD 2026-11-16 p=0.78 (sideways 0.50) in 140 ms` (no "(sideways …)" for a portrait or square
   one). Once per post: the next runs log nothing. A picture that won't decode (or out of memory):
   `Subject: APOD 2026-11-16 couldn't: …`, the date and URL noted without positions (not tried
   again), the refresh goes on; its sets the middle. No `Subject:` line on a video day ("my
   picture" has none). Phone (the emulator): a fake into `files/` (the skill), the
-  `<source>.subject*` keys removed, `run -f 1`: the line; a broken picture: `couldn't`.
+  `<source>.subject*` keys removed, `run -f 1`: the line; a broken picture: `couldn't`. SA3c: a
+  landscape picture's sideways position is its turned picture's own (`sidewaysSubjectPosition`);
+  with Size Auto and "Wide pictures sideways" on, the next set's band (`files/debug-set.png`) and
+  ⛶'s frame stand at the line's "(sideways …)" (through `autoPosition`).
 
 ## F. What each screen gets (`dueWallpapers`, `Screens.kt:230-363`)
 

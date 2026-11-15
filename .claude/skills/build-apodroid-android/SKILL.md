@@ -39,11 +39,12 @@ packages unattended): `night.md`.
   `core/.../Subject.kt` (0.8.0, SA2): Fill's frame on the subject, an exact port of
   `private/sa0/compute.py`'s importance map and position: `subjectCopySize` (128 across the
   frame's moving direction), `boxResize` (Pillow's BOX byte for byte: the input pixels whose
-  centres fall in the box, two 8-bit passes), `subjectPosition` (raw 0–1, upright or sideways:
-  the copy turned clockwise), `autoPosition` (the middle under `SUBJECT_MIN_MOVE` 0.2 while the
+  centres fall in the box, two 8-bit passes), `subjectPosition` (raw 0–1, upright, from the copy),
+  `sidewaysSubjectPosition` (SA3c: the decoded pixels turned clockwise by `turnClockwise`, their
+  own copy and map, the position of `sidewaysFrame`'s band), `autoPosition` (the middle under `SUBJECT_MIN_MOVE` 0.2 while the
   fallback is on), `framePosition(size, partPosition, subjectRaw, fallback)` (SA3a: the part, else Auto's subject, else the middle); internal `subjectMap`, `mapPosition`, `norm`, `percentile` (scipy's
   `gaussian_filter`/`sobel` with mode reflect, numpy's percentile). Tests in `SubjectTest`, with
-  the desktop's 295 positions when `private/` is there.
+  the desktop's 295 positions and 172 sideways ones when `private/` is there.
   `core/.../Problem.kt` (O1): `Problem` (why a check failed; `key`, the word stored in
   `<source>.problem`, 0.6.0's, never to change: a dismissed problem's notice key holds it),
   `Problem.of(key, httpCode)` and `Problem.of(failure)` (tests in `ProblemTest`).

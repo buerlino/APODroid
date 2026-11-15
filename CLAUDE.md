@@ -1667,9 +1667,13 @@ alarms). **Left for the tag** (the user releases later on 15 Nov):
   setup S1–S3, page C8, K12, BP2, BH4, S4a PASS; live S4 and its log line not run (ZUI has no
   "Lock screen" alone), background N1 not run (a race). The tablet is 711 dp both ways, so C8's
   crossing of the 600 dp layouts is the FP6's.
-- **The FP6 re-test** of the 15 Nov fixes and SPLIT (the cases in `interactions/README.md`;
-  first the FP6-only ones: live S3, S4, T36, C8's layout crossing), with the release-signed
-  build of SPLIT's tree; the phone unlocked, about 30 min.
+- **The FP6 re-test passed** (2026-11-15, 17:04–17:26, the user's release-signed build of
+  fff43e7 over their data, wireless adb; no crash): live S3/T22, T36, S4/T16 and its log line,
+  page C8 across the layouts, SPLIT's T05–T09, T11, T12, T37, live S5, S7, S9, setup S1. The
+  FP6's "Home screen" over a live home gave a new id (Q7: saved, the lock screen its own
+  still), Android 16 kept the running engine (no `engine … created`). Not run there: T33, setup
+  S2 (would save the other mode), S3 (a photo pick), BP2 (airplane mode cuts wireless adb),
+  BH4 (no pause hint on the FP6), S4a (a gallery save); all passed on the tablet.
 - The day's use of the FP6 (L2, O17, L10's first day).
 
 **0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline, right after 0.6.0):

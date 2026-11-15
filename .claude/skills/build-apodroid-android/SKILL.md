@@ -429,8 +429,7 @@ what it leaves open.
   cases of `interactions/live.md`: the dialog and the picker's every answer, the back-out, the
   hand-over, lost Live, Decision 10, " · Live", the status line, `unnotedLive`): the fixes of 15 Nov
   on the FP6 (the back-out with home live, "Lock screen" alone, the lock-only engine while home is
-  live, `sharedLockFollows`; on the tablet 15 Nov: `sharedLockFollows` and SPLIT pass, "Lock
-  screen" alone and the lock-only engine can't be made with ZUI's picker; the FP6 re-test waits); the picker not opened after OK (live S8); `lockFollowsHome` and `handOverWaits`
+  live, `sharedLockFollows`, SPLIT: passed on the tablet and the FP6 on 15 Nov); the picker not opened after OK (live S8); `lockFollowsHome` and `handOverWaits`
   (L6f1) not looked for on a device; a maker's picker refusing the start (`firstStarted`,
   unit-tested only); below 14 (`live.homeId`, and R2a's re-apply noting it again: read from AOSP,
   15's smoke check only; Android 10's command unknown; E).

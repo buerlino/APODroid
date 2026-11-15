@@ -64,8 +64,6 @@ J6 (a log line only).
 Open, not run (the rules forbid deleting a gallery file): page S2a, ★ says "Already saved"
 for a file deleted while the page stays resumed (☆ again after Home and reopen).
 
-**Not yet re-run on the FP6:** the fixes above (the signed build is installed since 15 Nov 15:15;
-the re-test waits for the phone to be unlocked), and SPLIT, which needs its build (live T05–T09,
-T11, T33, T36, T37). **On the tablet** (15 Nov, CLAUDE.md, Left for the tag): the fixes PASS but
-live S4, its log line and background N1 (not run); SPLIT's cases PASS but T36 (FP6 only); ZUI's
-"Home screen" over a live home gave T37 Q7's shared outcome.
+**Re-run on 15 Nov:** the tablet (debug, an R8 smoke) and the FP6 (the user's release-signed
+fff43e7) passed every case run; not run on either: background N1 (a race). On the tablet
+only: setup S2, S3, page BP2, BH4, S4a, live T33. Details: CLAUDE.md, Left for the tag.

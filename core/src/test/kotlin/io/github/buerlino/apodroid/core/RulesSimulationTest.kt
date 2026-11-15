@@ -67,6 +67,8 @@ class RulesSimulationTest {
 
     private fun simulate(soon: Boolean, invariants: List<Int>) {
         val checked = IntArray(18)
+        var secondsStored = 0
+        var secondsPosted = 0
         val failures = seeds.filter { it !in knownBugs }.mapNotNull { seed ->
             val phone = SimPhone(seed, soon)
             try {
@@ -76,8 +78,12 @@ class RulesSimulationTest {
                 e
             } finally {
                 phone.checked.forEachIndexed { i, n -> checked[i] += n }
+                secondsStored += phone.secondsStored.size
+                secondsPosted += phone.secondsPosted
             }
         }
+        // D1: a second picture on the same date arrives at the job's next check.
+        println("SIM${if (soon) " (soon)" else ""}: $secondsStored of $secondsPosted second posts on a date ever stored")
         if (failures.isNotEmpty()) {
             fail("${failures.size} of ${seeds.size} seeds failed: ${failures.map { "${it.seed} (${it.invariant})" }}\n\n" + failures.take(if (System.getenv("SIM_ONLY") != null) failures.size else 3).joinToString("\n\n") { it.message!! })
         }
@@ -179,6 +185,9 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     /** Draws the job's stops (T1), apart from the others, so the seeds' other draws stay as they were. */
     private val stopR = Random(seed * 49979687L + 11)
 
+    /** Draws the job's extra checks of a stored day (D1), apart from the others, so the seeds' other draws stay as they were. */
+    private val sameDayR = Random(seed * 86028121L + 17)
+
     /** Draws the screen-on times (L8, T1), apart from the others. */
     private val screenR = Random(seed * 67867967L + 13)
 
@@ -206,6 +215,10 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     private val gaps = mutableSetOf<Source>()
     private val checkedAt = mutableMapOf<Source, Instant>()
     private val problem = mutableSetOf<Source>()
+
+    /** The second pictures on a date (the `-b` URLs) ever stored, and how many the sites posted (D1's report). */
+    val secondsStored = mutableSetOf<String>()
+    val secondsPosted get() = allPosts.values.flatten().count { it.post.imageUrl?.endsWith("-b.jpg") == true && it.at <= end }
 
     // The job
     private var daily = false
@@ -340,13 +353,14 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     }
 
     /** `Store.refresh`: the site's answer (about 1 in 50 a stale one) stored unless it's older; a new post marked as stored after a gap (B21). */
-    private fun refresh(source: Source, now: Instant) {
+    private fun refresh(source: Source, now: Instant, draw: Random = r) {
         val gap = afterGap(checkedAt[source], now)
-        val latest = (if (r.nextInt(50) == 0) stale(source, now) else null) ?: newest(source, now) ?: return
+        val latest = (if (draw.nextInt(50) == 0) stale(source, now) else null) ?: newest(source, now) ?: return
         val old = storedPosts[source]
         if (old != null && latest.date < old.date) return
         val new = old == null || latest.date != old.date || latest.imageUrl != old.imageUrl
         storedPosts[source] = latest
+        latest.imageUrl?.takeIf { it.endsWith("-b.jpg") }?.let { secondsStored += it }
         if (latest.imageUrl != null) files += source else files -= source
         if (new) {
             if (gap) gaps += source else gaps -= source
@@ -354,9 +368,20 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         }
     }
 
-    /** `Store.checkSite`: fetches unless today's post is stored (always with [force]); a success notes `checkedAt`. */
-    private fun checkSite(source: Source, force: Boolean, now: Instant): Boolean {
-        if (force || !isCurrent(source, now)) {
+    /**
+     * `Store.checkSite`: fetches unless, for a page, today's post is stored (always with [force];
+     * the job always, D1); a success notes `checkedAt`. The job's check of a stored day draws from
+     * [sameDayR], and its failure is only logged: no problem, no failed run, `checkedAt` untouched.
+     */
+    private fun checkSite(source: Source, force: Boolean, page: Boolean, now: Instant): Boolean {
+        val current = isCurrent(source, now)
+        if (current && !force && !page) {
+            if (offlineSpans.any { now in it } || sameDayR.nextInt(33) == 0) {
+                note(now, "check of $source failed, today's stored")
+                return true
+            }
+            refresh(source, now, sameDayR)
+        } else if (force || !current) {
             if (offlineSpans.any { now in it } || r.nextInt(33) == 0) {
                 problem += source
                 note(now, "check of $source failed")
@@ -394,7 +419,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         for (source in Source.entries) {
             if (source !in show && source !in inUse()) continue
             stopPoint()
-            if (force || !page || !checkedRecently(source, now)) failure = !checkSite(source, force, now) || failure
+            if (force || !page || !checkedRecently(source, now)) failure = !checkSite(source, force, page, now) || failure
         }
         stopPoint()
         if (killAfterChecks) return null
@@ -1011,7 +1036,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
      * 12. At a Set of the order alone with the daily switch on (OR1, Night default 1): every screen
      * whose owner can hold (ticked there and with something to show; with equal columns home's)
      * keeps it, and Set's own update puts on no other source's picture (rule 2, "As soon as it's
-     * out" or a retry may still set the owner's newer picture).
+     * out" or a retry may still set the owner's newer picture, a forgotten screen the kept one).
      */
     private fun orderAlone(now: Instant, leads: Map<Screen, Record?>, stored: Stored) {
         for (screen in Screen.entries) {
@@ -1020,7 +1045,8 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             val owner = records[screen]?.owner
             setNow[screen]?.let { picture ->
                 checked[12]++
-                if (owner == null || picture != stored.picture(owner)) fail(now, 12, "the order alone put ${picture.label()} on $screen, not $owner's")
+                // D1 (seed 1204 of 2000): the kept record's own picture again (a screen the engine covers, forgotten as not noted live) is no other source's.
+                if (owner == null || (picture != stored.picture(owner) && picture != leads[screen]?.picture)) fail(now, 12, "the order alone put ${picture.label()} on $screen, not $owner's")
             }
             val lead = leads[screen] ?: continue
             if (lead.owner !in column || stored.picture(lead.owner) == null) continue

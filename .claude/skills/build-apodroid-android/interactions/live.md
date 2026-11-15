@@ -586,7 +586,7 @@ Check the gap between `Live: engine 1 created` and `Live: back from the picker` 
 **A6** ⛶ on the APOD page (lock's source only): drag works (Fill); ✓ after a drag → Toast WS, lock
 still at the new part. Log `Part: wallpaper set: Of(source=APOD…) on LOCK`.
 
-**A5s** ⛶ with Live and "Sideways" (SW2, 0.8.0; a landscape picture in home's column, page.md K16–K22).
+**A5s** ⛶ with Live and "Sideways" (SW2, 0.8.0; a landscape picture in home's column, page.md K16–K22). PASS on the Android 14 emulator (SW2T, 2026-11-15, page.md's K22 line): `decoded 1592×2400` for 9 Nov's 3618×2400.
 - Screen: "Sideways" at the picture's top right; on, the frame becomes the turned band (a horizontal
   band across the page's picture) at the clock's position (`livePosition`; p = 0 the picture's bottom
   band, p = 1 its top), no drag, moved by the minute tick. ✓ → Toast WS; the home screen pans across

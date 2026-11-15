@@ -209,6 +209,7 @@ or days of time.
 
 ## G. Live (`Store.setDue` Live part `Store.kt:1045-1197`, `Live.kt`, `LiveWallpaper.kt`)
 
+  PASS on the Android 14 emulator (SW2T, 2026-11-15): `Daily job: wallpaper set: … on HOME+LOCK, sideways`, `debug-set.png` turned; the hand-over's `live.sideways=true` (G2) seen with the picker, B27's keep not (G11: not a phone case).
 - **G1 Is home live (`liveState`, `Store.kt:1440-1450`).** 14+: `getWallpaperInfo(FLAG_SYSTEM)`
   names APODroid's, or home's wallpaper id equals `live.homeId` (noted while it named it). Shared:
   home live and `getWallpaperId(FLAG_LOCK)` = -1. Phone: `dumpsys wallpaper`: note home's

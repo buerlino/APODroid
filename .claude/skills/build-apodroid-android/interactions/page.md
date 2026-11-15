@@ -263,6 +263,11 @@ sideways branch). Needs a landscape picture on the shown page (today's, or 9 Nov
   of its turned width over the day). Details: live.md, ⛶ with Live.
 - **K23 A new post of that source** (a faked date): the part drops (keyed by `cropDate`/`cropUrl`),
   the new picture goes on upright; ⛶ opens with "Sideways" off.
+- **Checked** (SW2T, rosie, 2026-11-15, the Android 14 emulator `emulator-5564`, 1080×2400, the debug build of dev b5857b9; 9 Nov's APOD at `?h=2400`, 3618×2400, and 31 Jan 2026's bright one faked into `files/apod.jpg`, today's 1920×2400 for the portrait case; evidence in `.coord/runs/126-sw2t/tablet/`): K16, K16a–c, K17, K17a, K17b, K18, K20,
+  K21, K22, K23 PASS (K19's no-change half not run). On AOSP 14 `dumpsys wallpaper` always lists a
+  "Lock wallpaper state" (id 1, `mWhich=1`, an empty crop, there since boot): a set with both flags
+  shows as the system wallpaper's `mWhich=3`, `mSystemWasBoth=true`. With Live the pills overlap the
+  band's top edge when it stands near p=1 (cosmetic, for the user's look).
 
 ### S. ★ save to the gallery (MA:1238-1268, 1593-1610; ST:1607-1704)
 

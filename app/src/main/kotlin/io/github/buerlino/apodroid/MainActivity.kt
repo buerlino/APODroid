@@ -146,29 +146,34 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
 import io.github.buerlino.apodroid.core.Maker
+import io.github.buerlino.apodroid.core.Part
 import io.github.buerlino.apodroid.core.PickerTrip
 import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Problem
 import io.github.buerlino.apodroid.core.Screen
-import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.Size as Sizing
-import io.github.buerlino.apodroid.core.sizeOf
+import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
-import io.github.buerlino.apodroid.core.firstStarted
 import io.github.buerlino.apodroid.core.darkening
 import io.github.buerlino.apodroid.core.equalColumns
+import io.github.buerlino.apodroid.core.firstStarted
+import io.github.buerlino.apodroid.core.forPost
+import io.github.buerlino.apodroid.core.framePosition
 import io.github.buerlino.apodroid.core.livePosition
 import io.github.buerlino.apodroid.core.maker
 import io.github.buerlino.apodroid.core.missedWhen
+import io.github.buerlino.apodroid.core.notedPosition
 import io.github.buerlino.apodroid.core.orderOf
+import io.github.buerlino.apodroid.core.partOf
 import io.github.buerlino.apodroid.core.pictureAtOrDefault
 import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.sidewaysHelps
 import io.github.buerlino.apodroid.core.sidewaysOf
+import io.github.buerlino.apodroid.core.sizeOf
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -268,6 +273,12 @@ class MainActivity : ComponentActivity() {
     /** "Largest original" ([Store.saveLimit], MB, 0: no limit): at once, as "Save every picture". */
     private var saveLimit by mutableIntStateOf(20)
 
+    /**
+     * "Auto: centre when unsure" ([Store.autoFallback], SA3b): at once, as "Save every picture"
+     * ([switchAutoFallback]); the next set uses it.
+     */
+    private var autoFallback by mutableStateOf(true)
+
     /** "Keep running" ([Store.keepRunning], O11): at once, as "Save every picture" ([switchKeepRunning]). */
     private var keepRunning by mutableStateOf(false)
 
@@ -365,6 +376,12 @@ class MainActivity : ComponentActivity() {
     private var problemNoticeKey by mutableStateOf<String?>(null)
     private var cropping by mutableStateOf(false)
     private var cropPosition by mutableFloatStateOf(0.5f)
+
+    /**
+     * Whether ⛶'s frame was dragged since it opened (SA3b): ✓ then notes [cropPosition]; else the
+     * part keeps its previous position (null, not dragged, so the stored Size keeps deciding).
+     */
+    private var cropMoved by mutableStateOf(false)
 
     /** Crop mode's "Whole picture" toggle (A4): ✓ keeps it in the draft with the part, Back drops it. */
     private var cropWhole by mutableStateOf(false)
@@ -521,6 +538,7 @@ class MainActivity : ComponentActivity() {
         saveEvery = store.saveEvery
         saveLimit = store.saveLimit
         keepRunning = store.keepRunning
+        autoFallback = store.autoFallback
         pauseHintHidden = store.pauseHintHidden
         videoNoticeDate = store.videoNoticeDate
         videoNoticeHidden = store.videoNoticeHidden
@@ -794,6 +812,7 @@ class MainActivity : ComponentActivity() {
     private fun readStatus() {
         stored = store.setup
         parts = stored.parts
+        autoFallback = store.autoFallback
         hasFallback = store.fallbackFile.exists()
         apod = store.apod
         pageScreen = store.pageScreen
@@ -1332,6 +1351,12 @@ class MainActivity : ComponentActivity() {
         store.saveEvery = on
     }
 
+    /** "Auto: centre when unsure" (SA3b): at once, nothing set; the next set uses it ([Store.set]). */
+    private fun switchAutoFallback(on: Boolean) {
+        autoFallback = on
+        store.autoFallback = on
+    }
+
     /** "Keep running" (O11): at once, the service started or stopped ([KeepRunning.ensure]). */
     private fun switchKeepRunning(on: Boolean) {
         keepRunning = on
@@ -1425,12 +1450,26 @@ class MainActivity : ComponentActivity() {
     /**
      * Crop mode closes; the frame's place and the "Whole picture" and "Sideways" toggles are
      * [post]'s part in the draft. An untouched "Sideways" keeps the part's previous value (SW3:
-     * null, the switch's default, stays null).
+     * null, the switch's default, stays null), and so does an undragged frame (SA3b: null, the
+     * stored Size's frame, stays null).
      */
     private fun keepPart(post: Post) {
-        val sideways = if (cropSidewaysTouched) cropSideways else parts.forPost(post)?.sideways
-        parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition, cropWhole, sideways))
+        val previous = parts.forPost(post)
+        val sideways = if (cropSidewaysTouched) cropSideways else previous?.sideways
+        val position = notedPosition(cropMoved, cropPosition, previous?.position)
+        parts = parts + (post.source to Part(post.date, post.imageUrl, position, cropWhole, sideways))
         cropping = false
+    }
+
+    /**
+     * Where [post]'s frame stands with [part] and [sideways] (SA3b, `:core`'s [framePosition], as
+     * [Store.set]): the part's dragged position, else with the **stored** Size Auto its subject
+     * for that orientation ([Store.subject], [Store.autoFallback]), else the middle. Stored, not
+     * the draft's: ✓ sets at once by the stored setup.
+     */
+    private fun frameOf(post: Post, part: Part?, sideways: Boolean): Float {
+        val subject = store.subject(post)
+        return framePosition(stored.size, part?.position, if (sideways) subject?.sideways else subject?.position, store.autoFallback)
     }
 
     /**
@@ -1455,11 +1494,15 @@ class MainActivity : ComponentActivity() {
         keepPart(post)
         val part = parts.getValue(post.source)
         val saved = stored.parts.forPost(post)
-        if (part.position == (saved?.position ?: 0.5f) && part.whole == (saved?.whole == true) &&
-            turnsSideways(post.source, part.sideways) == turnsSideways(post.source, saved?.sideways) && part != failedPart
+        val turned = turnsSideways(post.source, part.sideways)
+        val savedTurned = turnsSideways(post.source, saved?.sideways)
+        // SA3b: the frames compared where they stand (an undragged one by Size and the subject).
+        if (frameOf(post, part, turned) == frameOf(post, saved, savedTurned) && part.whole == (saved?.whole == true) &&
+            turned == savedTurned && part != failedPart
         ) {
-            // The same picture on the screen, but a touched pill notes its value (SW3): saved, no set.
-            if (part.sideways != saved?.sideways) {
+            // The same picture on the screen, but a touched pill or a dragged frame notes its value
+            // (SW3, SA3b: a drag ending where Auto had it): saved, no set.
+            if (part.sideways != saved?.sideways || part.position != saved?.position) {
                 store.savePart(post.source, part)
                 readStatus()
             }
@@ -1488,15 +1531,17 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * ⛶: crop mode opens on [post]'s draft part, whole picture and sideways: the middle, not
-     * whole, unless ✓ noted one for this post; sideways as it goes on ([turnsSideways], SW3).
+     * ⛶: crop mode opens on [post]'s draft part, whole picture and sideways: not whole unless ✓
+     * noted it for this post; sideways as it goes on ([turnsSideways], SW3); the frame where it
+     * goes on ([frameOf], SA3b: the dragged part, else Auto's subject, else the middle).
      */
     private fun startCrop(post: Post) {
         val part = parts.forPost(post)
-        cropPosition = part?.position ?: 0.5f
         cropWhole = part?.whole == true
         cropSideways = turnsSideways(post.source, part?.sideways)
         cropSidewaysTouched = false
+        cropPosition = frameOf(post, part, cropSideways)
+        cropMoved = false
         cropping = true
     }
 
@@ -1739,6 +1784,8 @@ class MainActivity : ComponentActivity() {
                         .toggleable(cropSideways, role = Role.Switch) {
                             cropSideways = it
                             cropSidewaysTouched = true
+                            // SA3b: an undragged frame goes where that orientation puts it.
+                            if (!cropMoved) cropPosition = frameOf(post, parts.forPost(post), it)
                         }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                         .clearAndSetSemantics {
@@ -2075,7 +2122,10 @@ class MainActivity : ComponentActivity() {
                 size.height * (1 - full.height().toFloat() / picture.height)
             }
             if (travel <= 0f) return@pointerInput
-            val move = { delta: Float -> cropPosition = (cropPosition + sign * delta / travel).coerceIn(0f, 1f) }
+            val move = { delta: Float ->
+                cropPosition = (cropPosition + sign * delta / travel).coerceIn(0f, 1f)
+                cropMoved = true
+            }
             if (horizontal) {
                 detectHorizontalDragGestures { change, delta -> change.consume(); move(delta) }
             } else {
@@ -2179,6 +2229,13 @@ class MainActivity : ComponentActivity() {
                 Header("Advanced settings", advancedOpen, changed = false) { advancedOpen = !advancedOpen }
                 if (advancedOpen) {
                     SaveEverySwitch()
+                    // SA3b: at once, not the draft, so never highlighted; the next set uses it.
+                    DraftSwitch(
+                        "Auto: centre when unsure", autoFallback, autoFallback, about = "About Auto: centre when unsure",
+                        info = "With Size Auto, a picture whose subject is only slightly off the middle stays centred. " +
+                            "Off: Auto places every frame.",
+                        onChange = ::switchAutoFallback,
+                    )
                     val keepRow = remember { BringIntoViewRequester() }
                     // At once, not the draft: the stored state is the shown one, so never highlighted.
                     Box(Modifier.bringIntoViewRequester(keepRow)) {
@@ -2933,7 +2990,8 @@ private fun Setup.toBundle() = Bundle().apply {
     putBoolean("wideSideways", wideSideways)
     putString("size", size.name)
     putString("order", order.joinToString(",") { it.name })
-    parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.whole}|${part.sideways}|${part.url.orEmpty()}") }
+    // SA3b: a position or sideways not noted is "null" (partOf reads it back).
+    parts.forEach { (source, part) -> putString("part.${source.name}", part.toText()) }
 }
 
 /** [toBundle]'s draft, or null when it can't be read. */
@@ -2954,9 +3012,7 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         size = sizeOf(bundle.getString("size")),
         order = orderOf(bundle.getString("order")),
         parts = Source.entries.mapNotNull { source ->
-            bundle.getString("part.${source.name}")?.split('|', limit = 5)?.let { (date, position, whole, sideways, url) ->
-                source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict(), sideways.toBooleanStrictOrNull())
-            }
+            bundle.getString("part.${source.name}")?.let { source to partOf(it) }
         }.toMap(),
     )
 }.getOrNull()

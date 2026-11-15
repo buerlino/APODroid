@@ -48,6 +48,8 @@ import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
 import io.github.buerlino.apodroid.core.Size as Sizing
 import io.github.buerlino.apodroid.core.boxResize
+import io.github.buerlino.apodroid.core.Part
+import io.github.buerlino.apodroid.core.forPost
 import io.github.buerlino.apodroid.core.framePosition
 import io.github.buerlino.apodroid.core.sidewaysHelps
 import io.github.buerlino.apodroid.core.sizeOf
@@ -118,23 +120,6 @@ enum class Where(val screens: Set<Screen>) {
         fun of(screens: Set<Screen>): Where? = entries.firstOrNull { it.screens == screens }
     }
 }
-
-/**
- * ⛶'s part of a source's post: the post's [date] and picture [url], where the frame sits
- * ([position], 0–1), whether the wallpaper shows the [whole] picture instead (A3), and whether
- * the picture goes on turned 90° clockwise, [sideways] (0.8.0, SW2, issue #4: its top at the
- * screen's right; the frame then `:core`'s sidewaysFrame, position 0 the bottom band). Three
- * values (SW3): true or false as ⛶'s pill noted it, null for "Wide pictures sideways"'s default
- * ([Setup.wideSideways], `:core`'s sidewaysOf; [Store.turnsSideways]).
- */
-data class Part(val date: LocalDate, val url: String?, val position: Float, val whole: Boolean, val sideways: Boolean? = null)
-
-/**
- * [post]'s part: its source's, when noted for this very post (date and picture URL, so a new
- * post drops it); null for none, which is the middle and not whole. The one lookup for the
- * job's set ([Store.parts]) and the page's draft and highlight.
- */
-fun Map<Source, Part>.forPost(post: Post): Part? = this[post.source]?.takeIf { post.isNoted(it.date, it.url) }
 
 /**
  * Everything "Set as wallpaper" saves at once ([Store.saveSetup]); the page's draft until then.
@@ -424,11 +409,12 @@ class Store(private val context: Context) {
         saved
     }
 
-    /** ⛶'s part of [source]'s post (its date and picture URL, the frame's place, the whole picture, sideways). */
+    /** ⛶'s part of [source]'s post (its date and picture URL, the frame's place, the whole picture, sideways; a value not noted, null, removed). */
     private fun SharedPreferences.Editor.putPart(source: Source, part: Part) {
         putString(source.key("cropDate"), part.date.toString())
         putString(source.key("cropUrl"), part.url)
-        putFloat(source.key("cropPosition"), part.position)
+        // Null (SA3b, ⛶'s frame not dragged): the stored Size's frame, so the key goes.
+        part.position?.let { putFloat(source.key("cropPosition"), it) } ?: remove(source.key("cropPosition"))
         putBoolean(source.key("whole"), part.whole)
         // Null (SW3): the switch's default, so the key goes.
         part.sideways?.let { putBoolean(source.key("sideways"), it) } ?: remove(source.key("sideways"))
@@ -667,7 +653,8 @@ class Store(private val context: Context) {
         set(value) = prefs.edit { putBoolean("keepRunning", value) }
 
     /**
-     * Auto's fallback (SA3a; its switch in Advanced settings is SA3b's): on, Auto keeps the middle
+     * Auto's fallback (SA3a; SA3b's switch "Auto: centre when unsure" in Advanced settings, at
+     * once, no set: the next set uses it): on, Auto keeps the middle
      * for a picture whose subject would move the frame less than `:core`'s SUBJECT_MIN_MOVE;
      * off, Auto places every frame on its subject. The pref `autoFallback`, default on; read by
      * each [set].
@@ -1752,7 +1739,8 @@ class Store(private val context: Context) {
                 source to Part(
                     LocalDate.parse(it),
                     prefs.getString(source.key("cropUrl"), null),
-                    prefs.getFloat(source.key("cropPosition"), 0.5f),
+                    // Missing (SA3b, not dragged): Size decides (framePosition: Auto's subject, else the middle).
+                    source.key("cropPosition").takeIf(prefs::contains)?.let { prefs.getFloat(it, 0.5f) },
                     prefs.getBoolean(source.key("whole"), false),
                     // Missing (SW3, a part from before 0.8.0 or untouched by the pill): the switch's default.
                     source.key("sideways").takeIf(prefs::contains)?.let { prefs.getBoolean(it, false) },
@@ -1781,12 +1769,12 @@ class Store(private val context: Context) {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
         val part = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
         val sideways = picture is Picture.Of && turnsSideways(picture.source, part)
-        // SA3a: ⛶'s part, else with Auto the subject for this orientation, else the middle ("my picture" too).
+        // SA3a: ⛶'s dragged part (SA3b: a part's position is null while not dragged), else with Auto the subject for this orientation, else the middle ("my picture" too).
         val subject = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(::subject)
         val raw = if (sideways) subject?.sideways else subject?.position
         val position = framePosition(size, part?.position, raw, autoFallback)
         // The log's note while Auto placed the frame by the subject (the middle when it fell back).
-        val auto = if (size == Sizing.AUTO && part == null && raw != null) String.format(Locale.ROOT, ", auto %.2f", position) else ""
+        val auto = if (size == Sizing.AUTO && part?.position == null && raw != null) String.format(Locale.ROOT, ", auto %.2f", position) else ""
         return auto + setFile(file, screens, position, part?.whole == true, sideways, factor = null)
     }
 

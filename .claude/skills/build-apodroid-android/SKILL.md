@@ -487,7 +487,7 @@ what it leaves open.
   2026-10-22); dragging the frame with TalkBack (it has no screen-reader action).
 
 **Android:**
-- Android 10–14 on any device (the tablet is 15, the FP6 16; E, the emulator, postponed to 0.7.0, user 2026-11-02): there the system crops the stored
+- Android 10–14 on any device (the tablet is 15, the FP6 16; E, the emulator, postponed to 0.9.0, user 2026-11-15; 0.8.0's SW2T ran on the Android 14 emulator): there the system crops the stored
   file to the hint itself; 10–11's stock palette; the pause hint on 10–12 (`keep-running.md`).
 - Dynamic colour following a set wallpaper (U1: the tablet's ZUI and the FP6's LineageOS have
   wallpaper colours off).

@@ -151,7 +151,7 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
   tests don't cover R8, so test release builds on the phone.
 - Android SDK in `~/Android/Sdk`. The user tests on real devices over adb; the emulator only for
   the Android versions no device has (10–14; user, 2026-10-29: E; postponed to 0.7.0, user,
-  2026-11-02: release 0.6.0 as soon as possible; to 0.8.0, user, 2026-11-14), never for real timing (Doze, buckets, makers' cleaners).
+  2026-11-02: release 0.6.0 as soon as possible; to 0.8.0, user, 2026-11-14; to 0.9.0, user, 2026-11-15), never for real timing (Doze, buckets, makers' cleaners).
 - Git branch `master`, remote `origin`. `dev` holds the night shift's merges until the user fast-forwards master.
 
 **Releases** (F-Droid builds only the newest tag: it ships 0.5.0, 0.3.1 and 0.3.0 and skipped
@@ -1647,7 +1647,7 @@ starts then; W also sees real weekday mornings and a weekend. **SIM**, a seeded 
 the rules over months in `:core` (test code only): the job and the rules gave 13 of the 24 fix
 packages B2–B24. **E**, Android 10–14 in the emulator (user, 2026-10-29, a baseline for 0.7.0's Live and on-time
 work; `emulator.md`): **postponed to 0.7.0** (user, 2026-11-02: release 0.6.0 as soon as possible), so
-0.6.0 ships Android 10–14 untested on a device, an accepted risk. **Accepted, no change:** the RARE bucket's about one alarm
+0.6.0 ships Android 10–14 untested on a device, an accepted risk (E moved on to 0.8.0, then to 0.9.0, user, 2026-11-15; 0.8.0 ships Android 10–14 untested on a device, SW2T ran on the Android 14 emulator). **Accepted, no change:** the RARE bucket's about one alarm
 an hour (Android's quota; the pause hint covers Optimized); CR2's finding 4 (a Set that
 changes the picture time or "Change every" costs one spare check; noting `lastRunAt` at Set
 could drop an owed check); a Set tap in the same input burst as the time menu's closing goes to

@@ -97,10 +97,10 @@ of space here orientation is irrelevant anyway."
 |----|------|---------------|-------------|-------|
 | SW1 | `:core`: the sideways frame, tests | Sonnet, medium | winston, no device | — |
 | SW2 | `:app`: the sideways set, the measure, Whole, Live, ⛶'s pill; the maps; `CLAUDE.md` | Opus, high | winston, tablet | SW1 |
-| SW3 | Option C: the Setup switch (later, its texts asked first) | — | — | SW2, the user's look on the FP6 |
+| SW3 | Option C: the Setup switch, its texts placeholders | Opus, high | winston, tablet | SW2 (D1, VS1 before it in the night's order) |
 
-The FP6's look (1080×2408, the reporter's screen) with the user after SW2: 9 Nov's picture
-sideways on both screens, Fill and Live.
+The FP6's look (1080×2408, the reporter's screen) with the user on 17 Nov (`release-0.8.0.md`):
+9 Nov's picture sideways on both screens, Fill and Live, and the switch.
 
 ### [ ] SW1. `:core`: the sideways frame (Sonnet, medium)
 
@@ -160,9 +160,36 @@ sideways on both screens, Fill and Live.
 - **Done when:** `./gradlew :core:test :app:lintRelease :app:assembleRelease` passes, the tablet
   passes, the maps and `CLAUDE.md` updated.
 
-### [ ] SW3. Option C: a Setup switch (later)
+### [ ] SW3. Option C: a Setup switch for wide pictures (Opus, high)
 
-Not before the user has seen SW2 on the FP6. A switch in Setup after "Darken bright pictures",
-part of the draft, default off; on, a picture at least 3:2 (threshold to decide) goes on
-sideways unless ⛶ says otherwise for it (`Part.sideways` becomes three-valued: on, off, the
-switch's default). Its label and ⓘ asked first (CLAUDE.md: few settings, each in one sentence).
+(Brought forward to the night of 15 Nov for the 17 Nov deadline, user, 2026-11-15; the texts
+placeholders, the user approves them from rosie's screenshots on 16 Nov.)
+- **The switch** in Setup after "Darken bright pictures", with a small ⓘ, part of the draft as
+  "Darken bright pictures" (`Setup.sideways`, `saveSetup`, the saved state, the highlight, "On,
+  not set yet"), always shown, never put back; the pref `wideSideways` (`sideways` is home's
+  part's, SW2). Default off (an update from 0.7.0 changes nothing, no migration). Setup's
+  summary doesn't name it. Set sets each screen afresh, so a change shows at once.
+- **Placeholder texts:** the label "Wide pictures sideways"; the ⓘ "About Wide pictures
+  sideways", its dialog "Turns a wide picture a quarter turn, so more of it fills the screen.
+  ⛶ › Sideways changes one picture."
+- **The rule** (`:core`, `sidewaysByDefault(width, height)`): width ≥ 1.5 × height (night
+  default 3:2; the alternative 1.4:1, where the gain reaches 2×: 88 of 252 APODs instead of 65).
+  Every source, "my picture" never (it has no part, Fill centred). Under Live too (night
+  default, the user's recommendation pending: one rule, one sentence).
+- **The part becomes three-valued:** `Part.sideways: Boolean?`, null the switch's default (an
+  absent pref, read with `contains`; the bundle with three values). The effective value: the
+  part's when set, else the rule while the stored switch is on, else upright. `set`,
+  `copyForLive`, B27's keep and ⛶ use the effective one, read from the picture's size
+  (`imageBounds`) where they need it. ⛶'s pill shows the effective value; ✓ notes an explicit
+  on or off only when the pill was touched (else null stays, so a later switch change still
+  applies).
+- **Tablet:** the switch on and Set: a 3:2 picture sideways on both screens, a 1.2:1 one
+  upright, a portrait one upright; the log's ", sideways"; ⛶ shows the pill on, off ✓ upright
+  for that picture only, the next post sideways again; the switch off and Set: upright, an
+  explicit ⛶ on stays sideways; with Live on home: the hand-over notes `live.sideways`; a
+  rotation keeps the draft's switch; the highlight; screenshots of the switch, its ⓘ and the
+  pill for the user; the smoke list.
+- **Done when:** the tests (the rule, the three values) and the tablet pass; `CLAUDE.md` (The
+  app, Settings: the switch; Choosing the part); the maps (`setup.md` a section as "Darken
+  bright pictures"'s; `page.md`'s pill with the switch; `background.md` the job's set by the
+  rule).

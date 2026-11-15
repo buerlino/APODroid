@@ -101,6 +101,36 @@ For the user, after SA0's numbers (recommendations then):
 4. Whether "my picture" gets it too.
 5. The issue's joke: "powered by AI" in the store listing.
 
+## For the 17 Nov deadline (2026-11-15 evening)
+
+The user: everything planned for 0.8.0 starts now, done by 17 Nov (`release-0.8.0.md`). So:
+- **SA0 tonight by an agent** on the desktop (no device): the methods' frames against A2's 152
+  picks (read from the picking page's database 2026-11-15 into the session's scratchpad), and
+  the new picking page ready for the user on the morning of 16 Nov.
+- **The re-run of the 152, combined with SA0** (user, 2026-11-15: "another run on the 152 to
+  confirm they are accurate"; combined, the user's choice): A2's page kept only the picks, its
+  images are gone and its "brightest area" rule wasn't written down, so the frames are rebuilt
+  (the brightest area approximated: the frame position with the largest sum of a smoothed
+  brightness). The same 152 pictures in a new random order, the old picks hidden, the choices
+  unlabelled and shuffled per picture: the middle, the brightest area, each shippable method's
+  frame (identical frames merged into one choice, so "same" is visible), Whole, and "No
+  preference". About 35 min. **Measures:** the repeat agreement on the old picks (where the
+  middle and the brightest area both stand, how often the same one is picked again; Fill vs
+  whole again), and each method's wins where it moves the frame. Written into this file.
+- **No library** (night default, `release-0.8.0.md`'s rules): SA1 skipped; Glimpse's model is
+  run on the desktop only as a reference, to see whether a learned map would win. The methods
+  that can ship by 17 Nov: the spectral residual and a smoothed brightness-and-detail map in
+  plain `:core` Kotlin. Glimpse by hand-written inference only if its layers turn out to be a
+  few plain convolutions (SA0 says) and it wins clearly; else it moves to 0.9.0.
+- **Build only if a shippable method beats the middle** on the user's new picks (Open 1);
+  otherwise issue #3 moves to 0.9.0 and SA2–SA4 leave the queue.
+- **With Sideways:** the map is one per picture; the position is taken along the frame's one
+  direction, upright and sideways (`sidewaysFrame`), and SA3 notes both.
+- **Open 3's default if built** (the user decides in the morning): no setting when it clearly
+  wins (the middle stays the fallback, ⛶ moves it), else not built.
+- **SA4** folds into T3 (`release-0.8.0.md`) and the FP6 on 17 Nov; the week of real pictures
+  becomes the FP6's week after the tag.
+
 ## Packages (draft)
 
 Built after 0.7.0 ships. A package's IDs and models are a draft until the user has answered the

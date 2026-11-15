@@ -54,6 +54,7 @@ import io.github.buerlino.apodroid.core.lockFollowsHome
 import io.github.buerlino.apodroid.core.lostLive
 import io.github.buerlino.apodroid.core.opensPicker
 import io.github.buerlino.apodroid.core.sharedLockFollows
+import io.github.buerlino.apodroid.core.sidewaysOf
 import io.github.buerlino.apodroid.core.stillOrLive
 import io.github.buerlino.apodroid.core.unnotedLive
 import io.github.buerlino.apodroid.core.Lost
@@ -115,9 +116,11 @@ enum class Where(val screens: Set<Screen>) {
  * ⛶'s part of a source's post: the post's [date] and picture [url], where the frame sits
  * ([position], 0–1), whether the wallpaper shows the [whole] picture instead (A3), and whether
  * the picture goes on turned 90° clockwise, [sideways] (0.8.0, SW2, issue #4: its top at the
- * screen's right; the frame then `:core`'s sidewaysFrame, position 0 the bottom band).
+ * screen's right; the frame then `:core`'s sidewaysFrame, position 0 the bottom band). Three
+ * values (SW3): true or false as ⛶'s pill noted it, null for "Wide pictures sideways"'s default
+ * ([Setup.wideSideways], `:core`'s sidewaysOf; [Store.turnsSideways]).
  */
-data class Part(val date: LocalDate, val url: String?, val position: Float, val whole: Boolean, val sideways: Boolean = false)
+data class Part(val date: LocalDate, val url: String?, val position: Float, val whole: Boolean, val sideways: Boolean? = null)
 
 /**
  * [post]'s part: its source's, when noted for this very post (date and picture URL, so a new
@@ -134,8 +137,9 @@ fun Map<Source, Part>.forPost(post: Post): Part? = this[post.source]?.takeIf { p
  * pictures" (BR2: each set darkens a picture brighter than `:core`'s target, [Store.set]); [order]
  * the list's order (OR2: the turns' order, all three sources, the top first; saved only while
  * the list shows); [size] Size (L6: Fill, a still set as 0.6.0, or Live, home's picture drawn by
- * APODroid's live wallpaper while Android's picker put it on home). Not the daily switch: it acts
- * at once ([Store.switchDaily]).
+ * APODroid's live wallpaper while Android's picker put it on home); [wideSideways] "Wide pictures
+ * sideways" (SW3: a picture 3:2 or wider goes on sideways unless its part notes otherwise,
+ * [Store.turnsSideways]). Not the daily switch: it acts at once ([Store.switchDaily]).
  */
 data class Setup(
     val allSources: Boolean,
@@ -149,6 +153,7 @@ data class Setup(
     val darken: Boolean = true,
     val order: List<Source> = Source.entries,
     val size: Sizing = Sizing.FILL,
+    val wideSideways: Boolean = false,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
     val columns: Map<Screen, List<Source>>
@@ -323,7 +328,7 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size)
+        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, wideSideways)
 
     /**
      * The list's order (OR2, the pref `order`, a comma list of all three; read tolerantly by
@@ -394,6 +399,7 @@ class Store(private val context: Context) {
             putInt("pictureAt", setup.pictureAt)
             putBoolean("soon", setup.soon)
             putBoolean("darken", setup.darken)
+            putBoolean("wideSideways", setup.wideSideways)
             putString("size", setup.size.name)
             if (setup.allSources) putString("order", order.joinToString(",") { it.name })
             if (newOrder) putString("orderFrom", from.toString())
@@ -413,7 +419,8 @@ class Store(private val context: Context) {
         putString(source.key("cropUrl"), part.url)
         putFloat(source.key("cropPosition"), part.position)
         putBoolean(source.key("whole"), part.whole)
-        putBoolean(source.key("sideways"), part.sideways)
+        // Null (SW3): the switch's default, so the key goes.
+        part.sideways?.let { putBoolean(source.key("sideways"), it) } ?: remove(source.key("sideways"))
     }
 
     /**
@@ -554,6 +561,22 @@ class Store(private val context: Context) {
      */
     val darken: Boolean
         get() = prefs.getBoolean("darken", true)
+
+    /**
+     * "Wide pictures sideways" (SW3, part of the [setup], default off: an update from 0.7.0
+     * changes nothing): a picture 3:2 or wider goes on sideways unless ⛶ noted otherwise
+     * ([turnsSideways]).
+     */
+    val wideSideways: Boolean
+        get() = prefs.getBoolean("wideSideways", false)
+
+    /**
+     * Whether [source]'s stored picture goes on sideways with its post's [part] (SW3, `:core`'s
+     * [sidewaysOf]): the part's noted value, else, while the stored [wideSideways] is on,
+     * whether it's 3:2 or wider ([uprightSize]). The one reading for [set], [copyForLive] and ⛶.
+     */
+    fun turnsSideways(source: Source, part: Part?): Boolean =
+        sidewaysOf(part?.sideways, wideSideways) { uprightSize(imageFile(source))?.let { it.width to it.height } }
 
     /**
      * This device's offset after the clock's checks ([randomOffset], 0–10 min), drawn once and
@@ -1496,7 +1519,7 @@ class Store(private val context: Context) {
         }
         val noted = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
         val whole = noted?.whole == true
-        val sideways = noted?.sideways == true
+        val sideways = picture is Picture.Of && turnsSideways(picture.source, noted)
         val grey = if (!darken) null else runCatching { if (whole) wholeGrey(liveFile, screen, sideways) else pictureGrey(liveFile, sideways) }
             .onFailure { Log.w("APODroid", "Live: couldn't measure the brightness: $it") }.getOrNull()
         return LiveCopy(whole, sideways, grey?.let(::darkening) ?: 1f, grey)
@@ -1637,7 +1660,8 @@ class Store(private val context: Context) {
                     prefs.getString(source.key("cropUrl"), null),
                     prefs.getFloat(source.key("cropPosition"), 0.5f),
                     prefs.getBoolean(source.key("whole"), false),
-                    prefs.getBoolean(source.key("sideways"), false),
+                    // Missing (SW3, a part from before 0.8.0 or untouched by the pill): the switch's default.
+                    source.key("sideways").takeIf(prefs::contains)?.let { prefs.getBoolean(it, false) },
                 )
             }
         }.toMap()
@@ -1660,7 +1684,8 @@ class Store(private val context: Context) {
     private fun set(picture: Picture, screens: Set<Screen>, stored: Stored): String {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
         val part = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
-        return setFile(file, screens, part?.position ?: 0.5f, part?.whole == true, part?.sideways == true, factor = null)
+        val sideways = picture is Picture.Of && turnsSideways(picture.source, part)
+        return setFile(file, screens, part?.position ?: 0.5f, part?.whole == true, sideways, factor = null)
     }
 
     /**
@@ -1893,6 +1918,20 @@ private fun decodeUpright(file: File, screen: Size): Bitmap =
 
 /** The MIME type of a decodable image, e.g. `image/jpeg`, or null. */
 private fun imageType(file: File): String? = imageBounds(file)?.outMimeType
+
+/**
+ * The size of a decodable image as it's drawn, upright (SW3): [imageBounds] with width and height
+ * swapped when its EXIF orientation transposes it (5 to 8, a camera photo turned a quarter), as
+ * `ImageDecoder` decodes it; null when it isn't one. The one size for the sideways rule ([Store.turnsSideways]).
+ */
+@SuppressLint("ExifInterface") // Its security bugs were in Android 7.0 and older; minSdk is 29.
+fun uprightSize(file: File): Size? {
+    val bounds = imageBounds(file) ?: return null
+    val transposed = runCatching {
+        android.media.ExifInterface(file).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, 1) in 5..8
+    }.getOrDefault(false)
+    return if (transposed) Size(bounds.outHeight, bounds.outWidth) else Size(bounds.outWidth, bounds.outHeight)
+}
 
 /** Size and MIME type of a decodable image (`outWidth`, `outHeight`, `outMimeType`), or null. */
 fun imageBounds(file: File): BitmapFactory.Options? {

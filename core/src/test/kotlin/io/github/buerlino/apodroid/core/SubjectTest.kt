@@ -30,9 +30,35 @@ class SubjectTest {
         return Triple(px, cw, ch)
     }
 
-    private fun position(w: Int, h: Int, fx: Double, fy: Double, sideways: Boolean = false): Float {
+    private fun position(w: Int, h: Int, fx: Double, fy: Double): Float {
         val (px, cw, ch) = disc(w, h, fx, fy)
-        return subjectPosition(px, cw, ch, w, h, sw, sh, sideways)
+        return subjectPosition(px, cw, ch, w, h, sw, sh)
+    }
+
+    /**
+     * The sideways position of a [w]×[h] picture, decoded at a tenth of its size, black with a
+     * white disc at ([fx], [fy]) of its width and height ([sidewaysSubjectPosition]).
+     */
+    private fun sidewaysPosition(w: Int, h: Int, fx: Double, fy: Double): Float {
+        val dw = w / 10
+        val dh = h / 10
+        val r = minOf(dw, dh) * 0.08
+        val px = IntArray(dw * dh) { i ->
+            val x = i % dw + 0.5 - fx * dw
+            val y = i / dw + 0.5 - fy * dh
+            if (x * x + y * y <= r * r) grey(255) else grey(0)
+        }
+        return sidewaysSubjectPosition(px, dw, dh, w, h, sw, sh)
+    }
+
+    @Test
+    fun turnClockwisePutsTheTopAtTheRight() {
+        // 3×2:  a b c      turned 2×3:  d a
+        //       d e f                   e b
+        //                               f c
+        val (a, b, c, d, e) = listOf(1, 2, 3, 4, 5)
+        val f = 6
+        assertArrayEquals(intArrayOf(d, a, e, b, f, c), turnClockwise(intArrayOf(a, b, c, d, e, f), 3, 2))
     }
 
     @Test
@@ -100,7 +126,7 @@ class SubjectTest {
     fun aFlatPictureIsTheMiddle() {
         val (cw, ch) = subjectCopySize(3000, 1000, sw, sh)
         for (v in listOf(0, 128, 255)) {
-            assertEquals(0.5f, subjectPosition(IntArray(cw * ch) { grey(v) }, cw, ch, 3000, 1000, sw, sh, false))
+            assertEquals(0.5f, subjectPosition(IntArray(cw * ch) { grey(v) }, cw, ch, 3000, 1000, sw, sh))
         }
     }
 
@@ -108,7 +134,7 @@ class SubjectTest {
     fun aPictureNoWiderThanTheFrameIsTheMiddle() {
         // The screen's own shape: the frame is the whole picture.
         val (px, cw, ch) = disc(1080, 2408, 0.5, 0.1)
-        assertEquals(0.5f, subjectPosition(px, cw, ch, 1080, 2408, sw, sh, false))
+        assertEquals(0.5f, subjectPosition(px, cw, ch, 1080, 2408, sw, sh))
     }
 
     @Test
@@ -181,13 +207,13 @@ class SubjectTest {
         val w = 3000
         val h = 2000
         val up = position(w, h, 0.5, 0.88)
-        val side = position(w, h, 0.5, 0.88, sideways = true)
+        val side = sidewaysPosition(w, h, 0.5, 0.88)
         assertEquals(0.5f, up, 0.05f)
         assertTrue("sideways $side", side < 0.2f)
         assertTrue(holds(sidewaysFrame(w, h, sw, sh, side), w * 0.5, h * 0.88))
         assertTrue(!holds(sidewaysFrame(w, h, sw, sh, 1 - side), w * 0.5, h * 0.88))
         // Near the top: the top band.
-        val top = position(w, h, 0.5, 0.12, sideways = true)
+        val top = sidewaysPosition(w, h, 0.5, 0.12)
         assertTrue("top $top", top > 0.8f)
         assertTrue(holds(sidewaysFrame(w, h, sw, sh, top), w * 0.5, h * 0.12))
     }
@@ -199,7 +225,7 @@ class SubjectTest {
         val w = 6000
         val h = 1000
         for (fx in listOf(0.1, 0.5, 0.9)) {
-            val p = position(w, h, fx, 0.5, sideways = true)
+            val p = sidewaysPosition(w, h, fx, 0.5)
             assertTrue("fx $fx: $p", abs(p - fx) < 0.12)
             assertTrue("fx $fx", holds(sidewaysFrame(w, h, sw, sh, p), w * fx, h * 0.5))
         }
@@ -244,7 +270,10 @@ class SubjectTest {
         assertTrue("off by more than 0.1: $far", far.isEmpty())
     }
 
-    private fun desktopPosition(f: File): Double {
+    /** [f] decoded by ImageIO, subsampled as the app's `noteSubject` decodes: the picture's size, the decoded pixels and their size. */
+    private class Decoded(val w: Int, val h: Int, val argb: IntArray, val dw: Int, val dh: Int)
+
+    private fun decode(f: File): Decoded {
         ImageIO.createImageInputStream(f).use { input ->
             val reader = ImageIO.getImageReaders(input).next()
             try {
@@ -265,12 +294,59 @@ class SubjectTest {
                     val o = i * bands
                     if (bands < 3) grey(s[o]) else rgb(s[o], s[o + 1], s[o + 2])
                 }
-                val (cw, ch) = subjectCopySize(w, h, sw, sh)
-                val copy = boxResize(argb, dw, dh, cw, ch)
-                return subjectPosition(copy, cw, ch, w, h, sw, sh, false).toDouble()
+                return Decoded(w, h, argb, dw, dh)
             } finally {
                 reader.dispose()
             }
         }
+    }
+
+    private fun desktopPosition(f: File): Double {
+        val d = decode(f)
+        val (cw, ch) = subjectCopySize(d.w, d.h, sw, sh)
+        val copy = boxResize(d.argb, d.dw, d.dh, cw, ch)
+        return subjectPosition(copy, cw, ch, d.w, d.h, sw, sh).toDouble()
+    }
+
+    /**
+     * SA3c: the sideways positions against `private/sa0/positions-sideways.csv` (`sideways.py`:
+     * each landscape picture of `private/pictures/` and `private/pictures-oct-nov/` turned
+     * clockwise by Pillow and measured as its own picture, compute.py's functions unchanged), by
+     * the app's own path ([sidewaysSubjectPosition] on the decoded pixels): 95% within 0.03, and
+     * none off by more than 0.1 where the frame leaves 10% or more of the turned picture to move
+     * in (where it covers 90% or more, one step of the position is a third or more: printed).
+     */
+    @Test
+    fun matchesTheDesktopsSidewaysPositions() {
+        val root = File("../private")
+        val dirs = listOf(File(root, "pictures"), File(root, "pictures-oct-nov"))
+        val csv = File(root, "sa0/positions-sideways.csv")
+        assumeTrue(dirs.all { it.isDirectory } && csv.isFile)
+        val lines = csv.readLines().map { it.trimEnd('\r') }.filter { it.isNotEmpty() }
+        val head = lines.first().split(",")
+        val (cDate, cW, cH) = listOf("date", "w", "h").map { head.indexOf(it) }
+        val cFrac = head.indexOf("turned_frame_frac")
+        val cWant = head.indexOf("sideways_pull")
+        var within = 0
+        val misses = mutableListOf<String>()
+        val far = mutableListOf<String>()
+        val tight = mutableListOf<String>()
+        val rows = lines.drop(1).map { it.split(",") }
+        for (r in rows) {
+            val date = r[cDate]
+            val f = dirs.map { File(it, "$date.img") }.firstOrNull { it.isFile } ?: error("$date: no picture")
+            val d = decode(f)
+            assertEquals("$date's size", r[cW].toInt() to r[cH].toInt(), d.w to d.h)
+            val got = sidewaysSubjectPosition(d.argb, d.dw, d.dh, d.w, d.h, sw, sh).toDouble()
+            val want = r[cWant].toDouble()
+            val diff = abs(got - want)
+            val line = "$date %.4f vs %.4f".format(got, want)
+            if (diff <= 0.03) within++ else misses += line
+            if (1 - r[cFrac].toDouble() < 0.1) tight += "$line (frame ${r[cFrac]})"
+            else if (diff > 0.1) far += line
+        }
+        println("Sideways subject positions: ${rows.size} pictures, $within within 0.03; misses: $misses; frame 90% or more: $tight")
+        assertTrue("within 0.03: $within of ${rows.size}; misses $misses", within >= 0.95 * rows.size)
+        assertTrue("off by more than 0.1: $far", far.isEmpty())
     }
 }

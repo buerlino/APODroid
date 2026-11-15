@@ -831,7 +831,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (`ImageDecoder`, EXIF turned; `setTargetSampleSize`, the largest power of 2 keeping the
   shorter side at least 512 px, as SA2's test; software), its pixels `boxResize`d to
   `subjectCopySize`, then `:core`'s `subjectPosition` upright and, for a landscape picture
-  (`sidewaysHelps`), sideways, by the screen's portrait size; noted in one edit as
+  (`sidewaysHelps`), sideways (SA3c: `sidewaysSubjectPosition`, the same decoded pixels turned
+  clockwise, their own copy and map, as SA0's method on the turned picture), by the screen's
+  portrait size; noted in one edit as
   `<source>.subjectDate`, `subjectUrl`, `subjectPosition`, `subjectSideways`. A failure (out of
   memory too) is noted without positions (not tried again for that post) and never fails the
   refresh. Logged `Subject: APOD 2026-11-16 p=0.78 (sideways 0.50) in <n> ms` or `Subject:
@@ -2056,9 +2058,21 @@ and clipped to 0–1, only shifted when that percentile is 0. **The position:** 
 (or row) sums along the frame's moving direction, the frame's length its share of the original
 picture's, the window with the largest sum, an edge frame needing 10% more than the middle
 (score = sum ÷ the middle's − 0.10·(2(p − 0.5))²; the first maximum; the middle frame empty:
-the largest without the pull; a frame as large as the picture or an empty map: 0.5). Sideways:
-the copy turned clockwise and measured as an upright picture of h × w, so it agrees with
-`sidewaysFrame` (a panorama's turned strip too). Checked on the desktop's pictures (the 253 of
+the largest without the pull; a frame as large as the picture or an empty map: 0.5). Sideways
+(SA3c, 2026-11-15, the user's "redo" of SA3a's night default, which turned the upright copy's
+map and so kept its scale: 128×192 for a 3:2 picture where the turned one's own copy is
+85×128, and the blur radii follow the copy's sides): the picture turned 90° clockwise (PIL's
+`transpose(ROTATE_270)`, its top to the right) is a picture of its own, h × w, with its own
+`subjectCopySize`, its own BOX copy (turned first, then resized, PIL's order), its own map and
+position with the pull (`sidewaysSubjectPosition`, from the decoded pixels `noteSubject`
+already holds, no second decode); `sidewaysFrame` is `wallpaperFrame` of the turned picture,
+so the position is its band's directly (a panorama's turned strip too). Checked against
+`private/sa0/positions-sideways.csv` (`sideways.py`, compute.py's functions unchanged; 172
+landscape pictures of `private/pictures/` and `pictures-oct-nov/`): 170 within 0.03, the two
+misses one step of the position (2026-02-12 0.43 for 0.50, 2026-04-24 0.63 for 0.67); the four
+where the frame covers 90% or more of the turned picture exact. Against SA3a's turned map two
+differ by more than 0.1: 2026-01-26 (frame 99.6%) 0.00 → 0.50, 2026-06-01 (95%) 0.50 → 0.67.
+Checked on the desktop's pictures (the 253 of
 `private/pictures/` and round 2's from 2 Oct, decoded by ImageIO subsampled to at least 512 px):
 294 of 295 within 0.03 of compute.py's, the one miss 0.032 (2026-04-27); on Pillow's own copies
 the map agrees to 1e-15 and the positions exactly (10 pictures, by hand). **Built** (SA3a,

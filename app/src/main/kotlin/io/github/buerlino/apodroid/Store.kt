@@ -46,6 +46,7 @@ import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
 import io.github.buerlino.apodroid.core.Size as Sizing
 import io.github.buerlino.apodroid.core.livePosition
+import io.github.buerlino.apodroid.core.equalColumns
 import io.github.buerlino.apodroid.core.handOverWaits
 import io.github.buerlino.apodroid.core.lockFollowsHome
 import io.github.buerlino.apodroid.core.lostLive
@@ -435,7 +436,7 @@ class Store(private val context: Context) {
         val picture = showing.values.firstOrNull() ?: return emptySet()
         // Live (L5): a screen the engine shows gets the copy again (a changed whole picture), not a still set.
         val live = liveState()
-        val split = stillOrLive(size, live.home, live.shared, columns[Screen.HOME].orEmpty().isNotEmpty(), record(Screen.HOME)?.picture, listOf(picture to showing.keys))
+        val split = stillOrLive(size, live.home, live.shared, columns, record(Screen.HOME)?.picture, listOf(picture to showing.keys))
         for ((still, screens) in split.still) {
             val darker = set(still, screens, stored)
             Log.i("APODroid", "Part: wallpaper set: $still on ${screens.joinToString("+")}$darker")
@@ -1032,8 +1033,8 @@ class Store(private val context: Context) {
      * forgotten (`:core`'s [lostLive]; home's loss forgets both, Decision 12), so it's due again
      * and gets Fill in this run. Then, while home is live ([liveOn]), home's set is the engine's
      * hand-over ([copyForLive]: Live's copy, no `WallpaperManager` call, the record noted live
-     * and `wallpaperSetAt` as after a set), and the lock screen's too while shared and due home's
-     * picture; else the lock screen's still set with `FLAG_LOCK`, before home's hand-over
+     * and `wallpaperSetAt` as after a set), and the lock screen's too while shared, with equal
+     * columns (B28) and due home's picture; else the lock screen's still set with `FLAG_LOCK`, before home's hand-over
      * (`:core`'s [stillOrLive], Decision 10). A still set removes the live note.
      */
     private fun setDue(pull: Boolean, setAsked: Boolean, stopped: () -> Boolean): Triple<String?, Exception?, Boolean> = synchronized(wallpaperLock) {
@@ -1070,27 +1071,28 @@ class Store(private val context: Context) {
         )
         if (unnotedLive.isNotEmpty()) Log.i("APODroid", "Live: the engine is on ${unnotedLive.joinToString("+")}, not noted live")
         var records = lost.forgetting(records()).mapValues { (screen, record) -> if (screen in unnotedLive) record.forget() else record }
-        val homeColumn = columns[Screen.HOME].orEmpty().isNotEmpty()
         fun plan(records: Map<Screen, Record>) = lost.onPlan(dueWallpapers(columns, records, stored, setup.pictureTime, ZoneId.systemDefault(), now, pull, soon = setup.soon, rotation = rotation), records)
-        fun split(plan: Plan) = stillOrLive(setup.size, live.home, live.shared, homeColumn, plan.screens[Screen.HOME]?.record?.picture ?: records[Screen.HOME]?.picture, plan.sets)
+        fun split(plan: Plan) = stillOrLive(setup.size, live.home, live.shared, columns, plan.screens[Screen.HOME]?.record?.picture ?: records[Screen.HOME]?.picture, plan.sets)
         var plan = plan(records)
         // L6: home's hand-over would show its new picture on a lock screen the engine covers that
-        // isn't due it: the lock screen forgotten and planned again (`:core`'s lockFollowsHome).
+        // isn't due it, or (B28) the engine covers a lock screen whose column differs from home's
+        // (one engine, home's pan): the lock screen forgotten and planned again (`:core`'s
+        // lockFollowsHome), so it gets its own still Fill.
         // B27: with nothing of its own even then, it keeps what the engine draws now (Live's copy,
         // else its fallback) by a still set before the hand-over, its record kept. An engine that
         // draws black has nothing to keep: the lock screen follows home.
         val lock = records[Screen.LOCK]
-        val lockColumn = columns[Screen.LOCK].orEmpty().isNotEmpty()
         var keep: File? = null
-        if (lock != null && lockFollowsHome(split(plan), live.shared, lockColumn)) {
+        if (lock != null && lockFollowsHome(split(plan), live.shared, columns)) {
             val forgotten = records + (Screen.LOCK to lock.forget())
             val again = plan(forgotten)
             val drawn = liveFile.takeIf { it.exists() } ?: liveFallback()
-            if (drawn != null && lockFollowsHome(split(again), live.shared, lockColumn)) {
-                Log.i("APODroid", "Live: home's new picture would show on the lock screen, which has nothing of its own: it keeps ${if (drawn == liveFile) livePicture else drawn.name}")
+            val why = if (equalColumns(columns)) "home's new picture would show on the lock screen" else "the engine covers the lock screen, whose column differs from home's"
+            if (drawn != null && lockFollowsHome(split(again), live.shared, columns)) {
+                Log.i("APODroid", "Live: $why, which has nothing of its own: it keeps ${if (drawn == liveFile) livePicture else drawn.name}")
                 keep = drawn
             } else {
-                Log.i("APODroid", "Live: home's new picture would show on the lock screen, its own again")
+                Log.i("APODroid", "Live: $why, its own again")
                 records = forgotten
                 plan = again
             }
@@ -1105,7 +1107,7 @@ class Store(private val context: Context) {
             }
         }
         // Size Live while the picker put APODroid's engine on home: home's set goes to the engine,
-        // the lock screen's too while shared and due home's picture, else still (`:core`'s
+        // the lock screen's too while shared, with equal columns and due home's picture, else still (`:core`'s
         // stillOrLive), the lock screen's still set first.
         val split = split(plan)
         val steps = split.still.map { it to false } + listOfNotNull(split.engine?.let { it to true })

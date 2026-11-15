@@ -459,12 +459,13 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
      * noted live). As [Phone.check] otherwise: the records without a set written at once, each
      * set's after it; a failed set leaves them (and their live notes).
      * 14. With Size Live a still set never goes to home while home is live, and to the lock screen
-     * only when its picture differs from home's or the engine doesn't cover it (while home has a
-     * column, T1: without one nothing goes to the engine).
+     * only when its picture differs from home's, the engine doesn't cover it or the columns differ
+     * (B28; while home has a column, T1: without one nothing goes to the engine).
      * 15. Nothing is handed to the engine while home isn't live, nor with Size Fill.
      * 16. A screen noted live that lost Live is due again in the same run (both when home lost it,
      * the lock screen with a column); after the run a screen noted live shows the engine (but
-     * one whose set failed; on the lock screen a stray counts, T1).
+     * one whose set failed; on the lock screen a stray counts, T1), and the lock screen with a column
+     * is noted live only with equal columns (B28).
      */
     private fun liveCheck(now: Instant, pull: Boolean, stored: Stored) {
         val lockColumn = columns[LOCK].orEmpty().isNotEmpty()
@@ -476,20 +477,20 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         var view = lost.forgetting(records).mapValues { (screen, record) -> if (screen in unnoted) record.forget() else record }
         fun plan() = lost.onPlan(dueWallpapers(columns, view, stored, time, zone, now, pull, soon, rotation), view)
         fun split(plan: Plan) =
-            stillOrLive(size, homeLive, shared, columns[HOME].orEmpty().isNotEmpty(), plan.screens[HOME]?.record?.picture ?: view[HOME]?.picture, plan.sets)
+            stillOrLive(size, homeLive, shared, columns, plan.screens[HOME]?.record?.picture ?: view[HOME]?.picture, plan.sets)
         var plan = plan()
         val lock = view[LOCK]
         // B27: with nothing of its own even when forgotten, the lock screen keeps what the engine shows (Live's copy), as a still set before the hand-over.
         var keepCopy: Picture? = null
         // B27's night default: an engine that draws black (no copy, no fallback) has nothing to keep; the lock screen follows home.
         var black = false
-        if (lock != null && lockFollowsHome(split(plan), shared, lockColumn)) {
+        if (lock != null && lockFollowsHome(split(plan), shared, columns)) {
             val forgotten = view + (LOCK to lock.forget())
             val again = lost.onPlan(dueWallpapers(columns, forgotten, stored, time, zone, now, pull, soon, rotation), forgotten)
             // What the engine draws now: its copy, else Store.liveFallback's (home's column's first source in the list's order, else APOD's stored picture).
             val drawn = copy ?: listOfNotNull(rotation.order.firstOrNull { it in columns[HOME].orEmpty() }, Source.APOD)
                 .firstNotNullOfOrNull { s -> stored.picture(s)?.takeIf { it is Picture.Of && it.source == s } }
-            if (drawn != null && lockFollowsHome(split(again), shared, lockColumn)) {
+            if (drawn != null && lockFollowsHome(split(again), shared, columns)) {
                 note(now, "home's hand-over would change the lock screen, which has nothing of its own: it keeps ${drawn.label()}")
                 keepCopy = drawn
             } else {
@@ -519,7 +520,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         val homePicture = plan.screens[HOME]?.record?.picture ?: view[HOME]?.picture
         val split = split(plan)
         checked[16]++
-        if (keepCopy == null && !black && lockFollowsHome(split, shared, lockColumn)) fail(now, 16, "home's hand-over changes the lock screen, which isn't due it")
+        if (keepCopy == null && !black && lockFollowsHome(split, shared, columns)) fail(now, 16, "home's hand-over changes the lock screen, which isn't due it")
         // Store.setDue reads Live's state once, before the sets (L6f1's handOverWaits by it).
         val sharedBefore = shared
         val failedStill = mutableListOf<Set<Screen>>()
@@ -541,7 +542,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
                 checked[14]++
                 if (HOME in screens) fail(now, 14, "a still set of ${picture.label()} on home, which is live")
                 // T1: only while home has a column (Live is home's; with none nothing goes to the engine, the lock screen is Fill).
-                if (shared && LOCK in screens && picture == homePicture && columns[HOME].orEmpty().isNotEmpty()) fail(now, 14, "a still set of home's ${picture.label()} on the lock screen the engine covers")
+                if (shared && LOCK in screens && picture == homePicture && equalColumns()) fail(now, 14, "a still set of home's ${picture.label()} on the lock screen the engine covers")
             }
             if (setFails(picture, screens, now)) {
                 failedStill += screens
@@ -578,6 +579,9 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             // T1: a still set on home alone moves a shared engine to the lock screen (M0, a stray): still the engine.
             val engine = if (screen == HOME) homeLive else homeLive && shared || stray
             if (!engine) fail(now, 16, "$screen noted live, but the engine isn't on it")
+            // B28: the one engine pans by home's turns, so it covers a lock screen with a column only with equal columns
+            // (one without a column is left alone: it has no turns of its own).
+            if (screen == LOCK && lockColumn && !equalColumns() && !black) fail(now, 16, "the lock screen noted live with a column other than home's")
         }
     }
 

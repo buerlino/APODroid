@@ -25,7 +25,7 @@ packages unattended): `night.md`.
   responses in `private/` (`latest.json`, `last100.json`, `iotd-feed-2026-10-16.xml`,
   `eo-last40-2026-10-16.json`).
   `core/.../Frame.kt`: `wallpaperFrame`, the part of the picture the wallpaper shows, which is
-  also the crop hint, and `fitFrame`, where the whole picture goes on the screen (F1's Fit; ⛶'s whole picture since A3)
+  also the crop hint, and `fitFrame`, where the whole picture goes on the screen (F1's Fit; ⛶'s whole picture since A3), and `sidewaysFrame`, the band of the upright picture a clockwise-turned one shows (SW1)
   (tests in `FrameTest`; a hint widened for landscape was tried and dropped, `CLAUDE.md`,
   Wallpaper).
   `core/.../Background.kt` (0.6.0, A1): the background behind a whole picture: `edgesBlack`

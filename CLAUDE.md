@@ -950,6 +950,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   Set from open crop mode stores it too, per source for that post only, as the part. The toggle
   shows in `tertiary` while it differs from the stored one (until ✓); screen readers: "Whole
   picture", a switch, "On"/"Off" with ", not set yet" while it differs.
+  **Sideways** (0.8.0, `sideways-0.8.0.md`): `:core`'s `sidewaysFrame` (the band of the upright picture a clockwise-turned one shows; position 0 the bottom band) is built, the page in SW2.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title. The one exception is Keep running's (O11, Background update): a
   foreground service must have one; the permission is still never asked, so on Android 13+ it

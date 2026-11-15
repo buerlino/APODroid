@@ -66,4 +66,43 @@ class FrameTest {
         // 1 000 000 · 2484 is past Int.MAX_VALUE; 1000 · 1116 / 1 000 000 rounds down to 1 px.
         assertEquals(Frame(0, 1241, 1116, 1242), fit(1_000_000, 1000))
     }
+
+    @Test
+    fun sidewaysFrameOfNov9sPicture() {
+        // Turned: 2408×3630; the frame is 3630 · 1116 / 2484 = 1630 wide, sliding 778 px.
+        fun f(p: Float) = sidewaysFrame(3630, 2408, 1116, 2484, p)
+        assertEquals(Frame(0, 778, 3630, 2408), f(0f))
+        assertEquals(Frame(0, 389, 3630, 2019), f(0.5f))
+        assertEquals(Frame(0, 0, 3630, 1630), f(1f))
+    }
+
+    @Test
+    fun sidewaysFrameMapsBackToTheTurnedFrame() {
+        for ((w, h) in listOf(3630 to 2408, 1280 to 854, 6000 to 1000, 500 to 500, 400 to 1200, 5000 to 5000)) {
+            for (p in listOf(0f, 0.13f, 0.5f, 0.77f, 1f)) {
+                val b = sidewaysFrame(w, h, 1116, 2484, p)
+                val t = wallpaperFrame(h, w, 1116, 2484, p)
+                // Turned clockwise: upright (x, y) goes to (h - y, x).
+                assertEquals(Frame(h - b.bottom, b.left, h - b.top, b.right), t, "$w×$h at $p")
+            }
+        }
+    }
+
+    @Test
+    fun sidewaysFrameOnAPanoramaIsAStripOfColumns() {
+        // Turned 1000×6000 is taller than the screen: 1000 · 2484 / 1116 = 2225 high, sliding 3775.
+        assertEquals(Frame(0, 0, 2225, 1000), sidewaysFrame(6000, 1000, 1116, 2484, 0f))
+        assertEquals(Frame(3775, 0, 6000, 1000), sidewaysFrame(6000, 1000, 1116, 2484, 1f))
+    }
+
+    @Test
+    fun sidewaysFrameOfASquareAndRounding() {
+        // Turned square: fills its height... 500 · 1116 / 2484 = 224 wide.
+        assertEquals(Frame(0, 276, 500, 500), sidewaysFrame(500, 500, 1116, 2484, 0f))
+        for (p in listOf(0f, 0.3f, 0.999f, 1f)) for (w in 1000..1040 step 7) for (h in 700..740 step 5) {
+            val b = sidewaysFrame(w, h, 1116, 2484, p)
+            assert(b.left >= 0 && b.top >= 0 && b.right <= w && b.bottom <= h && b.right > b.left && b.bottom > b.top) { "$w×$h $p $b" }
+        }
+        assert(sidewaysHelps(3630, 2408) && !sidewaysHelps(500, 500) && !sidewaysHelps(400, 1200))
+    }
 }

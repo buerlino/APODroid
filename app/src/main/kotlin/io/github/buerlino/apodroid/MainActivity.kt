@@ -166,6 +166,7 @@ import io.github.buerlino.apodroid.core.pictureAtOrDefault
 import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
+import io.github.buerlino.apodroid.core.sidewaysHelps
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -353,6 +354,9 @@ class MainActivity : ComponentActivity() {
 
     /** Crop mode's "Whole picture" toggle (A4): ✓ keeps it in the draft with the part, Back drops it. */
     private var cropWhole by mutableStateOf(false)
+
+    /** Crop mode's "Sideways" toggle (SW2, issue #4): the picture turned 90° clockwise; ✓ saves and sets it, Back drops it. */
+    private var cropSideways by mutableStateOf(false)
 
     /** The clock ⛶'s Live frame follows (L7): moved on by a minute tick while it's open. */
     private var liveNow by mutableStateOf(Instant.now())
@@ -1351,9 +1355,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Crop mode closes; the frame's place and the "Whole picture" toggle are [post]'s part in the draft. */
+    /** Crop mode closes; the frame's place and the "Whole picture" and "Sideways" toggles are [post]'s part in the draft. */
     private fun keepPart(post: Post) {
-        parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition, cropWhole))
+        parts = parts + (post.source to Part(post.date, post.imageUrl, cropPosition, cropWhole, cropSideways))
         cropping = false
     }
 
@@ -1370,7 +1374,9 @@ class MainActivity : ComponentActivity() {
         keepPart(post)
         val part = parts.getValue(post.source)
         val saved = stored.parts.forPost(post)
-        if (part.position == (saved?.position ?: 0.5f) && part.whole == (saved?.whole == true) && part != failedPart) return
+        if (part.position == (saved?.position ?: 0.5f) && part.whole == (saved?.whole == true) &&
+            part.sideways == (saved?.sideways == true) && part != failedPart
+        ) return
         store.savePart(post.source, part)
         readStatus()
         val store = store
@@ -1393,11 +1399,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** ⛶: crop mode opens on [post]'s draft part and whole picture: the middle, not whole, unless ✓ noted one for this post. */
+    /** ⛶: crop mode opens on [post]'s draft part, whole picture and sideways: the middle, upright, not whole, unless ✓ noted one for this post. */
     private fun startCrop(post: Post) {
         val part = parts.forPost(post)
         cropPosition = part?.position ?: 0.5f
         cropWhole = part?.whole == true
+        cropSideways = part?.sideways == true
         cropping = true
     }
 
@@ -1583,7 +1590,7 @@ class MainActivity : ComponentActivity() {
                     .then(
                         when {
                             crop && cropWhole -> Modifier
-                            live -> Modifier.shadeFrame(picture) { livePreviewPosition() }
+                            live -> Modifier.shadeFrame(picture, cropSideways) { livePreviewPosition() }
                             crop -> Modifier.cropFrame(picture, post)
                             else -> Modifier.clickable { openPage(post.pageUrl) }
                         },
@@ -1591,7 +1598,7 @@ class MainActivity : ComponentActivity() {
                 contentScale = ContentScale.FillWidth,
             )
             // "Whole picture" on (L7): the screen-shaped preview in the picture's place, as the wallpaper draws it.
-            if (crop && cropWhole) WholePreview(source, picture, Modifier.matchParentSize())
+            if (crop && cropWhole) WholePreview(source, picture, cropSideways, Modifier.matchParentSize())
             // Not over the crop frame.
             if (chip != null && !crop) {
                 Text(
@@ -1622,6 +1629,26 @@ class MainActivity : ComponentActivity() {
                             stateDescription = (if (cropWhole) "On" else "Off") + if (wholeChanged) ", not set yet" else ""
                         },
                     color = if (wholeChanged) MaterialTheme.colorScheme.tertiary else Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            // Crop mode's "Sideways" (SW2), at the top right: only a landscape picture gains by the turn.
+            if (crop && sidewaysHelps(picture.width, picture.height)) {
+                val sidewaysChanged = cropSideways != (stored.parts.forPost(post)?.sideways == true)
+                Text(
+                    (if (cropSideways) "✓ " else "") + "Sideways",
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.4f))
+                        .toggleable(cropSideways, role = Role.Switch) { cropSideways = it }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clearAndSetSemantics {
+                            contentDescription = "Sideways"
+                            stateDescription = (if (cropSideways) "On" else "Off") + if (sidewaysChanged) ", not set yet" else ""
+                        },
+                    color = if (sidewaysChanged) MaterialTheme.colorScheme.tertiary else Color.White,
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
@@ -1868,17 +1895,18 @@ class MainActivity : ComponentActivity() {
      * page doesn't move). Drawn off the main thread, again when the page's [picture] changes;
      * a spinner meanwhile, the picture alone when it fails. Darkened as the wallpaper will be
      * (BR3) while the draft's "Darken bright pictures" is on: its top third measured as drawn,
-     * `:core`'s [darkening] (the page's picture itself stays as it is).
+     * `:core`'s [darkening] (the page's picture itself stays as it is). [sideways] (SW2): drawn
+     * turned 90° clockwise, as the set will.
      */
     @Composable
-    private fun WholePreview(source: Source, picture: ImageBitmap, modifier: Modifier) {
+    private fun WholePreview(source: Source, picture: ImageBitmap, sideways: Boolean, modifier: Modifier) {
         val file = store.imageFile(source)
         val screen = screen
         val darken = darken
-        val preview by produceState<ImageBitmap?>(null, picture, darken) {
+        val preview by produceState<ImageBitmap?>(null, picture, darken, sideways) {
             val drawn = withContext(Dispatchers.IO) {
                 runCatching {
-                    val whole = wholePicture(file, screen)
+                    val whole = wholePicture(file, screen, sideways)
                     val factor = if (darken) darkening(topThirdGrey(whole)) else 1f
                     if (factor < 1f) darkened(whole, factor) else whole
                 }
@@ -1902,11 +1930,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Dims what the wallpaper leaves out of [picture] at the frame's [position] (0–1), framed in white. */
-    private fun Modifier.shadeFrame(picture: ImageBitmap, position: () -> Float): Modifier = drawWithContent {
+    /**
+     * Dims what the wallpaper leaves out of [picture] at the frame's [position] (0–1), framed in
+     * white; [sideways] (SW2): the band the turned picture shows ([pictureFrame]), on the page's
+     * upright picture.
+     */
+    private fun Modifier.shadeFrame(picture: ImageBitmap, sideways: Boolean, position: () -> Float): Modifier = drawWithContent {
         drawContent()
         val scale = size.width / picture.width
-        val frame = wallpaperFrame(picture.width, picture.height, screen, position())
+        val frame = pictureFrame(picture.width, picture.height, screen, position(), sideways)
         val topLeft = Offset(frame.left * scale, frame.top * scale)
         val frameSize = Size(frame.width() * scale, frame.height() * scale)
         clipRect(topLeft.x, topLeft.y, topLeft.x + frameSize.width, topLeft.y + frameSize.height, ClipOp.Difference) {
@@ -1917,12 +1949,18 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Dims what the wallpaper leaves out; dragging moves the frame along the picture's longer
-     * side (relative to the screen's shape), the other drags still scroll the page.
+     * side (relative to the screen's shape), the other drags still scroll the page. Sideways
+     * (SW2): the band across the picture, dragged up and down; position 0 is the bottom band, so
+     * a drag down lowers it.
      */
     private fun Modifier.cropFrame(picture: ImageBitmap, post: Post): Modifier {
-        val full = wallpaperFrame(picture.width, picture.height, screen, 0f)
+        val sideways = cropSideways
+        val full = pictureFrame(picture.width, picture.height, screen, 0f, sideways)
+        val end = pictureFrame(picture.width, picture.height, screen, 1f, sideways)
         val horizontal = full.width() < picture.width
-        return shadeFrame(picture) { cropPosition }.pointerInput(picture, post) {
+        // +1 when the frame moves right or down as the position grows, -1 the other way.
+        val sign = if ((if (horizontal) end.left - full.left else end.top - full.top) < 0) -1f else 1f
+        return shadeFrame(picture, sideways) { cropPosition }.pointerInput(picture, post, sideways) {
             // The distance the frame can travel, in pixels on the page.
             val travel = if (horizontal) {
                 size.width * (1 - full.width().toFloat() / picture.width)
@@ -1930,7 +1968,7 @@ class MainActivity : ComponentActivity() {
                 size.height * (1 - full.height().toFloat() / picture.height)
             }
             if (travel <= 0f) return@pointerInput
-            val move = { delta: Float -> cropPosition = (cropPosition + delta / travel).coerceIn(0f, 1f) }
+            val move = { delta: Float -> cropPosition = (cropPosition + sign * delta / travel).coerceIn(0f, 1f) }
             if (horizontal) {
                 detectHorizontalDragGestures { change, delta -> change.consume(); move(delta) }
             } else {
@@ -2781,7 +2819,7 @@ private fun Setup.toBundle() = Bundle().apply {
     putBoolean("darken", darken)
     putString("size", size.name)
     putString("order", order.joinToString(",") { it.name })
-    parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.whole}|${part.url.orEmpty()}") }
+    parts.forEach { (source, part) -> putString("part.${source.name}", "${part.date}|${part.position}|${part.whole}|${part.sideways}|${part.url.orEmpty()}") }
 }
 
 /** [toBundle]'s draft, or null when it can't be read. */
@@ -2801,8 +2839,8 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         size = enumValue<Sizing>(bundle.getString("size")) ?: Sizing.FILL,
         order = orderOf(bundle.getString("order")),
         parts = Source.entries.mapNotNull { source ->
-            bundle.getString("part.${source.name}")?.split('|', limit = 4)?.let { (date, position, whole, url) ->
-                source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict())
+            bundle.getString("part.${source.name}")?.split('|', limit = 5)?.let { (date, position, whole, sideways, url) ->
+                source to Part(LocalDate.parse(date), url.ifEmpty { null }, position.toFloat(), whole.toBooleanStrict(), sideways.toBooleanStrict())
             }
         }.toMap(),
     )

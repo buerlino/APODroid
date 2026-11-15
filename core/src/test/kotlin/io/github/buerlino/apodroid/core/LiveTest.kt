@@ -34,6 +34,18 @@ class LiveTest {
     // The position
 
     @Test
+    fun sizeOfReadsTheStoredNameAndAnUpdatesFillAsAuto() {
+        assertEquals(listOf(Size.CENTRE, Size.AUTO, Size.LIVE), Size.entries.toList())
+        assertEquals(Size.CENTRE, sizeOf("CENTRE"))
+        assertEquals(Size.AUTO, sizeOf("AUTO"))
+        assertEquals(Size.LIVE, sizeOf("LIVE"))
+        // 0.7.0's Fill, nothing stored, anything else: Auto.
+        assertEquals(Size.AUTO, sizeOf("FILL"))
+        assertEquals(Size.AUTO, sizeOf(null))
+        assertEquals(Size.AUTO, sizeOf("live"))
+    }
+
+    @Test
     fun oneSourceCrossesFrom0600To2400ThenStandsStill() {
         assertP(0.0, p("2026-07-01T06:00"))
         assertP(1.0 / 3, p("2026-07-01T12:00"))
@@ -179,8 +191,8 @@ class LiveTest {
 
     @Test
     fun sizeFillSetsEverythingStill() {
-        assertEquals(LiveSets(both), stillOrLive(Size.FILL, homeLive = true, shared = true, columns = equal, homePicture = x, sets = both))
-        assertEquals(LiveSets(apart), stillOrLive(Size.FILL, homeLive = true, shared = false, columns = equal, homePicture = x, sets = apart))
+        assertEquals(LiveSets(both), stillOrLive(Size.AUTO, homeLive = true, shared = true, columns = equal, homePicture = x, sets = both))
+        assertEquals(LiveSets(apart), stillOrLive(Size.AUTO, homeLive = true, shared = false, columns = equal, homePicture = x, sets = apart))
     }
 
     @Test
@@ -374,14 +386,14 @@ class LiveTest {
         val columns = mapOf(HOME to listOf(APOD), LOCK to emptyList())
         val plan = due(columns, emptyMap(), t0 + Duration.ofMinutes(30))
         val home = plan.screens.getValue(HOME).record
-        val followed = sharedLockFollows(plan, Size.FILL, shared = true, lockColumn = false)
+        val followed = sharedLockFollows(plan, Size.AUTO, shared = true, lockColumn = false)
         assertEquals(listOf(home.picture!! to setOf(HOME, LOCK)), followed.sets)
         assertEquals(home, followed.screens.getValue(LOCK).record)
         // Not with Live (home goes to the engine), not unshared, not with a lock column, not without a set for home.
         assertEquals(plan, sharedLockFollows(plan, Size.LIVE, shared = true, lockColumn = false))
-        assertEquals(plan, sharedLockFollows(plan, Size.FILL, shared = false, lockColumn = false))
-        assertEquals(plan, sharedLockFollows(plan, Size.FILL, shared = true, lockColumn = true))
-        assertEquals(Plan(emptyMap()), sharedLockFollows(Plan(emptyMap()), Size.FILL, shared = true, lockColumn = false))
+        assertEquals(plan, sharedLockFollows(plan, Size.AUTO, shared = false, lockColumn = false))
+        assertEquals(plan, sharedLockFollows(plan, Size.AUTO, shared = true, lockColumn = true))
+        assertEquals(Plan(emptyMap()), sharedLockFollows(Plan(emptyMap()), Size.AUTO, shared = true, lockColumn = false))
     }
 
     @Test
@@ -406,9 +418,9 @@ class LiveTest {
 
     @Test
     fun fillNeverOpensThePicker() {
-        assertEquals(PickerTrip.NONE, picker(equal, homeLive = false, size = Size.FILL))
-        assertEquals(PickerTrip.NONE, picker(equal, homeLive = true, size = Size.FILL))
-        assertEquals(PickerTrip.NONE, picker(split, homeLive = false, size = Size.FILL))
+        assertEquals(PickerTrip.NONE, picker(equal, homeLive = false, size = Size.AUTO))
+        assertEquals(PickerTrip.NONE, picker(equal, homeLive = true, size = Size.AUTO))
+        assertEquals(PickerTrip.NONE, picker(split, homeLive = false, size = Size.AUTO))
     }
 
     @Test
@@ -464,7 +476,7 @@ class LiveTest {
         // Noted: nothing.
         assertEquals(emptySet(), unnotedLive(Size.LIVE, homeLive = true, shared = true, homeNoted = true, lockNoted = true, columns = columns))
         // Size Fill, or home not live: nothing (a still set replaces the engine when one is due).
-        assertEquals(emptySet(), unnotedLive(Size.FILL, homeLive = true, shared = true, homeNoted = false, lockNoted = false, columns = columns))
+        assertEquals(emptySet(), unnotedLive(Size.AUTO, homeLive = true, shared = true, homeNoted = false, lockNoted = false, columns = columns))
         assertEquals(emptySet(), unnotedLive(Size.LIVE, homeLive = false, shared = false, homeNoted = false, lockNoted = false, columns = columns))
         // A screen without a column is left alone.
         assertEquals(setOf(HOME), unnotedLive(Size.LIVE, homeLive = true, shared = true, homeNoted = false, lockNoted = false, columns = mapOf(HOME to listOf(APOD), LOCK to emptyList())))

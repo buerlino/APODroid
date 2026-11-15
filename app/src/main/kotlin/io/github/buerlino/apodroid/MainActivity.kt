@@ -153,6 +153,7 @@ import io.github.buerlino.apodroid.core.Problem
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.Source
 import io.github.buerlino.apodroid.core.Size as Sizing
+import io.github.buerlino.apodroid.core.sizeOf
 import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.firstStarted
@@ -300,8 +301,8 @@ class MainActivity : ComponentActivity() {
     /** "Wide pictures sideways" ([Store.wideSideways], SW3): a picture 3:2 or wider goes on sideways unless ⛶ noted otherwise. */
     private var wideSideways by mutableStateOf(false)
 
-    /** Size ([Store.size], L6): Fill, or Live (home's picture moving, drawn by APODroid's live wallpaper). */
-    private var size by mutableStateOf(Sizing.FILL)
+    /** Size ([Store.size], L6, SA3a): Centre, Auto (the frame on the subject), or Live (home's picture moving, drawn by APODroid's live wallpaper). */
+    private var size by mutableStateOf(Sizing.AUTO)
 
     /**
      * The list's order ([Store.order], OR2): all three sources, the top first, sorted by drag.
@@ -2087,7 +2088,7 @@ class MainActivity : ComponentActivity() {
      * Wallpaper: the daily switch (at once, S4f2), under it the status lines while it's on. Then
      * "Setup" (S5), a header that opens and closes the draft's settings (closed: the summary of
      * what is stored): the switch "More NASA pictures" at its top (J3), then in APOD mode
-     * "Where", with the switch on the list ("Pictures from"), then Size [Fill | Live] (L6); while the daily switch is on "New
+     * "Where", with the switch on the list ("Pictures from"), then Size [Centre | Auto | Live] (L6, SA3a); while the daily switch is on "New
      * picture at", then, while a column takes turns, "Change every", and "If APOD is a video".
      * The set button, always. Then, while the daily switch is on, "Advanced settings", closed by
      * default: "Save every picture" (it acts at once). A setting the draft changed and Set
@@ -2887,10 +2888,11 @@ private val Where.label
         Where.BOTH -> "Both"
     }
 
-/** Size's segments (L6). */
+/** Size's segments (L6; SA3a: the user's words, 2026-11-15). */
 private val Sizing.label
     get() = when (this) {
-        Sizing.FILL -> "Fill"
+        Sizing.CENTRE -> "Centre"
+        Sizing.AUTO -> "Auto"
         Sizing.LIVE -> "Live"
     }
 
@@ -2949,7 +2951,7 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         soon = bundle.getBoolean("soon"),
         darken = bundle.getBoolean("darken", true),
         wideSideways = bundle.getBoolean("wideSideways", false),
-        size = enumValue<Sizing>(bundle.getString("size")) ?: Sizing.FILL,
+        size = sizeOf(bundle.getString("size")),
         order = orderOf(bundle.getString("order")),
         parts = Source.entries.mapNotNull { source ->
             bundle.getString("part.${source.name}")?.split('|', limit = 5)?.let { (date, position, whole, sideways, url) ->

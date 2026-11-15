@@ -6,7 +6,7 @@ same day (113 cases). `CLAUDE.md` wins where a map disagrees.
 
 | File | Covers |
 |---|---|
-| [live.md](live.md) | Set × Size [Fill \| Live] × Android's live wallpaper picker; outside the app (Android's own wallpaper settings) |
+| [live.md](live.md) | Set × Size [Centre \| Auto \| Live] (0.7.0's [Fill \| Live]) × Android's live wallpaper picker; outside the app (Android's own wallpaper settings) |
 | [setup.md](setup.md) | Setup's controls, the draft and its highlight, Set's outcomes and toasts, the daily switch |
 | [page.md](page.md) | The page outside Setup: title, swipe, caption, chip, ⛶, ★, pull, the boxes, status lines, rotation, Advanced |
 | [background.md](background.md) | Alarms, job runs, the rules per screen, Live's runs, D, Keep running, the detector, Save every picture |

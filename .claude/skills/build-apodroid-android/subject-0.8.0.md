@@ -142,8 +142,8 @@ questions it depends on.
 |----|------|---------------|-------------|-------|
 | SA0 | The test on the desktop: each method's frame against the user's picks, and a new picking round | Opus, high | a day session, **the user** | 0.7.0 shipped |
 | SA1 | The runtime check, only if a library is still in the race: APK size, F-Droid, reproducible build | Opus, medium | a day session, no device | SA0, the user's answer to 2 |
-| SA2 | `:core`: the map (if by hand), the position from the map, tests | Opus, high | winston, no device | SA0, SA1 |
-| SA3 | `Store`: the position noted once per post, `Store.set` and ⛶ start from it, the setting if any | Opus, high | winston, tablet | SA2 |
+| SA2 | `:core`: the map (if by hand), the position from the map, tests | Opus, high | winston, no device | SA0, the user (SA1 skipped) |
+| SA3 | `Store`: the position noted once per post, `Store.set` and ⛶ start from it | Opus, high | winston, the emulator | SA2, SW3 |
 | SA4 | Tablet pass, then the FP6 with the user | Opus, high | rosie, then a day session with **the user** | SA3 |
 
 ### [ ] SA0. The test on the desktop (Opus, high; a day session with the user)
@@ -166,6 +166,30 @@ pictures from `private/pictures/` and, for NASA and Earth, small copies fetched 
   the numbers; the user answers Open 1–3.
 - **Done when:** the numbers and the user's answers are in this file; the page's link noted.
 
+**SA0's results so far** (2026-11-15 evening, an agent on the desktop; the scripts and outputs
+in the session's scratchpad `sa0/`, the ranking page
+https://claude.ai/code/artifact/ad836ce0-373f-476d-8bc6-935aacaa81c2, private, its database
+collection `ranks`). Every map on a copy 128 px high, summed over the frame's full height; the
+position is the frame with the largest sum; "pull": score = sum ÷ sum(middle) − 0.10·(2(p−0.5))²
+(an edge frame needs 10% more than the middle; set before looking at the picks).
+- **brightest:** grey blurred by a Gaussian of σ = 5% of the short side (no pull; the old page's
+  approximation: within 0.1 of the middle on 55 of the 133 Fill picks; near the middle the
+  picks were 33 : 22, far out 27 : 11, as 2026-10-22's 28 : 21 and 22 : 6).
+- **importance** (the page's "auto"): 0.4 smoothed brightness + 0.4 smoothed Sobel gradient
+  magnitude + 0.2 saturation × value, each normalised to its 99.5th percentile, then σ = 4% of
+  the short side; pull on. Correlates 0.81 with brightest (the same side of the middle 85%).
+- **spectral residual:** not shippable: frames at the picture's edge on 31% (18% with the pull),
+  on single stars and the FFT's wrap-around; with a Hann window a mere centre prior.
+- **Glimpse** (reference, run with ai-edge-litert): input 176×176 RGB, output 22×22; about 39k
+  weights in 12 convolutions with instance norm (hand inference about 200 lines, inferred).
+- **Against the old picks** (only where a method moves the frame ≥ 0.1): every method at about
+  coin-flip agreement (0.43–0.62); mean distance to the picked frame on the 78 picks where the
+  old pair differed: middle 0.107, importance_pull 0.132, glimpse_pull 0.150, brightest 0.219.
+  None beats the middle; the comparison favours it (only middle and brightest were offered).
+- **The ranking** (123 of the 152 pictures; 29 had all three frames the same): blind, 1-2-3,
+  ties for frames that look the same. Decides Open 1: build only if auto ranks above the middle
+  clearly where it moves the frame. Expected (SA0's agent): build nothing, issue #3 to 0.9.0.
+
 ### [ ] SA1. The runtime check (Opus, medium; only if a library is still in the race)
 
 - A throwaway build of the app with the runtime added (`.coord/probe-sa/`, not merged): the
@@ -176,21 +200,44 @@ pictures from `private/pictures/` and, for NASA and Earth, small copies fetched 
 
 ### [ ] SA2. `:core`: the position from the map (Opus, high)
 
-- If by hand: the model's layers in plain Kotlin, its weights read from the asset; tests against
-  the desktop's outputs for a few real pictures (the outputs in `private/`, as the real posts).
-- `subjectPosition(map, w, h, screenW, screenH): Float?`: the frame's place with the largest sum
-  of the map (SA0's pull to the middle), null when the map is flat (nothing stands out: the middle).
+Read first: this file's "How it would fit" and "For the 17 Nov deadline" (and SA0's results
+above), and release-0.8.0.md's "Rules for every 0.8.0 package". Built only if SA0 and the user said so.
+- **No library** for 17 Nov: the map by the method SA0 and the user chose, in plain `:core`
+  Kotlin (the importance map or another no-model one; Glimpse by hand only if the user chose it).
+  The input is an Android-free grey/RGB array of a small copy (`:app`'s `Drawing.kt` decodes it,
+  SA3); SA0's parameters (`sa0/scripts/` in the session's scratchpad are copied into this file's
+  results by the main session) as constants with their reason, as `Background.kt`'s.
+- `subjectPosition(map, w, h, screenW, screenH, sideways): Float?`: the frame's place with the
+  largest sum of the map (SA0's pull to the middle), null when the map is flat (the middle).
+  `sideways`: the map turned clockwise, (h, w), position 0 the original's bottom band, so it
+  agrees with `sidewaysFrame` (Frame.kt) and SW2's band.
+- **Tests:** a map with its peak left, right, in the middle, flat; the pull; sideways against
+  `sidewaysFrame`'s invariant; SA0's numbers for two or three real pictures (`assumeTrue` on
+  `private/pictures/`).
 - **Done when:** the tests pass; `CLAUDE.md` and the skill's "Where things are".
 
-### [ ] SA3. `Store`: the position once per post (Opus, high)
+### [ ] SA3. `Store`: the position once per post, upright and sideways (Opus, high)
 
-- `refresh` notes `<source>.subjectPosition` after a stored download (on a failure nothing);
-  `Store.set` and ⛶'s start (`startCrop`) use it where `forPost` finds no part for that post.
-- The setting, if the user wants one (its text a placeholder until the user approves it).
-- **Tablet:** a picture whose subject is off the middle (from SA0's list, faked into `files/` as
-  the skill says), set by `run -f 1`: the frame on the subject; ⛶ opens there; ✓ elsewhere wins;
-  a new post starts afresh; a broken picture or model gives the middle; the smoke list.
-- **Done when:** the tablet passes.
+Read first: this file's "How it would fit" and "For the 17 Nov deadline", and release-0.8.0.md's "Rules for every 0.8.0 package".
+After SA2 and SW3.
+- `refresh`, after a stored download (~869-897, after the `renameTo`), notes both positions
+  (`<source>.subjectPosition` and `<source>.subjectSideways`, keyed by the post's date and picture
+  URL as `cropDate`/`cropUrl`); on a failure nothing (the middle). A post stored before 0.8.0
+  gets none (no migration).
+- **Where it applies** (the user's part from ⛶ always wins): `Store.set` (`part?.position ?:
+  0.5f`, ~1565), the measure (`frameGrey` gets the same position), `copyForLive` doesn't (Live
+  pans by the clock), ⛶'s start (`startCrop` ~1405), and `setPart`'s no-change check (~1377,
+  today against 0.5: compare with the subject's position, else ✓ without a drag saves and sets
+  again). The effective sideways value (SW3) picks which of the two is used; toggling the pill
+  moves an undragged frame to that orientation's position.
+- **No setting** (Open 3's default: it's built only when it clearly wins, then it's the default;
+  the middle stays the fallback and ⛶ moves it).
+- **Device** (rosie, the emulator): a picture whose subject is off the middle (from SA0's list,
+  faked into `files/` as the skill says), set by `run -f 1`: the frame on the subject; ⛶ opens
+  there; ✓ elsewhere wins; sideways (SW3's switch or the pill) uses the sideways position; a new
+  post starts afresh; a broken picture gives the middle; the smoke list.
+- **Done when:** the tests and the device pass; `CLAUDE.md` (The app, Wallpaper and Choosing the
+  part); the maps (`page.md` K for ⛶'s start, `background.md` the job's set).
 
 ### [ ] SA4. Tablet pass, then the FP6 with the user (Opus, high)
 

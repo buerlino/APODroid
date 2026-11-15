@@ -23,7 +23,9 @@ there is 0.7.1 or folds into 0.8.0, whichever ships first.
 
 - **Sun 15 Nov evening:** SW1, SW2 in the pipeline (started 19:45). SA0 on the desktop by an
   agent (no device, no Gradle): the methods' frames against the old picks, and the new picking
-  page. Then `scripts/night.sh --until 07:30`: D1, VS1, SW3 (texts as placeholders).
+  page. Then `APODROID_TABLET=emulator-5564 scripts/night.sh --until 05:00` (the closing takes up to
+  3 h; the device is the Android 14 emulator while pascaline has the tablet): SW2T, D1, VS1, SW3
+  (texts as placeholders).
 - **Mon 16 Nov morning, the user (about 45 min):** SA0's picking page; the answers to
   `subject-0.8.0.md`'s Open 1–4; the texts from rosie's screenshots (Sideways, SW3's switch and
   ⓘ, the video still's look); SW3's threshold and whether it applies under Live.
@@ -36,9 +38,10 @@ there is 0.7.1 or folds into 0.8.0, whichever ships first.
 
 ## The order (the queue, night.md)
 
-SW1 → SW2 → D1 → VS1 → SW3 → (SA0's decision) SA2 → SA3 → R3 → T3. One tablet, one pipeline at
-a time. SA0 runs beside them (desktop only). SW3 waits for nothing but SW2; its texts are
-placeholders until the morning. SA2 waits for "the user" (SA0's picks and Open 1–4).
+SW1 → SW2 → SW2T → D1 → VS1 → SW3 → (SA0's decision) SA2 → SA3 → R3 → T3. One device, one pipeline
+at a time. D1, VS1 and SW3 each wait only for SW2 (one that isn't merged doesn't hold the others
+back); SW3's texts are placeholders until the morning. SA2 waits for "the user" (SA0's picks and
+Open 1–4); SA3 for SA2 and SW3.
 
 ## Rules for every 0.8.0 package
 
@@ -53,41 +56,71 @@ placeholders until the morning. SA2 waits for "the user" (SA0's picks and Open 1
 
 ### [ ] D1. A second picture on the same date arrives at the next check (Opus, medium)
 
-Open question 3 (SIM, 2026-10-26: 143 of 408 second posts ever stored, most at US Eastern
-midnight; never seen in the real feeds). Cause: every run skips a source whose stored post is
-today's (`Store.isCurrent`, `Store.update`'s `if (force || !isCurrent(source)) refresh(source)`),
-so a second post that day comes only with a pull or the next date.
-- **The job's runs fetch every source in use** (not the page's opens: they keep `isCurrent` and
-  the hour's skip). Only the JSON; the picture is downloaded only when the post is new (another
-  date or picture URL), as now. Night default; the alternative: only the change-time runs fetch
-  (the window's hourly ones skip).
+Read first: release-0.8.0.md's "Rules for every 0.8.0 package". Open question 3 (SIM, 2026-10-26: 143 of 408 second posts
+ever stored, most at US Eastern midnight; never seen in the real feeds).
+- **The cause:** `Store.checkSite` (Store.kt ~1257, called by `update` ~947) skips a source whose
+  stored post is today's: `if (force || !isCurrent(source)) refresh(source)`. `isCurrent` has no
+  other caller. A second post that day comes only with a pull or the next date.
+- **The change:** the job's runs fetch every source in use: `checkSite`'s condition becomes
+  `force || !page || !isCurrent(source)`. The page's opens keep `isCurrent` and the hour's skip.
+  **Don't pass `force` from the job:** `force` is also `setDue(pull = force)` (~953), which would
+  put the newest on at once, as a pull. Only the JSON; the picture is downloaded only for a new
+  post (another date or picture URL), as now.
+- **A failure on a day already stored** (night default; the alternative: a problem as any other
+  check): with today's post stored, a fetch that fails (the network, an HTTP error,
+  `SiteChanged`) is logged only (`Refresh: <source> <date> stored, check failed: …`): no
+  `<source>.problem`, no failed run (no `noted(failed)`, no hourly retry), `checkedAt`
+  untouched. The stored post is complete; nothing is owed. A failure with an older post stored
+  stays as now.
+- **The rules are unchanged on purpose:** `refresh` already stores a same-date post with another
+  URL (it returns early only for an older date, downloads when the URL differs, marks the gap as
+  any new post; ~875-896), and "never back" is by date (Screens.kt ~347). Rule 2 puts it on only
+  if it was published before the change time + 3 h (`pictureWindow`), or with "As soon as it's
+  out"; a later one is stored and waits for the source's next turn (with APOD alone usually
+  replaced by the next date first). Say so in `CLAUDE.md`.
+- **Log lines:** `Refresh: APOD 2026-11-16 same post` when the fetched post is the stored one,
+  `Refresh: APOD 2026-11-16 new picture` for a same-date post with another URL.
 - **The cost** in `CLAUDE.md`'s Traffic: one JSON per source in use per run (APOD 21 KB, NASA's
   feed 49 KB, Earth 0.6 KB), about 4–8 runs a day, 24 with "As soon as it's out"; written there.
-- **The rules:** a second post on the same date with another picture URL is a new post
-  (`isNoted` by URL); check that `refresh` stores it (not "older than the stored one": the same
-  date) and that rule 2 puts it on by its publish time (a later `published` on the same date).
-  "Never back" is by date, so it doesn't block it.
-- **Tests:** `:core` where the logic is (`refresh`'s same-date decision if it moves there);
-  SIM (`RulesSimulationTest`): its second-post count (stored ever) rises to nearly all of them,
+- **SIM** (`RulesSimulationTest`): mirror the change in `SimPhone.checkSite`/`isCurrent`
+  (~333, 357-366); the extra fetches draw from a separate `Random` (as `stopR`, `orderR`,
+  `liveR`, ~173-234), so the other seeds' draws don't shift. Add a counter of second posts
+  (the `-b` URLs, ~139, 148) ever stored and report it before and after (no promised number);
   no other invariant changes; the seeds as T1 ran them.
-- **Done when:** the tests pass; `CLAUDE.md` (Traffic, The page, Open question 3 closed); the
-  maps (`background.md`: a job run with today's post stored fetches; the log).
+- **Tests:** SIM as above; a `:core` test where logic moves there.
+- **Device** (rosie, the emulator): with today's post stored, `run -f 1` logs `same post` and
+  downloads nothing; the same with airplane mode: the log's `check failed`, no problem box on
+  the page, no retry armed (`dumpsys alarm`); the smoke list.
+- **Done when:** the tests pass; `CLAUDE.md` (Background update, where the job's skip is
+  described, and B21's "also when `isCurrent` skips the fetch" in Turns, rule 2; Traffic; Open
+  question 3 closed); the map (`interactions/background.md` E1, "No fetch", and E3's problem
+  box for this case).
 
 ### [ ] R3. The release's texts: versionCode 12, the changelog (Sonnet, medium)
 
-After the last feature package merged (SW3, VS1, D1, SA3 if built).
-- `app/build.gradle.kts`: versionCode 12, versionName 0.8.0.
-- `fastlane/metadata/android/en-US/changelogs/12.txt`: short lines, what a user sees (Sideways,
-  the switch, the video still, the subject frame if built), under F-Droid's 500 characters.
+Read first: release-0.8.0.md's "Rules for every 0.8.0 package". After the last feature package merged (SW3, VS1, D1, and SA3
+if SA is built; if SA0 says no, the user takes rows SA2 and SA3 out of the queue and SA3 out of
+this row's After).
+- `app/build.gradle.kts`: versionCode 12 (13 if a 0.7.1 took 12 first: check the tags),
+  versionName 0.8.0.
+- `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`: short lines, what a user sees
+  (Sideways, the switch, the video still, the second post on a date, the subject frame if
+  built), under F-Droid's 500 characters (`11.txt` is 454 bytes).
 - The store description (`full_description.txt`) where a feature changes what it says.
-- `CLAUDE.md`: Releases (0.8.0's line after the tag, not now), E's 0.9.0 move, the skill's
-  "Still untested".
+- `CLAUDE.md`: E's move to 0.9.0 (Setup and distribution, the emulator line; Next features);
+  Releases gets 0.8.0's line after the tag, not now; the skill's "Still untested".
 - **Done when:** the texts listed for the user; the Gradle check passes.
 
-### [ ] T3. Final tablet pass on the combined tree (rosie; Opus, high)
+### [ ] T3. Final device pass on the combined tree (rosie, the emulator; Opus, high)
 
-dev's R8 release build (unsigned, as T2), over 0.7.0's build (`private/0.7.0-test/`): the setup
-kept, the alarms armed by `MY_PACKAGE_REPLACED`, nothing set. Then each 0.8.0 feature's tablet
-bullets once more on R8 (SW2's, SW3's, VS1's, D1's log line, SA3's if built), the smoke list,
-and the regression's core paths (Set, the daily switch, a run by `run -f 1`, Live, ⛶ and ✓).
-Screenshots for the user. **Done when:** PASS, or each FIX as a package for Monday night.
+Read first: release-0.8.0.md's "Rules for every 0.8.0 package".
+- **The update from 0.7.0:** dev's R8 release build signed with the debug key, installed with
+  `install -r` over 0.7.0's R8 build from the tag `v0.7.0`, also signed with the debug key (as
+  O15 and T2 did; `.coord/runs/115-o15/` and SKILL.md's R8 recipe). Not `private/0.7.0-test/`:
+  it is release-signed (the user's key) and can't be replaced by a debug-signed build. The
+  setup kept, the alarms armed by `MY_PACKAGE_REPLACED`, nothing set. The release-signed update
+  is the user's, on the FP6 on 17 Nov.
+- Then each 0.8.0 feature's device bullets once more on R8 (SW2's, SW3's, VS1's, D1's `same
+  post` log line, SA3's if built), the smoke list, and the regression's core paths (Set, the
+  daily switch, a run by `run -f 1`, Live, ⛶ and ✓). Screenshots for the user.
+- **Done when:** PASS, or each FIX as a package for Tue 17 Nov morning, before the noon cut.

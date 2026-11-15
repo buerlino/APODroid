@@ -37,20 +37,35 @@
 
 ### [ ] VS1. The still behind ▶ (Opus, medium)
 
-- **`:core`:** `Post.videoUrl` from the hero (`Post.kt`, beside `isVideo`); tests with the real
-  16 Oct post (`SourcesTest`, skipped without `private/`), a made-up `<video><source …>` and a
-  made-up YouTube `<iframe>` (null), an image day (null).
-- **`Store`:** the pref with the post; `videoStill(post): File?` (the file when noted for this
-  post), `makeVideoStill(post)` (blocking: the retriever with the app's User-Agent header, the
-  frame, a JPEG via `.part`, the notes in one commit; the try noted first).
-- **The page:** `VideoTile` shows the still when there, dimmed, ▶ over it; asks for it once
-  per post in the background and redraws when it's there; the pictures-let-go rule of O12
-  (`onStop`) covers it.
+Read first: this file's "What's known" and "Decided" (the page only, NASA's mp4 only, dimmed,
+once per post, the URL in `:core`), and release-0.8.0.md's "Rules for every 0.8.0 package".
+- **`:core`:** `Post.videoUrl: String? = null` (the last field), from the hero (`Post.kt`,
+  beside `isVideo`): the first `<source>`'s or `<video>`'s `src` ending in `.mp4`, both quote
+  styles. Tests: the made-up heroes in `ApodTest` (~124-133, 183: single-quoted `src='…'`; add
+  double-quoted ones), a `<video><source …>`, a YouTube `<iframe>` (null), an image day (null);
+  the real ones with `assumeTrue` on `private/video-day-2026-10-16.json` (its
+  `<source src="…CRS35-Holland30s1080p.mp4">` sits inside the hero, before `<h1`) and
+  `last100.json`'s 11 video posts (`SourcesTest` ~167-170).
+- **`Store`:** `putString(source.key("videoUrl"), …)` in `store()` (~750-761), the read in
+  `post()` (~729-743). `videoStill(post): File?` (the file when noted for this post),
+  `makeVideoStill(post)` (blocking: `MediaMetadataRetriever.setDataSource(url, mapOf("User-Agent"
+  to userAgent))`, `getScaledFrameAtTime(3_000_000, OPTION_CLOSEST_SYNC, w, h)`, a JPEG via
+  `.part`; `videoStillTried` noted first, the notes in one commit; the retriever released in
+  `finally`). Add the `videoStill.*` keys to `Store.watch`'s list (~827-830), so the page
+  redraws from the prefs. A post stored before 0.8.0 has no `videoUrl` (black, no migration);
+  with D1 the next job run's fetch stores it.
+- **The page:** `VideoTile` (MainActivity ~1773-1789) shows the still when there, cropped to
+  3:2, about 40% black over it, ▶ over that. The try runs in the companion's process-wide `runs`
+  scope (~381, as Set's), not the composable's, so a rotation during it doesn't leave "tried"
+  noted with no page to show it. The decoded still is dropped in `onStop` with the pictures
+  (O12, ~601-613) and drawn through `PicturePainter` (~2815), never a recycled bitmap.
 - **Log:** `Video still: <ms> ms, <w>×<h>` or `Video still: couldn't …`.
-- **Tablet** (rosie): fake 16 Oct's video day with the skill's recipe (its post from
-  `private/video-day-2026-10-16.json`): the tile shows the still dimmed with ▶; a tap opens the
-  page as before; a second open uses the file (no log line); a YouTube post (made up from it,
-  the `<video>` swapped for an `<iframe>`) stays black; airplane mode at the first try: black,
-  logged, no retry until the next post; the smoke list. Screenshots for the user.
-- **Done when:** the tests and the tablet pass; `CLAUDE.md` (The app, Video days on the page;
-  Open question 2 closed) and `page.md`'s video leaves.
+- **Device** (rosie, the emulator): fake a video day as SKILL.md's "Fake an old day" says
+  (`isVideo` true, today's date) plus the `videoUrl` pref with the 16 Oct mp4; no `run -f`
+  after the fake (the job's fetch, since D1, overwrites it): the tile shows the still dimmed
+  with ▶; a tap opens the page (the emulator's "No browser" toast is expected); a second open
+  uses the file (no log line); a rotation during the first try; a YouTube-only post (no
+  `videoUrl`) stays black; airplane mode at the first try: black, logged, no retry until the
+  next post; the smoke list. Screenshots for the user.
+- **Done when:** the tests and the device pass; `CLAUDE.md` (The app, Video days on the page;
+  Open question 2 closed) and `interactions/page.md`'s video leaves.

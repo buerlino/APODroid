@@ -161,6 +161,24 @@ Read first: this file's "Decided" and "How it fits", and release-0.8.0.md's "Rul
   - screenshots of each for the user; then the smoke list.
 - **Done when:** `./gradlew :core:test :app:lintRelease :app:assembleRelease` passes, the tablet
   passes, the maps and `CLAUDE.md` updated.
+- **Checked** (SW2T, rosie, 2026-11-15, the tablet HA24BZ2Y not run: the Android 14 emulator `emulator-5564` instead, 1080×2400, the debug build of dev b5857b9; 9 Nov's APOD at `?h=2400`, 3618×2400, and 31 Jan 2026's bright one faked into `files/apod.jpg`, today's 1920×2400 for the portrait case; evidence in `.coord/runs/126-sw2t/tablet/`): every tablet bullet passed, no crash.
+  The pill at the top right on the landscape picture, none on the portrait one; Sideways ✓ (Fill)
+  `Part: wallpaper set: … on HOME+LOCK, sideways`, `debug-set.png` 1080×2400 equal to the original
+  turned clockwise at the stored position (0.247 after a drag down; a drag up on the lock screen alone
+  0.462), `dumpsys wallpaper` the system wallpaper `mWhich=3`; Where Lock: `Set: … on LOCK, sideways`,
+  only the lock id new; Whole: the preview and both dumps turned on the blurred background; the bright
+  one `sideways, darker ×0.70 (grey 190)`, turned and darker; off ✓ upright, the dump deleted, no
+  ", sideways"; Back and a rotation dropped the toggle, a Set from open crop mode stored `sideways=false`;
+  Live (the picker's "Home screen and lock screen"): `wallpaper shown live … on HOME+LOCK, sideways`,
+  `live.sideways=true`, `Live: decoded 1592×2400`, the band at p=0.80 not moved by a drag and at p≈0.89
+  after a 100 min clock step and a minute tick, the home screen equal to the turned picture panned at
+  0.89; off ✓ with Live `decoded 3618×2400`, on again `1592×2400`; the job (`run -f 1`, the record faked
+  a day back) `Daily job: wallpaper set: … , sideways`; a new post (date and URL faked) went on upright
+  and ⛶ opened with Sideways off. The smoke list passed. Not on the emulator: the FP6's and ZUI's
+  pickers, real timing, large font scales with both pills (the FP6 on 17 Nov). **The tablet
+  (HA24BZ2Y, Android 15/ZUI) not run, the emulator instead** (pascaline has it until 17 Nov): its
+  own still sets (`FLAG_SYSTEM`/`FLAG_LOCK`, M0's behaviour) and its 711 dp two-pane ⛶ with both
+  pills are unchecked, so "the tablet passes" isn't met yet.
 
 ### [ ] SW3. Option C: a Setup switch for wide pictures (Opus, high)
 

@@ -160,6 +160,8 @@ What each brought: the tags and `changelogs/<versionCode>.txt`.
 - 0.4.0 (8): 2026-10-16. 0.5.0 (9): 2026-10-18, after a release audit and a release-signed
   phone pass on the FP6.
 - 0.6.0 (10): 2026-11-02, after its release gate (Next features) and the tag's build on the FP6.
+- 0.7.0 (11): 2026-11-15, after its release gate (Next features) and the FP6's re-test of the
+  user-signed build.
 
 ## Data source (checked 2026-10-01)
 
@@ -1658,7 +1660,7 @@ detector's, the pause hint's per maker, "Change every"'s ⓘ, "≡", "Move up", 
 changelog `11.txt` and the store description; the night's items as recommended (the cold start's
 ~0.8 s of black accepted, a look again in 0.7.1; the picker's Settings entry stays removed; R2a,
 L6's "not noted live" rule and BR3's defaults kept; O6's RESTRICTED finding written in, The
-alarms). **Left for the tag** (the user releases later on 15 Nov):
+alarms). **Before the tag** (all done; **tagged 2026-11-15**, user: "tag now"):
 - **SPLIT, "once per split" fixed** (user, 2026-11-15; **built** 2026-11-15, mapped in
   `interactions/live.md`, Q1–Q8): The app, Set as wallpaper, The picker. **Tablet PASS**
   (2026-11-15, debug and an R8 smoke: T05–T09, T11, T28, T33, T37, the home-not-live dialog; ZUI's
@@ -1674,7 +1676,10 @@ alarms). **Left for the tag** (the user releases later on 15 Nov):
   still), Android 16 kept the running engine (no `engine … created`). Not run there: T33, setup
   S2 (would save the other mode), S3 (a photo pick), BP2 (airplane mode cuts wireless adb),
   BH4 (no pause hint on the FP6), S4a (a gallery save); all passed on the tablet.
-- The day's use of the FP6 (L2, O17, L10's first day).
+- The FP6's day (user, 2026-11-15): Live's first frame at a wake "fine, barely noticeable"
+  (L2's step 2); Keep running on, foreground (`dumpsys activity services`, 73 MB PSS). L2's
+  other steps, O17 and L10 go on through the week after the tag; a fix ships as 0.7.1. The
+  friend's Honor got the signed APK of fff43e7, Keep running on from the start (user).
 
 **0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline, right after 0.6.0):
 Size [Fill | Live], with the preview on the page (one drawing code). A wide picture is shown at the screen's full height and moves

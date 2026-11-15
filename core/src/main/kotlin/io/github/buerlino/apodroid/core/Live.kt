@@ -151,14 +151,33 @@ data class LostLive(val forget: Set<Screen> = emptySet(), val lockTakesHome: Boo
  *   forgotten, and the lock screen's when it has a column; a lock screen without a column that
  *   the engine covered ([sharedNote]) takes home's picture; `live.shared` goes. Every set of the
  *   run is then still (home isn't live, [stillOrLive]), so a stray engine is replaced.
+ * - **Else the engine on the lock screen alone** ([lockEngine], 14+: the lock screen's own
+ *   wallpaper is APODroid's) **while home isn't live and its record isn't noted live** ("Lock
+ *   screen" picked in Android's picker, 2026-11-15): with a lock column the lock screen's record
+ *   is forgotten (its own still Fill); without one home's, and the lock screen takes home's
+ *   picture (one set with both flags, a shared wallpaper as before the pick). Else the engine
+ *   stayed there for good, drawing a stale copy.
  * - **Else the lock screen's record noted live and not [shared]** (the user set a lock
  *   wallpaper): it alone is forgotten.
  * - Else nothing.
  */
-fun lostLive(homeNoted: Boolean, lockNoted: Boolean, homeLive: Boolean, shared: Boolean, sharedNote: Boolean, lockColumn: Boolean): LostLive = when {
+fun lostLive(
+    homeNoted: Boolean,
+    lockNoted: Boolean,
+    homeLive: Boolean,
+    shared: Boolean,
+    sharedNote: Boolean,
+    lockColumn: Boolean,
+    lockEngine: Boolean = false,
+): LostLive = when {
     homeNoted && !homeLive -> LostLive(
         forget = if (lockColumn) setOf(Screen.HOME, Screen.LOCK) else setOf(Screen.HOME),
         lockTakesHome = !lockColumn && sharedNote,
+        dropShared = true,
+    )
+    lockEngine && !homeLive -> LostLive(
+        forget = setOf(if (lockColumn) Screen.LOCK else Screen.HOME),
+        lockTakesHome = !lockColumn,
         dropShared = true,
     )
     lockNoted && !(homeLive && shared) -> LostLive(forget = setOf(Screen.LOCK))

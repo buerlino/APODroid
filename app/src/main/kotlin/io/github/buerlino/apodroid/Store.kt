@@ -1051,6 +1051,7 @@ class Store(private val context: Context) {
             homeLive = live.home, shared = live.shared,
             sharedNote = prefs.getBoolean("live.shared", false),
             lockColumn = columns[Screen.LOCK].orEmpty().isNotEmpty(),
+            lockEngine = !live.home && lockEngine(),
         )
         // L8f1: in a process Android just started to rebind the engine (a process death with Live
         // on) a screen that only looks not live isn't lost: nothing set, the run failed, retried.
@@ -1059,7 +1060,12 @@ class Store(private val context: Context) {
             return Triple(null, LiveSettling(), false)
         }
         if (lost.forget.isNotEmpty()) {
-            Log.i("APODroid", "Live: ${if (Screen.HOME in lost.forget) "home isn't live" else "the lock screen isn't live"}, Fill on ${lost.forget.joinToString("+")}")
+            val why = when {
+                prefs.getBoolean(Screen.HOME.key("wallpaperLive"), false) -> "home isn't live"
+                !prefs.getBoolean(Screen.LOCK.key("wallpaperLive"), false) -> "the engine is on the lock screen alone"
+                else -> "the lock screen isn't live"
+            }
+            Log.i("APODroid", "Live: $why, Fill on ${lost.forget.joinToString("+")}${if (lost.lockTakesHome) ", the lock screen takes home's" else ""}")
         }
         // L6: a screen the engine is on whose record isn't noted live (just picked in Set's picker,
         // or Android's by hand) is forgotten too, so this run hands it over (`:core`'s unnotedLive).
@@ -1273,13 +1279,14 @@ class Store(private val context: Context) {
         get() = prefs.getString("size", null)?.let { name -> Sizing.entries.firstOrNull { it.name == name } } ?: Sizing.FILL
 
     /**
-     * After [saveSetup]: whether Set opens Android's live wallpaper picker (`:core`'s
-     * [opensPicker]): Size Live and home with a column not live, or (14+) this Set made the
-     * stored columns, [before] it different, equal while the engine doesn't cover the lock screen.
+     * Before [saveSetup]: whether Set of [draft] opens Android's live wallpaper picker (`:core`'s
+     * [opensPicker]): its Size Live and home with a column not live, or (14+) it makes the stored
+     * columns, different now, equal while the engine doesn't cover the lock screen. Asked before
+     * saving, so a back-out of the picker saves nothing.
      */
-    fun opensPicker(before: Map<Screen, List<Source>>): Boolean {
+    fun opensPicker(draft: Setup): Boolean {
         val live = liveState()
-        return opensPicker(size, before, columns, live.home, live.shared, lockShares = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        return opensPicker(draft.size, columns, draft.columns, live.home, live.shared, lockShares = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     }
 
     /**
@@ -1300,13 +1307,15 @@ class Store(private val context: Context) {
      * Blocking. Back from the picker: when a wallpaper id changed since [before] ([wallpaperIds]),
      * waits up to 3 s for [liveOn] home (below 14 the engine notes its id asynchronously, at its
      * start), so Set's update doesn't set a still picture over the live wallpaper just picked.
-     * An id that didn't change (a back-out) waits for nothing; not live by then: Fill.
+     * Returns whether an id changed: false is a back-out, for which Set saves and sets nothing.
+     * A wallpaper changed and home not live by then (the lock screen picked alone): Fill.
      */
-    fun awaitLive(before: List<Int>) {
+    fun awaitLive(before: List<Int>): Boolean {
         val changed = wallpaperIds() != before
         val until = SystemClock.elapsedRealtime() + 3000
         while (changed && !liveOn(Screen.HOME) && SystemClock.elapsedRealtime() < until) Thread.sleep(100)
         Log.i("APODroid", "Live: back from the picker, ${if (changed) "a wallpaper changed" else "nothing changed"}, home ${if (liveOn(Screen.HOME)) "live" else "not live"}${if (liveShared) ", shared" else ""}")
+        return changed
     }
 
     /** Live's copy of home's picture, the only picture the engine draws (not the source's file, which changes with every stored post). */
@@ -1448,6 +1457,21 @@ class Store(private val context: Context) {
     private fun noteShared() {
         val live = liveState()
         if (live.home) prefs.edit(commit = true) { putBoolean("live.shared", live.shared) }
+    }
+
+    /**
+     * 14+: whether the lock screen's own wallpaper is APODroid's engine (`getWallpaperInfo(FLAG_LOCK)`
+     * names it and the lock screen has a wallpaper of its own, `getWallpaperId(FLAG_LOCK)` not -1):
+     * "Lock screen" picked in Android's picker, or home reverted (Decision 12). `:core`'s [lostLive]
+     * replaces it while home isn't live. Below 14: false.
+     */
+    private fun lockEngine(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return false
+        val manager = WallpaperManager.getInstance(context)
+        return runCatching {
+            manager.getWallpaperId(WallpaperManager.FLAG_LOCK) != -1 &&
+                manager.getWallpaperInfo(WallpaperManager.FLAG_LOCK)?.component == liveComponent
+        }.getOrDefault(false)
     }
 
     /** 14+: whether `getWallpaperInfo(FLAG_SYSTEM)` names APODroid's live wallpaper (below 14 the app can't ask: false). */

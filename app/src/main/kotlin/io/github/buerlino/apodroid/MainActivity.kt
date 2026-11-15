@@ -157,6 +157,7 @@ import io.github.buerlino.apodroid.core.SwitchRuns
 import io.github.buerlino.apodroid.core.apodColumns
 import io.github.buerlino.apodroid.core.firstStarted
 import io.github.buerlino.apodroid.core.darkening
+import io.github.buerlino.apodroid.core.equalColumns
 import io.github.buerlino.apodroid.core.livePosition
 import io.github.buerlino.apodroid.core.maker
 import io.github.buerlino.apodroid.core.missedWhen
@@ -385,6 +386,12 @@ class MainActivity : ComponentActivity() {
         /** Completed by the picker's return ([livePicker]'s result, or a page's [onResume] as a fallback). */
         var pickerBack: CompletableDeferred<Unit>? = null
 
+        /**
+         * The dialog before Set's picker (2026-11-15, [PickerDialog]): which of Android's answers to
+         * tap. Process-wide, so the page a rotation makes of [PickerAsk.page] shows it again.
+         */
+        var pickerAsk by mutableStateOf<PickerAsk?>(null)
+
         /** ⛶'s ✓ whose set failed ([setPart]): ✓ with that part again isn't "no change". */
         var failedPart: Part? = null
 
@@ -504,6 +511,8 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         pages--
         if (live[id] === this) live.remove(id)
+        // Its page closed for good (Back, Recents) with the picker's dialog open: Cancel, so Set ends.
+        if (!isChangingConfigurations) pickerAsk?.takeIf { it.page == id }?.answer?.complete(false)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -545,6 +554,8 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // Back from Set's picker without its result (started from a page in the background, L6).
         pickerBack?.complete(Unit)
+        // The picker's dialog of a page that's gone: Cancel, so Set ends.
+        pickerAsk?.takeIf { it.page !in live }?.answer?.complete(false)
         // Hibernation or a force stop deleted the job (scheduling runs it at once) and the alarms.
         if (store.daily && !DailyJob.ensure(this)) Log.w("APODroid", "Couldn't schedule the daily job again")
         // Keep running (O11) back after Task Manager's Stop, a force stop or a refused start: the
@@ -1040,26 +1051,30 @@ class MainActivity : ComponentActivity() {
         val app = applicationContext
         val page = id
         runs.launch {
-            // Not written (a full disk, B20): the sets still run from memory, the toast says so.
-            val saving = withContext(Dispatchers.IO) {
-                runCatching {
-                    val before = store.columns
-                    val saved = store.saveSetup(setup, pick)
-                    saved to store.opensPicker(before)
-                }
-            }
-            // Size Live (L6): Android's picker when home isn't covered, then the wait for the engine.
-            // Whatever fails on the way (L6 fix round 1): Fill, and Set goes on to its update and resets `setting`.
-            if (saving.getOrNull()?.second == true) {
-                try {
-                    pickLive(store, page)
+            // Size Live (L6): Android's picker when home isn't covered, then the wait for the engine,
+            // before anything is saved: back from it without a pick, nothing is saved or set and the
+            // draft stays as it was (user, 2026-11-15). Whatever fails on the way (L6 fix round 1):
+            // Fill, and Set goes on to its save and update and resets `setting`.
+            val opens = withContext(Dispatchers.IO) { runCatching { store.opensPicker(setup) }.getOrDefault(false) }
+            if (opens) {
+                val picked = try {
+                    pickLive(store, page, setup)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
                     Log.w("APODroid", "Set: the picker failed, Fill: $e", e)
+                    true
+                }
+                if (!picked) {
+                    Log.i("APODroid", "Set: no pick, nothing saved")
+                    setting = false
+                    runAllNext()
+                    return@launch
                 }
             }
-            val result = saving.mapCatching { (saved, _) ->
+            // Not written (a full disk, B20): the sets still run from memory, the toast says so.
+            val saving = withContext(Dispatchers.IO) { runCatching { store.saveSetup(setup, pick) } }
+            val result = saving.mapCatching { saved ->
                 withContext(Dispatchers.IO) {
                     Triple(store.update(force = false, page = true, show = offered, set = true), store.setsSinceSetup(), saved)
                 }
@@ -1094,27 +1109,44 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Set's trip to Android's live wallpaper picker (L6; live-0.7.0.md, Set with Live), after
-     * [Store.saveSetup] and before Set's update: both screens' wallpaper ids noted, the picker
-     * opened from the page that started Set (none left in the foreground, or no picker on the
-     * phone: Fill), its return awaited, then up to 3 s for the engine when an id changed ([Store.awaitLive]). A
-     * page's load waits meanwhile ([picking]). What the user answered decides the update: home
+     * Set's trip to Android's live wallpaper picker (L6; live-0.7.0.md, Set with Live), before
+     * [Store.saveSetup]. First the dialog ([PickerDialog], 2026-11-15): which answer to tap, by the
+     * [draft]'s columns ("Home screen and lock screen" on 14+ when they're equal, else "Home
+     * screen"). On OK both screens' wallpaper ids noted, the picker opened from the page that
+     * started Set (none left in the foreground, or no picker on the phone: Fill), its return
+     * awaited, then up to 3 s for the engine when an id changed ([Store.awaitLive]). A page's load
+     * waits meanwhile, the dialog too ([picking]). Returns false for a back-out: Cancel, or no
+     * wallpaper changed while home wasn't live before (re-picking a live home may keep its id: that
+     * Set goes on). Set then saves and sets nothing. Else the answer decides Set's update: home
      * live, its picture goes to the engine (and the lock screen's still Fill when it differs,
-     * Decision 10); backed out, Fill.
+     * Decision 10); "Lock screen" alone, Fill, the engine there replaced (`:core`'s [lostLive]).
      */
-    private suspend fun pickLive(store: Store, page: String) {
-        val ids = withContext(Dispatchers.IO) { store.wallpaperIds() }
-        val back = CompletableDeferred<Unit>()
-        pickerBack = back
+    private suspend fun pickLive(store: Store, page: String, draft: Setup): Boolean {
         picking = true
         try {
+            val homeWasLive = withContext(Dispatchers.IO) { store.liveOn(Screen.HOME) }
+            val ask = PickerAsk(page, both = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && equalColumns(draft.columns))
+            pickerAsk = ask
+            val ok = try {
+                ask.answer.await()
+            } finally {
+                pickerAsk = null
+            }
+            if (!ok) {
+                Log.i("APODroid", "Set: the picker's dialog cancelled")
+                return false
+            }
+            val ids = withContext(Dispatchers.IO) { store.wallpaperIds() }
+            // Only after OK: a page's onResume while the dialog shows would complete it early.
+            val back = CompletableDeferred<Unit>()
+            pickerBack = back
             // Only from a page in the foreground: a start from the background is blocked without a word.
             val opened = live[page]?.takeIf { it.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }?.openLivePicker() == true
             Log.i("APODroid", if (opened) "Set: Android's live wallpaper picker" else "Set: no picker opened, Fill")
-            if (opened) {
-                back.await()
-                withContext(Dispatchers.IO) { store.awaitLive(ids) }
-            }
+            if (!opened) return true
+            back.await()
+            val changed = withContext(Dispatchers.IO) { store.awaitLive(ids) }
+            return changed || homeWasLive
         } finally {
             pickerBack = null
             picking = false
@@ -1361,6 +1393,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         if (weekdayDialog) WeekdayDialog()
+        pickerAsk?.takeIf { it.page == id }?.let { PickerDialog(it) }
     }
 
     /**
@@ -2451,6 +2484,23 @@ class MainActivity : ComponentActivity() {
 
     private fun limitLabel(mb: Int) = if (mb == 0) "No limit" else "$mb MB"
 
+    /**
+     * Before Set's picker (2026-11-15; placeholder texts, Android's own labels word for word, the
+     * FP6's AOSP picker): which answer to tap, "Home screen", or "Home screen and lock screen"
+     * when the one engine shows both ([PickerAsk.both]). OK opens the picker; Cancel, Back or a
+     * tap outside saves and sets nothing.
+     */
+    @Composable
+    private fun PickerDialog(ask: PickerAsk) {
+        val screens = if (ask.both) "Home screen and lock screen" else "Home screen"
+        AlertDialog(
+            onDismissRequest = { ask.answer.complete(false) },
+            confirmButton = { TextButton(onClick = { ask.answer.complete(true) }) { Text("OK") } },
+            dismissButton = { TextButton(onClick = { ask.answer.complete(false) }) { Text("Cancel") } },
+            text = { Text("Next, in Android's preview:\nSet wallpaper › $screens\n\nBack there: nothing changes.") },
+        )
+    }
+
     /** NASA and Earth Observatory post on weekdays only; shown when one is ticked, until hidden for good. */
     @Composable
     private fun WeekdayDialog() {
@@ -2705,4 +2755,9 @@ private class PicturePainter(private val picture: ImageBitmap) : Painter() {
         if (picture.asAndroidBitmap().isRecycled) return
         drawImage(picture, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()))
     }
+}
+
+/** Set's question before the picker ([MainActivity.pickerAsk]): the page that asks, whether the answer is both screens, and the user's OK. */
+class PickerAsk(val page: String, val both: Boolean) {
+    val answer = CompletableDeferred<Boolean>()
 }

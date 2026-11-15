@@ -439,27 +439,41 @@ set it as wallpaper, and on video days kept the old wallpaper.
     to the page that started the run or the one a rotation made of it, and Set stays disabled in
     every page while either runs. After Back Android suppresses the toast (the app is in the
     background and has no notification permission).
-    **The picker** (L6, 2026-11-14; `live-0.7.0.md`, Set with Live): after `saveSetup` and
-    before its update, Set opens Android's live wallpaper picker when `:core`'s `opensPicker`
-    says so: Size Live and home with a column not live (also after a back-out or a lost Live:
-    each such Set offers it again), or, on 14+ only, when this Set made the stored columns,
-    different before it, equal while home is live and the engine doesn't cover the lock screen
+    **The picker** (L6, 2026-11-14; `live-0.7.0.md`, Set with Live): before `saveSetup`
+    (since 2026-11-15, below), Set opens Android's live wallpaper picker when `:core`'s
+    `opensPicker` says so for the draft: Size Live and home with a column not live (also after a
+    back-out or a lost Live: each such Set offers it again), or, on 14+ only, when the draft
+    makes the stored columns, different now, equal while home is live and the engine doesn't cover the lock screen
     (once per split: the next Set finds them equal before it). Never with Fill, never below 14
     for the lock screen, never for the lock screen alone (no home column: Live is home's), never
-    for a lock column that differs (the lock screen Fill, Decision 10). Both screens'
-    `getWallpaperId`s are noted first; the picker is `ACTION_CHANGE_LIVE_WALLPAPER` for
+    for a lock column that differs (the lock screen Fill, Decision 10). **First a dialog**
+    (2026-11-15, user: "I didn't know what to pick"; `PickerDialog`, placeholder texts with the
+    FP6 picker's own labels, AOSP's LiveWallpapersPicker): "Next, in Android's preview: / Set
+    wallpaper › Home screen / Back there: nothing changes.", "Home screen and lock screen" instead
+    on 14+ when the draft's columns are equal (the one engine on both, B28), else "Home screen"
+    (home only, different columns, 10–13); OK opens the picker, Cancel (Back, a tap outside, the
+    page closed for good) is a back-out. Process-wide (`pickerAsk`), so a rotation shows it again;
+    `picking` from before it. Then both screens' `getWallpaperId`s are noted; the picker is `ACTION_CHANGE_LIVE_WALLPAPER` for
     `LiveWallpaper`, started directly (L1's `resolveActivity` is null without `<queries>`), else
     `ACTION_LIVE_WALLPAPER_CHOOSER`, else the toast "This phone can't show live wallpapers."
     (placeholder) and Fill; any refusal of a start (`ActivityNotFoundException`, a maker's
     picker not exported or behind a permission, `SecurityException`) is logged and tries the
     next (`:core`'s `firstStarted`), and any failure of the picker's trip ends as Fill, so Set
-    never crashes after its setup is saved (L6 fix round 1); only from a page
+    never crashes on its way (L6 fix round 1); only from a page
     in the foreground (a start from the background is blocked silently), with
     `registerForActivityResult`, so a page a rotation made gets the return too (a page's
     `onResume` ends the wait as a fallback). On the return, when an id changed, up to 3 s for
     `liveOn(HOME)` (`Store.awaitLive`; below 14 the engine notes its id asynchronously), then
-    Set's update: home live, its picture to the engine and the lock screen's still Fill when its
-    picture differs (Decision 10); backed out, Fill. A page's load waits while the picker is
+    `saveSetup` and Set's update: home live, its picture to the engine and the lock screen's
+    still Fill when its picture differs (Decision 10); a wallpaper changed and home not live
+    (the lock screen picked alone), Fill, the engine there replaced by the run (Lost Live).
+    **Back without a pick** (the dialog's Cancel, or no id changed while home wasn't live before:
+    re-picking a live home may keep its id, that Set goes on; user, 2026-11-15, from the FP6:
+    Set saved Size Live, set Fill and toasted "Wallpaper set" after a back-out): nothing saved,
+    nothing set, no toast, the draft and its highlight stay as before (logged `Set: no pick,
+    nothing saved`). Accepted: a job's run in the seconds between a pick and the save still has
+    the old Size and may set a still over the engine just picked, when a change falls due then. The picker's preview
+    draws the stored setup's home picture (the draft isn't saved yet). A page's load waits while the picker is
     open (`picking`), so it can't set a still picture first. Logged `Set: Android's live
     wallpaper picker` and `Live: back from the picker, …`.
   - **More NASA pictures** (the pref `allSources`, default off: APOD mode; the name the user's,
@@ -804,7 +818,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
   engine covered, `live.shared`, takes home's picture), so the same run sets both still, a
   stray replaced; the lock screen's alone noted live and not shared forgets it alone. Logged
   `Live: home isn't live, Fill on HOME+LOCK`. `live.shared` goes after such a run without a
-  failed set. **The engine on a screen not noted live** (L6, from SIM; `:core`'s `unnotedLive`,
+  failed set. **The engine on the lock screen alone** (2026-11-15: "Lock screen" picked in
+  Android's picker; `lostLive`'s `lockEngine`, `Store.lockEngine`: 14+,
+  `getWallpaperInfo(FLAG_LOCK)` names it and `getWallpaperId(FLAG_LOCK)` isn't -1) while home
+  isn't live and its record isn't noted live: with a lock column the lock screen's record is
+  forgotten (its own still Fill), without one home's, and the lock screen takes home's picture
+  (one set with both flags, a shared wallpaper); before, it stayed there for good, drawing a
+  stale `live.jpg`. Any run; logged `Live: the engine is on the lock screen alone, Fill on …`.
+  Not when home's owner has nothing to show (as Decision 12). **The engine on a screen not noted live** (L6, from SIM; `:core`'s `unnotedLive`,
   before the rules, with Size Live and home live): home with a column and not noted live, and
   the lock screen with one while shared and not noted, are forgotten too, so the same run hands
   them over (else after the picker a Set of the order alone, or one with nothing due, left the

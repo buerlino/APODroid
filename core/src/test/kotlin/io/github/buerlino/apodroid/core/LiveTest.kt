@@ -323,6 +323,42 @@ class LiveTest {
     }
 
     @Test
+    fun theEngineOnTheLockScreenAloneWithoutAColumnGivesWayToHomesPictureOnBoth() {
+        // "Lock screen" picked in Android's picker while APODroid has the home screen only (2026-11-15).
+        val columns = mapOf(HOME to listOf(APOD), LOCK to emptyList())
+        val records = settled(columns)
+        val lost = lostLive(homeNoted = false, lockNoted = false, homeLive = false, shared = false, sharedNote = false, lockColumn = false, lockEngine = true)
+        assertEquals(LostLive(forget = setOf(HOME), lockTakesHome = true, dropShared = true), lost)
+        val plan = lost.onPlan(due(columns, lost.forgetting(records)), records)
+        val home = records.getValue(HOME).picture!!
+        // One set with both flags: a shared wallpaper, the stray replaced.
+        assertEquals(listOf(home to setOf(HOME, LOCK)), plan.sets)
+        assertEquals(LiveSets(plan.sets), stillOrLive(Size.LIVE, false, false, columns, home, plan.sets))
+    }
+
+    @Test
+    fun theEngineOnTheLockScreenAloneWithAColumnGivesTheLockScreenItsOwn() {
+        // "Lock screen" picked with a lock column: only the lock screen is set again, home untouched.
+        for (columns in listOf(mapOf(HOME to listOf(APOD), LOCK to listOf(NASA)), mapOf(HOME to listOf(APOD), LOCK to listOf(APOD)))) {
+            val records = settled(columns)
+            val lost = lostLive(homeNoted = false, lockNoted = false, homeLive = false, shared = false, sharedNote = false, lockColumn = true, lockEngine = true)
+            assertEquals(LostLive(forget = setOf(LOCK), dropShared = true), lost)
+            val plan = lost.onPlan(due(columns, lost.forgetting(records)), records)
+            assertEquals(listOf(records.getValue(LOCK).picture!! to setOf(LOCK)), plan.sets)
+        }
+    }
+
+    @Test
+    fun theEngineOnTheLockScreenIsLeftWhileHomeIsLive() {
+        // Two engines, or home's own: home live, nothing lost; Decision 12's branch comes first.
+        assertEquals(LostLive(), lostLive(homeNoted = false, lockNoted = false, homeLive = true, shared = false, sharedNote = false, lockColumn = true, lockEngine = true))
+        assertEquals(
+            LostLive(forget = setOf(HOME, LOCK), dropShared = true),
+            lostLive(homeNoted = true, lockNoted = false, homeLive = false, shared = false, sharedNote = false, lockColumn = true, lockEngine = true),
+        )
+    }
+
+    @Test
     fun nothingLostWhileLiveHolds() {
         assertEquals(LostLive(), lostLive(homeNoted = true, lockNoted = true, homeLive = true, shared = true, sharedNote = true, lockColumn = true))
         assertEquals(LostLive(), lostLive(homeNoted = true, lockNoted = false, homeLive = true, shared = false, sharedNote = false, lockColumn = true))

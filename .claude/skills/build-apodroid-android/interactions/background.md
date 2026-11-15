@@ -183,7 +183,7 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
 - **E7 A success after a failure.** `problem` removed: the open page's listener redraws, the box
   goes. Phone: yes (end of P3).
 - **E8 The subject noted (SA3a, 0.8.0).** `refresh` (at its start and end, every source in use)
-  and a page open that skips today's stored post: when the stored post's picture exists and no
+  and a page open or Set that skips today's stored post or a check within the hour (T3f1): when the stored post's picture exists and no
   subject is noted for its date and picture URL (a new download, a fake, the update from 0.7.0, a
   death before the note), `noteSubject` decodes a copy (≥ 512 px on the shorter side, upright),
   computes `:core`'s `subjectPosition` upright and (a landscape picture) sideways (SA3c:
@@ -198,6 +198,10 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
   landscape picture's sideways position is its turned picture's own (`sidewaysSubjectPosition`);
   with Size Auto and "Wide pictures sideways" on, the next set's band (`files/debug-set.png`) and
   ⛶'s frame stand at the line's "(sideways …)" (through `autoPosition`).
+  T3f1: the update from 0.7.0 (no `subject*` keys), a page open within the hour of the last
+  check (no fetch): the `Subject:` line all the same; Set then logs `, auto <p>` when the subject
+  moves the frame 0.2 or more (before, Set went on at the middle until a pull or the next post).
+  Phone (the emulator): v0.7.0's R8, a Set, `install -r` of the fix, open the page within the hour.
 
 ## F. What each screen gets (`dueWallpapers`, `Screens.kt:230-363`)
 

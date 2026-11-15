@@ -1115,7 +1115,7 @@ class Store(private val context: Context) {
      * Blocking. What the page, Set and the daily job run: [refresh] each source in use and each
      * of [show] (the sources the page offers, so one ticked in its draft only has a picture);
      * for the [page] (an open, a pull, Set) not when its stored post is today's or it was checked
-     * within the hour ([checkedRecently]), always with [force] (pull to refresh) and for the job
+     * within the hour ([checkedRecently]; its subject still noted, [noteSubject]), always with [force] (pull to refresh) and for the job
      * (D1: a second post on the same date), then, while the
      * daily change is on or with [set] (Set, also with it off), sets what each screen is due
      * ([setDue]). The sources in use: the ones ticked on any screen, and on an APOD video day the
@@ -1139,7 +1139,9 @@ class Store(private val context: Context) {
             // A stopped job (DailyJob.onStopJob) ends the run: no more downloads, no set.
             if (isStopped(stopped)) throw InterruptedException()
             try {
-                if (force || !page || !checkedRecently(source)) checkSite(source, force, page)
+                // T3f1: a page open or Set within the hour of the last check still notes the subject
+                // (an update from 0.7.0), else Set's still went on at the middle with Size Auto.
+                if (force || !page || !checkedRecently(source)) checkSite(source, force, page) else noteSubject(source)
             } catch (e: Exception) {
                 if (e.isStop()) throw e
                 failure = failure ?: e

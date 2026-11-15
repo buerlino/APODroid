@@ -825,7 +825,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   centred (no whole picture).
   **Auto, the subject** (SA3a, 2026-11-15; Next features, 0.8.0: Fill's frame on the subject):
   `Store.refresh` notes each stored post's subject once (`noteSubject`, under the refresh lock,
-  at the refresh's start and end, and at a page open that skips today's stored post, so an
+  at the refresh's start and end, and at a page open or Set that skips today's stored post or a check within the hour (T3f1), so an
   update from 0.7.0, a fake and a death before the note are covered): while the post's picture
   exists and no subject is noted for its date and picture URL, a copy decoded upright
   (`ImageDecoder`, EXIF turned; `setTargetSampleSize`, the largest power of 2 keeping the

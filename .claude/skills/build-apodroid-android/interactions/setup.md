@@ -138,7 +138,8 @@ Order (≡ drag, "Move up"/"Move down")
 The switch after "Darken bright pictures", the pref `wideSideways`, default off; the rule `:core`'s
 `sidewaysByDefault` (width ≥ 1.5 × height, by the file's upright size, `Store.kt`'s `uprightSize`), the
 value used `Store.turnsSideways` (the part's noted `<source>.sideways`, else the rule while the
-**stored** switch is on). Needs a 3:2 or wider picture on a screen (9 Nov's APOD faked into `files/`
+**stored** switch is on and the **stored** Size isn't Live: SW3f1, the switch is Centre's and
+Auto's). Needs a 3:2 or wider picture on a screen (9 Nov's APOD faked into `files/`
 with the skill's recipe), a 1.2:1 one and a portrait one for the upright cases.
 - **X1** ⓘ "About Wide pictures sideways" → dialog "Turns a wide picture a quarter turn, so more of it
   fills the screen. ⛶ › Sideways changes one picture." → OK. Toggle on → label and switch tertiary,
@@ -153,9 +154,14 @@ with the skill's recipe), a 1.2:1 one and a portrait one for the upright cases.
   leaves the key missing (the switch's default).
 - **X4** off + Set → `Wset`; the wide picture upright again (no ", sideways"), a noted "on" part
   still sideways.
-- **X5** with Live on home (Size Live): the hand-over of a wide picture without a noted part notes
-  `live.sideways=true`, `wallpaper shown live: <pic> on HOME[, …], sideways`; the engine's `Live:
-  decoded W×H` portrait-shaped.
+- **X5** (SW3f1) draft Size Live → the switch's row greyed out (label and switch at 38%, the ⓘ still
+  opens its dialog, the toggle does nothing; screen readers "Disabled"), its value and highlight kept.
+  Set with Live on home: the hand-over of a wide picture without a noted part notes
+  `live.sideways=false`, `wallpaper shown live: <pic> on HOME[, …]` without ", sideways"; a lock
+  screen with its own still upright too (no ", sideways"). A part ✓'d "Sideways" on under Live:
+  `live.sideways=true`, the engine's `Live: decoded W×H` portrait-shaped. ⛶ under the stored Live
+  opens the pill on the part's noted value, else off. Size back to Auto (or Centre) and Set: the row
+  enabled, the wide picture sideways again (", sideways").
 - **X6** a rotation and the system killing the app (P19's way) keep the draft's switch and its
   highlight; a Recents swipe drops it.
 
@@ -242,6 +248,7 @@ Each step starts where the previous ended. Before every Set: `adb logcat -c`; af
 | P32 | X2 | Set. | `Wset`; `Set: wallpaper set: <wide pic> on …, sideways`; a 1.2:1 or portrait picture on a screen without ", sideways". |
 | P33 | X3 | ⛶ on the wide picture → "✓ Sideways" shown (white) → tap it off → ✓. | `Wset`; `Part: wallpaper set: … ` without ", sideways"; `<source>.sideways=false` (debug). The next post of that source sideways again (page.md K24). |
 | P34 | X4 | Setup ▾ → toggle off → Set. | `Wset`; the wide picture upright (no ", sideways"); a part ✓'d "Sideways" on still turned. Restores the switch's default. |
+| P34a | X5 | (SW3f1) switch on, Size Auto, Set; then Size Live → screenshot → tap the row → ⓘ → OK → Set ("Home screen" in the picker); ⛶ → "Sideways" on → ✓; Size Auto → Set. | Greyed row (screenshot), the tap changes nothing, the dialog opens; `live.sideways=false`, hand-over and lock still without ", sideways"; after ⛶'s ✓ `live.sideways=true`, `… on HOME, sideways`; after Auto + Set the row enabled, `Set: wallpaper set: …, sideways` for the unnoted wide picture. |
 | P35 | J0 | (SA3a; the emulator) Setup ▾ → screenshot of Size in portrait, then in the landscape pane. | Three segments "Centre", "Auto", "Live", none wrapping alone; the stored one selected. |
 | P36 | J3, J4 | (the emulator; a picture whose subject is ≥ 0.2 off the middle on a screen, background.md E8) Size "Auto" → Set; then "Centre" → Set; then "Auto" → Set. | Auto: `Set: wallpaper set: … , auto 0.8x` (the noted position), `dumpsys wallpaper`'s crop off the middle; Centre: no `, auto`, the crop the middle; Auto again as the first. |
 

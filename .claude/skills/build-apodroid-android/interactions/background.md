@@ -132,11 +132,11 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
   job 1). Unit: `JobRunsTest.aSecondRunWhileOneGoesDoesntStart`.
 - **D2 A good run, nothing new (the phone on Sunday).** Steps: `adb shell cmd jobscheduler run -f
   io.github.buerlino.apodroid 1`. Expect: the skeleton with no "Daily job: <set>" line (APOD is
-  today's and skipped by `isCurrent`; NASA fetched, Friday's again, nothing downloaded; both
-  records due nothing); second arming by the clock (B1). Phone: yes, the baseline (P2).
+  today's, fetched since D1: `Refresh: APOD <date> same post`, nothing downloaded; NASA fetched,
+  Friday's again, nothing downloaded; both records due nothing); second arming by the clock (B1). Phone: yes, the baseline (P2).
 - **D3 A failed fetch (offline).** Pre: airplane mode, USB adb. Steps: force job 1. Expect:
-  `Daily job failed: java.net.UnknownHostException…` (or similar), NASA's problem stored (APOD is
-  skipped, today's), both alarm lines at start + 15 min. The page's box (open it): "NASA Image of
+  `Daily job failed: java.net.UnknownHostException…` (or similar), NASA's problem stored (APOD,
+  today's, only logged since D1: `Refresh: APOD <date> stored, check failed: …`, E3b), both alarm lines at start + 15 min. The page's box (open it): "NASA Image of
   the Day: no connection." Phone: yes (P3).
 - **D4 Two failed runs in a row.** The second start arms +1 h (`failedRuns` 2), its end
   min(clock, start₂ + 1 h). Phone: yes (P4).
@@ -157,12 +157,26 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
 
 ## E. The fetch and the problem notes (`Store.update` → `checkSite` → `refresh`)
 
-- **E1 Stored post is today's (`isCurrent`).** No fetch; `checkedAt` noted, problem cleared.
-  Phone: APOD today (yes, invisible except no traffic).
+- **E1 Stored post is today's (`isCurrent`).** A page open or Set: no fetch; `checkedAt` noted,
+  problem cleared. The job's run (D1, 2026-11-15): the JSON fetched, the picture not downloaded,
+  `Refresh: APOD <date> same post`, `checkedAt` noted, problem cleared. Phone: yes, `run -f 1`
+  with today's post stored: `same post`, no download (the emulator, D1).
+- **E1b A second post on the same date (D1).** The job's next run fetches it: another picture
+  URL, so downloaded and stored (marked after a gap as any new post), `Refresh: APOD <date> new
+  picture`. It goes on by rule 2: published before the change time + 3 h, or with "As soon as
+  it's out", at once; later, at the source's next turn (APOD alone: usually the next date first).
+  A pull gets it too; a page open doesn't (its `isCurrent` skip). Phone: no (never seen in the
+  real feeds). Unit: SIM's `secondsStored`.
 - **E2 Not today's (NASA on a weekend).** Fetch the feed, the same post stored again (no
   listener fires: same values), no download. Phone: yes in D2.
 - **E3 Network failure.** `<source>.problem = network`; the job's failure; page box "NASA Image
   of the Day: no connection." (" since <day>" only when `checkedAt` > 1 day old). Phone: yes (P3).
+- **E3b Any failure of a stored day's check (D1, night default).** The job's run with today's
+  post stored and complete: a failed fetch (network, HTTP, `SiteChanged`, the second picture's
+  download) logs `Refresh: APOD <date> stored, check failed: …` only: no `<source>.problem`, no
+  box on the page, not the run's failure (no retry armed for it), `checkedAt` untouched. Phone:
+  yes, the emulator: airplane mode, `run -f 1` with only today's APOD in use: `check failed`, no
+  box, `dumpsys alarm` the clock's next check, not start + 15 min.
 - **E4 HTTP error.** "…: error 503. Trying again later." Phone: no.
 - **E5 Not an image / site changed (`badUrl`).** Phone: no (made-up feed only, WP7c).
 - **E6 Storage full.** Phone: never on the FP6.

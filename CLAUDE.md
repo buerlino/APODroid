@@ -226,8 +226,10 @@ the fields could change. Keep the parsing in `:core`, tolerant (`ignoreUnknownKe
 fields), and fail without touching the current wallpaper.
 
 **Traffic (checked 2026-10-02; the checks by the clock since J2, 2026-10-23):** a check is one
-JSON GET per source in use, plus the image when the post is new (`Store.isCurrent` skips a
-source whose stored post is today's). The job checks at each change time ("New picture at",
+JSON GET per source in use, plus the image when the post is new (a page open skips a source
+whose stored post is today's, `Store.isCurrent`; the job's runs don't since D1, 2026-11-15: one
+JSON per source in use per run, APOD 21 KB, NASA's feed 49 KB, Earth 0.6 KB, about 4–8 runs a
+day, 24 with "As soon as it's out", so a second post on a date arrives). The job checks at each change time ("New picture at",
 with turns every "Change every" from it), 15 min after it and hourly for the 3 hours after it
 and at their end (06:00, 06:15, 07:15, 08:15, 09:00; B15), and after a
 failed run 15 min later, then hourly; the 6 h fallback job adds up to four more a day (no hourly
@@ -623,7 +625,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   between leaves today's picture under yesterday's entry until the next refresh fetches it again
   (declutter file, Review of 0.1.2, 2.2).
 - **The page** runs `Store.update` on each `onResume` (see Background update): fetches unless
-  the stored post is today's (US Eastern) or, page opens only (user, 2026-10-17; WP7c), its
+  the stored post is today's (US Eastern; the page only, the job's runs always fetch since D1) or, page opens only (user, 2026-10-17; WP7c), its
   source was checked within the hour with no problem since and its picture is there (so a new
   APOD reaches an open page up to an hour late; not the job: a page open just before a new
   post would hold the wallpaper back until the job's next run) and, while the stored daily switch is on, sets a new one at once; it
@@ -1268,13 +1270,27 @@ until APODroid opens.`; buttons
 "App info" and "Dismiss". It doesn't suggest Live (live-0.7.0.md, Decision 9).
 
 Each run (either id), and each page open or pull (2026-10-16, one path): `Store.update(force)`,
-`refresh(source)` for each source in use unless its stored post is today's (always with
-`force`), then, while `daily` is on, `setDue()`: what each screen is due by the change times
+`refresh(source)` for each source in use (a page open or Set not when its stored post is today's,
+`isCurrent`; always with `force`, a pull, and in the job's runs), then, while `daily` is on, `setDue()`: what each screen is due by the change times
 (`:core`'s `dueWallpapers`, Turns), set where it isn't what the screen's record notes; then the
 job, with "Save every picture", `saveInUse` (not after a stop). **Always any network** (user,
 2026-10-21: whoever wants the picture wants it at once). A page open sets only what's due by the
 times (a new post outside the window waits for the next change time; no setting, user,
-2026-10-23); Set and a pull set at once. **A record per screen** (0.6.0): home's the
+2026-10-23); Set and a pull set at once. **A second post on the same date** (D1,
+2026-11-15; Open question 3, SIM: before it 143 of 408 ever stored): the job's runs fetch the
+JSON of every source in use also while today's post is stored (not `force`, which is also
+`setDue`'s pull and would put the newest on at once), so it arrives at the next run; the picture
+is downloaded only for a new post (another date or picture URL). Logged `Refresh: APOD
+2026-11-16 same post` or `… new picture`. **A failed check of a stored day** (night default; the
+alternative: a problem as any other check): with today's post stored and complete, a failed fetch
+(the network, an HTTP error, `SiteChanged`, a failed download of the second picture) is only
+logged, `Refresh: APOD 2026-11-16 stored, check failed: …`: no `<source>.problem`, no failed
+run (no retry), `checkedAt` untouched; nothing is owed. The rules are unchanged on purpose:
+`refresh` stores a same-date post with another URL (marked after a gap as any new post), "never
+back" is by date, and rule 2 puts it on only when published before the change time + 3 h, or with
+"As soon as it's out"; a later one is stored and waits for its source's next turn (with APOD
+alone usually replaced by the next date first). SIM's `secondsStored` (240 seeds): 354 of 473
+ever stored, 162 before (2000 seeds: 3291 of 4195, 1393 before). **A record per screen** (0.6.0): home's the
 unprefixed keys (as before), the lock screen's under `lock.`: `wallpaperSource` (whose turn,
 the owner), `wallpaperPicture` (the picture's source or `own`) with `wallpaperDate` and
 `wallpaperUrl` (the URL: a site may post a second picture on the same date, never seen in the
@@ -1370,8 +1386,8 @@ RO1 the rules don't read the notes, and since RO2 nothing does: still written, n
    `orAfterGap`): else a phone offline from 20:00 on D−1 to 22:00 on D in Los Angeles stored
    D+1's 21:05 post, set nothing, and kept D−2's picture until 06:00 on D+1 (only the newest
    post is stored, so D's was gone). No `checkedAt` yet is no gap. Weekends aren't gaps: the
-   change time's checks succeed with nothing new and note `checkedAt` (also when `isCurrent`
-   skips the fetch); not by post dates, which NASA's and Earth's weekends would trigger every
+   change time's checks succeed with nothing new and note `checkedAt` (the job's always fetch
+   since D1; a page open's `isCurrent` skip notes it too; a failed check of a stored day doesn't); not by post dates, which NASA's and Earth's weekends would trigger every
    Monday. On APOD's video day APOD's post and the stand-in's each have to be in the window or
    marked (as the publish time counts for both), so the stand-in's first fetch of a video day,
    usually marked, doesn't put it on in Los Angeles' normal evening. Turns ignore the mark. A
@@ -1977,8 +1993,5 @@ press on the title block copies the link).
    black tile on any failure. The 16 Oct mp4: 25.7 MB, `accept-ranges: bytes`, `moov` at the
    start (so a few hundred KB should do); untested on the phone, other files' layout unknown.
    Fallback if it fails: a local tile (star field or logo), no network.
-3. A second picture on the same date (SIM, 2026-10-26; for 0.7.0, user): the job and the page
-   skip a source whose stored post is today's (`Store.isCurrent`), so a second post on that date
-   arrives only with a pull or once the date is over in US Eastern time (in SIM's 240 seeds 143
-   of 408 were ever stored, most at US Eastern midnight, Los Angeles' evening). Never seen in the
-   real feeds; accepted for 0.6.0, to look at in 0.7.0.
+3. Closed (D1, 2026-11-15): a second picture on the same date arrives at the job's next run
+   (Background update, A second post on the same date).

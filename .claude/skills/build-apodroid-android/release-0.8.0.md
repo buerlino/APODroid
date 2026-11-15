@@ -10,7 +10,7 @@ queue rows (`plan R1`, `plan T2`, …) must keep resolving. 0.8.0's rows name th
 | Track | What | File | State |
 |---|---|---|---|
 | SW | Sideways (issue #4): ⛶'s toggle (A), then a Setup switch for wide pictures (C) | `sideways-0.8.0.md` | SW1, SW2 running 15 Nov evening |
-| SA | Fill's frame on the subject (issue #3): auto when it moves ≥ 0.2, a switch default on | `subject-0.8.0.md` | decided 15 Nov evening (two rounds of picks); SA2, SA3 queued tonight |
+| SA | Fill's frame on the subject (issue #3): Size [Centre \| Auto \| Live], Auto the default; Advanced's fallback switch | `subject-0.8.0.md` | decided 15 Nov evening (two rounds of picks); SA2, SA3 queued tonight |
 | VS | A still from the video behind ▶ on video days (Open question 2) | `video-0.8.0.md` | queued |
 | D1 | A second picture on the same date arrives at the next check (Open question 3) | this file | queued |
 | R3, T3 | The release's texts; the final tablet pass on the combined tree | this file | queued |

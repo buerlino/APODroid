@@ -511,4 +511,58 @@ class LiveTest {
         // A clock read twice: nextAlarm's own now a millisecond later wasn't owed.
         assertFalse(owed(nextAlarm = nextAlarm(wake.plusMillis(1), zurich, 0, PictureTime(), false, Duration.ZERO, Instant.parse("2026-11-13T06:00:00Z"))))
     }
+
+    // L8f1: a process death with Live on (regression 12): the rebind's "home isn't live" for a moment isn't a loss.
+
+    @Test
+    fun aYoungProcessWithAnEngineIsSettling() {
+        assertTrue(liveSettling(engine = true, processAge = Duration.ofSeconds(2)))
+        assertTrue(liveSettling(engine = true, processAge = Duration.ZERO))
+        assertTrue(liveSettling(engine = true, processAge = Duration.ofMillis(14_999)))
+        assertFalse(liveSettling(engine = true, processAge = liveReconnect), "the grace ends at 15 s")
+        assertFalse(liveSettling(engine = true, processAge = Duration.ofMinutes(5)))
+        assertFalse(liveSettling(engine = false, processAge = Duration.ofSeconds(2)), "no engine (the page after a force stop): no grace")
+        assertFalse(liveSettling(engine = true, processAge = Duration.ofSeconds(-1)))
+    }
+
+    @Test
+    fun noStrayWhileSettling() {
+        assertFalse(liveStray(homeLive = false, settling = true), "a rebind isn't a revert")
+        assertTrue(liveStray(homeLive = false, settling = false), "D's stray after the grace")
+        assertFalse(liveStray(homeLive = true, settling = false))
+        assertFalse(liveStray(homeLive = true, settling = true))
+    }
+
+    @Test
+    fun aKilledEngineOwesNoRunWhileSettling() {
+        // The regression's sequence: the new engine at 2 s, lastRunAt 2 h old, nothing else owed.
+        val stray = liveStray(homeLive = false, settling = liveSettling(true, Duration.ofSeconds(2)))
+        assertFalse(owed(stray = stray, notedLive = true))
+    }
+
+    @Test
+    fun aRunInTheGraceHoldsInsteadOfFill() {
+        // Live on both screens (one engine, shared), home looks not live for a moment.
+        val lost = lostLive(homeNoted = true, lockNoted = true, homeLive = false, shared = false, sharedNote = true, lockColumn = true)
+        assertEquals(setOf(HOME, LOCK), lost.forget, "the old code's Fill on HOME+LOCK")
+        assertTrue(liveHolds(settling = liveSettling(true, Duration.ofSeconds(2)), lost = lost))
+        // Live on home alone, the lock screen still Fill (the split): the same.
+        val split = lostLive(homeNoted = true, lockNoted = false, homeLive = false, shared = false, sharedNote = false, lockColumn = true)
+        assertTrue(liveHolds(settling = true, lost = split))
+        // Nothing lost: nothing held, the run goes on.
+        assertFalse(liveHolds(settling = true, lost = lostLive(true, true, homeLive = true, shared = true, sharedNote = true, lockColumn = true)))
+    }
+
+    @Test
+    fun decision12sRevertAfterTheGraceIsFillOnBoth() {
+        // Android reverted home after two deaths in 10 s; the engine on the lock screen alone, 20 s on.
+        val settling = liveSettling(engine = true, processAge = Duration.ofSeconds(20))
+        assertTrue(liveStray(homeLive = false, settling = settling))
+        assertTrue(owed(stray = true, notedLive = true))
+        val lost = lostLive(homeNoted = true, lockNoted = true, homeLive = false, shared = false, sharedNote = true, lockColumn = true)
+        assertFalse(liveHolds(settling, lost))
+        assertEquals(setOf(HOME, LOCK), lost.forget)
+        val sets = listOf(y to setOf(HOME, LOCK))
+        assertEquals(LiveSets(sets), stillOrLive(Size.LIVE, homeLive = false, shared = false, homeColumn = true, homePicture = y, sets = sets), "both still")
+    }
 }

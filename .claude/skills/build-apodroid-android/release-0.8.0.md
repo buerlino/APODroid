@@ -10,7 +10,7 @@ queue rows (`plan R1`, `plan T2`, …) must keep resolving. 0.8.0's rows name th
 | Track | What | File | State |
 |---|---|---|---|
 | SW | Sideways (issue #4): ⛶'s toggle (A), then a Setup switch for wide pictures (C) | `sideways-0.8.0.md` | SW1, SW2 running 15 Nov evening |
-| SA | Fill's frame on the subject (issue #3): Size [Centre \| Auto \| Live], Auto the default; Advanced's fallback switch | `subject-0.8.0.md` | decided 15 Nov evening (two rounds of picks); SA2, SA3 queued tonight |
+| SA | Fill's frame on the subject (issue #3): Size [Centre \| Auto \| Live], Auto the default; Advanced's fallback switch | `subject-0.8.0.md` | decided 15 Nov evening (two rounds of picks); SA2, SA3a, SA3b queued tonight |
 | VS | A still from the video behind ▶ on video days (Open question 2) | `video-0.8.0.md` | queued |
 | D1 | A second picture on the same date arrives at the next check (Open question 3) | this file | queued |
 | R3, T3 | The release's texts; the final tablet pass on the combined tree | this file | queued |
@@ -27,9 +27,10 @@ there is 0.7.1 or folds into 0.8.0, whichever ships first.
   3 h; the device is the Android 14 emulator while pascaline has the tablet): SW2T, D1, VS1, SW3
   (texts as placeholders).
 - **Mon 16 Nov morning, the user (about 45 min):** SA0's picking page; the answers to
-  `subject-0.8.0.md`'s Open 1–4; the texts from rosie's screenshots (Sideways, SW3's switch and
-  ⓘ, the video still's look); SW3's threshold and whether it applies under Live.
-- **Mon 16 Nov day:** fixes from the morning; SA2, SA3 (only if SA0 says build); R3.
+  the texts from rosie's screenshots (Sideways, SW3's switch and ⓘ, Advanced's "Auto: centre
+  when unsure" and ⓘ, the video still's look); SW3's threshold and whether it applies under
+  Live. (SA0's picks were done on 15 Nov evening: two rounds, decided.)
+- **Mon 16 Nov day:** fixes from the morning; what the night didn't reach of SA2, SA3a, SA3b, R3.
 - **Mon 16 Nov night:** T3, the final tablet pass on dev's R8 build, then the regression.
 - **Tue 17 Nov:** the FP6 with the user (the release-signed build of the candidate over 0.7.0:
   Sideways on 9 Nov's picture on both screens, Fill and Live; the switch; a video day if one
@@ -38,10 +39,10 @@ there is 0.7.1 or folds into 0.8.0, whichever ships first.
 
 ## The order (the queue, night.md)
 
-SW1 → SW2 → SW2T → D1 → VS1 → SW3 → (SA0's decision) SA2 → SA3 → R3 → T3. One device, one pipeline
+SW1 → SW2 → SW2T → D1 → VS1 → SW3 → SA2 → SA3a → SA3b → R3 → T3. One device, one pipeline
 at a time. D1, VS1 and SW3 each wait only for SW2 (one that isn't merged doesn't hold the others
-back); SW3's texts are placeholders until the morning. SA2 waits for "the user" (SA0's picks and
-Open 1–4); SA3 for SA2 and SW3.
+back); SW3's texts are placeholders until the morning. SA2 waits for nothing (decided 15 Nov evening); SA3a for SA2 and
+SW3, SA3b for SA3a.
 
 ## Rules for every 0.8.0 package
 
@@ -51,7 +52,7 @@ Open 1–4); SA3 for SA2 and SW3.
   overrule in the morning): TensorFlow Lite/LiteRT is out of 0.8.0 (F-Droid's scanner, the APK
   size and the reproducible build unchecked, SA1 skipped). A method that needs it moves to 0.9.0.
 - Sideways and the subject's frame meet in one place (`Part.position` along the frame's one
-  direction): SA3 notes the subject's position for the upright picture and the sideways one.
+  direction): SA3a notes the subject's position for the upright picture and the sideways one.
 - Every new log line greppable; the debug dumps as L4's.
 
 ### [ ] D1. A second picture on the same date arrives at the next check (Opus, medium)
@@ -98,9 +99,7 @@ ever stored, most at US Eastern midnight; never seen in the real feeds).
 
 ### [ ] R3. The release's texts: versionCode 12, the changelog (Sonnet, medium)
 
-Read first: release-0.8.0.md's "Rules for every 0.8.0 package". After the last feature package merged (SW3, VS1, D1, and SA3
-if SA is built; if SA0 says no, the user takes rows SA2 and SA3 out of the queue and SA3 out of
-this row's After).
+Read first: release-0.8.0.md's "Rules for every 0.8.0 package". After the last feature package merged (SW3, VS1, D1, SA3b).
 - `app/build.gradle.kts`: versionCode 12 (13 if a 0.7.1 took 12 first: check the tags),
   versionName 0.8.0.
 - `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`: short lines, what a user sees
@@ -121,6 +120,6 @@ Read first: release-0.8.0.md's "Rules for every 0.8.0 package".
   setup kept, the alarms armed by `MY_PACKAGE_REPLACED`, nothing set. The release-signed update
   is the user's, on the FP6 on 17 Nov.
 - Then each 0.8.0 feature's device bullets once more on R8 (SW2's, SW3's, VS1's, D1's `same
-  post` log line, SA3's if built), the smoke list, and the regression's core paths (Set, the
+  post` log line, SA3a's and SA3b's), the smoke list, and the regression's core paths (Set, the
   daily switch, a run by `run -f 1`, Live, ⛶ and ✓). Screenshots for the user.
 - **Done when:** PASS, or each FIX as a package for Tue 17 Nov morning, before the noon cut.

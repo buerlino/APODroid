@@ -223,6 +223,16 @@ or days of time.
   PASS on the Android 14 emulator (SW2T, 2026-11-15; the tablet HA24BZ2Y not run): `run -f 1`
   with the record faked a day back gave `Daily job: wallpaper set: … on HOME+LOCK, sideways`,
   `debug-set.png` turned; a faked new post went on upright.
+- **F15 "Wide pictures sideways" (SW3, 0.8.0).** Each set of a source's post (the job's, the page's,
+  Set's, ✓'s, the hand-over's `live.sideways`, so B27's keep) turns it when its part notes
+  `<source>.sideways=true`, or notes nothing (the key missing, also a part from 0.7.0) while the
+  stored `wideSideways` is on and the picture file's upright size (`uprightSize`, EXIF's quarter
+  turns swapped) is 3:2 or wider (`:core`'s `sidewaysByDefault`, `sidewaysOf`; `Store.turnsSideways`).
+  So with the switch on a new wide post goes on sideways at its change time with no ⛶ at all:
+  `Daily job: wallpaper set: Of(…) on <screens>, sideways`; a 1.2:1 or portrait post upright; "my
+  picture" never. Unit: `FrameTest.wideSidewaysTurns3To2AndWider`, `aNotedPartWinsElseTheSwitchsRule`,
+  `theUprightSizeSwapsOnlyForAQuarterTurn`. Phone (the emulator): the switch on and Set (setup.md
+  X2), then a faked new wide post and `run -f 1`: sideways.
 
 ## G. Live (`Store.setDue` Live part `Store.kt:1045-1197`, `Live.kt`, `LiveWallpaper.kt`)
 - **G1 Is home live (`liveState`, `Store.kt:1440-1450`).** 14+: `getWallpaperInfo(FLAG_SYSTEM)`

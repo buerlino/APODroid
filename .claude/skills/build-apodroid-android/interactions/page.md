@@ -237,9 +237,11 @@ sideways branch). Needs a landscape picture on the shown page (today's, or 9 Nov
 `files/` with the skill's recipe) and a portrait or square one for K16a. Sideways turns the picture
 90° clockwise: its top at the screen's right; the band is position 0 at the picture's bottom.
 - **K16 ⛶ on a landscape picture.** The pill "Sideways" at the picture's top right (the chip's dark
-  pill), white while it equals the stored part; "Whole picture" stays at the top left. Screen
+  pill), white while it equals what the stored part puts on (SW3: the noted value, else the stored
+  "Wide pictures sideways" rule, K24); "Whole picture" stays at the top left. Screen
   readers: "Sideways", a switch, "Off". No log.
-  - **K16a ⛶ on a portrait or square picture:** no "Sideways" pill (`sidewaysHelps`: wider than high).
+  - **K16a ⛶ on a portrait or square picture:** no "Sideways" pill (`sidewaysHelps`: wider than high,
+    by the file's upright size, `uprightSize`, SW3).
   - **K16b Tap "Sideways".** "✓ Sideways" in tertiary (", not set yet"); the frame becomes a band of the
     screen's shape turned (a horizontal band across the full width on a normal wide picture, its
     height = the picture's width × screen width ÷ screen height: 3630×2408 on 1080×2408 gives 1628
@@ -278,7 +280,25 @@ sideways branch). Needs a landscape picture on the shown page (today's, or 9 Nov
   `Live: drew … p=0.NN`; the home screen pans across the turned picture (a 3:2 picture about a third
   of its turned width over the day). Details: live.md, ⛶ with Live.
 - **K23 A new post of that source** (a faked date): the part drops (keyed by `cropDate`/`cropUrl`),
-  the new picture goes on upright; ⛶ opens with "Sideways" off.
+  the new picture goes on upright; ⛶ opens with "Sideways" off (with "Wide pictures sideways" on
+  and a 3:2 or wider new picture: sideways, K24).
+
+With "Wide pictures sideways" (SW3, 0.8.0; setup.md X; `turnsSideways`, `cropSidewaysTouched`): the
+pill opens on the value the set uses, the part's noted one, else, while the **stored** switch is on,
+`sidewaysByDefault` (3:2 or wider). The draft's switch doesn't change ⛶ until Set.
+- **K24 The switch stored on, ⛶ on a 3:2 or wider picture without a noted part:** "✓ Sideways"
+  white (it's what's on), the band. On a 1.2:1 picture: "Sideways" off, white.
+  - **K24a ✓ untouched** (the band dragged or not): the part keeps no `<source>.sideways` key (null,
+    the switch's default); a moved band sets as K1d with ", sideways".
+  - **K24b Tap it off, ✓:** "Wallpaper set", upright (`setStream`, no ", sideways"),
+    `<source>.sideways=false`: this picture only; the next post (K23) sideways again by the rule.
+  - **K24c Tap it off and on again, ✓:** nothing set (the value used unchanged), but
+    `<source>.sideways=true` noted (a touched pill notes its value), so the switch off later keeps
+    this picture sideways.
+- **K25 The switch stored off, a part ✓'d on:** stays sideways (setup.md X4). The draft's switch
+  on, not Set: ⛶ still opens as stored (night default: ✓ sets by the stored setup).
+- **K26 A part's position with the switch:** its number stays when the switch turns the picture
+  sideways, so the band stands at that position along the other axis (night default).
 - **Checked** (SW2T, rosie, 2026-11-15, the Android 14 emulator `emulator-5564`, 1080×2400, the debug build of dev b5857b9; 9 Nov's APOD at `?h=2400`, 3618×2400, and 31 Jan 2026's bright one faked into `files/apod.jpg`, today's 1920×2400 for the portrait case; evidence in `.coord/runs/126-sw2t/tablet/`): K16, K16a–c, K17, K17a, K17b, K18, K20,
   K21, K22, K23 PASS (K19's no-change half not run). On AOSP 14 `dumpsys wallpaper` always lists a
   "Lock wallpaper state" (id 1, `mWhich=1`, an empty crop, there since boot): a set with both flags

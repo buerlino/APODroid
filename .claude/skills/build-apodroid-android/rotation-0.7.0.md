@@ -134,7 +134,7 @@ Answered by the user, 2026-11-14: 1 (b) by the clock, 2 dropped, 3 an ⓘ (Decid
 Each reads this file's text above first (`plan-0.7.0.md`, For every package); the queue rows are
 `night.md`'s.
 
-### [ ] RO1. `:core`: turns as a plain rotation (Opus, high)
+### [x] RO1. `:core`: turns as a plain rotation (Opus, high)
 
 After Open 1 and 2 are decided (the user writes the answers into Decided). The rules above as
 decided; `dueWallpapers`' rule 1 and rule 3 as What changes says, `nextRun` and `nextAlarm` without
@@ -146,7 +146,7 @@ decided; `dueWallpapers`' rule 1 and rule 3 as What changes says, `nextRun` and 
   the picture time states the rotation's rules (0.6.0's rule 1 and rule 3 replaced, the date and
   the why), Traffic without the waiting checks.
 
-### [ ] RO2. `Store`, the page's texts, `CLAUDE.md` for the rotation (Opus, medium)
+### [x] RO2. `Store`, the page's texts, `CLAUDE.md` for the rotation (Opus, medium)
 
 After RO1 and Open 3. `Store` stops passing `waiting`; `standInSkipped` and its video-notice texts
 go with Open 2; the ⓘ beside "Change every" if Open 3 says so (its text a placeholder).
@@ -156,7 +156,7 @@ go with Open 2; the ⓘ beside "Change every" if Open 3 says so (its text a plac
   the ⓘ (a screenshot); the smoke list.
 - **Done when:** built; no text names a stand-in "skipped" unless Open 2 kept it; the tablet passes.
 
-### [ ] RO3. Tablet check: the rotation on a faked day (Opus, medium)
+### [x] RO3. Tablet check: the rotation on a faked day (Opus, medium)
 
 rosie's device package, on dev's debug build after RO2: Tests and checks above, the tablet item
 (APOD and NASA on both screens, 6 h: APOD at 06:00 and 18:00, NASA at 12:00 and 00:00, nothing

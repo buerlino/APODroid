@@ -1570,7 +1570,19 @@ tablet's shift (O15, L9's tablet part, T2, the regression, their fix packages) a
 user (L2, O17, L10's first day). **No real week before the tag**, unlike 0.6.0's W: the user tests 0.7.0
 on the FP6 through the week as it comes, and a fix ships as 0.7.1. L9's two real days, O16's week and
 L10's further days go the same way (after the tag, not before). E moves to 0.8.0, so 0.7.0 ships
-Android 10–14 untested on a device, as 0.6.0 did.
+Android 10–14 untested on a device, as 0.6.0 did. **Where it stands** (2026-11-15 morning, dev
+b8957ca): O15, L9, T2 (26 checks, 20 on R8, the update from 0.6.0) and regression 13 passed on the
+tablet; their fixes merged with tablet PASS: L9a (the engine's first frame), L8f1 (one process death
+no longer drops Live: regression 12's bug), R2a and R2b (the release audit's two Live risks, by
+reading; the audit found no confirmed blocker), B28 (a shared engine keeps the lock screen only while
+both columns are equal: the real night's finding, user-approved). **The tablet's real night**
+(15 Nov, R8, Doze reached at 02:37, home APOD + NASA 6 h, lock APOD, Live, Keep running,
+Unrestricted; `.coord/real-night-2026-11-15/morning.md`): four runs, all expedited job 2 from the
+alarms, 4–10 min after each alarm, none failed; APOD's 06:05 post on both screens at 06:12; Live and
+the service alive all night, no crash. The FP6 runs b8957ca since 09:30 on 15 Nov (the user's release
+key, over 0.6.0: setup kept, alarms armed by `MY_PACKAGE_REPLACED`). Left for the tag: the user's
+approval of the texts (the sign-off page, https://claude.ai/code/artifact/80368bf4-5b9b-4e79-912a-f943c33d82d0,
+private) and the day's use of the FP6 (L2, O17, L10's first day).
 
 **0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline, right after 0.6.0):
 Size [Fill | Live], with the preview on the page (one drawing code). A wide picture is shown at the screen's full height and moves

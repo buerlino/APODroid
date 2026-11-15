@@ -56,7 +56,7 @@ the user takes the words out once it's done (night.md, Commands, 3).
 
 ## Packages
 
-### [ ] B26. APOD's title prefix with the day first (Sonnet, medium)
+### [x] B26. APOD's title prefix with the day first (Sonnet, medium)
 
 (`CLAUDE.md`, Open questions, 4.) The 29 Oct 2026 post's title was `APOD: 29 October 2026 &#8211;
 The Horns of Venus`; every other post of the last 300 has the year first (`APOD: 2026 October 28
@@ -73,7 +73,7 @@ name carried it (`APOD_2026-10-29_APOD_29_October_2026_…`).
 - **Done when:** the tests pass and fail on the old regex; `CLAUDE.md`'s Open questions, 4
   removed and the Data source's title bullet names both orders.
 
-### [ ] B27. A shared lock screen with nothing of its own shows home's new picture (Opus, medium)
+### [x] B27. A shared lock screen with nothing of its own shows home's new picture (Opus, medium)
 
 (T1's SIM, seed 235, invariant 16; the user, 2026-11-14: fix (a), built the same night.) With Size Live and home
 and lock on the one engine (`live.shared`), a lock screen whose column has nothing new to show (e.g. lock = APOD
@@ -89,7 +89,7 @@ follows home").
 - **Done when:** seed 235's test is un-ignored, out of `knownBugs`, and passes (it fails on the old code); the
   other seeds still pass; `CLAUDE.md` says what the lock screen does.
 
-### [ ] R2a. Below 14, Live re-applied over itself isn't taken for lost (Opus, medium)
+### [x] R2a. Below 14, Live re-applied over itself isn't taken for lost (Opus, medium)
 
 (From the release audit, 2026-11-14, PLAUSIBLE: read from AOSP, not run; queued the same night.) Below 14,
 `Store.liveState()` takes home as live only while `live.homeId` equals `getWallpaperId(FLAG_SYSTEM)`, and the
@@ -107,7 +107,7 @@ in the system's wallpaper app makes the next run's `lostLive` forget home's reco
   real check is E's (0.8.0), noted in the skill's Still untested.
 - **Done when:** the code and the notes; the tablet's smoke check passes.
 
-### [ ] R2b. Set's wait for the picker isn't ended by the picker's own Settings button (Opus, low)
+### [x] R2b. Set's wait for the picker isn't ended by the picker's own Settings button (Opus, low)
 
 (From the release audit, 2026-11-14, PLAUSIBLE; queued the same night.) `pickerBack` is process-wide and every
 `MainActivity.onResume` completes it; `res/xml/live_wallpaper.xml` names `MainActivity` as `settingsActivity`,
@@ -124,7 +124,7 @@ set", and Live applied afterwards draws the old copy until the next run.
 
 ## Before the tag
 
-### [ ] T1. SIM on the combined rules (Opus, high)
+### [x] T1. SIM on the combined rules (Opus, high)
 
 (User, 2026-11-14: everything queued.) `RulesSimulationTest` on the tree with the rotation (RO1),
 as soon as it's out (SO1, the switch on and off at random), O4b's retry model, O10's run and OR1's order and anchor (invariants 11–13, `order-0.7.0.md`):
@@ -134,7 +134,7 @@ SO1 changed what it states (say which in the report); 240 seeds as 0.6.0's SIM, 
   failing test marked `@Ignore` with its seed, not a fix).
 - **Done when:** the simulation passes, or every failure is a `BUG:` line with its seed.
 
-### [ ] R1. The release's texts (Sonnet, medium)
+### [x] R1. The release's texts (Sonnet, medium)
 
 (User, 2026-11-14.) `app/build.gradle.kts` versionCode 11, versionName "0.7.0";
 `fastlane/metadata/android/en-US/changelogs/11.txt` in 10.txt's form (one line a feature, the
@@ -144,7 +144,7 @@ what `git log` shows merged), the fastlane `full_description.txt` and `short_des
 where a feature changes what they say; `CLAUDE.md`'s Releases line for 0.7.0 left to the tag (T).
 - **Done when:** the files written; `./gradlew :app:assembleRelease` builds; no tag, no push.
 
-### [ ] T2. Final tablet pass on the combined tree (Opus, high)
+### [x] T2. Final tablet pass on the combined tree (Opus, high)
 
 (User, 2026-11-14; this file's first bullet below.) rosie, the tablet: dev's debug build, then R8
 (signed as the skill says); the update from 0.6.0's build with a real setup (M2's way: nothing

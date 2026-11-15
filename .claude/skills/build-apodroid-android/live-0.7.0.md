@@ -621,7 +621,7 @@ claude --model opus --effort high "Do L10 in .claude/skills/build-apodroid-andro
   - the screen off and on with `adb shell input keyevent SLEEP` and `WAKEUP`, a frame right after
     with `adb shell "input keyevent WAKEUP; screencap -p /sdcard/wake.png"`.
 
-### [ ] L0. The probe: a throwaway live wallpaper (by day, not the pipeline; Opus, medium)
+### [x] L0. The probe: a throwaway live wallpaper (by day, not the pipeline; Opus, medium)
 
 J0's and O5's way: a throwaway app in `.coord/probe-l/` (gitignored), its own
 `settings.gradle.kts`, built with the repo's wrapper (`./gradlew -p .coord/probe-l`), plain
@@ -653,7 +653,7 @@ Android (no Compose, no library), `minSdk` 29, `compileSdk` and `targetSdk` 37, 
 - **Done when:** `probe-live.apk` built in `.coord/probe-l/`, its `README.md` lists every
   command; no device (the trial is L1's first step).
 
-### [ ] L1. Android check: the live wallpaper on the tablet (Opus, medium)
+### [x] L1. Android check: the live wallpaper on the tablet (Opus, medium)
 
 (Agent rosie, the tablet, after W and L0; one session of about 90 min, beside O8 but not at the
 same time. Read this file's "What Android gives" first.) Note the tablet's state as "For rosie"
@@ -838,7 +838,7 @@ APODroid's next change would replace it anyway.
 - **Done when:** the answers written to `.coord/runs/l2/report.md`; the user has seen the first
   frame.
 
-### [ ] L3. `:core`: the position by the clock, the decode size, still or engine (Opus, medium)
+### [x] L3. `:core`: the position by the clock, the decode size, still or engine (Opus, medium)
 
 (This file, The position; `Store`, Size and Set. After O1, which moves `PictureTime`'s constants,
 and L1, whose step 3 told how a shared engine is told apart (Decisions 10 and 12).)
@@ -877,7 +877,7 @@ Plain Kotlin, JUnit.
 - **Done when:** the tests pass; `CLAUDE.md`'s 0.7.0: Live section says the position rule; the
   skill's "Where things are".
 
-### [ ] L4. The drawing: one function for the whole picture, the engine and the preview (Opus, medium)
+### [x] L4. The drawing: one function for the whole picture, the engine and the preview (Opus, medium)
 
 (This file, The drawing. After O2, which looks ⛶'s noted part up once.) No behaviour change.
 - **`Drawing.kt`** (`:app`): draws a decoded picture onto a `Canvas` of a given size, panned (the
@@ -897,7 +897,7 @@ Plain Kotlin, JUnit.
 - **Done when:** the whole picture's bitmap is pixel-identical before and after;
   `:app:compileDebugKotlin` and the check pass; the tablet passes.
 
-### [ ] L5. The engine, and `setDue` leaves a live screen to it (Opus, high)
+### [x] L5. The engine, and `setDue` leaves a live screen to it (Opus, high)
 
 (This file, The engine; `Store`, Size and Set, its first half. After L1, L3, L4.) No setting yet:
 on `dev` between L5 and L6 the app treats Live as on while Android's picker put APODroid's
@@ -958,7 +958,7 @@ engine on home.
     at the end.
 - **Done when:** the tablet passes; the texts listed (the description).
 
-### [ ] L6. Size [Fill | Live], Set opens Android's picker, the texts (Opus, high)
+### [x] L6. Size [Fill | Live], Set opens Android's picker, the texts (Opus, high)
 
 (This file, `Store`, Size and Set, its second half. After L5. Built without waiting for L2 (user,
 2026-11-14): an L2 finding on the FP6 later becomes a fix package for the user to decide.)
@@ -1008,7 +1008,7 @@ engine on home.
     user. Then the smoke list.
 - **Done when:** the tablet passes; SIM's invariants hold over its seeds; the texts listed.
 
-### [ ] L7. The preview in ⛶ mode (Opus, medium)
+### [x] L7. The preview in ⛶ mode (Opus, medium)
 
 (This file, The preview; Decision 7. After L6.)
 - **⛶ with the draft's Size Live** and the shown source in home's column: the frame at
@@ -1025,7 +1025,7 @@ engine on home.
   Screenshots for the user; the smoke list.
 - **Done when:** the tablet passes; the texts listed (none expected beyond the semantics).
 
-### [ ] L8. D: the screen-on check starts the alarms' run (Opus, medium)
+### [x] L8. D: the screen-on check starts the alarms' run (Opus, medium)
 
 (This file, D; `on-time-0.7.0.md`, D and its Seams 1. After L5 and O4 with its packages, which may
 change the run's bookkeeping; with O10 the run is expedited.)
@@ -1052,7 +1052,7 @@ change the run's bookkeeping; with O10 the run is expedited.)
   - Then the smoke list.
 - **Done when:** the tablet passes.
 
-### [ ] L9. Tablet pass of the track, and two real days with Live (Opus, high)
+### [x] L9. Tablet pass of the track, and two real days with Live (Opus, high)
 
 (Agent rosie, the tablet; V11c's form on the tree with L3–L8.)
 - **The debug build, then R8** (sign as the skill says): L5's, L6's, L7's and L8's checks again,
@@ -1151,7 +1151,7 @@ change the run's bookkeeping; with O10 the run is expedited.)
     choices with Size Live (`r8-setup-live-video-earth-draft.png`,
     `debug-video-day-use-my-picture-draft.png`).
 
-### [ ] L9a. The engine's first frame without the black (Opus, medium)
+### [x] L9a. The engine's first frame without the black (Opus, medium)
 
 (From L9's `BUG:` line, 2026-11-14; queued the same night, before T2.)
 - **The bug:** an engine created with the screen on (a rebind after a process death, `install

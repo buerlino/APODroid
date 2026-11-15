@@ -117,7 +117,7 @@ the summary, 4 unchanged.
 Each reads this file's text above first (`plan-0.7.0.md`, For every package); the queue rows are
 `night.md`'s.
 
-### [ ] SO1. `:core`: as soon as it's out, the rule and the hourly checks (Opus, high)
+### [x] SO1. `:core`: as soon as it's out, the rule and the hourly checks (Opus, high)
 
 After RO1 (the same functions). The rule with the switch on as above (What changes, `:core`):
 `dueWallpapers` takes the switch, `inWindow` lets the owner's newer stored post through while it's
@@ -129,7 +129,7 @@ on; `nextRun` checks hourly until the next change time while it's on.
 - **Done when:** the tests pass and the 13 Nov case with the switch on fails on the old code; off,
   every existing test passes unchanged.
 
-### [ ] SO2. The switch in Setup, `Store`, `CLAUDE.md` (Opus, medium)
+### [x] SO2. The switch in Setup, `Store`, `CLAUDE.md` (Opus, medium)
 
 After SO1 and Open 1–3. The pref `soon` (default false) in `Setup`, `saveSetup`, `nextAlarm` and
 `setDue`; the switch under "New picture at" with its ⓘ, part of the draft (the highlight, "not
@@ -141,7 +141,7 @@ summary as Open 3 says. Texts the placeholders above until approved.
   on, none while off); the highlight and the ⓘ (screenshots); the smoke list.
 - **Done when:** built; the tablet passes.
 
-### [ ] SO3. Tablet check: a NASA post in the afternoon (Opus, medium)
+### [x] SO3. Tablet check: a NASA post in the afternoon (Opus, medium)
 
 rosie's device package, on dev's debug build after SO2: APOD on home, NASA on lock, the switch on;
 a NASA post faked as published in the afternoon (the stored post's date and `published` set back

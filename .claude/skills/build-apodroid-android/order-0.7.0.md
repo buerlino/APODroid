@@ -294,7 +294,7 @@ new setup**, N(A) recomputed:
 Each reads this file's text above first (`plan-0.7.0.md`, For every package); the queue rows are
 `night.md`'s.
 
-### [ ] OR1. `:core`: the list's order in the turns, the anchor, Set keeping what's on until it (Opus, high)
+### [x] OR1. `:core`: the list's order in the turns, the anchor, Set keeping what's on until it (Opus, high)
 
 After RO3 and SO3 (RO1 and SO1 changed the same functions: `dueWallpapers`, `Rules`,
 `restartAndForget`). The rules above, the Decided answers and Night defaults 1–3 (What changes,
@@ -312,7 +312,7 @@ the anchor's date, A's instant and N(A); the pref's parser. Defaults keep every 
   top-with-nothing-to-show case and the "Change every" case fail on the old code; every existing
   test passes unchanged; the report lists any SIM invariant rewritten and why.
 
-### [ ] OR2. The drag list, its actions, the order in the draft and Set, `CLAUDE.md` (Opus, high)
+### [x] OR2. The drag list, its actions, the order in the draft and Set, `CLAUDE.md` (Opus, high)
 
 After OR1. `Setup.order`, the prefs `order` and `orderFrom` (Night default 3: only while the draft
 shows the list), `saveSetup` (one commit; `orderFrom` only for a new order or none stored;

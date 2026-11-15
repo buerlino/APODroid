@@ -274,7 +274,7 @@ Since b6bc1d0, O13 and L4 moved them (Opus pass 29): `Store.kt`'s by −11 from 
 (`nextAlarm` at 464, `update`'s `daily` check at 738), `MainActivity.kt`'s by +6 from line 266
 on; `DailyJob.kt`'s are unchanged.
 
-### [ ] O4a. The alarms never lost while the switch is on (Opus, medium)
+### [x] O4a. The alarms never lost while the switch is on (Opus, medium)
 
 (`review-0.7.0-runs.md`, finding 1; for O10 and O14.)
 - `DailyJob.runNow`: when `schedule()` returns `RESULT_FAILURE` or throws (caught, logged),
@@ -291,7 +291,7 @@ on; `DailyJob.kt`'s are unchanged.
 - **Done when:** built; SIM's invariant 9 checked more than 100 times and passing; the tablet
   passes.
 
-### [ ] O4b. A run counts as failed from its start until it ends well (Opus, high)
+### [x] O4b. A run counts as failed from its start until it ends well (Opus, high)
 
 (`review-0.7.0-runs.md`, The simpler model; finding 5. **The user's yes** (2026-11-14): the
 retry measured from the run's start, not its end; the whole model is built, with the fold of
@@ -323,7 +323,7 @@ retry measured from the run's start, not its end; the whole model is built, with
   `install -r` mid-run: `failedRuns` 1 and no `runGoing` after it. The smoke list.
 - **Done when:** the user's decision taken; built; the tests and SIM pass; the tablet passes.
 
-### [ ] O4c. The switch-on run stops between sets once the switch is off (Opus, medium)
+### [x] O4c. The switch-on run stops between sets once the switch is off (Opus, medium)
 
 (`review-0.7.0-runs.md`, finding 2.)
 - `Store.setDue`: before each set after the first, when the update has no `set` and `daily` is

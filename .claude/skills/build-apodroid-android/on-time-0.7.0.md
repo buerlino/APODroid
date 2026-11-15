@@ -455,7 +455,7 @@ claude --model opus --effort medium "Do O16's start in .claude/skills/build-apod
 claude --model opus --effort high "Do O17 in .claude/skills/build-apodroid-android/on-time-0.7.0.md"
 ```
 
-### [ ] O1. Declutter: warnings, duplicates and wrong comments (C1–C3, C6–C12) (Opus, medium)
+### [x] O1. Declutter: warnings, duplicates and wrong comments (C1–C3, C6–C12) (Opus, medium)
 
 (User, 2026-11-14: the saved-state key's rename `tab` → `chosenSource` kept; a page restored across
 the update opens once on the wallpaper's source.)
@@ -490,7 +490,7 @@ numbers there are master 82df16a's; B22–B24 moved the code since: find each by
 - **Done when:** built; lint without `UseKtx`, the compiler without C2's warnings; the tablet
   passes.
 
-### [ ] O2. Declutter C4: ⛶'s noted part looked up once (Opus, medium)
+### [x] O2. Declutter C4: ⛶'s noted part looked up once (Opus, medium)
 
 (`declutter.md`, C4; risk medium: the wallpaper's set path.) `Store.cropPosition` and
 `Store.isWhole` re-read what `Store.parts` reads, and `MainActivity` has `position`, `whole` and
@@ -503,7 +503,7 @@ less. No behaviour change.
   different screens with different parts; the smoke list.
 - **Done when:** built; the tablet passes.
 
-### [ ] O3. Declutter C5: one dropdown (Opus, medium)
+### [x] O3. Declutter C5: one dropdown (Opus, medium)
 
 (`declutter.md`, C5.) One dropdown written four times in `MainActivity.kt` ("New picture at",
 the list's row, "If APOD is a video", "Largest original"; the title's menu too if it fits): one
@@ -516,7 +516,7 @@ labels ("New picture at: 06:00", "NASA on: Home screen", …), greyed out where 
   (`wm density 344`): no "▾" alone on a line; screenshots for the user; the smoke list.
 - **Done when:** built; the tablet passes.
 
-### [ ] O4. Design review of the run's bookkeeping, by reading (Opus, high)
+### [x] O4. Design review of the run's bookkeeping, by reading (Opus, high)
 
 (This file, First, 2; CR's form.) By reading, no device, no code changes. Read whole:
 `DailyJob.kt`, `AlarmReceiver.kt`, `Store.kt`'s run bookkeeping (`runStarts`, `ranJob`,
@@ -540,7 +540,7 @@ SIM's invariants (`RulesSimulationTest`).
 - **The audit** checks the form and that the cited lines exist.
 - **Done when:** every file read (listed in the report), the review committed.
 
-### [ ] O5. The probe (by day, not the pipeline; Opus, medium)
+### [x] O5. The probe (by day, not the pipeline; Opus, medium)
 
 J0's way: a throwaway app in `.coord/probe-o/` (gitignored), with its own
 `settings.gradle.kts`, built with the repo's wrapper (`./gradlew -p .coord/probe-o`), plain
@@ -576,7 +576,7 @@ expedited), `.reg` (regular, the control) and `.hog` (only its Hog screen is use
 - **Done when:** `probe-ej.apk`, `probe-reg.apk`, `probe-hog.apk` built in `.coord/probe-o/`, and
   its `README.md` lists the commands; no device (the trial is O6's first step).
 
-### [ ] O6. Android check: the expedited run in Doze, battery saver and the buckets (Opus, medium)
+### [x] O6. Android check: the expedited run in Doze, battery saver and the buckets (Opus, medium)
 
 **Session 1 only** (user, 2026-11-14: the shift gets the tablet tonight): session 2, the real night, is dropped; the real-night evidence comes from the FP6's week with the built 0.7.0. The first run (pipeline #86, 2026-11-14) hit the pipeline's 1 h limit with (a) and (d) done (the expedited job ran in deep idle and in battery saver with the network, HTTP 200; the regular one waited for idle's end) and (b) unfinished; its logs are in `.coord/runs/086-o6/tablet/`. The rerun finishes session 1 ((b), and (c) if session 1 holds it), then the table and the verdict from session 1 alone.
 
@@ -621,7 +621,7 @@ two sessions, the probes `.ej` and `.reg`, both Optimized (not on `deviceidle wh
   and (c) ran again on fresh installs. Decides: O10 goes ahead; "Exact timing" (B) doesn't come back.
   The night (session 2) dropped by the user: the FP6's week with 0.7.0 is the real-night evidence.
 
-### [ ] O7. Android check: a foreground service's life, look and memory (Opus, medium)
+### [x] O7. Android check: a foreground service's life, look and memory (Opus, medium)
 
 (Agent rosie, the tablet; decides O11's starts and whether O12 runs.) The probe `.reg`
 (Optimized) unless said; screenshots into the run folder for the user. About 60 min; if time runs
@@ -685,7 +685,7 @@ short, 1–4 and 8 first.
      **O12 doesn't run by the rule**; but the native heap shows the decoded pictures stay after
      Back (about 51 MB above a bare process): the user decides.
 
-### [ ] O8. Android check: ZUI's cleaner against a foreground service (Opus, medium)
+### [x] O8. Android check: ZUI's cleaner against a foreground service (Opus, medium)
 
 (Agent rosie, the tablet, by day. The memory pressure makes the cleaner force-stop other apps
 on the tablet, as on 28 Oct, and they lose their alarms until opened: the user's go given,
@@ -748,7 +748,7 @@ probes; nothing of the user's.
 - **Done when:** the user saw the results; `.coord/runs/o9/report.md`; the probes uninstalled,
   the phone as found.
 
-### [ ] O10. The alarms' run as an expedited job (Opus, medium)
+### [x] O10. The alarms' run as an expedited job (Opus, medium)
 
 (This file, The expedited run. After O4's packages the user picked, and O6's PASS.)
 - `DailyJob.runNow`: job 2 with `setExpedited(true)` on Android 12+; `RESULT_FAILURE` (no
@@ -770,7 +770,7 @@ probes; nothing of the user's.
   battery and Doze set back.
 - **Done when:** built; the tablet passes.
 
-### [ ] O11. Keep running: the service, the setting, its starts (Opus, high)
+### [x] O11. Keep running: the service, the setting, its starts (Opus, high)
 
 (This file, Keep running; Decisions 1 and 3. After O4's packages the user picked, and O7's and
 O8's PASS or the user's word after a STOP; not after O10, which it doesn't need.)
@@ -809,7 +809,7 @@ O8's PASS or the user's word after a STOP; not after O10, which it doesn't need.
   (screenshot); the smoke list.
 - **Done when:** built; the tablet passes; the texts and the two permissions listed.
 
-### [ ] O12. The page lets its pictures go while stopped (Opus, medium)
+### [x] O12. The page lets its pictures go while stopped (Opus, medium)
 
 **The user: run it** (2026-11-14, from O7: Home 134.4 MB, Back 105.2 MB, 29.2 MB apart, under the 30 MB rule; but after Back the native heap stays at 30.7 MB against 2.4 MB in a bare process, the decoded pictures kept, and with Keep running the process never ends).
 
@@ -822,7 +822,7 @@ state, the shown source, Setup's and Advanced's state (B13's rules for a rotatio
   show at once, ⛶'s dragged part and the draft kept; a rotation as before; the smoke list.
 - **Done when:** built; measured; the tablet passes.
 
-### [ ] O13. The pause hint per maker (Opus, medium)
+### [x] O13. The pause hint per maker (Opus, medium)
 
 (User, 2026-11-14: the stock battery line keeps " (on Optimized, a new picture can come hours
 late)", the only place that says what Optimized costs; the other texts wait for rosie's
@@ -850,7 +850,7 @@ screenshots.)
   user; the smoke list.
 - **Done when:** built; the tests pass; the tablet passes; the texts listed.
 
-### [ ] O14. The detector (Opus, high)
+### [x] O14. The detector (Opus, high)
 
 **The user, 2026-11-14 (from pass 37's questions):** the box follows Keep running's state at the miss, as built (turning it on from the box clears that box); the box names the day when the miss isn't today (O14b).
 
@@ -883,7 +883,7 @@ screenshots.)
   `auto_time` set back; the smoke list.
 - **Done when:** built; the tests pass; the tablet passes; the texts listed.
 
-### [ ] O14b. The detector's box names the day (Sonnet, medium)
+### [x] O14b. The detector's box names the day (Sonnet, medium)
 
 (User, 2026-11-14, from pass 37.) O14's box names only the time ("the 06:00 change came late"), so a
 box left for days doesn't say which day. When the missed change time's local date isn't today, the

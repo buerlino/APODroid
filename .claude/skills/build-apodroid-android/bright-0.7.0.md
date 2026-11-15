@@ -175,7 +175,7 @@ Earth's 40 newest: 31 decoded.
 - **Implied targets** of the 42 darkened picks: whole frame median 104 (IQR 36), top third 117
   (IQR 34). The as-is pictures' top third at most 100.
 
-### [ ] BR1. `:core`: the measure and the factor (Sonnet, medium)
+### [x] BR1. `:core`: the measure and the factor (Sonnet, medium)
 
 - `Brightness.kt`: the mean grey of a grey copy (with `gray`), over all of it or its top third as
   BR0 decided; `darkening(mean): Float` (1 up to the target, else target ÷ mean, at least the
@@ -185,7 +185,7 @@ Earth's 40 newest: 31 decoded.
 - **Done when:** the tests pass; `CLAUDE.md` (0.7.0: bright pictures darker: the figures) and the
   skill's "Where things are".
 
-### [ ] BR2. `Store.set`: a bright picture through a darkened bitmap (Opus, high)
+### [x] BR2. `Store.set`: a bright picture through a darkened bitmap (Opus, high)
 
 - Each set measures what the screen will show; with a factor below 1: Fill's frame decoded at the
   screen's size and `setBitmap`; the EXIF photo and the whole picture drawn through the darkening
@@ -209,7 +209,7 @@ Earth's 40 newest: 31 decoded.
   - screenshots of each for the user; then the smoke list.
 - **Done when:** the tablet passes; the texts listed.
 
-### [ ] BR3. Live: the engine and the preview darken by the picture's factor (Opus, medium)
+### [x] BR3. Live: the engine and the preview darken by the picture's factor (Opus, medium)
 
 (After L5; small enough to fold into L5 and L7 if those aren't built yet: then this row goes.)
 - The factor measured once per picture on the whole picture when `setDue` writes `live.jpg`,

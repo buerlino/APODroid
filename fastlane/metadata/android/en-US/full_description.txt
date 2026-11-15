@@ -7,11 +7,12 @@ The app is one page: today's picture with its title and date, and the settings b
 <li><b>Change automatically:</b> the wallpaper, on or off, at once.</li>
 <li><b>Where</b> (Setup, like the next two: a draft until you tap Set as wallpaper): home screen, lock screen, or both. With "More NASA pictures" on, <b>Pictures from</b> instead: each source on the home screen, the lock screen or both. Drag the sources into order. A screen with two or more takes turns in that order, every 24, 12, 6 or 3 hours. NASA and Earth Observatory post on weekdays only.</li>
 <li><b>New picture at:</b> the hour the wallpaper changes, 06:00 by default. A picture that comes out in the 3 hours after it still goes on, or turn on <b>As soon as it's out</b> to get each new picture within the hour.</li>
-<li><b>Size:</b> Fill, or Live: a wide picture moves across the home screen over the day (a live wallpaper, picked once in Android's picker).</li>
+<li><b>Size:</b> Centre, Auto (the frame on the picture's subject) or Live: a wide picture moves across the home screen over the day (a live wallpaper, picked once in Android's picker).</li>
+<li><b>Wide pictures sideways:</b> turns a wide picture a quarter turn, so more of it fills the screen; the frame button changes one picture.</li>
 <li><b>Darken bright pictures:</b> on by default, so the clock and widgets stay readable.</li>
-<li><b>If APOD is a video:</b> skip it, use NASA's or Earth Observatory's picture, or a picture of your own. The page shows a ▶ tile that opens the video on NASA's website.</li>
+<li><b>If APOD is a video:</b> skip it, use NASA's or Earth Observatory's picture, or a picture of your own. The page shows a ▶ tile (with a still from NASA's own videos) that opens the video on NASA's website.</li>
 <li><b>Set as wallpaper:</b> saves the setup and sets the wallpaper.</li>
-<li><b>Advanced settings:</b> save every new picture to your gallery, up to a size you choose; Keep running, so the phone can't stop the app between changes.</li>
+<li><b>Advanced settings:</b> save every new picture to your gallery, up to a size you choose; Auto: centre when unsure; Keep running, so the phone can't stop the app between changes.</li>
 </ul>
 
 If Android would pause the app because you don't open it, a note below the picture names the settings that prevent it, for your phone's maker. If the phone stopped the app and a change came late, a note says so. Notes also tell you when the check fails.

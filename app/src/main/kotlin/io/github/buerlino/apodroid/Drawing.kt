@@ -12,6 +12,7 @@ import android.graphics.Rect
 import android.util.Size
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
+import androidx.core.graphics.withClip
 import io.github.buerlino.apodroid.core.Frame
 import io.github.buerlino.apodroid.core.blurBackground
 import io.github.buerlino.apodroid.core.blurSize
@@ -148,10 +149,7 @@ fun drawTurned(canvas: Canvas, bitmap: Bitmap, src: Rect?, dst: Rect, paint: Pai
         postRotate(90f)
         postTranslate(dst.right.toFloat(), dst.top.toFloat())
     }
-    canvas.save()
-    canvas.clipRect(dst)
-    canvas.drawBitmap(bitmap, matrix, paint)
-    canvas.restore()
+    canvas.withClip(dst) { drawBitmap(bitmap, matrix, paint) }
 }
 
 /** [bitmap] turned 90° clockwise on a new bitmap (its top at the right); [bitmap] is recycled. */

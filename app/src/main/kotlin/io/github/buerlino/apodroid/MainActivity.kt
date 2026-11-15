@@ -203,6 +203,12 @@ class MainActivity : ComponentActivity() {
     private var pictures by mutableStateOf(emptyMap<Source, ImageBitmap>())
 
     /**
+     * VS1: the still from APOD's video, decoded, behind ▶ ([VideoTile]); the page only. Let go
+     * with the pictures ([onStop]).
+     */
+    private var videoStill by mutableStateOf<VideoStill?>(null)
+
+    /**
      * The sizes of the pictures [onStop] let go (O12), until [show] decodes them again: the pages
      * keep their height meanwhile (an empty box of the picture's shape), so the page doesn't jump.
      */
@@ -383,6 +389,9 @@ class MainActivity : ComponentActivity() {
          * job wasn't scheduled afresh, no toast, no log line).
          */
         val runs = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+        /** VS1: a video still is being made ([makeVideoStill]), in any page. */
+        var makingStill = false
 
         /** "Set as wallpaper" is running, in any page (one run at a time in the app). */
         var setting by mutableStateOf(false)
@@ -608,10 +617,12 @@ class MainActivity : ComponentActivity() {
         // must not draw into the stopped page (its pictures would stay for days).
         showing++
         restore = true
-        if (pictures.isEmpty()) return
-        val dropped = pictures.values
-        stoppedSizes = pictures.mapValues { (_, picture) -> IntSize(picture.width, picture.height) }
+        val still = videoStill?.picture
+        if (pictures.isEmpty() && still == null) return
+        val dropped = pictures.values + listOfNotNull(still)
+        if (pictures.isNotEmpty()) stoppedSizes = pictures.mapValues { (_, picture) -> IntSize(picture.width, picture.height) }
         pictures = emptyMap()
+        videoStill = null
         // The composition hears of it before its next frame draws (a recycled picture isn't drawn: [PicturePainter]).
         Snapshot.sendApplyNotifications()
         dropped.forEach { it.asAndroidBitmap().recycle() }
@@ -744,7 +755,12 @@ class MainActivity : ComponentActivity() {
     private fun isStale() = sources.any { source ->
         val post = posts[source]
         store.post(source) != post || (post != null && !post.isVideo && source !in pictures)
-    }
+    } || stillMissing()
+
+    /** VS1: APOD's video still was made (the job's notes) and this page doesn't show it yet. */
+    private fun stillMissing() = posts[Source.APOD]?.takeIf { it.isVideo && it.videoUrl != null }?.let { post ->
+        videoStill?.isFor(post) != true && store.videoStill(post) != null
+    } == true
 
     private suspend fun readSaved() {
         val offered = sources
@@ -891,8 +907,17 @@ class MainActivity : ComponentActivity() {
             }.toMap()
         }
         val isSaved = withContext(Dispatchers.IO) { offered.filter(store::isSaved).toSet() }
+        // VS1: APOD's video still, decoded once per post; made once when the video is NASA's mp4.
+        val video = latest[Source.APOD]?.takeIf { it.isVideo && it.videoUrl != null }
+        val still = video?.let { post ->
+            videoStill?.takeIf { it.isFor(post) && !it.picture.asAndroidBitmap().isRecycled } ?: withContext(Dispatchers.IO) {
+                store.videoStill(post)?.let { BitmapFactory.decodeFile(it.path) }?.let { VideoStill(post.date, post.videoUrl!!, it.asImageBitmap()) }
+            }
+        }
         // A later show() read the store after this one: it draws.
         if (run != showing) return
+        if (video != null && still == null) makeVideoStill(video)
+        videoStill = still
         val old = posts[shown]
         val new = latest[shown]
         if (old?.date != new?.date || old?.imageUrl != new?.imageUrl) cropping = false
@@ -901,6 +926,24 @@ class MainActivity : ComponentActivity() {
         stoppedSizes = emptyMap()
         restore = false
         saved = isSaved
+    }
+
+    /**
+     * VS1: makes [post]'s video still once, in the process-wide [runs] (as Set's), so a rotation
+     * during it doesn't leave its try noted with no page to show it. Its notes reach the open page
+     * through [Store.watch]; a page opened later reads the file.
+     */
+    private fun makeVideoStill(post: Post) {
+        if (makingStill || !store.videoStillOwed(post)) return
+        makingStill = true
+        val store = store
+        runs.launch {
+            try {
+                withContext(Dispatchers.IO) { store.makeVideoStill(post) }
+            } finally {
+                makingStill = false
+            }
+        }
     }
 
     /** The dropdown's choice or the page a swipe settled on. Crop mode closes. */
@@ -1806,6 +1849,16 @@ class MainActivity : ComponentActivity() {
                 .clickable { openPage(apod.pageUrl) },
             contentAlignment = Alignment.Center,
         ) {
+            // VS1: a still from the video, cropped to the tile, dimmed so ▶ stays the thing to tap.
+            videoStill?.takeIf { it.isFor(apod) }?.let { still ->
+                Image(
+                    painter = remember(still.picture) { PicturePainter(still.picture) },
+                    contentDescription = null,
+                    modifier = Modifier.matchParentSize(),
+                    contentScale = ContentScale.Crop,
+                )
+                Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.4f)))
+            }
             Text(
                 "▶",
                 Modifier.clearAndSetSemantics { contentDescription = "Play video on the web" },
@@ -2845,6 +2898,11 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         }.toMap(),
     )
 }.getOrNull()
+
+/** VS1: the decoded still of the video of APOD's post of [date] at [url]. */
+private class VideoStill(val date: LocalDate, val url: String, val picture: ImageBitmap) {
+    fun isFor(post: Post) = post.date == date && post.videoUrl == url
+}
 
 /**
  * Draws [picture] as `Image(bitmap = …)` does, but nothing once it's recycled ([MainActivity.onStop],

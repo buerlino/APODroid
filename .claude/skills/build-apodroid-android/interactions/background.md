@@ -182,6 +182,18 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
 - **E6 Storage full.** Phone: never on the FP6.
 - **E7 A success after a failure.** `problem` removed: the open page's listener redraws, the box
   goes. Phone: yes (end of P3).
+- **E8 The subject noted (SA3a, 0.8.0).** `refresh` (at its start and end, every source in use)
+  and a page open that skips today's stored post: when the stored post's picture exists and no
+  subject is noted for its date and picture URL (a new download, a fake, the update from 0.7.0, a
+  death before the note), `noteSubject` decodes a copy (≥ 512 px on the shorter side, upright),
+  computes `:core`'s `subjectPosition` upright and (a landscape picture) sideways, and notes
+  `<source>.subjectDate`, `subjectUrl`, `subjectPosition`, `subjectSideways` in one edit: `Subject:
+  APOD 2026-11-16 p=0.78 (sideways 0.50) in 140 ms` (no "(sideways …)" for a portrait or square
+  one). Once per post: the next runs log nothing. A picture that won't decode (or out of memory):
+  `Subject: APOD 2026-11-16 couldn't: …`, the date and URL noted without positions (not tried
+  again), the refresh goes on; its sets the middle. No `Subject:` line on a video day ("my
+  picture" has none). Phone (the emulator): a fake into `files/` (the skill), the
+  `<source>.subject*` keys removed, `run -f 1`: the line; a broken picture: `couldn't`.
 
 ## F. What each screen gets (`dueWallpapers`, `Screens.kt:230-363`)
 
@@ -233,6 +245,19 @@ or days of time.
   picture" never. Unit: `FrameTest.wideSidewaysTurns3To2AndWider`, `aNotedPartWinsElseTheSwitchsRule`,
   `theUprightSizeSwapsOnlyForAQuarterTurn`. Phone (the emulator): the switch on and Set (setup.md
   X2), then a faked new wide post and `run -f 1`: sideways.
+- **F16 Auto's frame (SA3a, 0.8.0).** Each still set (the job's, the page's, Set's, ✓'s) places
+  the frame by `:core`'s `framePosition`: the post's ⛶ part, else with Size Auto (the default; a
+  stored 0.7.0 `FILL` reads as Auto) `autoPosition` of the noted subject for the set's
+  orientation (E8; sideways the `subjectSideways`): the middle for a move under 0.2 while
+  `autoFallback` is on (default), else the subject; else (Centre, and under Live the screens left
+  still) the middle. The measure (darkening) uses the same frame. The log line notes it: `Daily
+  job: wallpaper set: Of(…) on <screens>, auto 0.78[, sideways][, darker …]`. Live's hand-over and
+  pan unchanged. Unit: `SubjectTest.framePositionTakesThePartThenAutoThenTheMiddle`,
+  `LiveTest.sizeOfReadsTheStoredNameAndAnUpdatesFillAsAuto`. Phone (the emulator): a picture with
+  `importance_pull` ≥ 0.75 or ≤ 0.25 and one at 0.55–0.65 faked, `run -f 1`: the first `, auto` at
+  its subject (the crop in `dumpsys wallpaper`, or `debug-set.png` when darkened or sideways),
+  the second `, auto 0.50`; `autoFallback=false` by `run-as`, the record forgotten, `run -f 1`:
+  the second moves.
 
 ## G. Live (`Store.setDue` Live part `Store.kt:1045-1197`, `Live.kt`, `LiveWallpaper.kt`)
 - **G1 Is home live (`liveState`, `Store.kt:1440-1450`).** 14+: `getWallpaperInfo(FLAG_SYSTEM)`

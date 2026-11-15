@@ -31,7 +31,7 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - 0.7.0's night plan (2026-11-13): the tracks, the order across them and the packages without a track (B26), for
   `scripts/pipeline.sh`; the queue in `night.md`: [.claude/skills/build-apodroid-android/plan-0.7.0.md](.claude/skills/build-apodroid-android/plan-0.7.0.md).
 - 0.7.0, on time on any phone (the expedited run, "Keep running", the detector; 2026-10-28): [.claude/skills/build-apodroid-android/on-time-0.7.0.md](.claude/skills/build-apodroid-android/on-time-0.7.0.md).
-- 0.7.0, Live, the day's pan (the live wallpaper, Size [Fill | Live]; 2026-10-28): [.claude/skills/build-apodroid-android/live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md).
+- 0.7.0, Live, the day's pan (the live wallpaper, Size [Fill | Live], since 0.8.0 [Centre | Auto | Live]; 2026-10-28): [.claude/skills/build-apodroid-android/live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md).
 - 0.7.0, bright pictures darker (GitHub issue #2; planned 2026-11-02): [.claude/skills/build-apodroid-android/bright-0.7.0.md](.claude/skills/build-apodroid-android/bright-0.7.0.md).
 - 0.7.0, turns as a plain rotation (the "hasn't shown" rule and the waiting go; planned 2026-11-11): [.claude/skills/build-apodroid-android/rotation-0.7.0.md](.claude/skills/build-apodroid-android/rotation-0.7.0.md).
 - 0.7.0, "As soon as it's out" (a switch: a new picture goes on within the hour, not only in the 3-hour window; planned 2026-11-13): [.claude/skills/build-apodroid-android/soon-0.7.0.md](.claude/skills/build-apodroid-android/soon-0.7.0.md).
@@ -362,13 +362,17 @@ set it as wallpaper, and on video days kept the old wallpaper.
     change isn't "the order alone"). Set sets each screen afresh. Setup's summary doesn't name
     it.
   - **Size** (L6, 2026-11-14; `live-0.7.0.md`, "Store, Size and Set"; the heading "Size" and
-    the segments "Fill" and "Live" approved by the user, 2026-11-15): a segmented row [Fill | Live] after "Where" or the list, always shown (never
-    put back), the pref `size` (`FILL`, `LIVE`; default Fill, so an update from 0.6.0 changes
-    nothing, no migration). Part of the draft (`Setup.size`, `saveSetup`, the saved state, the
+    the segments "Fill" and "Live" approved by the user, 2026-11-15; since 0.8.0, SA3a,
+    [Centre | Auto | Live], the segments "Centre", "Auto", "Live" the user's, 2026-11-15:
+    Next features, 0.8.0: Fill's frame on the subject): a segmented row [Centre | Auto | Live]
+    after "Where" or the list, always shown (never
+    put back), the pref `size` (`CENTRE`, `AUTO`, `LIVE`, read by `:core`'s `sizeOf`; default
+    Auto, and 0.7.0's `FILL` reads as Auto until the first Set rewrites it, no migration: an
+    update shows Auto selected, unhighlighted, and sets nothing). Part of the draft (`Setup.size`, `saveSetup`, the saved state, the
     highlight, "Selected, not set yet"); a changed Size is another change for "the order alone"
-    (OR2). Fill: every set still (Wallpaper), a still set replacing APODroid's live wallpaper
-    like any other. Live: home's picture goes to the engine while Android's picker put it on
-    home (Wallpaper: Live), else still as Fill; Set opens the picker when home isn't covered
+    (OR2). Centre and Auto ("Fill" in the texts below: a still set): every set still (Wallpaper), a still set replacing APODroid's live wallpaper
+    like any other; Centre's frame the middle, Auto's on the subject (Wallpaper: Auto). Live: home's picture goes to the engine while Android's picker put it on
+    home (Wallpaper: Live), else still at the middle; Set opens the picker when home isn't covered
     (Set as wallpaper). Setup's summary ends " · Live". **The status line** "Live isn't on. Set
     as wallpaper turns it on." (under the others, while the daily switch is on)
     while the stored Size is Live, home has a column and APODroid's live wallpaper isn't on home
@@ -798,8 +802,30 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `edgesBlack` says so (an upright grey copy decoded straight to `edgeCopySize`, 200 px wide),
   else on the blurred background (the picture's middle in the screen's shape, decoded halved
   while it still covers `blurSize`, scaled to it, `blurBackground`, drawn enlarged to the screen
-  with filtering). Otherwise Fill at the stored part, else the middle (`setStream` with the
-  crop). The user's own picture (video days): always Fill, centred (no whole picture).
+  with filtering). Otherwise Fill at the stored part, else with Size Auto at the subject (below),
+  else the middle (`setStream` with the crop). The user's own picture (video days): always Fill,
+  centred (no whole picture).
+  **Auto, the subject** (SA3a, 2026-11-15; Next features, 0.8.0: Fill's frame on the subject):
+  `Store.refresh` notes each stored post's subject once (`noteSubject`, under the refresh lock,
+  at the refresh's start and end, and at a page open that skips today's stored post, so an
+  update from 0.7.0, a fake and a death before the note are covered): while the post's picture
+  exists and no subject is noted for its date and picture URL, a copy decoded upright
+  (`ImageDecoder`, EXIF turned; `setTargetSampleSize`, the largest power of 2 keeping the
+  shorter side at least 512 px, as SA2's test; software), its pixels `boxResize`d to
+  `subjectCopySize`, then `:core`'s `subjectPosition` upright and, for a landscape picture
+  (`sidewaysHelps`), sideways, by the screen's portrait size; noted in one edit as
+  `<source>.subjectDate`, `subjectUrl`, `subjectPosition`, `subjectSideways`. A failure (out of
+  memory too) is noted without positions (not tried again for that post) and never fails the
+  refresh. Logged `Subject: APOD 2026-11-16 p=0.78 (sideways 0.50) in <n> ms` or `Subject:
+  APOD 2026-11-16 couldn't: …`. Each still set's position is `:core`'s `framePosition`: ⛶'s
+  part when there is one, else with Size Auto `autoPosition` of the noted position for the
+  picture's orientation (the sideways one while it goes on sideways; none noted or found: the
+  middle), else the middle (Centre; under Size Live the screens that stay still, a lock screen
+  with its own column, home after a lost Live: night default, the alternative Auto); the measure
+  follows the same frame. `autoPosition` keeps the middle for a move under 0.2 while the pref
+  `autoFallback` is on (default; `Store.autoFallback`, its switch in Advanced is SA3b's). The
+  set's log line notes ", auto 0.78" (the position used) while Auto placed it by a subject.
+  "My picture" has none (centred); Live's pan and its copy unchanged.
   **The darkening** (BR2, 2026-11-14; GitHub issue #2; the figures in Next features, 0.7.0:
   bright pictures darker): while "Darken bright pictures" is on (the stored `darken`), each set
   (the job's, the page's, Set's, ⛶'s ✓; the user's own picture too) first measures what the
@@ -985,7 +1011,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the picture to the engine), ⛶'s frame stands where the engine has it now (`livePosition` by
   the stored "New picture at", "Change every" and home's column, turns from two sources) and doesn't move by drag (no drag action for screen readers either); a minute
   tick moves it while open. ✓ then saves the stored part's position unchanged (Fill's, for the
-  lock screen and Fill) and the whole picture. A source only on the lock screen, or Size Fill:
+  lock screen and Fill) and the whole picture. A source only on the lock screen, or Size Centre or Auto:
   ⛶ as above (the lock screen is Fill, Decision 10).
   **Whole picture** (texts approved by the user, 2026-10-24): in ⛶ mode a toggle at the
   picture's top left (where the chip is otherwise; the chip's dark pill), "Whole picture", "✓ Whole
@@ -1702,7 +1728,7 @@ library (ML Kit needs Play Services; Tesseract is large). Decided:
   it according to their choice anyhow"). Smart Auto, the learned model, the tuning loop, the
   cut-off slider, the zoom and the sharpness guard: dropped. F1's Size [Fill | Fit] row goes
   (Fit as a global choice dropped, user, 2026-10-22: a fitted wide picture is a thin strip);
-  Size returns in 0.7.0 as [Fill | Live].
+  Size returns in 0.7.0 as [Fill | Live], in 0.8.0 as [Centre | Auto | Live].
 - **Whole picture, per picture**: a toggle in ⛶ mode for the shown post (text, an asteroid, a
   grid of planets), kept like ⛶'s part (per source, for that post only, part of the draft
   until Set; the job uses the stored one). Since U0 (2026-11-02) ⛶'s ✓ saves and sets both at
@@ -1751,7 +1777,7 @@ and shared lock screen, ⛶ with Live by the stored setup, the hidden mode not s
 arming under the job's lock) are described where they apply. Accepted: a page a
 rotation makes during Set shows the forgotten records for a moment (APOD's page, no " · NASA");
 a lost Live whose screen has nothing to show keeps a stale record (as Decision 12); a live
-wallpaper picked by hand with Size Fill draws Live's old copy; ~70 ms of black after a process
+wallpaper picked by hand with Size Fill (since 0.8.0 Centre or Auto) draws Live's old copy; ~70 ms of black after a process
 death (L9a); the reopened page after a Recents swipe during the picker held the old draft (gone
 with the back-out fix: nothing is saved then). **The sign-off** (user, 2026-11-15 afternoon, asked in the session, not on the sign-off page):
 every placeholder text approved (Live's, the picker's dialog and toast, Keep running's, the
@@ -1781,7 +1807,7 @@ alarms). **Before the tag** (all done; **tagged 2026-11-15**, user: "tag now"):
   friend's Honor got the signed APK of fff43e7, Keep running on from the start (user).
 
 **0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline, right after 0.6.0):
-Size [Fill | Live], with the preview on the page (one drawing code). A wide picture is shown at the screen's full height and moves
+Size [Fill | Live] (0.8.0: [Centre | Auto | Live]), with the preview on the page (one drawing code). A wide picture is shown at the screen's full height and moves
 across its whole width over the day (about 18 h, from the picture time: left edge at 06:00,
 right edge at 24:00), so the whole picture is seen by evening. Built as a **live wallpaper**
 (Android's `WallpaperService`, no library, no permission): the app draws the wallpaper itself
@@ -1999,7 +2025,10 @@ the copy turned clockwise and measured as an upright picture of h × w, so it ag
 `sidewaysFrame` (a panorama's turned strip too). Checked on the desktop's pictures (the 253 of
 `private/pictures/` and round 2's from 2 Oct, decoded by ImageIO subsampled to at least 512 px):
 294 of 295 within 0.03 of compute.py's, the one miss 0.032 (2026-04-27); on Pillow's own copies
-the map agrees to 1e-15 and the positions exactly (10 pictures, by hand).
+the map agrees to 1e-15 and the positions exactly (10 pictures, by hand). **Built** (SA3a,
+2026-11-15): Size [Centre | Auto | Live] (The app, Settings: Size), the subject noted per post
+and Auto in each still set (Wallpaper: Auto, the subject). ⛶ from the subject, an undragged
+part and Advanced's switch are SA3b's; until then ⛶ opens at the part or the middle.
 
 **0.6.0: APOD first** (user, 2026-10-19; built 2026-10-20 to 24; the how in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different

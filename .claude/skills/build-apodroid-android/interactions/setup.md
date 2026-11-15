@@ -159,9 +159,13 @@ with the skill's recipe), a 1.2:1 one and a portrait one for the upright cases.
 - **X6** a rotation and the system killing the app (P19's way) keep the draft's switch and its
   highlight; a Recents swipe drops it.
 
-### J. Size Fill (Live itself out of scope)
-- **J1** from B0 (Live on home): Size "Fill" → segment tertiary, Setup highlighted → Set → no picker dialog (opensPicker false for Fill) → `Wset`; `Set: wallpaper set: N13 on HOME, A15 on LOCK`; dumpsys: home ImageWallpaper (APODroid's LiveWallpaper gone; maybe `Live: engine … destroyed`); summary "Home: NASA · Lock: APOD · 06:00" (no " · Live"); no "Live isn't on" line.
-- **J2** with Fill and a column on home emptied later, the home wallpaper is just left alone.
+### J. Size Centre and Auto (Live itself out of scope; [Centre | Auto | Live] since 0.8.0, SA3a, 0.7.0's [Fill | Live]; texts the user's)
+- **J0** the row: three segments "Centre", "Auto", "Live" in that order (`Size`'s enum order), each label on one line in portrait and in the landscape pane; screen readers "Centre", "Auto", "Live" with "Selected"/"Selected, not set yet". Default Auto (a fresh install). An update over 0.7.0 with `size=FILL` stored: Auto selected, not highlighted (`sizeOf`: FILL reads as Auto), nothing set by the update; the first Set writes `AUTO`.
+- **J1** from B0 (Live on home): Size "Auto" (or "Centre") → segment tertiary, Setup highlighted → Set → no picker dialog (opensPicker false for Centre and Auto) → `Wset`; `Set: wallpaper set: N13 on HOME, A15 on LOCK`; dumpsys: home ImageWallpaper (APODroid's LiveWallpaper gone; maybe `Live: engine … destroyed`); summary "Home: NASA · Lock: APOD · 06:00" (no " · Live"); no "Live isn't on" line.
+- **J2** with Centre or Auto and a column on home emptied later, the home wallpaper is just left alone.
+- **J3** Auto: each still set's frame (a post without a ⛶ part) stands at the subject noted for the post (`<source>.subjectPosition`, `subjectSideways` for a sideways set; background.md E8), through `autoPosition`: the middle for a move under 0.2 while the pref `autoFallback` is on (default; its switch is SA3b's), else the subject. The set's log line notes `, auto 0.78` (the position used, `0.50` when it fell back). No subject noted or none found: the middle, no note. A ⛶ part wins (no note).
+- **J4** Centre: every still set at the middle (or the ⛶ part), no `, auto` note. Auto ↔ Centre is a Setup change (highlight, Set sets each screen afresh).
+- **J5** Live: the screens left still (a lock screen with its own column, home after a lost Live) at the middle (or the ⛶ part), as 0.7.0 (night default); Live's pan unchanged.
 
 ### K. The daily switch ("Change automatically", acts at once)
 - **K1** off: hides status lines, New picture at, As soon as it's out, Change every, If APOD is a video, Advanced settings; those drafts revert to stored (Setup highlight drops if they were the only change). Size, Darken, Where/list, Set stay. Summary drops the time part. No toast, no log; dumpsys alarm/jobscheduler: nothing for the app.
@@ -204,7 +208,7 @@ Each step starts where the previous ended. Before every Set: `adb logcat -c`; af
 | # | Leaf | Steps | Expected |
 |---|------|-------|----------|
 | P0 | baseline | Open the app. Screenshot. Note summary, status lines, chip, title. Setup ▾ → note Earth's greyed dropdown (E0). Turn "More NASA pictures" off → note Where (W0) → on again (no highlight left). Advanced settings ▾ → note Keep running. "If APOD is a video" → "Use my picture": picker opens? (cancel; if it doesn't, a my picture exists: choose "Skip it" again). Close Setup. | Summary "Home: NASA · Lock: APOD · 06:00 · Live"; nothing highlighted at the end. dumpsys: home LiveWallpaper, lock ImageWallpaper. |
-| P1 | J1 | Setup ▾ → Size "Fill" → Set. | No dialog; `Wset`; `Set: wallpaper set: N13 on HOME, A15 on LOCK`; home now ImageWallpaper; summary without " · Live"; Setup closed; status lines "Home: …HH:mm · NASA", "Lock: …HH:mm · APOD". |
+| P1 | J1 | Setup ▾ → Size "Auto" → Set. | No dialog; `Wset`; `Set: wallpaper set: N13 on HOME, A15 on LOCK`; home now ImageWallpaper; summary without " · Live"; Setup closed; status lines "Home: …HH:mm · NASA", "Lock: …HH:mm · APOD". |
 | P2 | M2 | Set (no change). | `Wset`; same `Set:` line; both ids change. |
 | P3 | D12, D13 | Setup ▾ → drag NASA's ≡ above APOD → screenshot (≡ of NASA and APOD tertiary, Setup title tertiary) → Set. | `NTS`; no `Set:` line; ids unchanged; Setup closes; anchor now 16 Nov. |
 | P4 | **D17 S1** | Setup ▾ → mode off → Where: a value ≠ W0 → mode on → screenshot (Setup title NOT tertiary) → drag APOD's ≡ back to the top (APOD, NASA, Earth) → Set. Then mode off → read Where → mode on. | Doc: `NTS`. Code: `Wset` + `Set: … N13 on HOME, A15 on LOCK`; Where shows the new value without highlight (saved). Either outcome: record it. |
@@ -238,6 +242,8 @@ Each step starts where the previous ended. Before every Set: `adb logcat -c`; af
 | P32 | X2 | Set. | `Wset`; `Set: wallpaper set: <wide pic> on …, sideways`; a 1.2:1 or portrait picture on a screen without ", sideways". |
 | P33 | X3 | ⛶ on the wide picture → "✓ Sideways" shown (white) → tap it off → ✓. | `Wset`; `Part: wallpaper set: … ` without ", sideways"; `<source>.sideways=false` (debug). The next post of that source sideways again (page.md K24). |
 | P34 | X4 | Setup ▾ → toggle off → Set. | `Wset`; the wide picture upright (no ", sideways"); a part ✓'d "Sideways" on still turned. Restores the switch's default. |
+| P35 | J0 | (SA3a; the emulator) Setup ▾ → screenshot of Size in portrait, then in the landscape pane. | Three segments "Centre", "Auto", "Live", none wrapping alone; the stored one selected. |
+| P36 | J3, J4 | (the emulator; a picture whose subject is ≥ 0.2 off the middle on a screen, background.md E8) Size "Auto" → Set; then "Centre" → Set; then "Auto" → Set. | Auto: `Set: wallpaper set: … , auto 0.8x` (the noted position), `dumpsys wallpaper`'s crop off the middle; Centre: no `, auto`, the crop the middle; Auto again as the first. |
 
 Restored by P30: mode on, list home NASA / lock APOD, order default, Where W0, Size Live, 06:00, As soon off, Skip it, Darken on, 24 h, daily on, Earth's and NASA's lastScreens. Not restorable: `orderFrom` (16 Nov), `lastRunAt`/`failedRuns` (the switch rewrites them), wallpaper ids, and `fallback.jpg` if P29 ran.
 Expected later after P30 (not testable now): 16 Nov ~06:15+off lock gets APOD 16 Nov (if an image); home stays NASA 13 Nov (the engine) until 17 Nov 06:00, since Monday's NASA post comes after the 06:00–09:00 window.

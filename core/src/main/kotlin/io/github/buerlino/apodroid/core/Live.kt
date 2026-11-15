@@ -262,26 +262,29 @@ fun equalColumns(columns: Map<Screen, List<Source>>): Boolean {
     return home.isNotEmpty() && home.toSet() == columns[Screen.LOCK].orEmpty().toSet()
 }
 
+/** Set's trip to Android's live wallpaper picker ([opensPicker]): none, for home, or to put Live on the lock screen too. */
+enum class PickerTrip { NONE, HOME, LOCK_TOO }
+
 /**
  * Whether "Set as wallpaper" opens Android's live wallpaper picker (L6; live-0.7.0.md, "Store,
- * Size and Set", Set with Live), after saving the setup: [columns] the saved ones, [before] the
- * stored ones before this Set, [homeLive] and [shared] as the system says now (`Store.liveOn`,
- * `liveShared`), [lockShares] whether the one engine can cover the lock screen at all (Android
- * 14+; below it a live wallpaper is home's only, Decision 5).
- * - Size [Size.LIVE], home has a column and isn't live: the picker, for home (also after a
+ * Size and Set", Set with Live), and for what, asked before saving: [columns] the draft's,
+ * [homeLive] and [shared] as the system says now (`Store.liveOn`, `liveShared`), [lockShares]
+ * whether the one engine can cover the lock screen at all (Android 14+; below it a live
+ * wallpaper is home's only, Decision 5).
+ * - [PickerTrip.HOME]: Size [Size.LIVE], home has a column and isn't live (also after a
  *   back-out or a lost Live: every such Set offers it again).
- * - Or, on [lockShares] only, this Set makes the columns equal ([equalColumns]), the stored ones
- *   having differed, while home is live and the engine doesn't cover the lock screen: once per
- *   split, since the next Set finds them equal before it (a home-only answer or a back-out
- *   leaves the lock screen Fill, with no picker again).
- * Never with Size Fill, never for the lock screen alone (no home column: Live is home's), never
- * for a lock column that differs (Decision 10: the lock screen Fill), and not for equal columns
- * that were equal before (APOD mode's "Where" Both with home-only Live: the lock screen Fill).
+ * - [PickerTrip.LOCK_TOO] (SPLIT, user, 2026-11-15): on [lockShares] only, the columns equal
+ *   ([equalColumns]) while home is live and the engine doesn't cover the lock screen: every
+ *   such Set asks, "Not now" keeping the lock screen's own still Fill.
+ * - [PickerTrip.NONE] otherwise: Size Fill, the lock screen alone (no home column: Live is
+ *   home's), a lock column that differs (Decision 10: the lock screen Fill), the engine already
+ *   on both.
  */
-fun opensPicker(size: Size, before: Map<Screen, List<Source>>, columns: Map<Screen, List<Source>>, homeLive: Boolean, shared: Boolean, lockShares: Boolean): Boolean = when {
-    size != Size.LIVE || columns[Screen.HOME].orEmpty().isEmpty() -> false
-    !homeLive -> true
-    else -> lockShares && !shared && equalColumns(columns) && !equalColumns(before)
+fun opensPicker(size: Size, columns: Map<Screen, List<Source>>, homeLive: Boolean, shared: Boolean, lockShares: Boolean): PickerTrip = when {
+    size != Size.LIVE || columns[Screen.HOME].orEmpty().isEmpty() -> PickerTrip.NONE
+    !homeLive -> PickerTrip.HOME
+    lockShares && !shared && equalColumns(columns) -> PickerTrip.LOCK_TOO
+    else -> PickerTrip.NONE
 }
 
 /**

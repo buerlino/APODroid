@@ -28,6 +28,7 @@ import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
 import io.github.buerlino.apodroid.core.OWN_PICTURE
+import io.github.buerlino.apodroid.core.PickerTrip
 import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.PictureTime
 import io.github.buerlino.apodroid.core.Plan
@@ -1290,14 +1291,15 @@ class Store(private val context: Context) {
         get() = prefs.getString("size", null)?.let { name -> Sizing.entries.firstOrNull { it.name == name } } ?: Sizing.FILL
 
     /**
-     * Before [saveSetup]: whether Set of [draft] opens Android's live wallpaper picker (`:core`'s
-     * [opensPicker]): its Size Live and home with a column not live, or (14+) it makes the stored
-     * columns, different now, equal while the engine doesn't cover the lock screen. Asked before
-     * saving, so a back-out of the picker saves nothing.
+     * Before [saveSetup]: whether Set of [draft] opens Android's live wallpaper picker, and for
+     * what (`:core`'s [opensPicker]): for home while its Size is Live and home has a column not
+     * live, or (14+) for the lock screen too while its columns are equal, home is live and the
+     * engine doesn't cover the lock screen (SPLIT). Asked before saving, so a back-out of the
+     * picker saves nothing.
      */
-    fun opensPicker(draft: Setup): Boolean {
+    fun opensPicker(draft: Setup): PickerTrip {
         val live = liveState()
-        return opensPicker(draft.size, columns, draft.columns, live.home, live.shared, lockShares = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        return opensPicker(draft.size, draft.columns, live.home, live.shared, lockShares = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     }
 
     /**

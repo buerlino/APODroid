@@ -637,12 +637,13 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     }
 
     /**
-     * Set's picker trip (L6, [opensPicker]) after the setup is saved, answered: backed out,
+     * Set's picker trip (L6, [opensPicker]) after the setup is saved, answered: backed out (for
+     * [PickerTrip.LOCK_TOO] also "Not now", which saves; the app saves nothing on a back-out),
      * "Home screen" (shared or not: ZUI made it shared over a shared still, Open over a home-only
      * engine) or "Home screen and lock screen" (shared). The engine then draws its copy.
      */
-    private fun picker(now: Instant, before: Map<Screen, List<Source>>) {
-        if (!opensPicker(size, before, columns, homeLive, shared, lockShares = true)) return
+    private fun picker(now: Instant) {
+        if (opensPicker(size, columns, homeLive, shared, lockShares = true) == PickerTrip.NONE) return
         when (liveR.nextInt(3)) {
             0 -> return note(now, "the picker: backed out")
             1 -> {
@@ -999,7 +1000,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         val restart = restartAndForget(before, new.columns, records, stored, new.time, zone, now, rotation, orderOnly, daily)
         records = records + restart.plan.screens.mapValues { it.value.record } - restart.drop
         forgetNotes()
-        picker(now, before)
+        picker(now)
         update(now, Kind.SET, force = false, page = true, set = true)
         // What the update stored (L6: the picker's hand-over may put the owner's newer picture on).
         if (orderOnly && daily) orderAlone(now, leads, stored(now))

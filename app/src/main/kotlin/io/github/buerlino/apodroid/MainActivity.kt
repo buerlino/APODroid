@@ -146,6 +146,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import io.github.buerlino.apodroid.core.DEFAULT_PICTURE_AT
 import io.github.buerlino.apodroid.core.Maker
+import io.github.buerlino.apodroid.core.PickerTrip
 import io.github.buerlino.apodroid.core.Picture
 import io.github.buerlino.apodroid.core.Post
 import io.github.buerlino.apodroid.core.Problem
@@ -523,7 +524,7 @@ class MainActivity : ComponentActivity() {
         pages--
         if (live[id] === this) live.remove(id)
         // Its page closed for good (Back, Recents) with the picker's dialog open: Cancel, so Set ends.
-        if (!isChangingConfigurations) pickerAsk?.takeIf { it.page == id }?.answer?.complete(false)
+        if (!isChangingConfigurations) pickerAsk?.takeIf { it.page == id }?.answer?.complete(PickerAnswer.CANCEL)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -569,7 +570,7 @@ class MainActivity : ComponentActivity() {
         // Back from Set's picker without its result (started from a page in the background, L6).
         pickerBack?.complete(Unit)
         // The picker's dialog of a page that's gone: Cancel, so Set ends.
-        pickerAsk?.takeIf { it.page !in live }?.answer?.complete(false)
+        pickerAsk?.takeIf { it.page !in live }?.answer?.complete(PickerAnswer.CANCEL)
         // Hibernation or a force stop deleted the job (scheduling runs it at once) and the alarms.
         if (store.daily && !DailyJob.ensure(this)) Log.w("APODroid", "Couldn't schedule the daily job again")
         // Keep running (O11) back after Task Manager's Stop, a force stop or a refused start: the
@@ -1078,10 +1079,11 @@ class MainActivity : ComponentActivity() {
             // Fill, and Set goes on to its save and update and resets `setting`.
             // "Lock screen" picked alone (2026-11-15, FP6 T22): nothing saved either, and the lock
             // screen put back by a run of the stored setup (`:core`'s lostLive replaces the engine there).
-            val opens = withContext(Dispatchers.IO) { runCatching { store.opensPicker(setup) }.getOrDefault(false) }
-            if (opens) {
+            // Home live and the columns equal (SPLIT): asked every time, "Not now" saves as without the picker.
+            val opens = withContext(Dispatchers.IO) { runCatching { store.opensPicker(setup) }.getOrDefault(PickerTrip.NONE) }
+            if (opens != PickerTrip.NONE) {
                 val answer = try {
-                    pickLive(store, page, setup)
+                    pickLive(store, page, setup, lockToo = opens == PickerTrip.LOCK_TOO)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
@@ -1142,27 +1144,34 @@ class MainActivity : ComponentActivity() {
      * Set's trip to Android's live wallpaper picker (L6; live-0.7.0.md, Set with Live), before
      * [Store.saveSetup]. First the dialog ([PickerDialog], 2026-11-15): which answer to tap, by the
      * [draft]'s columns ("Home screen and lock screen" on 14+ when they're equal, else "Home
-     * screen"). On OK both screens' wallpaper ids noted, the picker opened from the page that
+     * screen"); with [lockToo] (home live, SPLIT) it asks "Live on the lock screen too?", and
+     * "Not now" is [Pick.GO] without the picker (the lock screen its own still Fill). On OK both
+     * screens' wallpaper ids noted, the picker opened from the page that
      * started Set (none left in the foreground, or no picker on the phone: Fill), its return
      * awaited, then up to 3 s for the engine when an id changed ([Store.awaitLive]). A page's load
-     * waits meanwhile, the dialog too ([picking]). [Pick.NONE] for a back-out: Cancel, or no
+     * waits meanwhile, the dialog too ([picking]). [Pick.NONE] for a back-out: Cancel (Back, a tap
+     * outside, the page closed for good; also in [lockToo]'s dialog, user, 2026-11-15), or no
      * wallpaper changed (a "Home screen" re-pick of a live home that keeps its id too: the dialog
      * asked for both screens then); [Pick.LOCK_ONLY] for "Lock screen" alone (14+: home's id the
      * same, the lock screen's changed, APODroid's engine there): Set then saves and sets nothing.
      * [Pick.GO]: home live, its picture goes to the engine (and the lock screen's still Fill when
      * it differs, Decision 10); no picker, or below 14 a home not live in time: Fill.
      */
-    private suspend fun pickLive(store: Store, page: String, draft: Setup): Pick {
+    private suspend fun pickLive(store: Store, page: String, draft: Setup, lockToo: Boolean): Pick {
         picking = true
         try {
-            val ask = PickerAsk(page, both = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && equalColumns(draft.columns))
+            val ask = PickerAsk(page, both = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && equalColumns(draft.columns), lockToo = lockToo)
             pickerAsk = ask
-            val ok = try {
+            val answer = try {
                 ask.answer.await()
             } finally {
                 pickerAsk = null
             }
-            if (!ok) {
+            if (answer == PickerAnswer.NOT_NOW) {
+                Log.i("APODroid", "Set: Live on the lock screen not now")
+                return Pick.GO
+            }
+            if (answer != PickerAnswer.OK) {
                 Log.i("APODroid", "Set: the picker's dialog cancelled")
                 return Pick.NONE
             }
@@ -2534,16 +2543,25 @@ class MainActivity : ComponentActivity() {
      * Before Set's picker (2026-11-15; placeholder texts, Android's own labels word for word, the
      * FP6's AOSP picker): which answer to tap, "Home screen", or "Home screen and lock screen"
      * when the one engine shows both ([PickerAsk.both]). OK opens the picker; Cancel, Back or a
-     * tap outside saves and sets nothing.
+     * tap outside saves and sets nothing. With home live ([PickerAsk.lockToo], SPLIT, user,
+     * 2026-11-15) it asks "Live on the lock screen too?" and has "Not now" instead of Cancel,
+     * which saves the Set as without the picker; Back or a tap outside still saves nothing.
      */
     @Composable
     private fun PickerDialog(ask: PickerAsk) {
         val screens = if (ask.both) "Home screen and lock screen" else "Home screen"
+        val question = if (ask.lockToo) "Live on the lock screen too?\n" else ""
         AlertDialog(
-            onDismissRequest = { ask.answer.complete(false) },
-            confirmButton = { TextButton(onClick = { ask.answer.complete(true) }) { Text("OK") } },
-            dismissButton = { TextButton(onClick = { ask.answer.complete(false) }) { Text("Cancel") } },
-            text = { Text("Next, in Android's preview:\nSet wallpaper › $screens") },
+            onDismissRequest = { ask.answer.complete(PickerAnswer.CANCEL) },
+            confirmButton = { TextButton(onClick = { ask.answer.complete(PickerAnswer.OK) }) { Text("OK") } },
+            dismissButton = {
+                if (ask.lockToo) {
+                    TextButton(onClick = { ask.answer.complete(PickerAnswer.NOT_NOW) }) { Text("Not now") }
+                } else {
+                    TextButton(onClick = { ask.answer.complete(PickerAnswer.CANCEL) }) { Text("Cancel") }
+                }
+            },
+            text = { Text("${question}Next, in Android's preview:\nSet wallpaper › $screens") },
         )
     }
 
@@ -2803,10 +2821,17 @@ private class PicturePainter(private val picture: ImageBitmap) : Painter() {
     }
 }
 
-/** Set's question before the picker ([MainActivity.pickerAsk]): the page that asks, whether the answer is both screens, and the user's OK. */
-class PickerAsk(val page: String, val both: Boolean) {
-    val answer = CompletableDeferred<Boolean>()
+/**
+ * Set's question before the picker ([MainActivity.pickerAsk]): the page that asks, whether the
+ * answer is both screens, whether it asks for Live on the lock screen too (home live, SPLIT),
+ * and the user's answer.
+ */
+class PickerAsk(val page: String, val both: Boolean, val lockToo: Boolean) {
+    val answer = CompletableDeferred<PickerAnswer>()
 }
+
+/** The answer to [PickerAsk]: OK, "Not now" (only while it asks for the lock screen too), or Cancel, Back, a tap outside or the page gone. */
+enum class PickerAnswer { OK, NOT_NOW, CANCEL }
 
 /** What Set's trip to the picker came to ([MainActivity.pickLive]). */
 enum class Pick { NONE, LOCK_ONLY, GO }

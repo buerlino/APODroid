@@ -401,48 +401,47 @@ class LiveTest {
     private val lockOnly = mapOf(HOME to emptyList(), LOCK to listOf(APOD))
     private val split = mapOf(HOME to listOf(APOD), LOCK to listOf(EARTH))
 
-    private fun picker(before: Map<Screen, List<Source>>, columns: Map<Screen, List<Source>>, homeLive: Boolean, shared: Boolean = false, size: Size = Size.LIVE, lockShares: Boolean = true) =
-        opensPicker(size, before, columns, homeLive, shared, lockShares)
+    private fun picker(columns: Map<Screen, List<Source>>, homeLive: Boolean, shared: Boolean = false, size: Size = Size.LIVE, lockShares: Boolean = true) =
+        opensPicker(size, columns, homeLive, shared, lockShares)
 
     @Test
     fun fillNeverOpensThePicker() {
-        assertFalse(picker(equal, equal, homeLive = false, size = Size.FILL))
-        assertFalse(picker(split, equal, homeLive = true, size = Size.FILL))
+        assertEquals(PickerTrip.NONE, picker(equal, homeLive = false, size = Size.FILL))
+        assertEquals(PickerTrip.NONE, picker(equal, homeLive = true, size = Size.FILL))
+        assertEquals(PickerTrip.NONE, picker(split, homeLive = false, size = Size.FILL))
     }
 
     @Test
     fun liveOpensThePickerWhileHomeIsntLive() {
-        assertTrue(picker(equal, equal, homeLive = false))
-        assertTrue(picker(homeOnly, homeOnly, homeLive = false))
-        // Decision 10: home APOD, lock Earth, Live on none: once, for home.
-        assertTrue(picker(split, split, homeLive = false))
+        assertEquals(PickerTrip.HOME, picker(equal, homeLive = false))
+        assertEquals(PickerTrip.HOME, picker(homeOnly, homeLive = false))
+        // Decision 10: home APOD, lock Earth, Live on none: for home.
+        assertEquals(PickerTrip.HOME, picker(split, homeLive = false))
+        // Also while a stray engine covers the lock screen.
+        assertEquals(PickerTrip.HOME, picker(equal, homeLive = false, shared = true))
         // Below 14 too: Live is home's there.
-        assertTrue(picker(equal, equal, homeLive = false, lockShares = false))
+        assertEquals(PickerTrip.HOME, picker(equal, homeLive = false, lockShares = false))
     }
 
     @Test
     fun theLockScreenAloneNeverOpensThePicker() {
-        assertFalse(picker(lockOnly, lockOnly, homeLive = false))
-        assertFalse(picker(equal, lockOnly, homeLive = false))
+        assertEquals(PickerTrip.NONE, picker(lockOnly, homeLive = false))
+        assertEquals(PickerTrip.NONE, picker(lockOnly, homeLive = true))
     }
 
     @Test
-    fun homeLiveOpensThePickerOnlyWhenTheSetMakesTheColumnsEqual() {
-        // Decision 10's second Set: home live, the lock screen Fill of its own column: no picker.
-        assertFalse(picker(split, split, homeLive = true))
-        // The columns made equal after the split, the lock screen not covered: once.
-        assertTrue(picker(split, equal, homeLive = true))
+    fun homeLiveAsksForTheLockScreenEveryTimeTheColumnsAreEqual() {
+        // SPLIT (2026-11-15): equal columns, home live, the lock screen not covered: every Set
+        // asks, also when they were equal before (APOD mode's "Where" Both, a second Set).
+        assertEquals(PickerTrip.LOCK_TOO, picker(equal, homeLive = true))
+        assertEquals(PickerTrip.LOCK_TOO, picker(mapOf(HOME to listOf(APOD, NASA), LOCK to listOf(NASA, APOD)), homeLive = true))
         // Already covered: no picker.
-        assertFalse(picker(split, equal, homeLive = true, shared = true))
-        // The next Set with the same columns: they were equal before it.
-        assertFalse(picker(equal, equal, homeLive = true))
-        // Equal from the start (APOD mode's "Where" Both), Live on home only: the lock screen Fill.
-        assertFalse(picker(equal, equal, homeLive = true, shared = false))
-        // A column made to differ, or home alone: never.
-        assertFalse(picker(equal, split, homeLive = true))
-        assertFalse(picker(split, homeOnly, homeLive = true))
+        assertEquals(PickerTrip.NONE, picker(equal, homeLive = true, shared = true))
+        // Decision 10: columns that differ keep the lock screen Fill; home alone: never.
+        assertEquals(PickerTrip.NONE, picker(split, homeLive = true))
+        assertEquals(PickerTrip.NONE, picker(homeOnly, homeLive = true))
         // Below 14 the engine never covers the lock screen.
-        assertFalse(picker(split, equal, homeLive = true, lockShares = false))
+        assertEquals(PickerTrip.NONE, picker(equal, homeLive = true, lockShares = false))
     }
 
     @Test

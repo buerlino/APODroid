@@ -261,12 +261,12 @@ From L1's STOP (rosie, the tablet, `.coord/runs/095-l1/report.md`).
   (Decision 5), never by an engine of its own (Decision 10). The engine's flags aren't used (L1:
   a stray on the lock screen reports 3). Not `QUERY_ALL_PACKAGES` (a permission).
 - **Set with Live opens Android's picker when home isn't covered:** home with a column not live.
-  Also, on 14+ only and at most once per split, when this Set makes the columns equal (the stored
-  columns differed before it) while home is live but not shared: a home-only answer then leaves
-  the lock screen Fill, with no further picker. Never below 14 (`liveShared` is never true
-  there), never for the lock screen alone (no home column) or a lock column that differs, and
-  never again for the same equal columns (else every Set with equal columns, APOD mode's "Where"
-  Both too, would open it). The page says which screens are live.
+  Also, on 14+ only, while the columns are equal and home is live but not shared: every such
+  Set asks "Live on the lock screen too?", "Not now" saving it with the lock screen Fill (SPLIT,
+  user, 2026-11-15; replaces "at most once per split", which a home-only answer left with no way
+  back to the picker). Never below 14 (`liveShared` is never true there), never for the lock
+  screen alone (no home column) or a lock column that differs. The page says which screens are
+  live.
 - **After the picker, Set waits for the engine:** it notes `getWallpaperId` of both screens
   before opening the picker; when an id changed on the return, it waits up to 3 s for `liveOn`
   (14+: the system's answer; below 14: the engine's note with the new id, written
@@ -419,8 +419,8 @@ black or on the blurred background: A3's `whole()` today). Its three users:
   state), always shown, as "Where". Placeholders: the heading "Size"; the summary " · Live".
 - **Set with Live:**
   1. `saveSetup`.
-  2. If home has a column and isn't live, or (14+ only, once per split) this Set makes the
-     columns equal, the stored ones having differed, while home is live but not shared: note
+  2. If home has a column and isn't live, or (14+ only; SPLIT, 2026-11-15, replacing "once per
+     split") the columns are equal while home is live but not shared: note
      `getWallpaperId` of both screens and open Android's
      picker (`ACTION_CHANGE_LIVE_WALLPAPER` for `LiveWallpaper`, started directly and
      `ActivityNotFoundException` caught: L1's `resolveActivity` is null without `<queries>`;
@@ -968,8 +968,8 @@ engine on home.
 - **The row [Fill | Live]** in Setup after "Where" or the list (`Segments`), always shown.
 - **Setup's summary** " · Live".
 - **Set's flow** as This file says: the picker when home has a column and isn't live, or, on 14+
-  and once per split, when this Set makes differing stored columns equal while the lock screen
-  isn't shared (never below 14, never for the lock screen alone); the
+  while the columns are equal and the lock screen isn't shared, each such Set (SPLIT,
+  2026-11-15, replacing "once per split"; never below 14, never for the lock screen alone); the
   intent started directly, the chooser or the toast on `ActivityNotFoundException`; the ids noted
   before, the wait for `liveOn(HOME)` after; the update after the return (the lock screen's still
   Fill when its picture differs, Decision 10), Fill after backing out.

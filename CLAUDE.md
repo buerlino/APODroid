@@ -453,9 +453,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
     **The picker** (L6, 2026-11-14; `live-0.7.0.md`, Set with Live): before `saveSetup`
     (since 2026-11-15, below), Set opens Android's live wallpaper picker when `:core`'s
     `opensPicker` says so for the draft: Size Live and home with a column not live (also after a
-    back-out or a lost Live: each such Set offers it again), or, on 14+ only, when the draft
-    makes the stored columns, different now, equal while home is live and the engine doesn't cover the lock screen
-    (once per split: the next Set finds them equal before it). Never with Fill, never below 14
+    back-out or a lost Live: each such Set offers it again), or, on 14+ only, while the draft's
+    columns are equal, home is live and the engine doesn't cover the lock screen: every such Set
+    (SPLIT, user, 2026-11-15; was once per split; `PickerTrip.LOCK_TOO`). Never with Fill, never below 14
     for the lock screen, never for the lock screen alone (no home column: Live is home's), never
     for a lock column that differs (the lock screen Fill, Decision 10). **First a dialog**
     (2026-11-15, user: "I didn't know what to pick"; `PickerDialog`, texts approved by the user, 2026-11-15, with the
@@ -463,7 +463,13 @@ set it as wallpaper, and on video days kept the old wallpaper.
     wallpaper › Home screen" (user, 2026-11-15: no line about Back), "Home screen and lock screen" instead
     on 14+ when the draft's columns are equal (the one engine on both, B28), else "Home screen"
     (home only, different columns, 10–13); OK opens the picker, Cancel (Back, a tap outside, the
-    page closed for good) is a back-out. Process-wide (`pickerAsk`), so a rotation shows it again;
+    page closed for good) is a back-out. **With home live** (SPLIT) the dialog reads "Live on
+    the lock screen too? / Next, in Android's preview: / Set wallpaper › Home screen and lock
+    screen" with "Not now" and "OK": "Not now" saves and sets as a Set without the picker (the
+    lock screen its own still Fill; logged `Set: Live on the lock screen not now`; else someone
+    who wants Live on home only could never save a Set then), OK opens the picker; Back or a
+    tap outside, and the page closed for good, save nothing (the user's decision, 2026-11-15).
+    Process-wide (`pickerAsk`), so a rotation shows it again;
     `picking` from before it. Then both screens' `getWallpaperId`s are noted; the picker is `ACTION_CHANGE_LIVE_WALLPAPER` for
     `LiveWallpaper`, started directly (L1's `resolveActivity` is null without `<queries>`), else
     `ACTION_LIVE_WALLPAPER_CHOOSER`, else the toast "This phone can't show live wallpapers."
@@ -1653,17 +1659,8 @@ changelog `11.txt` and the store description; the night's items as recommended (
 ~0.8 s of black accepted, a look again in 0.7.1; the picker's Settings entry stays removed; R2a,
 L6's "not noted live" rule and BR3's defaults kept; O6's RESTRICTED finding written in, The
 alarms). **Left for the tag** (the user releases later on 15 Nov):
-- **SPLIT, "once per split" fixed** (user, 2026-11-15: fix before the release; not built yet):
-  while Size Live, 14+, home live, the draft's columns equal and the engine not on the lock
-  screen, Set opens the dialog every time (not only when the Set makes the columns equal), and
-  in this case the dialog reads "Live on the lock screen too? / Next, in Android's preview: /
-  Set wallpaper › Home screen and lock screen" with "Not now" and "OK": "Not now" saves the Set
-  as without the picker (the lock screen stays still, its own Fill), OK opens the picker, and
-  Back inside the preview still saves nothing. Why "Not now" saves: else someone who wants Live
-  on home only could never save a Set in that state. The other dialog (home not live) keeps
-  Cancel = nothing saved. `:core`'s `opensPicker` and `LiveTest`, `MainActivity`'s
-  `PickerDialog`/`pickLive` (a third outcome), this file, `interactions/live.md` (the new rule:
-  each feature gets its map).
+- **SPLIT, "once per split" fixed** (user, 2026-11-15; **built** 2026-11-15, `wp/split`, unchecked
+  on a device): The app, Set as wallpaper, The picker. Left: `interactions/live.md`'s map.
 - **The FP6 re-test** of the 15 Nov fixes (the user-signed build installed 15:15; the cases in
   `interactions/README.md`), with SPLIT's build; the phone unlocked, about 30 min.
 - The day's use of the FP6 (L2, O17, L10's first day).

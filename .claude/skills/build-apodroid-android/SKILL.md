@@ -18,12 +18,12 @@ packages unattended): `night.md`.
 
 - `core/.../Post.kt`: `Source`, `Post`, `fetchLatest(source, userAgent)`, `parseLatest`
   (`parseApod`, `nasaPosts`, `earthPosts`), `download(url, to, userAgent, limit)` (`TooLarge` over the limit, F6), `renditionUrl`,
-  `originalUrl`, title, video, explanation and credit parsing (`apodPosts`, `credit`), `Post.fileName`,
+  `originalUrl`, title, video, explanation and credit parsing (`apodPosts`, `credit`; `videoUrl`, the hero's first mp4, VS1), `Post.fileName`,
   `Post.published` and `publishedAt` (B15: the publish time, `wpPublished` for WordPress's `date`), `usEastern` (the posts' dates' zone; also `Store.isCurrent`'s today). Tests with made-up data
   shaped like the real responses: APOD in `ApodTest` (also the HTTP part), NASA, Earth and the
   URLs in `SourcesTest`, whose `readsEveryRealPost` reads `private/` when it's there. Real
   responses in `private/` (`latest.json`, `last100.json`, `iotd-feed-2026-10-16.xml`,
-  `eo-last40-2026-10-16.json`).
+  `eo-last40-2026-10-16.json`, `video-day-2026-10-16.json`).
   `core/.../Frame.kt`: `wallpaperFrame`, the part of the picture the wallpaper shows, which is
   also the crop hint, and `fitFrame`, where the whole picture goes on the screen (F1's Fit; ⛶'s whole picture since A3), and `sidewaysFrame`, the band of the upright picture a clockwise-turned one shows (SW1)
   (tests in `FrameTest`; a hint widened for landscape was tried and dropped, `CLAUDE.md`,
@@ -103,7 +103,7 @@ packages unattended): `night.md`.
   `toSave` (Save every picture's choice; tests in `SavingTest`).
   `core/.../Migration.kt` (0.6.0, M2): `migrate`, 0.5.0's prefs → 0.6.0's keys, run once by
   `Store.migrateOnce` (tests in `MigrationTest`).
-- `app/.../Store.kt`: per source (`post(source)`, `imageFile(source)`; APOD's keys unprefixed
+- `app/.../Store.kt`: VS1's video still (`videoStill(post)`, `videoStillOwed`, `makeVideoStill`: `files/video-still.jpg`, the prefs `videoStill.date`, `videoStill.url`, `videoStillTried`; `dropVideoStill` in `refresh`). Per source (`post(source)`, `imageFile(source)`; APOD's keys unprefixed
   and `apod.jpg`, the others `nasa.<key>` / `earth.<key>` and `nasa.jpg` / `earth.jpg`) prefs (also `daily`, `pauseHintHidden`; `checkedAt`, `problem`, `httpCode`, `afterGap` (B21, written by `refresh` with a new post),
   `wallpaperSetAt` for the problem and status lines), `update(force, page, show, set)` (what the
   page, the pull, Set and the job run: refresh the sources in use and `show`, noting how the
@@ -165,7 +165,7 @@ packages unattended): `night.md`.
   `drawPanned` at `Store.liveAt`, or the whole bitmap's middle; the minute's `tick` only when the frame moved),
   `checkStray` (14+, at a visibility, `liveStray`; within the rebind's grace not a stray, `settled` asks again at its end), `runIfOwed` (L8, D: at a visibility, not the preview,
   `Store.screenOnRunOwed` → `Live: screen on, run owed` and `DailyJob.runNow`), `safely` (everything caught, `Live: couldn't …`).
-- `app/.../MainActivity.kt`: the page, one instance (`launchMode="singleTop"` in `AndroidManifest.xml`, B4; `onNewIntent` does nothing) (`PictureSide`: `SourceTitle`, the shown source's name with its dropdown, and `PicturePage`, each source's picture, in a `HorizontalPager` whose settled page is `shown` (`chosenSource`, `showSource`), then `Caption`, the boxes and the caption of the shown `post`; `show()` loads `posts` and `pictures` of every offered source (`sources`; `apod` decides them in APOD mode), `saved` per source; `onStop` recycles `pictures`, keeping `stoppedSizes` for the pages' height until `onResume`'s `load()` shows them again (`restore`; O12), drawn by `PicturePainter`, which skips a recycled one;
+- `app/.../MainActivity.kt`: the page, one instance (`launchMode="singleTop"` in `AndroidManifest.xml`, B4; `onNewIntent` does nothing) (`PictureSide`: `SourceTitle`, the shown source's name with its dropdown, and `PicturePage`, each source's picture, in a `HorizontalPager` whose settled page is `shown` (`chosenSource`, `showSource`), then `Caption`, the boxes and the caption of the shown `post`; `show()` loads `posts` and `pictures` of every offered source (`sources`; `apod` decides them in APOD mode), `saved` per source; `onStop` recycles `pictures`, keeping `stoppedSizes` for the pages' height until `onResume`'s `load()` shows them again (`restore`; O12), drawn by `PicturePainter`, which skips a recycled one; `videoStill` (VS1, `VideoStill`) the decoded video still behind ▶ in `VideoTile`, made by `makeVideoStill` in `runs`, recycled by `onStop` too;
   `screens` and `stored`, the stored `Setup`, from `readStatus`, `chipText`, `statusLines`, `readProblem`, `VideoNotice`: what is set), with `checkPausing()` and the `PauseHint` in a `NoticeBox` below the picture (its battery line `batteryLine()` by `phoneMaker`, O13; the buttons App info, `openBatteryOptimisation` and "Don't show again" in a `FlowRow`); the detector's `MissNotice` before it (O14: `missedAt`, `missedKeep`, `missDismissed` from `readStatus`; "Keep running" → `openKeepRunning`, Advanced open and the switch's `BringIntoViewRequester` once, `showKeepRunning`; with it on `stopLines()` by `phoneMaker`; `dismissMiss`);
   the daily switch (`daily`, at once: `switchDaily`; on runs `switchOn`, then `scheduleJob(context)` (`DailyJob.ensure`: the alarms and the fallback) after its set, as Set's; Set's and the switch-on's runs go in the companion's process-wide `runs` scope with `setting`, `switching` and `switchRuns`, so a rotation or Back keeps their end, and `redrawAfterRun` goes to the page in `live` under the starter's `id`, kept by a rotation, B13; on while a load, Set or switch-on runs: owed in `switchRuns` (`core/.../SwitchRuns.kt`, `SwitchRunsTest`), run by `runNext` after it, as `loadAgain`, unless the switch-on run went on to set, `Updated.wentToSet`: B6); the draft (S4: `where`, `list`, `interval`, `videoDays`, `parts`, `draftFallback`,
   `allSources`, `size` (L6, Size's row after "Where" or the list, `Sizing.label`); `draft()`, `useDraft`, `columns`; kept by `onSaveInstanceState` with `toBundle`/`readDraft`; `pages`, the live pages: a start deletes `fallback-draft.jpg` only without a saved draft and with no other page, B8;

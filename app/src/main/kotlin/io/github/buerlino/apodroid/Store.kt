@@ -12,6 +12,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.ImageDecoder
+import android.media.MediaMetadataRetriever
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.os.Build
@@ -743,6 +744,8 @@ class Store(private val context: Context) {
             credit = prefs.getString(source.key("credit"), null),
             // B15; a post stored before it has none and counts from its date's 00:00 US Eastern (Post.publishedAt).
             published = instant(source.key("published")),
+            // VS1; a post stored before 0.8.0 has none (the black tile) until the next fetch.
+            videoUrl = prefs.getString(source.key("videoUrl"), null),
         )
     }
 
@@ -761,6 +764,7 @@ class Store(private val context: Context) {
         putBoolean(source.key("isVideo"), post.isVideo)
         putString(source.key("explanation"), post.explanation)
         putString(source.key("credit"), post.credit)
+        putString(source.key("videoUrl"), post.videoUrl)
         post.published?.let { putLong(source.key("published"), it.toEpochMilli()) } ?: remove(source.key("published"))
     }
 
@@ -839,10 +843,13 @@ class Store(private val context: Context) {
      * before a rotation (they run in this process), until [stopWatching]. Android holds the listener weakly: keep the one returned.
      */
     fun watch(action: () -> Unit) = OnSharedPreferenceChangeListener { _, key ->
-        if (key in recordKeys || key == "missedAt" || Source.entries.any { key in listOf(it.key("date"), it.key("imageUrl"), it.key("title"), it.key("explanation"), it.key("credit"), it.key("savedUri"), it.key("problem"), it.key("httpCode")) }) {
+        if (key in recordKeys || key == "missedAt" || key in videoStillKeys || Source.entries.any { key in listOf(it.key("date"), it.key("imageUrl"), it.key("title"), it.key("explanation"), it.key("credit"), it.key("savedUri"), it.key("problem"), it.key("httpCode")) }) {
             action()
         }
     }.also(prefs::registerOnSharedPreferenceChangeListener)
+
+    /** VS1: the video's still; the open page shows it once made. */
+    private val videoStillKeys = setOf("videoStill.date", "videoStill.url")
 
     /** Both screens' records and when they were set: the open page follows a set on either screen. */
     private val recordKeys = Screen.entries.flatMap { screen ->
@@ -903,6 +910,83 @@ class Store(private val context: Context) {
         }
         // After storing: a page drawing meanwhile shows the video entry, never the old picture under it.
         if (url == null) file.delete()
+        // VS1: a new post or an image day lets the video's still go.
+        if (latest.source == Source.APOD) dropVideoStill(keep = latest)
+    }
+
+    /** VS1: the still from APOD's video (the page only, never the wallpaper), with its post noted. */
+    private val videoStillFile get() = File(context.filesDir, "video-still.jpg")
+
+    /** The still of [post]'s video, when one was made for it (its date and video URL noted). */
+    fun videoStill(post: Post): File? = videoStillFile.takeIf {
+        post.videoUrl != null &&
+            prefs.getString("videoStill.date", null) == post.date.toString() &&
+            prefs.getString("videoStill.url", null) == post.videoUrl &&
+            it.exists()
+    }
+
+    /** [post]'s video still is still to try: an mp4, no still made, no try yet (one per post, as `badUrl`). */
+    fun videoStillOwed(post: Post): Boolean =
+        post.isVideo && post.videoUrl != null && prefs.getString("videoStillTried", null) != post.videoUrl && videoStill(post) == null
+
+    /** Deletes the still and its notes unless they are [keep]'s. Under [refreshLock] (the caller's). */
+    private fun dropVideoStill(keep: Post) {
+        val date = prefs.getString("videoStill.date", null) ?: return
+        if (keep.isVideo && date == keep.date.toString() && prefs.getString("videoStill.url", null) == keep.videoUrl) return
+        videoStillFile.delete()
+        prefs.edit {
+            remove("videoStill.date")
+            remove("videoStill.url")
+        }
+    }
+
+    /**
+     * Blocking (the network: seconds). VS1: a frame about 3 s into [post]'s mp4 (the nearest
+     * sync frame), at most the screen's width (1280 px) on its longer side, saved as
+     * `files/video-still.jpg` via `.part`, its post noted. One try per post: `videoStillTried`
+     * is committed first, so a failure, a kill or a stop leaves the black tile until the next
+     * post. True when a still was made.
+     */
+    fun makeVideoStill(post: Post): Boolean = synchronized(videoStillLock) {
+        val url = post.videoUrl ?: return false
+        if (!videoStillOwed(post)) return false
+        prefs.edit(commit = true) { putString("videoStillTried", url) }
+        val started = SystemClock.elapsedRealtime()
+        val part = File(context.filesDir, "video-still.part")
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(url, mapOf("User-Agent" to userAgent))
+            val size = minOf(screen.width, 1280)
+            val frame = retriever.getScaledFrameAtTime(3_000_000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, size, size)
+                ?: throw IOException("no frame")
+            try {
+                part.outputStream().use { if (!frame.compress(Bitmap.CompressFormat.JPEG, 85, it)) throw IOException("couldn't write the JPEG") }
+                synchronized(refreshLock) {
+                    // A newer post stored meanwhile: this still isn't its.
+                    val stored = post(Source.APOD)
+                    if (stored?.date != post.date || stored.videoUrl != url) throw IOException("a newer post came")
+                    if (!part.renameTo(videoStillFile)) throw IOException("couldn't rename ${part.name}")
+                    prefs.edit(commit = true) {
+                        putString("videoStill.date", post.date.toString())
+                        putString("videoStill.url", url)
+                    }
+                }
+                Log.i("APODroid", "Video still: ${SystemClock.elapsedRealtime() - started} ms, ${frame.width}×${frame.height}")
+                true
+            } finally {
+                frame.recycle()
+            }
+        } catch (e: Exception) {
+            part.delete()
+            Log.w("APODroid", "Video still: couldn't make one of $url: $e")
+            false
+        } finally {
+            try {
+                retriever.release()
+            } catch (e: Exception) {
+                Log.w("APODroid", "Video still: couldn't release the retriever: $e")
+            }
+        }
     }
 
     /**
@@ -1773,6 +1857,9 @@ private fun Screen.key(name: String) = if (this == Screen.HOME) name else "lock.
 private val migrationLock = Any()
 
 private val refreshLock = Any()
+
+/** One video still made at a time ([Store.makeVideoStill]); not [refreshLock]: it streams for seconds. */
+private val videoStillLock = Any()
 
 /** A [Store.save] is running; process-wide, as each page and job has its own [Store]. */
 private val saving = AtomicBoolean()

@@ -97,10 +97,10 @@ of space here orientation is irrelevant anyway."
 |----|------|---------------|-------------|-------|
 | SW1 | `:core`: the sideways frame, tests | Sonnet, medium | winston, no device | — |
 | SW2 | `:app`: the sideways set, the measure, Whole, Live, ⛶'s pill; the maps; `CLAUDE.md` | Opus, high | winston, tablet | SW1 |
-| SW3 | Option C: the Setup switch (later, its texts asked first) | — | — | SW2, the user's look on the FP6 |
+| SW3 | Option C: the Setup switch, its texts placeholders | Opus, high | winston, the emulator | SW2 (D1, VS1 before it in the night's order) |
 
-The FP6's look (1080×2408, the reporter's screen) with the user after SW2: 9 Nov's picture
-sideways on both screens, Fill and Live.
+The FP6's look (1080×2408, the reporter's screen) with the user on 17 Nov (`release-0.8.0.md`):
+9 Nov's picture sideways on both screens, Fill and Live, and the switch.
 
 ### [ ] SW1. `:core`: the sideways frame (Sonnet, medium)
 
@@ -119,6 +119,8 @@ sideways on both screens, Fill and Live.
   part (one line, "built, the page in SW2").
 
 ### [ ] SW2. `:app`: the sideways set, the measure, Whole, Live, ⛶'s pill (Opus, high)
+
+Read first: this file's "Decided" and "How it fits", and release-0.8.0.md's "Rules for every 0.8.0 package".
 
 - **Store:** `Part.sideways`, its pref, `putPart` and `parts`; `set` → `setFile(…, sideways)`:
   the whole branch, the measure and the bitmap branch (`factor < 1f || sideways`) turned; the
@@ -160,9 +162,52 @@ sideways on both screens, Fill and Live.
 - **Done when:** `./gradlew :core:test :app:lintRelease :app:assembleRelease` passes, the tablet
   passes, the maps and `CLAUDE.md` updated.
 
-### [ ] SW3. Option C: a Setup switch (later)
+### [ ] SW3. Option C: a Setup switch for wide pictures (Opus, high)
 
-Not before the user has seen SW2 on the FP6. A switch in Setup after "Darken bright pictures",
-part of the draft, default off; on, a picture at least 3:2 (threshold to decide) goes on
-sideways unless ⛶ says otherwise for it (`Part.sideways` becomes three-valued: on, off, the
-switch's default). Its label and ⓘ asked first (CLAUDE.md: few settings, each in one sentence).
+Read first: this file's "Decided" and "How it fits", and release-0.8.0.md's "Rules for every 0.8.0 package". Built on SW2
+(merged: `Part.sideways`, the pill, the turned paths). The texts are placeholders; the user
+approves them from rosie's screenshots on 16 Nov.
+- **The switch** in Setup after "Darken bright pictures", with a small ⓘ, part of the draft as
+  "Darken bright pictures": the field `Setup.wideSideways` and the pref `wideSideways`
+  (`sideways` is home's part's), `Store.setup` (~323), `saveSetup`, the draft's `draft()` and
+  `adopt` (MainActivity ~548, 559), `setupChanged()` (~2215-2219), the saved state, the
+  highlight ("On, not set yet"); always shown, never put back. `orderAlone`/`onlyOrderDiffers`
+  (Turn.kt ~56) cover it by data-class equality. Default off (an update from 0.7.0 changes
+  nothing, no migration). Setup's summary doesn't name it. Set sets each screen afresh.
+- **Placeholder texts:** the label "Wide pictures sideways"; the ⓘ "About Wide pictures
+  sideways", its dialog "Turns a wide picture a quarter turn, so more of it fills the screen.
+  ⛶ › Sideways changes one picture." Add the ⓘ to `CLAUDE.md`'s list of allowed help texts
+  (The app, Settings: "No help texts … except").
+- **The rule** (`:core`, `sidewaysByDefault(width, height)`): width ≥ 1.5 × height (night
+  default 3:2; the alternative 1.4:1, where the gain reaches 2×: 88 of 252 APODs instead of 65).
+  Every source; "my picture" never (it has no part, Fill centred). Under Live too (night
+  default; the user decides in the morning).
+- **The picture's size, one helper:** `imageBounds` doesn't apply EXIF (Store ~1797-1801) while
+  the pill uses the page's decoded picture (MainActivity ~1636): one helper, the bounds swapped
+  when `needsTurning`, used by the job's set, `copyForLive` and ⛶.
+- **The part becomes three-valued:** `Part.sideways: Boolean?`, null = the switch's default.
+  The effective value: the part's when not null, else the rule while the stored switch is on,
+  else upright. Every reader and writer changes (SW2's code):
+  - `Store.putPart` (~415) removes the key for null; `parts` (~1542) reads with `contains`;
+  - `set` (~1565) and `copyForLive` (~1401) use the effective value (B27's keep follows through
+    `live.sideways`, ~1152);
+  - MainActivity: `toBundle`/`readDraft` (~2822, 2843) with `toBooleanStrictOrNull()` (it reads
+    SW2's bundles too), `startCrop` (~1407), the pill's `sidewaysChanged` (~1637) and `setPart`'s
+    no-change check (~1377-1378) compare effective values;
+  - `saveSetup` writes every draft part (~398): the null survives `keepPart` → draft → Set.
+- **✓ and an untouched pill:** a touched flag in crop mode's state (`keepPart` ~1359-1360): when
+  the pill wasn't touched, ✓ keeps the part's previous value (null stays null, an explicit value
+  stays explicit), so a later switch change still applies to it; a touched pill notes its value
+  explicitly.
+- **Night default:** a part's stored position keeps its number when the switch turns that
+  picture sideways, so it then moves along the other axis.
+- **Device** (rosie, the emulator): the switch on and Set: a 3:2 picture sideways on both
+  screens, a 1.2:1 one upright, a portrait one upright; the log's ", sideways"; ⛶ shows the pill
+  on, off ✓ upright for that picture only, the next post sideways again; the switch off and Set:
+  upright, an explicit ⛶ on stays sideways; with Live on home: the hand-over notes
+  `live.sideways`; a rotation keeps the draft's switch; the highlight; screenshots of the
+  switch, its ⓘ and the pill for the user; the smoke list.
+- **Done when:** the tests (the rule, the three values, the size helper) and the device pass;
+  `CLAUDE.md` (The app, Settings: the switch and the help-text list; Choosing the part); the
+  maps (`setup.md` a section as "Darken bright pictures"'s; `page.md`'s pill with the switch;
+  `background.md` the job's set by the rule).

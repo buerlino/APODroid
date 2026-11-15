@@ -1970,6 +1970,36 @@ it, the middle on any failure. It revisits the smart Auto's map of what matters 
 desktop against the user's picks (SA0); built only if it beats the middle. The issue's model
 (Glimpse, 148 KB) needs TensorFlow Lite, a native library: the stack's rules ask the user; the
 same model by hand-written inference in `:core`, or a method without a model, would need none.
+**SA0's result** (2026-11-15 evening, the user's two blind picking rounds; the numbers in
+`subject-0.8.0.md`): no library (Glimpse only a reference, the spectral residual not
+shippable); the **importance map** ties the middle overall (round 1, 123 pictures: 40 : 40) but
+wins where it moves the frame clearly: round 1 auto 23 : middle 31 below a move of 0.2, 17 : 9
+at 0.2 or more; round 2 (92 fresh pictures, the split fixed before) 23 : 20 below, 18 : 6 at or
+above (p 0.02). Over both rounds small moves auto 46 : middle 51, clear ones 35 : 15.
+**Decided** (user, 2026-11-15 evening): build it; Size becomes [Centre | Auto | Live], Auto the
+default (an update's `FILL` reads as Auto); Auto uses the subject's position when it moves the
+frame by `SUBJECT_MIN_MOVE` = 0.2 of the travel or more, else the middle; a switch in Advanced
+settings turns that fallback off; ⛶ overrides it (SA3a, SA3b). **The method** (SA2,
+2026-11-15; `:core`'s `Subject.kt`, `SubjectTest`), an exact port of
+`private/sa0/compute.py`, not retuned: a copy 128 px across the frame's moving direction
+(`subjectCopySize`, Python's round half to even), made by `boxResize`, Pillow's BOX byte for
+byte (the mean of the input pixels whose centres fall in each output pixel's box, the width then
+the height, each pass rounded to 8 bits; not fractional edge weights, as the plan said: checked
+against Pillow 12.3); the map on it (RGB 0–1, "short" the copy's shorter side, scipy's
+`gaussian_filter` with mode reflect): grey (0.299, 0.587, 0.114) smoothed by σ = max(0.7, 1%
+of short), 0.4 × its normalised brightness + 0.4 × the normalised, smoothed (σ 4%) Sobel
+gradient of it + 0.2 × the normalised, smoothed saturation × value (0 where the max is 0.05 or
+less), smoothed again by σ 4%; normalised = shifted to 0, divided by numpy's 99.5th percentile
+and clipped to 0–1, only shifted when that percentile is 0. **The position:** the map's column
+(or row) sums along the frame's moving direction, the frame's length its share of the original
+picture's, the window with the largest sum, an edge frame needing 10% more than the middle
+(score = sum ÷ the middle's − 0.10·(2(p − 0.5))²; the first maximum; the middle frame empty:
+the largest without the pull; a frame as large as the picture or an empty map: 0.5). Sideways:
+the copy turned clockwise and measured as an upright picture of h × w, so it agrees with
+`sidewaysFrame` (a panorama's turned strip too). Checked on the desktop's pictures (the 253 of
+`private/pictures/` and round 2's from 2 Oct, decoded by ImageIO subsampled to at least 512 px):
+294 of 295 within 0.03 of compute.py's, the one miss 0.032 (2026-04-27); on Pillow's own copies
+the map agrees to 1e-15 and the positions exactly (10 pictures, by hand).
 
 **0.6.0: APOD first** (user, 2026-10-19; built 2026-10-20 to 24; the how in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different

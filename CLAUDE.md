@@ -790,6 +790,20 @@ set it as wallpaper, and on video days kept the old wallpaper.
   Debuggable builds write the bitmap set to `files/debug-set.png` (deleted by a `setStream`
   set) and the whole picture before the darkening to `files/debug-whole.png` (L4), for checks
   by the pixels.
+  **The sideways set** (SW2, 2026-11-15; `sideways-0.8.0.md`; ⛶'s "Sideways", `Part.sideways`):
+  the picture turned 90° clockwise, its top at the screen's right. `setStream` can't turn, so
+  every sideways set goes the darkened picture's way at any factor: the band the turned picture
+  shows (`:core`'s `sidewaysFrame`, `Drawing.kt`'s `pictureFrame`: a band of whole rows, position
+  0 the bottom one) decoded alone and upright at the screen's size (`decodeFrame`), drawn through
+  a rotating `Matrix` into a bitmap of the screen's portrait size (`drawSideways`, `drawTurned`;
+  no turned copy), darkened in the same draw, `setBitmap`, the hint all of it. The measure is of
+  the turned frame's top third (`frameGrey` turned); the whole picture is fitted, drawn and
+  measured turned, its background the turned picture's middle (`wholePicture`'s flag; the black
+  edges measured upright). An upright picture keeps every path byte for byte (`setStream`, the
+  EXIF photo's `setBitmap`, the whole picture); the user's own picture is never sideways (no
+  part). The log's set line notes ", sideways" before any ", darker …" (the job's, the page's,
+  Set's, "Part: wallpaper set: …", and the hand-overs' "wallpaper shown live: …"); every
+  sideways set writes `files/debug-set.png`, a sideways whole one `files/debug-whole.png` too.
   **Home and lock set separately** (M0, 2026-10-20; tablet, Android 15; the FP6 unchecked): both
   flags make one shared wallpaper (`dumpsys wallpaper`'s "Lock wallpaper state" empty);
   `FLAG_SYSTEM` alone first moves the shared one to the lock screen and sets home anew;
@@ -801,7 +815,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   description "Today's picture, moving across the screen over the day." (`strings.xml`),
   no settings entry: R2b, 2026-11-15, a page the picker's Settings started ended Set's wait for the picker). The engine draws **home's picture** whatever screens
   it's on (both while shared, home after a split, a stray on the lock screen after home's
-  revert), and **only Live's copy**, `files/live.jpg` with `live.whole` (and `live.picture`, its
+  revert), and **only Live's copy**, `files/live.jpg` with `live.whole`, `live.sideways` (SW2) (and `live.picture`, its
   name for the log) beside it, never the source's file (which changes with every stored post and
   goes on a video day; so a newer post not yet due, a "Skip it" video day, a kill, a rebind or a
   reboot don't change what it draws). Without a copy (the picker's preview before the first
@@ -809,9 +823,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
   black. Panned at `:core`'s `livePosition` for home's column (Live, the day's pan), or whole
   and still (`wholePicture` at the screen's portrait size, its middle in landscape). A software
   canvas for the engine's life, a null one skips the frame; decoded once per picture (keyed by
-  the file's time, length and the whole flag) on a background thread at the screen's portrait
+  the file's time, length, the whole and sideways flags and the darkening) on a background thread at the screen's portrait
   height within 50 MB (`liveDecodeSize`), out of memory a quarter of the bytes, then again, else
-  black; everything caught and logged `Live: couldn't …` (two crashes within 10 s revert home).
+  black; **sideways** (SW2, `live.sideways`, the hand-over's note of its post's `Part.sideways`,
+  false for a copy from before 0.8.0): `liveDecodeSize` on the turned size (the axes swapped),
+  decoded upright and turned once (`turned`: a turned landscape picture at most the screen's
+  height squared, about 23 MB on the FP6, 46 MB at the peak while turning), then panned as any
+  other, so position 0 is the bottom band as in `sidewaysFrame`; whole and sideways the
+  `wholePicture` turned; everything caught and logged `Live: couldn't …` (two crashes within 10 s revert home).
   Draws at `onSurfaceChanged`, `onSurfaceRedrawNeeded`, when it becomes visible (re-reading the
   copy: an interrupted thread's commit skips the listeners, B16), when the copy changes
   (`Store.watch`) and once a minute while visible when the frame moved a pixel; never on a tick
@@ -892,7 +911,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   hand-over (`copyForLive`, while the stored `darken` is on) on what crosses the screen, not the
   moving frame: the whole picture's top third (`Drawing.kt`'s `pictureGrey`, 200 px high), or
   for a whole one its drawing on its background at the screen's shape 200 px high
-  (`wholeGrey`); `:core`'s `darkening` noted as `live.darken` beside `live.whole` in the
+  (`wholeGrey`), turned while sideways (SW2: both take the flag); `:core`'s `darkening` noted as `live.darken` beside `live.whole` and `live.sideways` in the
   hand-over's commit (1 with the switch off, a dark picture, a failed measure, logged, and a
   copy from before BR3). So the frame is darkened alike all day. The engine keys its picture by
   it too and draws through `drawPanned`'s factor (its colours from a darkened copy; the
@@ -950,7 +969,25 @@ set it as wallpaper, and on video days kept the old wallpaper.
   Set from open crop mode stores it too, per source for that post only, as the part. The toggle
   shows in `tertiary` while it differs from the stored one (until ✓); screen readers: "Whole
   picture", a switch, "On"/"Off" with ", not set yet" while it differs.
-  **Sideways** (0.8.0, `sideways-0.8.0.md`): `:core`'s `sidewaysFrame` (the band of the upright picture a clockwise-turned one shows; position 0 the bottom band) is built, the page in SW2.
+  **Sideways** (0.8.0, SW2, 2026-11-15; `sideways-0.8.0.md`; issue #4; the texts approved by
+  the user, 2026-11-15): in ⛶ mode a toggle at the picture's top right (the top left has "Whole
+  picture"), "Sideways", "✓ Sideways" while on, in the same dark pill, only on a landscape
+  picture (`:core`'s `sidewaysHelps`: wider than high; none on a portrait or square one). On:
+  the wallpaper shows the picture turned 90° clockwise (its top at the screen's right; Wallpaper:
+  the sideways set), and the frame is the band the turned picture shows (`:core`'s
+  `sidewaysFrame`, `Drawing.kt`'s `pictureFrame`), a horizontal band across the page's upright
+  picture dragged up and down (position 0 the bottom band, so a drag down lowers it; a panorama
+  whose turned picture is taller than the screen: a strip moving left to right); the page's
+  picture stays as published. With "Whole picture" the preview is drawn turned. With Live (the
+  stored Size Live, Live on home, the source in home's column) the band stands at the clock's
+  position, no drag, as Fill's frame does. ✓ saves and sets it with the part
+  (`Part.sideways`, the pref `<source>.sideways`, keyed by the part's `cropDate`/`cropUrl`, so a
+  new post drops it; ✓ with only Sideways changed counts as a change), Back and a rotation
+  drop it, reopening ⛶ shows the stored one, a Set from open crop mode stores it, the saved
+  state carries it with the part. The toggle shows in `tertiary` while it differs from the
+  stored one; screen readers: "Sideways", a switch, "On"/"Off" with ", not set yet" while it
+  differs. Clockwise only (user, 2026-11-15). Setup's switch for it (SW3) waits for the
+  user's look on the FP6.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title. The one exception is Keep running's (O11, Background update): a
   foreground service must have one; the permission is still never asked, so on Android 13+ it
@@ -1856,6 +1893,13 @@ shifts the rotation" once per new order. **Built** (OR1 `:core`, OR2 `Store`, th
 file, 2026-11-14): The app, Settings (the list); Turns and the picture time. The texts "≡",
 "Move up", "Move down" and "Change every"'s ⓘ are approved (user, 2026-11-15); whether TalkBack offers the
 actions on the greyed-out last ticked row is the user's FP6 check.
+
+**0.8.0: Sideways** (user, 2026-11-15, from issue #4: a landscape picture turned 90° clockwise
+shows about a² more of a picture a:1 wide, sharper; [sideways-0.8.0.md](.claude/skills/build-apodroid-android/sideways-0.8.0.md)).
+Decided: a toggle per picture in ⛶ mode first (A), a Setup switch defaulting it on for wide
+pictures later (C, SW3), a rule without a setting only if neither is good enough (B); clockwise
+only; with Live too. **Built** (SW1 `:core`'s `sidewaysFrame`, SW2 the set, the measure, Whole,
+Live and ⛶'s pill, 2026-11-15): The app, Choosing the part; Wallpaper: the sideways set; Live.
 
 **0.8.0: Fill's frame on the subject** (user, 2026-11-02, from issue #3: "for 0.8.0";
 [subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md)). A saliency map

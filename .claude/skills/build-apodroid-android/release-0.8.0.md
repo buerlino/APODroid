@@ -150,6 +150,65 @@ Read first: release-0.8.0.md's "Rules for every 0.8.0 package".
   post` log line, SA3a's and SA3b's), the smoke list, and the regression's core paths (Set, the
   daily switch, a run by `run -f 1`, Live, ⛶ and ✓). Screenshots for the user.
 - **Done when:** PASS, or each FIX as a package for Tue 17 Nov morning, before the noon cut.
+- **Checked** (T3, rosie, 2026-11-15, 22:36–23:00; the tablet HA24BZ2Y not run: the Android 14
+  emulator `emulator-5564`; dev 93917b7's R8 build and v0.7.0's, both signed with the debug key;
+  pictures faked into `files/apod.jpg` by `adb root` with the stored date and URL kept, so a job's
+  check is `same post`; evidence in `.coord/runs/134-t3/tablet/`): **FIX, one finding (T3f1
+  below)**; everything else passed, no crash (`exit-info`: no CRASH).
+  - The update: 0.7.0 (home APOD + NASA every 6 h, lock APOD, Fill, daily on, set) → `install -r`
+    of 0.8.0: the prefs byte for byte but `armedUpdate`, `Daily job: MY_PACKAGE_REPLACED, arming
+    again`, the pair at 00:09:15 as before, the wallpaper id unchanged, no set line; Setup shows
+    Auto selected and unhighlighted (`size` still `FILL`). **But** no subject noted at the page
+    open, and Set then set the middle (T3f1).
+  - SW3: the switch on, Set: 3:2 (3618×2400) `, sideways` on HOME+LOCK in one set; 1.2:1 and a
+    portrait one upright; ⛶ the pill on; off ✓ upright (`sideways=false`, no `cropPosition`); a
+    new post (part dropped) sideways again; the pill off-on ✓ saved `sideways=true` without a
+    set; the switch off and Set: still `, sideways`, a new post then upright; a rotation kept the
+    draft's switch and the highlight. With Live (the picker's "Home screen", the dialog "Set
+    wallpaper › Home screen" for columns that differ): `wallpaper shown live … on HOME, sideways`,
+    `live.sideways=true`, `Live: decoded 1592×2400`, the lock screen its own still `on LOCK,
+    sideways`. R8 writes no `debug-set.png` (not debuggable), so the turn is by the log only.
+  - SA3a: 2026-01-09 `Subject: … p=0.78 (sideways 0.48)`, `auto 0.78`, crop 702–1086;
+    2026-03-23 `p=0.57`, `auto 0.50`, crop 701–1300; Advanced's switch off: `auto 0.57`, crop
+    805–1404; Centre and Set: crop 701–1300, `size=CENTRE`, no `, auto` (the same figures as
+    SA3a's debug run). Live → Auto and Set: the engine destroyed, one still on both.
+  - SA3b: ⛶ opened at the subject (0.57); ✓ without a drag: nothing logged, no part; a drag
+    and ✓: `cropPosition` 0.136, crop 190–789, no `, auto`; Whole ✓ without a drag: `whole=true`,
+    no `cropPosition`, the whole picture on its blur; Whole off ✓, Centre, Set: the middle; a
+    rotation in ⛶ closed it, no crash. Screenshots of Advanced and the ⓘs in the folder.
+  - VS1: `isVideo` and the 16 Oct mp4 faked: `Video still: 868 ms, 1080×720`, the tile dimmed
+    with ▶; a second open after `am kill`: no log line.
+  - D1: `run -f 1` with today's post stored `Refresh: APOD 2026-11-15 same post` (each run).
+  - The core paths and the smoke list: Set in both modes (APOD mode `where=BOTH`, set id 79),
+    the daily switch off (the pair cancelled) and on (`Switch on: wallpaper set`, armed), `run
+    -f 1` with and without Live (`jobFinished`, nothing set), Live, ⛶ and ✓.
+  - Not run: real timing, Doze, ZUI's picker and cleaner (not on the emulator); a drag under
+    Live (my swipe scrolled the page; the band stood at p=0.82); TalkBack; font scale 2.0; the
+    release-signed update (the user's, FP6, 17 Nov).
+  - Seen, not a FIX: the set line of a whole picture still notes `, auto 0.57` (it has no frame;
+    as SA3b's `, auto 0.50` for a centred fallback: the log only).
+
+### [ ] T3f1. Auto's subject at a page open or Set within the hour (Opus, medium)
+
+From T3 (rosie, 2026-11-15, R8 on the emulator, `.coord/runs/134-t3/tablet/f1-update-subject-log.txt`).
+- **The bug:** `Store.update` (~1140) skips `checkSite` for a page open, a pull-free Set or the
+  daily switch's run whose source was checked within the hour (`checkedRecently`), so
+  `noteSubject` (SA3a's call in `checkSite`'s `else`) never runs there. After the update from
+  0.7.0 (no `subject*` keys), a page open and Set within the hour of the last check noted nothing,
+  and Set's still went on at the middle with Size Auto: `Set: wallpaper set: … on HOME+LOCK`
+  (no `, auto`) for today's APOD whose subject is 0.13 (a pull then logged `Subject: APOD
+  2026-11-15 p=0.13`, and the next Set `, auto 0.13`). The job's next run notes it but sets
+  nothing (the record is current), so the screen keeps the middle until the next change time or
+  post. CLAUDE.md (Wallpaper: Auto, the subject) says the page open covers the update.
+- **The fix:** note the subject also where the page skips the check:
+  `if (force || !page || !checkedRecently(source)) checkSite(source, force, page) else noteSubject(source)`
+  (`noteSubject` returns at once when noted, the post is a video or the file is missing; it
+  holds the refresh lock and throws nothing).
+- **Device** (rosie, the emulator): the update as T3 (v0.7.0's R8, a Set, `install -r` of the
+  fix's R8): the page open logs `Subject: APOD …` (and NASA's, Earth's when offered); Set with
+  nothing changed logs `, auto <p>` when the subject moves 0.2 or more; the smoke list.
+- **Done when:** the Gradle check, the device pass; CLAUDE.md's sentence names the skip within
+  the hour.
 
 ## The night's test pass (user, 2026-11-15 night: "test and then fix any issues")
 

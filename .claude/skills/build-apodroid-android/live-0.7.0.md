@@ -477,6 +477,11 @@ not live: the lock screen after Android's revert of home) counts as a check owed
   the engine asks again at the grace's end), and a run that would forget a screen noted live sets
   nothing and counts as failed (`liveHolds`; the alarms retry 15 min after its start). Android's
   revert (two deaths within 10 s) is still seen after the grace: Fill on both by that run.
+  **Fix round 1** (rosie, the same day): in the split state (Live on home, the lock screen still) one
+  kill left `getWallpaperInfo` not naming APODroid's for 11 min and more, past the grace, and the
+  next run set Fill on both; home's wallpaper id stayed (1499), a revert or a new pick gave a new one
+  (1501, 1503). So on 14+ home is live also while its id is the one noted while `getWallpaperInfo`
+  named APODroid's (`live.homeId`, `:core`'s `homeLive`); the grace stays.
 
 ## Checks before building (J0's way)
 

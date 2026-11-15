@@ -292,6 +292,17 @@ fun liveSettling(engine: Boolean, processAge: Duration): Boolean =
     engine && !processAge.isNegative && processAge < liveReconnect
 
 /**
+ * L8f1 fix round 1: whether APODroid's live wallpaper is on home. [named]: Android says so
+ * (`getWallpaperInfo(FLAG_SYSTEM)` names it, 14+; always false below 14, where the app can't
+ * ask). Else home's wallpaper id [id] equal to the one [noted] while home was live: a rebind
+ * after a process death keeps the id (the tablet, Android 15, split state: `getWallpaperInfo`
+ * didn't name APODroid's for 11 min and more after one `kill -9`, the id unchanged), while
+ * Android's revert (Decision 12), a force stop's default, a still set and a new pick each give
+ * home a new id. An id of 0 or less (none, or a failed read) never matches.
+ */
+fun homeLive(named: Boolean, id: Int, noted: Int?): Boolean = named || (id > 0 && id == noted)
+
+/**
  * L8f1: a non-preview engine on 14+ is a stray (Decision 12: home reverted, the engine left on
  * the lock screen) when home isn't live ([homeLive]), but not while [settling] ([liveSettling]):
  * a rebind isn't a revert. The engine asks again at the grace's end.

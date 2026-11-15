@@ -565,4 +565,37 @@ class LiveTest {
         val sets = listOf(y to setOf(HOME, LOCK))
         assertEquals(LiveSets(sets), stillOrLive(Size.LIVE, homeLive = false, shared = false, homeColumn = true, homePicture = y, sets = sets), "both still")
     }
+
+    // L8f1 fix round 1: the tablet's split state after one kill: getWallpaperInfo doesn't name APODroid's for minutes, home's id unchanged.
+
+    @Test
+    fun homesUnchangedIdKeepsItLive() {
+        assertTrue(homeLive(named = true, id = 1499, noted = 1499))
+        assertTrue(homeLive(named = true, id = 1499, noted = null), "Android says so: no id needed")
+        assertTrue(homeLive(named = false, id = 1499, noted = 1499), "a rebind keeps the id")
+        assertFalse(homeLive(named = false, id = 1501, noted = 1499), "a revert, a still set or another pick: a new id")
+        assertFalse(homeLive(named = false, id = 1499, noted = null), "never noted live")
+        assertFalse(homeLive(named = false, id = -1, noted = -1), "a failed read never matches")
+        assertFalse(homeLive(named = false, id = 0, noted = 0))
+    }
+
+    @Test
+    fun aKillInTheSplitStateAfterTheGraceIsNoLoss() {
+        // Rosie's 01:38 run: Live on home, the lock screen still (split), one kill, the run 30 s on.
+        val home = homeLive(named = false, id = 1499, noted = 1499)
+        val settling = liveSettling(engine = true, processAge = Duration.ofSeconds(30))
+        assertFalse(liveStray(home, settling), "no stray at the grace's end")
+        assertFalse(owed(stray = liveStray(home, settling), notedLive = true))
+        val lost = lostLive(homeNoted = true, lockNoted = false, homeLive = home, shared = false, sharedNote = false, lockColumn = true)
+        assertEquals(LostLive(), lost, "the old reading's Fill on HOME+LOCK")
+        // The old code read home by getWallpaperInfo alone: Fill on both.
+        assertEquals(setOf(HOME, LOCK), lostLive(true, false, homeLive = false, shared = false, sharedNote = false, lockColumn = true).forget)
+    }
+
+    @Test
+    fun decision12sRevertGivesANewIdAndFill() {
+        val home = homeLive(named = false, id = 1501, noted = 1499)
+        assertTrue(liveStray(home, settling = false))
+        assertEquals(setOf(HOME, LOCK), lostLive(true, true, homeLive = home, shared = false, sharedNote = true, lockColumn = true).forget)
+    }
 }

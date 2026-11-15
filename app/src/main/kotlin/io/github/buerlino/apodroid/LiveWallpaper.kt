@@ -98,8 +98,9 @@ class LiveWallpaper : WallpaperService() {
                 val store = Store(applicationContext).also { store = it }
                 val flags = if (isPreview) "preview" else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) "$wallpaperFlags" else "home"
                 Log.i(TAG, "Live: engine $flags created")
-                // Below 14 the system can't say whether home is live without QUERY_ALL_PACKAGES: the id says it.
-                if (!isPreview && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) store.noteHomeId()
+                // Home's id says whether home is live: below 14 the system can't say without QUERY_ALL_PACKAGES,
+                // and on 14+ a rebind after a process death may not say it for minutes (noted only while it does).
+                if (!isPreview) store.noteHomeId()
                 if (!isPreview) LiveProcess.engine = true
                 // Home's record and the copy's notes change together (Store.setDue's commit).
                 listener = store.watch { reload() }

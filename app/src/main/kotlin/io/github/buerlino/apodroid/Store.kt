@@ -67,6 +67,7 @@ import io.github.buerlino.apodroid.core.nextAlarm as coreNextAlarm
 import io.github.buerlino.apodroid.core.screenOnRunOwed as coreScreenOnRunOwed
 import io.github.buerlino.apodroid.core.liveSettling as coreLiveSettling
 import io.github.buerlino.apodroid.core.liveHolds
+import io.github.buerlino.apodroid.core.homeLive
 import io.github.buerlino.apodroid.core.liveReconnect
 import io.github.buerlino.apodroid.core.randomOffset
 import io.github.buerlino.apodroid.core.retryAfter
@@ -1378,9 +1379,11 @@ class Store(private val context: Context) {
 
     /**
      * Whether APODroid's live wallpaper is on [screen] (L1's table): home on Android 14+ when
-     * `getWallpaperInfo(FLAG_SYSTEM)` names it, below 14 when home's wallpaper id is the one the
-     * engine noted at its start (`live.homeId`: `getWallpaperInfo()` needs `QUERY_ALL_PACKAGES`
-     * there); the lock screen only while home is and the one engine is shared ([liveShared]).
+     * `getWallpaperInfo(FLAG_SYSTEM)` names it or home's wallpaper id is the one noted while it
+     * did (L8f1 fix round 1: a rebind after a process death), below 14 when home's wallpaper id
+     * is the one the engine noted at its start (`live.homeId`: `getWallpaperInfo()` needs
+     * `QUERY_ALL_PACKAGES` there); `:core`'s [homeLive]. The lock screen only while home is and
+     * the one engine is shared ([liveShared]).
      * The engine's own flags aren't asked (a stray on the lock screen says 3).
      */
     fun liveOn(screen: Screen): Boolean = if (screen == Screen.HOME) liveState().home else liveState().shared
@@ -1425,13 +1428,11 @@ class Store(private val context: Context) {
 
     private fun liveState(): LiveState {
         val manager = WallpaperManager.getInstance(context)
-        val home = runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                manager.getWallpaperInfo(WallpaperManager.FLAG_SYSTEM)?.component == liveComponent
-            } else {
-                prefs.contains("live.homeId") && prefs.getInt("live.homeId", -1) == manager.getWallpaperId(WallpaperManager.FLAG_SYSTEM)
-            }
-        }.getOrDefault(false)
+        val named = liveNamed(manager)
+        val id = runCatching { manager.getWallpaperId(WallpaperManager.FLAG_SYSTEM) }.getOrDefault(-1)
+        if (named) noteId(id)
+        val noted = if (prefs.contains("live.homeId")) prefs.getInt("live.homeId", -1) else null
+        val home = homeLive(named, id, noted)
         val shared = home && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
             runCatching { manager.getWallpaperId(WallpaperManager.FLAG_LOCK) == -1 }.getOrDefault(false)
         return LiveState(home, shared)
@@ -1447,9 +1448,26 @@ class Store(private val context: Context) {
         if (live.home) prefs.edit(commit = true) { putBoolean("live.shared", live.shared) }
     }
 
-    /** Below Android 14 only: the engine notes home's wallpaper id at its start ([liveOn]); any set or clear changes the id. */
+    /** 14+: whether `getWallpaperInfo(FLAG_SYSTEM)` names APODroid's live wallpaper (below 14 the app can't ask: false). */
+    private fun liveNamed(manager: WallpaperManager): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            runCatching { manager.getWallpaperInfo(WallpaperManager.FLAG_SYSTEM)?.component == liveComponent }.getOrDefault(false)
+
+    private fun noteId(id: Int) {
+        if (id > 0 && (!prefs.contains("live.homeId") || prefs.getInt("live.homeId", -1) != id)) prefs.edit(commit = true) { putInt("live.homeId", id) }
+    }
+
+    /**
+     * Notes home's wallpaper id as live's (`live.homeId`, [liveOn], `:core`'s [homeLive]); any set,
+     * clear, revert or pick changes the id. Below 14 at the engine's start and re-apply, as it
+     * is; on 14+ (L8f1 fix round 1) only while `getWallpaperInfo` names APODroid's (also at each
+     * [liveOn] that finds it so), so a rebind after a process death, which keeps the id, still
+     * reads live while `getWallpaperInfo` doesn't name it.
+     */
     fun noteHomeId() {
-        val id = runCatching { WallpaperManager.getInstance(context).getWallpaperId(WallpaperManager.FLAG_SYSTEM) }.getOrNull() ?: return
+        val manager = WallpaperManager.getInstance(context)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && !liveNamed(manager)) return
+        val id = runCatching { manager.getWallpaperId(WallpaperManager.FLAG_SYSTEM) }.getOrNull() ?: return
         prefs.edit(commit = true) { putInt("live.homeId", id) }
     }
 

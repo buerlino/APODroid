@@ -111,12 +111,14 @@ The user: everything planned for 0.8.0 starts now, done by 17 Nov (`release-0.8.
   confirm they are accurate"; combined, the user's choice): A2's page kept only the picks, its
   images are gone and its "brightest area" rule wasn't written down, so the frames are rebuilt
   (the brightest area approximated: the frame position with the largest sum of a smoothed
-  brightness). The same 152 pictures in a new random order, the old picks hidden, the choices
-  unlabelled and shuffled per picture: the middle, the brightest area, each shippable method's
-  frame (identical frames merged into one choice, so "same" is visible), Whole, and "No
-  preference". About 35 min. **Measures:** the repeat agreement on the old picks (where the
-  middle and the brightest area both stand, how often the same one is picked again; Fill vs
-  whole again), and each method's wins where it moves the frame. Written into this file.
+  brightness). The same 152 pictures in a new random order, the old picks hidden, **three
+  Fill frames ranked 1, 2, 3** (user, 2026-11-15: "i would need to say 1,2,3 so that we know if
+  auto is still better than center"): the middle, the brightest area and "auto" (the one
+  shippable method SA0 judges best), unlabelled and shuffled per picture; frames that look the
+  same are one phone and rank as a tie. No Whole (Fill was 133 of 148 clear picks; whole stays
+  ⛶'s per picture). About 35 min. **Measures:** the repeat agreement on the old picks (where
+  the old first choice, middle or brightest, ranks above the other again), and auto against the
+  middle by rank, where auto moves the frame. Written into this file.
 - **No library** (night default, `release-0.8.0.md`'s rules): SA1 skipped; Glimpse's model is
   run on the desktop only as a reference, to see whether a learned map would win. The methods
   that can ship by 17 Nov: the spectral residual and a smoothed brightness-and-detail map in

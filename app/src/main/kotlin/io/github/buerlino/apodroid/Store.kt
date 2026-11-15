@@ -897,6 +897,10 @@ class Store(private val context: Context) {
         }
         // A new post (another date or picture) is marked as its check says; the same post keeps its mark.
         store(latest, gap.takeIf { stored == null || latest.date != stored.date || latest.imageUrl != stored.imageUrl })
+        // D1: the job asks every run, also with today's post stored.
+        if (stored != null && latest.date == stored.date) {
+            Log.i("APODroid", "Refresh: ${source.name} ${latest.date} ${if (url == stored.imageUrl) "same post" else "new picture"}")
+        }
         // After storing: a page drawing meanwhile shows the video entry, never the old picture under it.
         if (url == null) file.delete()
     }
@@ -922,9 +926,10 @@ class Store(private val context: Context) {
 
     /**
      * Blocking. What the page, Set and the daily job run: [refresh] each source in use and each
-     * of [show] (the sources the page offers, so one ticked in its draft only has a picture)
-     * unless its stored post is today's (always with [force], pull to refresh) or, for the [page]
-     * (an open, a pull, Set), it was checked within the hour ([checkedRecently]), then, while the
+     * of [show] (the sources the page offers, so one ticked in its draft only has a picture);
+     * for the [page] (an open, a pull, Set) not when its stored post is today's or it was checked
+     * within the hour ([checkedRecently]), always with [force] (pull to refresh) and for the job
+     * (D1: a second post on the same date), then, while the
      * daily change is on or with [set] (Set, also with it off), sets what each screen is due
      * ([setDue]). The sources in use: the ones ticked on any screen, and on an APOD video day the
      * stand-in, while APOD is ticked somewhere. A failing source doesn't stop the others, and its
@@ -947,7 +952,7 @@ class Store(private val context: Context) {
             // A stopped job (DailyJob.onStopJob) ends the run: no more downloads, no set.
             if (isStopped(stopped)) throw InterruptedException()
             try {
-                if (force || !page || !checkedRecently(source)) checkSite(source, force)
+                if (force || !page || !checkedRecently(source)) checkSite(source, force, page)
             } catch (e: Exception) {
                 if (e.isStop()) throw e
                 failure = failure ?: e
@@ -1254,15 +1259,24 @@ class Store(private val context: Context) {
     fun sourcePicture(source: Source): Picture? = stored().picture(source)
 
     /**
-     * [refresh] unless [source]'s stored post is today's (always with [force]), noting how it
-     * went for the page: a success sets [checkedAt] and clears [problem], a failure names it.
-     * Anything but the three typed failures counts as the network, except an interrupted download (a stopped job), which notes nothing.
+     * [refresh] unless, for the [page], [source]'s stored post is today's (always with [force];
+     * the job's runs always ask, D1: a second post on the same date arrives at the next check),
+     * noting how it went for the page: a success sets [checkedAt] and clears [problem], a failure
+     * names it. Anything but the three typed failures counts as the network, except an
+     * interrupted download (a stopped job), which notes nothing. A failure while today's post is
+     * stored (the job's check of a complete day) is only logged: no problem, no failed run,
+     * [checkedAt] untouched (D1's night default).
      */
-    private fun checkSite(source: Source, force: Boolean) {
+    private fun checkSite(source: Source, force: Boolean, page: Boolean) {
+        val current = isCurrent(source)
         try {
-            if (force || !isCurrent(source)) refresh(source)
+            if (force || !page || !current) refresh(source)
         } catch (e: Exception) {
             if (e.isStop()) throw e // not the site's fault
+            if (current && !force) {
+                Log.i("APODroid", "Refresh: ${source.name} ${post(source)?.date} stored, check failed: $e")
+                return
+            }
             val problem = Problem.of(e)
             prefs.edit {
                 putString(source.key("problem"), problem.key)

@@ -136,4 +136,12 @@ class FrameTest {
         assert(sidewaysOf(null, true) { read++; 3630 to 2408 })
         assertEquals(1, read)
     }
+
+    @Test
+    fun theUprightSizeSwapsOnlyForAQuarterTurn() {
+        for (o in listOf(0, 1, 2, 3, 4, 9, -1)) assertEquals(4000 to 3000, uprightOf(4000, 3000, o), "orientation $o")
+        for (o in 5..8) assertEquals(3000 to 4000, uprightOf(4000, 3000, o), "orientation $o")
+        // A camera photo stored 4000×3000 with orientation 6 stands upright: no wide rule.
+        assert(!uprightOf(4000, 2400, 6).let { (w, h) -> sidewaysByDefault(w, h) } && sidewaysByDefault(4000, 2400))
+    }
 }

@@ -57,6 +57,7 @@ import io.github.buerlino.apodroid.core.sharedLockFollows
 import io.github.buerlino.apodroid.core.sidewaysOf
 import io.github.buerlino.apodroid.core.stillOrLive
 import io.github.buerlino.apodroid.core.unnotedLive
+import io.github.buerlino.apodroid.core.uprightOf
 import io.github.buerlino.apodroid.core.Lost
 import io.github.buerlino.apodroid.core.alarmsLost
 import io.github.buerlino.apodroid.core.missedChange
@@ -1921,16 +1922,16 @@ private fun imageType(file: File): String? = imageBounds(file)?.outMimeType
 
 /**
  * The size of a decodable image as it's drawn, upright (SW3): [imageBounds] with width and height
- * swapped when its EXIF orientation transposes it (5 to 8, a camera photo turned a quarter), as
- * `ImageDecoder` decodes it; null when it isn't one. The one size for the sideways rule ([Store.turnsSideways]).
+ * swapped when its EXIF orientation transposes it (`:core`'s [uprightOf]: 5 to 8, a camera photo
+ * turned a quarter), as `ImageDecoder` decodes it; null when it isn't one. The one size for the sideways rule ([Store.turnsSideways]).
  */
 @SuppressLint("ExifInterface") // Its security bugs were in Android 7.0 and older; minSdk is 29.
 fun uprightSize(file: File): Size? {
     val bounds = imageBounds(file) ?: return null
-    val transposed = runCatching {
-        android.media.ExifInterface(file).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, 1) in 5..8
-    }.getOrDefault(false)
-    return if (transposed) Size(bounds.outHeight, bounds.outWidth) else Size(bounds.outWidth, bounds.outHeight)
+    val orientation = runCatching {
+        android.media.ExifInterface(file).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, 1)
+    }.getOrDefault(1)
+    return uprightOf(bounds.outWidth, bounds.outHeight, orientation).let { (w, h) -> Size(w, h) }
 }
 
 /** Size and MIME type of a decodable image (`outWidth`, `outHeight`, `outMimeType`), or null. */

@@ -792,7 +792,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `WallpaperManager` call, counted in `setsSinceSetup`, logged `wallpaper shown live: <picture>
   on <screens>` (a failed copy is a failed set); the lock screen goes with it while shared and
   due home's picture (`lock.wallpaperLive`), else it gets its still set with `FLAG_LOCK` first
-  (the engine moves to home, Decision 10). A still set, a forgotten record (Set) and a removed
+  (the engine moves to home, Decision 10). **The shared lock screen only with equal columns**
+  (B28, 2026-11-15, the tablet's real night: home APOD + NASA every 6 h, lock APOD alone, the
+  picker's "Home screen" shared the engine, which panned the lock screen by home's 6 h turn):
+  while the columns differ, the lock screen the engine covers gets its own still Fill with
+  `FLAG_LOCK` in the next run, even over home's picture (`stillOrLive`, `lockFollowsHome`), and
+  the engine stays home's alone. A still set, a forgotten record (Set) and a removed
   one drop the live note. **Lost Live** (`:core`'s `lostLive`, before the rules): home's record
   noted live and home not live (another wallpaper, a force stop, Android's revert) forgets
   home's record and the lock screen's when it has a column (a lock screen without one that the

@@ -189,6 +189,17 @@ position is the frame with the largest sum; "pull": score = sum ÷ sum(middle) �
 - **The ranking** (123 of the 152 pictures; 29 had all three frames the same): blind, 1-2-3,
   ties for frames that look the same. Decides Open 1: build only if auto ranks above the middle
   clearly where it moves the frame. Expected (SA0's agent): build nothing, issue #3 to 0.9.0.
+- **Round 1's result** (the user, 2026-11-15 evening; "They look the same" means no subject, or
+  frames so alike that ⛶ is needed anyway, so those are left out, user): 123 ranked, 25 "same".
+  Auto (importance) vs middle 40 : 40; middle vs brightest 61 : 35; auto vs brightest 49 : 16.
+  By how far auto moves: |p − 0.5| < 0.2 auto 23 : 31, ≥ 0.2 auto 17 : 9 (≥ 0.35 3 : 1). The
+  repeat of 2026-10-22: where middle and brightest differ, 71 of 94 picks the same as then
+  (76%); 11 of the 13 old Fit picks now "same". So auto ties the middle; the threshold rule
+  "auto when it moves ≥ 0.2, else the middle" is tuned on these pictures.
+- **Round 2** (the user: "another run, only between auto and center"): auto (unchanged) against
+  the middle on fresh pictures (the 101 of `private/pictures/` not picked in October and the
+  APODs since 2 Oct), only those where the two differ; tests the threshold rule on data it
+  didn't come from. Decides Open 1.
 
 ### [ ] SA1. The runtime check (Opus, medium; only if a library is still in the race)
 

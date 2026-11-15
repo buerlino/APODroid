@@ -1,17 +1,18 @@
-# APODroid: background behaviour as a decision tree (commit 7299474)
+# APODroid: background behaviour as a decision tree
 
-> A snapshot read at 7299474 (15 Nov 2026); line numbers are of that commit (`git show 7299474:<path>`).
-> The SUSPECTs below were fixed or accepted since: see [README.md](README.md). Newer changes: README, Keeping it current.
+> Read at 7299474 (15 Nov 2026), checked against 3a4db15 (16 Nov: 0.8.0); line numbers are of 3a4db15.
+> The SUSPECTs below were fixed or accepted since (README.md): their quoted code is 7299474's, the fixed
+> outcome is in the leaf or the test list. Newer changes: README, Keeping it current.
 
 Read-only map for a phone tester. Sources: CLAUDE.md ("Background update", "Turns and the picture
 time", "Traffic", "Wallpaper", "Problems and status lines"), `DailyJob.kt`, `AlarmReceiver.kt`,
 `KeepRunning.kt`, `LiveWallpaper.kt`, `Store.kt`, `:core`'s `PictureTime.kt`, `Screens.kt`,
 `Turn.kt`, `JobRuns.kt`, `Detector.kt`, `Live.kt`, `Saving.kt`, `PendingStarts.kt`. Every log line
-below has the tag `APODroid` (`adb logcat -d -s APODroid`). Line numbers are of commit 7299474
-(the working tree only differs in a dialog text and CLAUDE.md).
+below has the tag `APODroid` (`adb logcat -d -s APODroid`). Line numbers are of 3a4db15.
 
 **Counts:** 105 leaves (A 10, B 7, C 7, D 9, E 7, F 13, G 14, H 7, I 8, J 7, K 5, L 3, M 7, N 1);
-**3 SUSPECTs** (G14, J6, N1); 17 phone cases in the list at the end.
+**3 SUSPECTs** (G14, J6, N1; N1 fixed since); 0.8.0 added E1b, E3b, E8, E8a, F14–F16; 22 phone
+cases in the list at the end (P18–P22 0.8.0's).
 
 ## The phone (FP6, LineageOS, Android 16, release build of 7299474)
 
@@ -47,7 +48,8 @@ good run: that time minus the next change time (e.g. `2026-11-16T05:04:37Z` → 
 ## A. Arming the alarms (`DailyJob.ensure`, `arm`, `Store.nextAlarm`)
 
 `ensure` = `checkAlarms` (first arming in a process only, J) → `arm(nextAlarm())` → the fallback
-job 1 scheduled unless a run goes or it's there with 6 h / 6 h (`DailyJob.kt:159-167`). Every
+job 1 scheduled unless a run goes or it's there with 6 h / 6 h (`DailyJob.kt:163-172`); since N1's
+fix all under the job's `lock`, `daily` read again there (off: nothing). Every
 `arm` logs `Daily job: alarms for <instant>` and notes the boot and install (`noteArmed`).
 
 - **A1 Page open (onResume), daily on.** Pre: daily on. Steps: open the page (or bring it to the
@@ -74,7 +76,7 @@ job 1 scheduled unless a run goes or it's there with 6 h / 6 h (`DailyJob.kt:159
 - **A8 Any broadcast with daily off.** Returns at `AlarmReceiver.kt:24`; nothing logged.
 - **A9 The fallback job 1.** Scheduled by `ensure` when missing (hibernation, force stop, off/on;
   "scheduling runs it at once") or with other timing; never while a run goes (`runs.going`,
-  `DailyJob.kt:162`). Phone: `dumpsys jobscheduler` shows job 1 periodic 6 h, flex 6 h,
+  `DailyJob.kt:167`). Phone: `dumpsys jobscheduler` shows job 1 periodic 6 h, flex 6 h,
   persisted.
 - **A10 A failed fallback schedule.** `ensure` false: the page logs `Couldn't schedule the daily
   job again`, the run's end `Daily job: couldn't schedule the fallback after the run`, Set/switch
@@ -103,7 +105,7 @@ job 1 scheduled unless a run goes or it's there with 6 h / 6 h (`DailyJob.kt:159
 - **B7 `lastRunAt` ahead of now (clock set back).** Nothing owed; the retry may be late by the
   step. Phone: no.
 
-## C. An alarm fires (`AlarmReceiver` → `DailyJob.runNow`, `DailyJob.kt:226-265`)
+## C. An alarm fires (`AlarmReceiver` → `DailyJob.runNow`, `DailyJob.kt:231-270`)
 
 - **C1 Daily off.** Returns, nothing logged.
 - **C2 A run goes in this process.** The pair at now + `runRetry`: `Daily job: alarms for …`,
@@ -133,7 +135,8 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
 - **D2 A good run, nothing new (the phone on Sunday).** Steps: `adb shell cmd jobscheduler run -f
   io.github.buerlino.apodroid 1`. Expect: the skeleton with no "Daily job: <set>" line (APOD is
   today's, fetched since D1: `Refresh: APOD <date> same post`, nothing downloaded; NASA fetched,
-  Friday's again, nothing downloaded; both records due nothing); second arming by the clock (B1). Phone: yes, the baseline (P2).
+  Friday's again, `Refresh: NASA <Friday> same post` (the line comes for any fetched post with the
+  stored date), nothing downloaded; both records due nothing); second arming by the clock (B1). Phone: yes, the baseline (P2).
 - **D3 A failed fetch (offline).** Pre: airplane mode, USB adb. Steps: force job 1. Expect:
   `Daily job failed: java.net.UnknownHostException…` (or similar), NASA's problem stored (APOD,
   today's, only logged since D1: `Refresh: APOD <date> stored, check failed: …`, E3b), both alarm lines at start + 15 min. The page's box (open it): "NASA Image of
@@ -168,7 +171,8 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
   A pull gets it too; a page open doesn't (its `isCurrent` skip). Phone: no (never seen in the
   real feeds). Unit: SIM's `secondsStored`.
 - **E2 Not today's (NASA on a weekend).** Fetch the feed, the same post stored again (no
-  listener fires: same values), no download. Phone: yes in D2.
+  listener fires: same values), no download; `Refresh: NASA <its date> same post` (the job's, a
+  pull's, and a page open's after the hour). Phone: yes in D2.
 - **E3 Network failure.** `<source>.problem = network`; the job's failure; page box "NASA Image
   of the Day: no connection." (" since <day>" only when `checkedAt` > 1 day old). Phone: yes (P3).
 - **E3b Any failure of a stored day's check (D1, night default).** The job's run with today's
@@ -198,7 +202,7 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
   landscape picture's sideways position is its turned picture's own (`sidewaysSubjectPosition`);
   with Size Auto and "Wide pictures sideways" on, the next set's band (`files/debug-set.png`) and
   ⛶'s frame stand at the line's "(sideways …)" (through `autoPosition`).
-  T3f1: the update from 0.7.0 (no `subject*` keys), a page open within the hour of the last
+  - **E8a (T3f1, fixed at 28b46c7):** the update from 0.7.0 (no `subject*` keys), a page open within the hour of the last
   check (no fetch): the `Subject:` line all the same; Set then logs `, auto <p>` when the subject
   moves the frame 0.2 or more (before, Set went on at the middle until a pull or the next post).
   Phone (the emulator): v0.7.0's R8, a Set, `install -r` of the fix, open the page within the hour.
@@ -267,8 +271,8 @@ or days of time.
   the second `, auto 0.50`; `autoFallback=false` by `run-as`, the record forgotten, `run -f 1`:
   the second moves.
 
-## G. Live (`Store.setDue` Live part `Store.kt:1045-1197`, `Live.kt`, `LiveWallpaper.kt`)
-- **G1 Is home live (`liveState`, `Store.kt:1440-1450`).** 14+: `getWallpaperInfo(FLAG_SYSTEM)`
+## G. Live (`Store.setDue` Live part `Store.kt:1247-1407`, `Live.kt`, `LiveWallpaper.kt`)
+- **G1 Is home live (`liveState`, `Store.kt:1676-1686`).** 14+: `getWallpaperInfo(FLAG_SYSTEM)`
   names APODroid's, or home's wallpaper id equals `live.homeId` (noted while it named it). Shared:
   home live and `getWallpaperId(FLAG_LOCK)` = -1. Phone: `dumpsys wallpaper`: note home's
   component and id (baseline, P1).
@@ -315,7 +319,7 @@ or days of time.
 - **G13 The engine's lock-only pick (7299474, `lostLive` branch 2).** Not the phone.
 - **G14 SUSPECT: a lost-Live screen with nothing to show keeps a stale record.** See SUSPECTs.
 
-## H. D, the screen-on check (`LiveWallpaper.runIfOwed`, `Live.kt:297-301`)
+## H. D, the screen-on check (`LiveWallpaper.runIfOwed`, `Live.kt:332-336`)
 
 - **H1 Within 15 min of a run's start.** Nothing. Phone: yes (P9).
 - **H2 Nothing owed** (next alarm in the future, not a stray). Nothing. Phone: yes (P9).
@@ -415,14 +419,14 @@ or days of time.
 
 ### SUSPECT G14 (low): a screen whose Live is lost while its source has nothing to show keeps a stale record
 
-- **Where:** `Store.kt:1079` forgets the records in memory (`lost.forgetting(records())`), but
-  only what `dueWallpapers` returns is written (`Store.kt:1106-1113`), and `dueWallpapers` drops a
+- **Where:** `Store.kt:1282` forgets the records in memory (`lost.forgetting(records())`), but
+  only what `dueWallpapers` returns is written (`Store.kt:1313-1320`), and `dueWallpapers` drops a
   screen whose due record equals the record it was given (`Screens.kt:256`). A forgotten screen
   with nothing to show (`Rules.within` → `show(r, null)`, `Screens.kt:323-332`) comes back equal to
   the forgotten record, so it isn't in the plan; `unnoted = lost.forget - plan.screens.keys`
-  (`Store.kt:1108`) then removes only its `wallpaperLive`, and the stored record keeps naming the
+  (`Store.kt:1315`) then removes only its `wallpaperLive`, and the stored record keeps naming the
   old picture.
-- **Failure:** the comment at `Store.kt:1107` says this path is for a screen "the rules leave out
+- **Failure:** the comment at `Store.kt:1314` says this path is for a screen "the rules leave out
   (no column)", but it also catches a screen with a column and nothing to show: home live on APOD
   alone on an APOD video day with "Skip it" (apod.jpg is deleted that day), or a turns column
   with no source stored. After Android's revert (or a force stop) the screen shows Android's
@@ -435,12 +439,12 @@ or days of time.
 
 ### SUSPECT J6 (low, log only): the daily switch on in a fresh process notes "alarms found gone"
 
-- **Where:** `MainActivity.kt:920` → `Store.switchDaily(true)` removes the detector's note
-  (`Store.kt:473-480`, `removeLost`) and writes `lastRunAt` = now; then the switch-on run sets and
-  calls `scheduleJob` → `DailyJob.ensure` (`MainActivity.kt:955`), whose `checkAlarms`
-  (`DailyJob.kt:204-211`) runs because `armedHere` is false in a process that never armed or
+- **Where:** `MainActivity.kt:1029` → `Store.switchDaily(true)` removes the detector's note
+  (`Store.kt:484-491`, `removeLost`) and writes `lastRunAt` = now; then the switch-on run sets and
+  calls `scheduleJob` → `DailyJob.ensure` (`MainActivity.kt:1064`), whose `checkAlarms`
+  (`DailyJob.kt:209-216`) runs because `armedHere` is false in a process that never armed or
   cancelled (the off happened in an earlier process). The alarms are gone because off cancelled
-  them, and nothing in `alarmsLost` (`Detector.kt:266-267`) knows that: no boot, no update, no
+  them, and nothing in `alarmsLost` (`Detector.kt:35-36`) knows that: no boot, no update, no
   pending job 2, `lastRunAt` set by the switch.
 - **Failure:** `Detector: the alarms found gone, after the run of <switch-on time>` and a
   `alarmsLostAt` note right after the switch dropped it (CLAUDE.md: "The daily switch, both ways,
@@ -452,10 +456,10 @@ or days of time.
 
 ### SUSPECT N1 (low, race): an arming on the main thread can replace a run's retry pair
 
-- **Where:** `DailyJob.ensure` (`DailyJob.kt:159-161`) is called from `onResume`
-  (`MainActivity.kt:560`) and `AlarmReceiver` (`AlarmReceiver.kt:26`) without `lock`;
-  `arm(context)` reads `Store.nextAlarm()` and then sets the pair (`DailyJob.kt:175-185`). A run's
-  `started()` (`DailyJob.kt:311-315`) commits `runStarts` and arms its retry under `lock` on the
+- **Where:** `DailyJob.ensure` (`DailyJob.kt:163-166`) is called from `onResume`
+  (`MainActivity.kt:624`) and `AlarmReceiver` (`AlarmReceiver.kt:26`) without `lock`;
+  `arm(context)` reads `Store.nextAlarm()` and then sets the pair (`DailyJob.kt:180-190`). A run's
+  `started()` (`DailyJob.kt:316-320`) commits `runStarts` and arms its retry under `lock` on the
   worker thread.
 - **Failure:** main thread reads `nextAlarm()` with `failedRuns` 0 (the clock's next check, e.g.
   tomorrow 06:00) → the worker commits `runStarts` and arms start + 15 min → the main thread's
@@ -463,11 +467,16 @@ or days of time.
   process, its retry is gone until the fallback job 1 (up to ~12 h) or a page open. The window is
   milliseconds (a page open or a `TIME_SET` exactly at a run's start). Finding 5 of
   `review-0.7.0-runs.md` looked at the arming's inputs, not this ordering.
-- **Phone:** no.
+- **Fixed:** `ensure` runs under the job's `lock` (`DailyJob.kt:163`), as `started()`.
+- **Phone:** no (a race).
 
 ---
 
-## Phone test list (prioritized, 17 cases)
+## Phone test list (prioritized, 22 cases)
+
+On the Android 14 emulator (tester-rules-emulator.md): `run-as` reads the prefs, `adb root` kills,
+the clock may be stepped and set back; P16 (a real morning) SKIPPED, real timing; P14's buckets read
+only. P18–P22 are 0.8.0's, for the emulator.
 
 General rules: USB adb (airplane mode cuts wireless adb). `adb logcat -c` is fine before a case;
 `adb logcat -G 16M` once if the buffer rolls (harmless). Never change the clock, the zone, clear
@@ -549,7 +558,7 @@ as it's out"?), Advanced (Save every picture, Keep running), the page's status l
     whitelist` lists the app); "unused apps" line per App info.
 15. **P15, broadcasts by themselves (A6), read-only.** Search the log for `arming again` lines
     (an NTP `TIME_SET` may come by itself) and check each re-armed the same T.
-16. **P16, next morning, no action (F1, F2, F3, G3, C4).** Mon 16 Nov: 06:00+off run sets nothing;
+16. **P16, next morning, no action (F1, F2, F3, G3, C4). Real timing: SKIPPED on the emulator.** Mon 16 Nov: 06:00+off run sets nothing;
     06:15+off (or the first check after 06:05): `job 2 starts, expedited`, `Daily job: wallpaper
     set: Of(source=APOD, date=2026-11-16…) on LOCK`; home's engine untouched (id unchanged), no
     hand-over (NASA's Monday post waits for Tuesday unless "As soon as it's out" is on); page
@@ -563,6 +572,23 @@ as it's out"?), Advanced (Save every picture, Keep running), the page's status l
     nothing missed`, status line "Live isn't on. Set as wallpaper turns it on.", no detector box.
     Restore: Set as wallpaper → the dialog → "Home screen" in the picker; `dumpsys wallpaper` home
     = APODroid's engine, lock still; the status line gone; Keep running back if it was on.
+
+18. **P18, a stored day's check (E1, E3b; D1).** Today's APOD stored (or faked with its date and
+    URL kept: the skill's recipe), `run -f 1`: `Refresh: APOD <date> same post`, no download, no set.
+    Airplane on, `run -f 1` with only APOD in use (APOD mode): `Refresh: APOD <date> stored, check
+    failed: …`, `jobFinished`, no `Daily job failed`, `dumpsys alarm` the clock's next check (not
+    start + 15 min), no box on the page. Airplane off.
+19. **P19, the subject noted (E8).** `run-as` remove APOD's `subjectDate`, `subjectUrl`, `subjectPosition`, `subjectSideways` (unprefixed; NASA's `nasa.…`);
+    `run -f 1`: `Subject: APOD <date> p=0.xx[ (sideways 0.yy)] in N ms`; again: no line. A broken
+    `files/apod.jpg` (a few bytes) with the keys removed: `Subject: APOD <date> couldn't: …`, keys
+    noted without positions. Restore with a pull.
+20. **P20, E8a (T3f1, fixed).** Keys removed, page open within the hour of the last check: the
+    `Subject:` line; Set then `, auto <p>` when the subject moves 0.2 or more.
+21. **P21, Auto's frame (F16).** Size Auto stored, a picture with `p` ≥ 0.2 off the middle, the
+    record forgotten (`wallpaperDate` removed), `run -f 1`: `Daily job: wallpaper set: … , auto
+    0.xx`; `autoFallback=false` and a picture with `p` 0.55–0.65: `, auto 0.6x`; on again: `, auto 0.50`.
+22. **P22, sideways by the job (F14, F15).** "Wide pictures sideways" stored on (setup.md P32), a
+    3:2 picture faked as a new post, `run -f 1`: `… , sideways`; a ⛶ part noted off: upright.
 
 End state check (after the last case): `dumpsys alarm` has the pair at the clock's next check,
 job 1 periodic, `dumpsys wallpaper` home = APODroid's engine and lock its own still, Keep running

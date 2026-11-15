@@ -11,6 +11,7 @@ same day (113 cases). `CLAUDE.md` wins where a map disagrees.
 | [page.md](page.md) | The page outside Setup: title, swipe, caption, chip, ⛶, ★, pull, the boxes, status lines, rotation, Advanced |
 | [background.md](background.md) | Alarms, job runs, the rules per screen, Live's runs, D, Keep running, the detector, Save every picture |
 | [tester-rules.md](tester-rules.md) | What a tester agent may and may not do on the user's FP6, the start and end state, the report |
+| [tester-rules-emulator.md](tester-rules-emulator.md) | The same for the Android 14 emulator (0.8.0's night pass) |
 
 ## Using them for a test pass
 
@@ -30,8 +31,13 @@ same day (113 cases). `CLAUDE.md` wins where a map disagrees.
 - A fix that changes a leaf's outcome updates that leaf.
 - Before a test pass, an agent reads `git diff <the maps' base>..HEAD` and updates what changed:
   the leaves, the test lists, the line numbers, and the base below.
-- Base: **7299474** (the maps' line numbers; live.md's SPLIT parts read at 087856c). The SUSPECTs'
-  outcomes since then are below.
+- Base: **3a4db15** (the maps' line numbers; leaves read at 7299474, live.md's SPLIT at 087856c).
+  The SUSPECTs' outcomes since 7299474 are below.
+- 2026-11-16, for 0.8.0's emulator pass: every file:line moved to 3a4db15; the fixed SUSPECTs'
+  leaves and test rows give the fixed outcome (setup D17/D20/H8, P4/P17/P29/P30; page C5, C8, S4a,
+  BP2, BH4, K's frame kind; live §0, N1, T04/T16/T22–T24/T31/T34/T36); new cases: live T38–T39,
+  page §4 (31–35), background E8a and P18–P22; the engine's log `Live: engine <flags> destroyed`;
+  T3f1 (the subject not noted by a page open or Set within the hour) fixed at 28b46c7: setup J3, background E8a.
 
 ## The SUSPECTs and FAILs of 15 Nov and what became of them
 

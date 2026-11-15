@@ -118,7 +118,7 @@ The FP6's look (1080×2408, the reporter's screen) with the user on 17 Nov (`rel
 - **Done when:** the tests pass; `CLAUDE.md` names `sidewaysFrame` under The app, Choosing the
   part (one line, "built, the page in SW2").
 
-### [x] SW2. `:app`: the sideways set, the measure, Whole, Live, ⛶'s pill (Opus, high)
+### [ ] SW2. `:app`: the sideways set, the measure, Whole, Live, ⛶'s pill (Opus, high)
 
 Read first: this file's "Decided" and "How it fits", and release-0.8.0.md's "Rules for every 0.8.0 package".
 

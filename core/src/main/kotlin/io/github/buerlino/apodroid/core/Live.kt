@@ -15,8 +15,18 @@ import kotlin.math.sqrt
  * Live forgets ([lostLive], Decision 12), and when Set opens Android's picker ([opensPicker], L6).
  */
 
-/** Size in Setup: Fill (a still set, as 0.6.0) or Live (home's picture drawn by APODroid's live wallpaper). */
-enum class Size { FILL, LIVE }
+/**
+ * Size in Setup (0.8.0, SA3a: [Centre | Auto | Live], replacing 0.7.0's [Fill | Live]): Centre
+ * and Auto are still sets (Fill: Centre the middle, Auto the subject's frame, [framePosition]),
+ * Live home's picture drawn by APODroid's live wallpaper. In the page's order.
+ */
+enum class Size { CENTRE, AUTO, LIVE }
+
+/**
+ * The [Size] stored as [name] (the pref `size`, the page's saved state); anything else, none or
+ * 0.7.0's `FILL`, is [Size.AUTO] (an update from 0.7.0 reads as Auto; the first Set rewrites it).
+ */
+fun sizeOf(name: String?): Size = Size.entries.firstOrNull { it.name == name } ?: Size.AUTO
 
 /** A picture crosses the screen in its turn, but in this long at most (Decision 1: about 18 h, 06:00 to 24:00); then it stands still (Decision 2). */
 val liveSpan: Duration = Duration.ofHours(18)
@@ -73,7 +83,7 @@ data class LiveSets(val still: List<Pair<Picture, Set<Screen>>>, val engine: Pai
 /**
  * Which of a run's [sets] ([Plan.sets]) the engine takes and which are set still (live-0.7.0.md,
  * "Store, Size and Set"; Decisions 4, 5, 10):
- * - Size [Size.FILL], home not [homeLive], or no home column in [columns] (Live is home's):
+ * - Size Centre or Auto, home not [homeLive], or no home column in [columns] (Live is home's):
  *   every set still, as 0.6.0 (a still set replaces APODroid's engine like any wallpaper, a
  *   stray on the lock screen too).
  * - Size Live and home live: home's set goes to the engine; the lock screen's goes to the engine
@@ -245,7 +255,7 @@ fun handOverWaits(shared: Boolean, failedStill: List<Set<Screen>>): Boolean =
  * has a column and isn't [homeNoted]; the lock screen while [shared] when it has a column and
  * isn't [lockNoted]. Else the engine went on (Set's picker, or Android's picker by hand) and drew
  * its old copy while the records named other pictures: a Set of the order alone, or one with
- * nothing due, set nothing. With Size Fill a live screen waits for its next set (any still set
+ * nothing due, set nothing. With Size Centre or Auto a live screen waits for its next set (any still set
  * replaces the engine).
  */
 fun unnotedLive(size: Size, homeLive: Boolean, shared: Boolean, homeNoted: Boolean, lockNoted: Boolean, columns: Map<Screen, List<Source>>): Set<Screen> {
@@ -276,7 +286,7 @@ enum class PickerTrip { NONE, HOME, LOCK_TOO }
  * - [PickerTrip.LOCK_TOO] (SPLIT, user, 2026-11-15): on [lockShares] only, the columns equal
  *   ([equalColumns]) while home is live and the engine doesn't cover the lock screen: every
  *   such Set asks, "Not now" keeping the lock screen's own still Fill.
- * - [PickerTrip.NONE] otherwise: Size Fill, the lock screen alone (no home column: Live is
+ * - [PickerTrip.NONE] otherwise: Size Centre or Auto, the lock screen alone (no home column: Live is
  *   home's), a lock column that differs (Decision 10: the lock screen Fill), the engine already
  *   on both.
  */

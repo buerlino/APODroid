@@ -321,3 +321,15 @@ fun subjectPosition(
  */
 fun autoPosition(raw: Float, fallback: Boolean): Float =
     if (fallback && kotlin.math.abs(raw - 0.5f) < SUBJECT_MIN_MOVE) 0.5f else raw
+
+/**
+ * Where a still set's frame stands (SA3a): the part's [partPosition] when ⛶ noted one; else with
+ * [Size.AUTO] [autoPosition] of the subject's [subjectRaw] position (the one for the picture's
+ * orientation, upright or sideways; none noted or none found: the middle); else (Centre, and the
+ * screens Live leaves still) the middle.
+ */
+fun framePosition(size: Size, partPosition: Float?, subjectRaw: Float?, fallback: Boolean): Float = when {
+    partPosition != null -> partPosition
+    size == Size.AUTO && subjectRaw != null -> autoPosition(subjectRaw, fallback)
+    else -> 0.5f
+}

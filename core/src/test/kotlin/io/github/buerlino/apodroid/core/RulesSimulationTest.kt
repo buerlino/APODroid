@@ -245,7 +245,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
     // Live (L6): Size, what the system shows, the records' live notes; drawn by [liveR] apart
     // from [r], so a seed that stays on Fill runs as before.
     private val liveR = Random(seed * 32452843L + 7)
-    private var size = if (liveR.nextBoolean()) Size.LIVE else Size.FILL
+    private var size = if (liveR.nextBoolean()) Size.LIVE else Size.AUTO
 
     /** APODroid's engine on home (`Store.liveOn(HOME)`). */
     private var homeLive = false
@@ -1009,7 +1009,7 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
         anchorMayMove = list && (newOrder || rotation.from == null)
         // L6: Size now and then, not with the order alone (a changed Size is another change).
         val toggleSize = !alone && liveR.nextInt(3) == 0
-        if (toggleSize) size = if (size == Size.FILL) Size.LIVE else Size.FILL
+        if (toggleSize) size = if (size == Size.AUTO) Size.LIVE else Size.AUTO
         // A newly picked "my picture" isn't the order alone (`saveSetup`'s pick); Setup.own is whether one is there.
         val pick = new.own && !own
         val orderOnly = newOrder && !pick && new.copy(own = own) == setup && !(toggleSoon && !alone) && !toggleSize

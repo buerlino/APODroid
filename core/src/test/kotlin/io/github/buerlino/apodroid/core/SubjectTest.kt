@@ -36,6 +36,21 @@ class SubjectTest {
     }
 
     @Test
+    fun framePositionTakesThePartThenAutoThenTheMiddle() {
+        // ⛶'s part wins with every Size.
+        for (size in Size.entries) assertEquals(0.3f, framePosition(size, 0.3f, 0.9f, true))
+        // Auto: the subject, through autoPosition's fallback.
+        assertEquals(0.9f, framePosition(Size.AUTO, null, 0.9f, true))
+        assertEquals(0.5f, framePosition(Size.AUTO, null, 0.62f, true))
+        assertEquals(0.62f, framePosition(Size.AUTO, null, 0.62f, false))
+        // Auto without a subject (none noted, or a failed one): the middle.
+        assertEquals(0.5f, framePosition(Size.AUTO, null, null, false))
+        // Centre, and the screens Live leaves still: the middle.
+        assertEquals(0.5f, framePosition(Size.CENTRE, null, 0.9f, false))
+        assertEquals(0.5f, framePosition(Size.LIVE, null, 0.9f, false))
+    }
+
+    @Test
     fun theCopyIs128AcrossTheFramesDirection() {
         // Wider than the screen's shape: the frame moves left–right, the height is 128.
         assertEquals(256 to 128, subjectCopySize(4000, 2000, sw, sh))

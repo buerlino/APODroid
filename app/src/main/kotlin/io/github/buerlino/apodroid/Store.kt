@@ -47,6 +47,12 @@ import io.github.buerlino.apodroid.core.Stored
 import io.github.buerlino.apodroid.core.TooLarge
 import io.github.buerlino.apodroid.core.afterGap
 import io.github.buerlino.apodroid.core.Size as Sizing
+import io.github.buerlino.apodroid.core.boxResize
+import io.github.buerlino.apodroid.core.framePosition
+import io.github.buerlino.apodroid.core.sidewaysHelps
+import io.github.buerlino.apodroid.core.sizeOf
+import io.github.buerlino.apodroid.core.subjectCopySize
+import io.github.buerlino.apodroid.core.subjectPosition
 import io.github.buerlino.apodroid.core.livePosition
 import io.github.buerlino.apodroid.core.equalColumns
 import io.github.buerlino.apodroid.core.handOverWaits
@@ -137,11 +143,15 @@ fun Map<Source, Part>.forPost(post: Post): Part? = this[post.source]?.takeIf { p
  * source goes on whenever a check sees it, with hourly checks all day); [darken] "Darken bright
  * pictures" (BR2: each set darkens a picture brighter than `:core`'s target, [Store.set]); [order]
  * the list's order (OR2: the turns' order, all three sources, the top first; saved only while
- * the list shows); [size] Size (L6: Fill, a still set as 0.6.0, or Live, home's picture drawn by
- * APODroid's live wallpaper while Android's picker put it on home); [wideSideways] "Wide pictures
+ * the list shows); [size] Size (L6, SA3a: Centre, a still set at the middle as 0.6.0; Auto, a
+ * still set on the subject, [Store.subject]; or Live, home's picture drawn by APODroid's live
+ * wallpaper while Android's picker put it on home); [wideSideways] "Wide pictures
  * sideways" (SW3: a picture 3:2 or wider goes on sideways unless its part notes otherwise,
  * [Store.turnsSideways]). Not the daily switch: it acts at once ([Store.switchDaily]).
  */
+/** A post's subject (SA3a, [Store.subject]): Fill's raw frame positions upright and sideways (`:core`'s subjectPosition), null where none was found. */
+data class Subject(val position: Float?, val sideways: Float?)
+
 data class Setup(
     val allSources: Boolean,
     val where: Where,
@@ -153,7 +163,7 @@ data class Setup(
     val soon: Boolean = false,
     val darken: Boolean = true,
     val order: List<Source> = Source.entries,
-    val size: Sizing = Sizing.FILL,
+    val size: Sizing = Sizing.AUTO,
     val wideSideways: Boolean = false,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
@@ -656,6 +666,16 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("keepRunning", false)
         set(value) = prefs.edit { putBoolean("keepRunning", value) }
 
+    /**
+     * Auto's fallback (SA3a; its switch in Advanced settings is SA3b's): on, Auto keeps the middle
+     * for a picture whose subject would move the frame less than `:core`'s SUBJECT_MIN_MOVE;
+     * off, Auto places every frame on its subject. The pref `autoFallback`, default on; read by
+     * each [set].
+     */
+    var autoFallback: Boolean
+        get() = prefs.getBoolean("autoFallback", true)
+        set(value) = prefs.edit { putBoolean("autoFallback", value) }
+
     /** The user hid the hint about Android pausing the app, accepting the warning. */
     var pauseHintHidden: Boolean
         get() = prefs.getBoolean("pauseHintHidden", false)
@@ -901,6 +921,8 @@ class Store(private val context: Context) {
      * refresh one at a time.
      */
     fun refresh(source: Source): Unit = synchronized(refreshLock) {
+        // SA3a: the stored post's subject, when still owed (after an update or a death before its note).
+        noteSubject(source)
         // B21: read before checkSite notes this check.
         val gap = afterGap(checkedAt(source), Instant.now())
         val latest = fetchLatest(source, userAgent)
@@ -936,6 +958,74 @@ class Store(private val context: Context) {
         if (url == null) file.delete()
         // VS1: a new post or an image day lets the video's still go.
         if (latest.source == Source.APOD) dropVideoStill(keep = latest)
+        noteSubject(source)
+    }
+
+    /**
+     * [post]'s subject (SA3a), when one was noted for its date and picture URL: the raw positions
+     * of Fill's frame on its subject, upright and (a landscape picture only) sideways; a
+     * [Subject] with both null when it couldn't be found. Null: none noted yet.
+     */
+    fun subject(post: Post): Subject? {
+        val source = post.source
+        if (prefs.getString(source.key("subjectDate"), null) != post.date.toString() ||
+            prefs.getString(source.key("subjectUrl"), null) != post.imageUrl
+        ) return null
+        fun float(key: String) = source.key(key).takeIf(prefs::contains)?.let { prefs.getFloat(it, 0.5f) }
+        return Subject(float("subjectPosition"), float("subjectSideways"))
+    }
+
+    /**
+     * Blocking (a decode and `:core`'s map: a fraction of a second). Under [refreshLock]. When
+     * [source]'s stored post has its picture and no subject is noted for it ([subject]): a copy
+     * decoded upright (`ImageDecoder` turns an EXIF photo), sampled by SA2's rule (the largest
+     * power of 2 keeping the shorter side at least 512 px), box-resized to [subjectCopySize],
+     * then `:core`'s [subjectPosition] upright and, while [sidewaysHelps], sideways; noted with
+     * the post's date and picture URL in one edit. A failure (out of memory too) is noted
+     * without positions, so it isn't tried again for that post, and never fails the refresh.
+     */
+    fun noteSubject(source: Source): Unit = synchronized(refreshLock) {
+        val post = post(source) ?: return
+        val file = imageFile(source)
+        if (post.isVideo || post.imageUrl == null || !file.exists() || subject(post) != null) return
+        val started = SystemClock.elapsedRealtime()
+        val screen = screen
+        val found = runCatching {
+            var size = Size(0, 0)
+            val decoded = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
+                size = info.size
+                var sample = 1
+                while (minOf(info.size.width, info.size.height) / (sample * 2) >= 512) sample *= 2
+                decoder.setTargetSampleSize(sample)
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            }
+            val (dw, dh) = decoded.width to decoded.height
+            val pixels = IntArray(dw * dh)
+            decoded.getPixels(pixels, 0, dw, 0, 0, dw, dh)
+            decoded.recycle()
+            val (w, h) = size.width to size.height
+            val (cw, ch) = subjectCopySize(w, h, screen.width, screen.height)
+            val copy = boxResize(pixels, dw, dh, cw, ch)
+            Subject(
+                subjectPosition(copy, cw, ch, w, h, screen.width, screen.height, sideways = false),
+                if (sidewaysHelps(w, h)) subjectPosition(copy, cw, ch, w, h, screen.width, screen.height, sideways = true) else null,
+            )
+        }
+        val ms = SystemClock.elapsedRealtime() - started
+        val subject = found.getOrElse { e ->
+            Log.w("APODroid", "Subject: ${source.name} ${post.date} couldn't: $e")
+            Subject(null, null)
+        }
+        prefs.edit {
+            putString(source.key("subjectDate"), post.date.toString())
+            putString(source.key("subjectUrl"), post.imageUrl)
+            subject.position?.let { putFloat(source.key("subjectPosition"), it) } ?: remove(source.key("subjectPosition"))
+            subject.sideways?.let { putFloat(source.key("subjectSideways"), it) } ?: remove(source.key("subjectSideways"))
+        }
+        if (found.isSuccess) {
+            val sideways = subject.sideways?.let { String.format(Locale.ROOT, " (sideways %.2f)", it) }.orEmpty()
+            Log.i("APODroid", String.format(Locale.ROOT, "Subject: %s %s p=%.2f%s in %d ms", source.name, post.date, subject.position, sideways, ms))
+        }
     }
 
     /** VS1: the still from APOD's video (the page only, never the wallpaper), with its post noted. */
@@ -1378,7 +1468,8 @@ class Store(private val context: Context) {
     private fun checkSite(source: Source, force: Boolean, page: Boolean) {
         val current = isCurrent(source)
         try {
-            if (force || !page || !current) refresh(source)
+            // SA3a: a page open that skips today's stored post still notes its subject (an update from 0.7.0), for Set.
+            if (force || !page || !current) refresh(source) else noteSubject(source)
         } catch (e: Exception) {
             if (e.isStop()) throw e // not the site's fault
             if (current && !force) {
@@ -1410,13 +1501,15 @@ class Store(private val context: Context) {
     // wallpaper (LiveWallpaper.kt) draws home's picture from its own copy; the rules decide it.
 
     /**
-     * Size in Setup (L6, the pref `size`, [Sizing]'s FILL or LIVE; default Fill, so an update
-     * from 0.6.0 changes nothing): Fill sets every picture still (`:core`'s [stillOrLive]; a
-     * still set replaces APODroid's live wallpaper like any other), Live hands home's picture to
-     * the engine while Android's picker put it on home ([liveOn]), else still as Fill.
+     * Size in Setup (L6, SA3a; the pref `size`, [Sizing]'s CENTRE, AUTO or LIVE, read by `:core`'s
+     * [sizeOf]: default Auto, and 0.7.0's `FILL` reads as Auto until the first Set rewrites it):
+     * Centre and Auto set every picture still (`:core`'s [stillOrLive]; a still set replaces
+     * APODroid's live wallpaper like any other), Centre at the middle, Auto on the subject
+     * ([subject], `:core`'s [framePosition]); Live hands home's picture to the engine while
+     * Android's picker put it on home ([liveOn]), else still at the middle.
      */
     val size: Sizing
-        get() = prefs.getString("size", null)?.let { name -> Sizing.entries.firstOrNull { it.name == name } } ?: Sizing.FILL
+        get() = sizeOf(prefs.getString("size", null))
 
     /**
      * Before [saveSetup]: whether Set of [draft] opens Android's live wallpaper picker, and for
@@ -1679,14 +1772,22 @@ class Store(private val context: Context) {
      * the screen's size drawn with the darkening (Fill's frame [decodeFrame]d alone, the EXIF
      * photo too; the whole picture darkened as drawn), all of it the hint. A factor of 1 leaves
      * every path as 0.6.0's. [Part.sideways] (SW2): the picture turned 90° clockwise, measured and
-     * drawn turned, always through a bitmap (`setStream` can't turn). Writes no record. Returns the
-     * log's note: ", sideways" and ", darker ×0.78 (grey 141)", or "".
+     * drawn turned, always through a bitmap (`setStream` can't turn). The frame's position
+     * (SA3a, `:core`'s framePosition): the part's, else with Size Auto the [subject]'s for the
+     * picture's orientation, else the middle (Centre; the screens Live leaves still). Writes no
+     * record. Returns the log's note: ", auto 0.78", ", sideways" and ", darker ×0.78 (grey 141)", or "".
      */
     private fun set(picture: Picture, screens: Set<Screen>, stored: Stored): String {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
         val part = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
         val sideways = picture is Picture.Of && turnsSideways(picture.source, part)
-        return setFile(file, screens, part?.position ?: 0.5f, part?.whole == true, sideways, factor = null)
+        // SA3a: ⛶'s part, else with Auto the subject for this orientation, else the middle ("my picture" too).
+        val subject = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(::subject)
+        val raw = if (sideways) subject?.sideways else subject?.position
+        val position = framePosition(size, part?.position, raw, autoFallback)
+        // The log's note while Auto placed the frame by the subject (the middle when it fell back).
+        val auto = if (size == Sizing.AUTO && part == null && raw != null) String.format(Locale.ROOT, ", auto %.2f", position) else ""
+        return auto + setFile(file, screens, position, part?.whole == true, sideways, factor = null)
     }
 
     /**

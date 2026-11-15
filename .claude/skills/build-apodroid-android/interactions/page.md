@@ -172,18 +172,20 @@ Earth (on no screen).
 
 Fill sources (APOD, Earth):
 - **K1 Tap ⛶ on Earth.** NOW. The frame (the screen's portrait shape, white border, the rest dimmed)
-  at the stored part or the middle; ⛶ becomes ✓ (`Done`); the chip's place shows "Whole picture"; the
+  at the stored part's dragged position, else where the stored Size puts it (Auto: the subject,
+  SA3b, K27; Centre: the middle); ⛶ becomes ✓ (`Done`); the chip's place shows "Whole picture"; the
   pager is locked. No log.
   - **K1a Drag sideways.** The frame follows along the long side and stops at the ends; vertical drags
     still scroll the page.
   - **K1b Back.** Crop mode closes, the dragged part dropped; ⛶ again opens at the stored place
-    (middle if none). No log, nothing set.
+    (none dragged: Size's, K27). No log, nothing set.
   - **K1c ✓ after a drag, Earth on no screen.** Crop mode closes; the part saved at once
     (`savePart`), `Store.setPart` finds no screen showing Earth: **no toast and no log line at all**
     (MA:1330, 1335-1338). ⛶ again opens where it was left. Doc-intended ("only saved, no toast"), but
     the user gets no sign that ✓ did anything. Leaves a stored part for Earth's 13 Nov post (harmless:
     Earth is on no screen; a new Earth post drops it).
-  - **K1d ✓ without a change.** Crop mode closes, nothing saved, no toast (MA:1319).
+  - **K1d ✓ without a change.** Crop mode closes, nothing saved, no toast (MA:1319). Without a drag
+    the frame where it opened counts as no change (SA3b, K28).
 - **K2 ⛶ on APOD (lock, still), "Whole picture" on, ✓.** NOW, reversible by K3.
   Toggle: text "✓ Whole picture" in the theme's tertiary colour (differs from stored), the picture's
   place shows a spinner, then the screen-shaped preview on black or blurred, darkened if bright and
@@ -299,6 +301,31 @@ pill opens on the value the set uses, the part's noted one, else, while the **st
   on, not Set: ⛶ still opens as stored (night default: ✓ sets by the stored setup).
 - **K26 A part's position with the switch:** its number stays when the switch turns the picture
   sideways, so the band stands at that position along the other axis (night default).
+With Size Auto (SA3b, 0.8.0; `startCrop`, `frameOf`, `cropMoved`, `:core`'s `framePosition`,
+`notedPosition`, `Part.kt`): ⛶ opens where the screen has the frame, by the **stored** Size, the
+sideways value used and the stored "Auto: centre when unsure" (A7); `Part.position` stays null until
+the frame is dragged. Set up: a picture whose noted subject moves the frame 0.2 or more
+(`<source>.subjectPosition` in the prefs, the `Subject:` line), the stored Size Auto.
+- **K27 ⛶ on the subject picture, no stored part.** The frame at the subject (the `Subject:` line's
+  `p=`), not the middle; on a picture whose subject moves less than 0.2, the middle (A7 off: at it).
+  Stored Size Centre: the middle. Size Live with the source in home's column: Live's frame (K6).
+- **K28 ✓ without a drag.** Crop mode closes, nothing saved (no `cropDate` change), no toast, no log:
+  the frame stood where the screen has it ("no change").
+- **K29 Drag, ✓.** "Wallpaper set", `Part: wallpaper set: …` without ", auto …" (the part's
+  position wins over Auto); `<source>.cropPosition` noted. ⛶ again opens at the dragged place.
+  - **K29a A drag that ends exactly where Auto had it:** saved (`cropPosition` noted), no set, no
+    toast (as K24c).
+- **K30 "Whole picture" on, ✓ without a drag; then Setup › Size Centre, Set.** The part keeps no
+  `<source>.cropPosition` (null: undragged): the whole picture goes on. "Whole picture" off and ✓ again
+  (still no drag): Fill at the middle with Centre, at the subject with Auto (`, auto 0.xx` in the
+  set's line). A part ✓'d by 0.7.0 keeps its number (no migration).
+- **K31 The pill on an undragged frame** (a landscape picture): the band jumps to the sideways
+  subject's position (`subjectSideways`, the middle without one or with Centre); tap it back: the
+  upright one. After a drag (K29) the pill keeps the number (K26).
+- **K32 Rotate in crop mode:** crop mode closes (K12); an undragged part stays undragged. A Set with
+  crop mode open (K21) stores the undragged part with the setup: `cropPosition` absent.
+- **K33 A dragged part, then Size Centre ↔ Auto and Set:** the part's position stays (the drag wins);
+  an undragged one (K30) follows Size.
 - **Checked** (SW2T, rosie, 2026-11-15, the Android 14 emulator `emulator-5564`, 1080×2400, the debug build of dev b5857b9; 9 Nov's APOD at `?h=2400`, 3618×2400, and 31 Jan 2026's bright one faked into `files/apod.jpg`, today's 1920×2400 for the portrait case; evidence in `.coord/runs/126-sw2t/tablet/`): K16, K16a–c, K17, K17a, K17b, K18, K20,
   K21, K22, K23 PASS (K19's no-change half not run). On AOSP 14 `dumpsys wallpaper` always lists a
   "Lock wallpaper state" (id 1, `mWhich=1`, an empty crop, there since boot): a set with both flags
@@ -440,7 +467,8 @@ Under "Change automatically" while it's on, from the stored records.
 
 Shown only while the daily switch is on; closed by default; act at once (no highlight).
 - **A1 Tap "Advanced settings".** NOW. Opens ("▴"): "Save every picture" + ⓘ + switch, then (if on)
-  "Largest original 20 MB ▾", then "Keep running" + ⓘ + switch. Tap again: closes.
+  "Largest original 20 MB ▾", then "Auto: centre when unsure" + ⓘ + switch (SA3b, on by default),
+  then "Keep running" + ⓘ + switch. Tap again: closes.
 - **A2 ⓘ of "Save every picture".** NOW. Dialog "Saves each new picture to Pictures/APODroid: full
   size up to the limit, else screen size. A few hundred MB a month or more." OK, Back or a tap outside
   closes; the switch doesn't toggle.
@@ -458,6 +486,14 @@ Shown only while the daily switch is on; closed by default; act at once (no high
   (`Keep running: couldn't start: …` / `refused: …` on a refusal). **Don't tap "Stop" there.**
   - **A5a Off.** The service stops (no `ServiceRecord`), Active apps no longer lists it. Leave as found.
 - **A6 Rotate with Advanced open:** stays open (saved state).
+- **A7 ⓘ of "Auto: centre when unsure"** (SA3b). Dialog "With Size Auto, a picture whose subject is
+  only slightly off the middle stays centred. Off: Auto places every frame." OK, Back or a tap outside
+  closes; the switch doesn't toggle.
+- **A8 "Auto: centre when unsure" off.** At once, never highlighted, nothing set, no toast, no log;
+  the pref `autoFallback=false`. The next set with Size Auto of a picture whose subject moves the frame
+  less than 0.2 (`run -f 1` after a new post or a forgotten record, or Set) places it at the subject
+  (`, auto 0.6x`); ⛶ on it opens there (K27). On again: the middle at the next set. A one-off Set with
+  the daily switch off (the switch hidden) uses the stored pref.
 
 ### D. "Change automatically" (MA:906-968, 1914-1920; ST:473-479; DJ:290-303)
 
@@ -488,7 +524,7 @@ Shown only while the daily switch is on; closed by default; act at once (no high
 
 - Leaves: 111 (T 7, W 6, P 4, C 8, H 3, K 22, S 10, R 7, BP 4, BV 6, BD 2, BH 6, L 5, E 1, O 5,
   A 9, D 7); SW2 added K16–K23 (15 with their sub-leaves), checked on the tablet, not in the list
-  below (it is the FP6's of 15 Nov).
+  below (it is the FP6's of 15 Nov); SA3b K27–K33 (8 with K29a) and A7–A8, for the emulator.
 - Testable now: 89 (5 of them, BH1–BH4 and BH3a, only if the pause hint shows on the FP6; K4 only
   with the user's OK, it isn't reversible by hand). Not testable now: 22 (video day: P3, BV1–6;
   detector: BD1–2; failing site, set or disk: P2, K5, S5, BP3; time or new day: BP4, L5; empty store or

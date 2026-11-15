@@ -343,8 +343,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     put back). Set sets each screen afresh, so a change shows at once. Setup's summary doesn't
     name it (as "As soon as it's out"). After Size (L6's row stands after "Where" or the list).
   - **Size** (L6, 2026-11-14; `live-0.7.0.md`, "Store, Size and Set"; the heading "Size" and
-    the segments "Fill" and "Live" placeholders until the user approves them from the tablet's
-    screenshots): a segmented row [Fill | Live] after "Where" or the list, always shown (never
+    the segments "Fill" and "Live" approved by the user, 2026-11-15): a segmented row [Fill | Live] after "Where" or the list, always shown (never
     put back), the pref `size` (`FILL`, `LIVE`; default Fill, so an update from 0.6.0 changes
     nothing, no migration). Part of the draft (`Setup.size`, `saveSetup`, the saved state, the
     highlight, "Selected, not set yet"); a changed Size is another change for "the order alone"
@@ -352,7 +351,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     like any other. Live: home's picture goes to the engine while Android's picker put it on
     home (Wallpaper: Live), else still as Fill; Set opens the picker when home isn't covered
     (Set as wallpaper). Setup's summary ends " · Live". **The status line** "Live isn't on. Set
-    as wallpaper turns it on." (placeholder; under the others, while the daily switch is on)
+    as wallpaper turns it on." (under the others, while the daily switch is on)
     while the stored Size is Live, home has a column and APODroid's live wallpaper isn't on home
     (`Store.liveMissing`: never picked, backed out of the picker, another wallpaper picked, a
     force stop, Android's revert).
@@ -459,7 +458,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     (once per split: the next Set finds them equal before it). Never with Fill, never below 14
     for the lock screen, never for the lock screen alone (no home column: Live is home's), never
     for a lock column that differs (the lock screen Fill, Decision 10). **First a dialog**
-    (2026-11-15, user: "I didn't know what to pick"; `PickerDialog`, placeholder texts with the
+    (2026-11-15, user: "I didn't know what to pick"; `PickerDialog`, texts approved by the user, 2026-11-15, with the
     FP6 picker's own labels, AOSP's LiveWallpapersPicker): "Next, in Android's preview: / Set
     wallpaper › Home screen" (user, 2026-11-15: no line about Back), "Home screen and lock screen" instead
     on 14+ when the draft's columns are equal (the one engine on both, B28), else "Home screen"
@@ -468,7 +467,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     `picking` from before it. Then both screens' `getWallpaperId`s are noted; the picker is `ACTION_CHANGE_LIVE_WALLPAPER` for
     `LiveWallpaper`, started directly (L1's `resolveActivity` is null without `<queries>`), else
     `ACTION_LIVE_WALLPAPER_CHOOSER`, else the toast "This phone can't show live wallpapers."
-    (placeholder) and Fill; any refusal of a start (`ActivityNotFoundException`, a maker's
+    and Fill; any refusal of a start (`ActivityNotFoundException`, a maker's
     picker not exported or behind a permission, `SecurityException`) is logged and tries the
     next (`:core`'s `firstStarted`), and any failure of the picker's trip ends as Fill, so Set
     never crashes on its way (L6 fix round 1); only from a page
@@ -487,8 +486,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
     T22: it saved Size Live and toasted "Wallpaper set" with Live not on): nothing saved either,
     then a run of the stored setup (`update` with `set`, also with the daily switch off, which may
     put on what the clock says is due) puts the lock screen back (Lost Live, the engine on the
-    lock screen alone), and the toast "Live goes on the home screen. Setup not saved."
-    (placeholder); logged `Live: back from the picker, the lock screen alone`. Accepted: a job's run in the seconds between a pick and the save still has
+    lock screen alone), and the toast "Live goes on the home screen. Setup not saved.";
+    logged `Live: back from the picker, the lock screen alone`. Accepted: a job's run in the seconds between a pick and the save still has
     the old Size and may set a still over the engine just picked, when a change falls due then. The picker's preview
     draws the stored setup's home picture (the draft isn't saved yet). A page's load waits while the picker is
     open (`picking`), so it can't set a still picture first. Logged `Set: Android's live
@@ -537,7 +536,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     default `DAY`, 24 h) below the list, with an ⓘ ("About Change every", RO2, 2026-11-14; the
     user's Open 3: the rotation is what confused) whose dialog says "Every 6 h from 06:00, each
     screen switches to its next source in the list; a new order starts with the top one at
-    06:00." with the draft's values (OR2; a placeholder until the user approves it); hiding it moves the page only after a tick. While the
+    06:00." with the draft's values (OR2; approved by the user, 2026-11-15); hiding it moves the page only after a tick. While the
     daily switch is off "Where" or the list still shows, so a one-off Set uses settings the user
     can see.
   - **Weekday dialog** (user, 2026-10-17): ticking NASA or Earth where it wasn't ticked on
@@ -790,8 +789,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   **Live** (L5, 2026-11-14; `live-0.7.0.md`, The engine; with Size Live, L6: Fill sets every
   picture still, as 0.6.0). `LiveWallpaper.kt`, a `WallpaperService` in the app's one process
   (exported, guarded by `BIND_WALLPAPER`, `res/xml/live_wallpaper.xml`: the launcher icon, the
-  description "Today's picture, moving across the screen over the day." (`strings.xml`,
-  placeholder), no settings entry: R2b, 2026-11-15, a page the picker's Settings started ended Set's wait for the picker). The engine draws **home's picture** whatever screens
+  description "Today's picture, moving across the screen over the day." (`strings.xml`),
+  no settings entry: R2b, 2026-11-15, a page the picker's Settings started ended Set's wait for the picker). The engine draws **home's picture** whatever screens
   it's on (both while shared, home after a split, a stray on the lock screen after home's
   revert), and **only Live's copy**, `files/live.jpg` with `live.whole` (and `live.picture`, its
   name for the log) beside it, never the source's file (which changes with every stored post and
@@ -1030,7 +1029,8 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   Optimized: the alarm on time; on Android 12+ id 2 is an **expedited job** (O10, 2026-11-14:
   `setExpedited`, no permission, no notification), which runs in Doze and battery saver with
   the network, so an Optimized phone gets the picture on time while the app isn't in
-  RESTRICTED (about 8 days after the last open); `RESULT_FAILURE` (no expedited quota left)
+  RESTRICTED (about 8 days after the last open; in RESTRICTED the day's first alarm still comes
+  on time and its expedited run has the network, later alarms that day wait up to a day: O6); `RESULT_FAILURE` (no expedited quota left)
   schedules it again as a plain job ("Daily job: alarm, run scheduled, not expedited"), and the
   run's start logs "expedited" or "not expedited". A stop at the expedited job's limit is a stop
   (B7, retried by the alarms). Android 10–11: a plain job, the network only at Doze's next
@@ -1119,8 +1119,7 @@ an AndroidX dependency). `DailyJob.kt` and `AlarmReceiver.kt`:
   `:core`'s `JobRuns`, `JobRunsTest`).
 
 **Keep running** (O11, 2026-11-14; the user's decision of 2026-10-28, on-time-0.7.0.md,
-Decisions 1 and 3; the texts placeholders until the user approves them from the tablet's
-screenshots): a switch in Advanced settings, after "Save every picture"'s group, while the daily
+Decisions 1 and 3; the texts approved by the user, 2026-11-15): a switch in Advanced settings, after "Save every picture"'s group, while the daily
 switch is on, the pref `keepRunning`, default off, acting at once (not part of the draft, never
 highlighted), with a small ⓘ ("About keeping running"; its dialog "Keeps APODroid running, so
 the phone can't stop it between changes. It shows as an active app."). Why: a maker's cleaner
@@ -1180,8 +1179,8 @@ is the one noted while `getWallpaperInfo` named APODroid's (`live.homeId`, `:cor
 at each `liveOn` and engine start that finds it so, never by a rebound or stray engine). The grace
 stays (night default; the alternative: drop it, the id covers the rebind).
 
-**The detector** (O14, 2026-11-14; on-time-0.7.0.md, The detector; the texts placeholders until
-the user approves them from the tablet's screenshots): the page notices that the phone stopped
+**The detector** (O14, 2026-11-14; on-time-0.7.0.md, The detector; the texts approved by the user,
+2026-11-15): the page notices that the phone stopped
 the app, so the change came only when something started it again. `:core`'s `Detector.kt`
 (`DetectorTest`). **The sign:** a force stop deletes the alarms (`am force-stop`, O7; ZUI's
 cleaner, O8, whose force stop leaves no other sign: `wasForceStopped()` false, the package not
@@ -1205,7 +1204,7 @@ So a bucket holding an alarm (no sign), a boot, an update, a failed run (it star
 open before T + offset + 30 min and a pending job 2 show nothing. **The box** (neutral, with
 the others, while the daily switch is on, from `missedAt` until "Dismiss", `missDismissed`, the
 next miss shows again): with Keep running off at the miss "Your phone stopped APODroid: the
-18:00 change came late." (the time as the system's clock; when the missed change's local date isn't today "the 18:00 change on 16 Nov came late", O14b, `:core`'s `missedWhen`, placeholder), buttons "Keep running" (opens
+18:00 change came late." (the time as the system's clock; when the missed change's local date isn't today "the 18:00 change on 16 Nov came late", O14b, `:core`'s `missedWhen`), buttons "Keep running" (opens
 Advanced settings and scrolls to the switch; doesn't turn it on) and "Dismiss"; such a box hides
 while Keep running is on. With it on "Your phone still stops APODroid: the 18:00 change came
 late." and the maker's lines (`maker`): Xiaomi `App info › Autostart: on`, `App info › Battery
@@ -1417,8 +1416,8 @@ true) and "Manage app if unused" (API 35+) or "Pause app activity if unused" (33
 labels word for word, 2026-11-15; API 31+; on Android 12, API 31–32, its own App
 info's `Unused apps → "Remove permissions and free up space": off`, B25). Under the line
 "Android pauses apps you don't open." each line is a path starting where it starts ("App info ›
-…", user, 2026-10-04: "Unrestricted" alone didn't say where; O13, 2026-11-13, placeholders until
-the user approves them from screenshots). **The battery line per maker** (O13; `:core`'s
+…", user, 2026-10-04: "Unrestricted" alone didn't say where; O13, 2026-11-13; approved by the user,
+2026-11-15). **The battery line per maker** (O13; `:core`'s
 `maker(Build.MANUFACTURER)`, `Maker.kt`, the table the detector uses too): stock and Lenovo
 Android's path, on API 35+ `App info › App battery usage › "Allow background usage": on ›
 Unrestricted` (Unrestricted is greyed out until the switch is on), on 33–34 `App info › App
@@ -1642,15 +1641,32 @@ cases run on the FP6 over adb on 7299474, no crash; reports in the session's scr
 fixes of that day (the picker's back-out and "Lock screen" alone, Lost Live's lock-screen engine
 and shared lock screen, ⛶ with Live by the stored setup, the hidden mode not saved, an abandoned
 "my picture" pick, per-source Dismiss, rotation state, ★'s end, the pause hint's label, the
-arming under the job's lock) are described where they apply. Accepted: once both columns are
-equal and the lock screen is still, Set offers no picker again (once per split); a page a
+arming under the job's lock) are described where they apply. Accepted: a page a
 rotation makes during Set shows the forgotten records for a moment (APOD's page, no " · NASA");
 a lost Live whose screen has nothing to show keeps a stale record (as Decision 12); a live
 wallpaper picked by hand with Size Fill draws Live's old copy; ~70 ms of black after a process
 death (L9a); the reopened page after a Recents swipe during the picker held the old draft (gone
-with the back-out fix: nothing is saved then). Left for the tag: the user's
-approval of the texts (the sign-off page, https://claude.ai/code/artifact/80368bf4-5b9b-4e79-912a-f943c33d82d0,
-private) and the day's use of the FP6 (L2, O17, L10's first day).
+with the back-out fix: nothing is saved then). **The sign-off** (user, 2026-11-15 afternoon, asked in the session, not on the sign-off page):
+every placeholder text approved (Live's, the picker's dialog and toast, Keep running's, the
+detector's, the pause hint's per maker, "Change every"'s ⓘ, "≡", "Move up", "Move down"), the
+changelog `11.txt` and the store description; the night's items as recommended (the cold start's
+~0.8 s of black accepted, a look again in 0.7.1; the picker's Settings entry stays removed; R2a,
+L6's "not noted live" rule and BR3's defaults kept; O6's RESTRICTED finding written in, The
+alarms). **Left for the tag** (the user releases later on 15 Nov):
+- **SPLIT, "once per split" fixed** (user, 2026-11-15: fix before the release; not built yet):
+  while Size Live, 14+, home live, the draft's columns equal and the engine not on the lock
+  screen, Set opens the dialog every time (not only when the Set makes the columns equal), and
+  in this case the dialog reads "Live on the lock screen too? / Next, in Android's preview: /
+  Set wallpaper › Home screen and lock screen" with "Not now" and "OK": "Not now" saves the Set
+  as without the picker (the lock screen stays still, its own Fill), OK opens the picker, and
+  Back inside the preview still saves nothing. Why "Not now" saves: else someone who wants Live
+  on home only could never save a Set in that state. The other dialog (home not live) keeps
+  Cancel = nothing saved. `:core`'s `opensPicker` and `LiveTest`, `MainActivity`'s
+  `PickerDialog`/`pickLive` (a third outcome), this file, `interactions/live.md` (the new rule:
+  each feature gets its map).
+- **The FP6 re-test** of the 15 Nov fixes (the user-signed build installed 15:15; the cases in
+  `interactions/README.md`), with SPLIT's build; the phone unlocked, about 30 min.
+- The day's use of the FP6 (L2, O17, L10's first day).
 
 **0.7.0: Live, the day's pan** (user, 2026-10-22 evening, 0.7.0's headline, right after 0.6.0):
 Size [Fill | Live], with the preview on the page (one drawing code). A wide picture is shown at the screen's full height and moves
@@ -1714,7 +1730,7 @@ in [live-0.7.0.md](.claude/skills/build-apodroid-android/live-0.7.0.md)):
   is it on, the hand-over, lost Live); (L6, 2026-11-14) The app, Settings: Size and its status
   line, Set as wallpaper: the picker. The texts "Size", "Fill", "Live", " · Live", "Live isn't
   on. Set as wallpaper turns it on." and "This phone can't show live wallpapers." are
-  placeholders; L2 (the FP6's picker) may still give a fix package (user, 2026-11-14).
+  approved (user, 2026-11-15).
 
 **0.7.0: on time on any phone** (user, 2026-10-25, after a friend's Chinese phone had no
 "Unrestricted"; planned again 2026-10-28 after W's tablet day; after 0.6.0 ships, the freeze; the
@@ -1740,8 +1756,7 @@ and the like, which no app setting gets past). Decided:
   notification (channel "Keep running"): "Keeps the wallpaper changing on time"; on Android 13+
   it shows only in Quick Settings' Active apps, since the notification permission is never asked;
   on 10–12 in the shade. Permissions approved: `FOREGROUND_SERVICE`,
-  `FOREGROUND_SERVICE_SPECIAL_USE` (at install, no prompt). Texts are placeholders until approved
-  from screenshots. O7 and O8 passed on the tablet (2026-11-14: foreground, listed in Active
+  `FOREGROUND_SERVICE_SPECIAL_USE` (at install, no prompt). Texts approved by the user, 2026-11-15. O7 and O8 passed on the tablet (2026-11-14: foreground, listed in Active
   apps, alive after a Recents swipe and 30 min in Doze; spared by ZUI's cleaner while a cached
   app and APODroid without it were force-stopped). **Built** (O11, 2026-11-14): Background
   update, Keep running.
@@ -1824,7 +1839,7 @@ order and the switch on keep the owner; with the daily switch off a Set of a new
 top on at once; "Move up" / "Move down" for screen readers. This changes RO1's "a Set never
 shifts the rotation" once per new order. **Built** (OR1 `:core`, OR2 `Store`, the page and this
 file, 2026-11-14): The app, Settings (the list); Turns and the picture time. The texts "≡",
-"Move up", "Move down" and "Change every"'s ⓘ are placeholders; whether TalkBack offers the
+"Move up", "Move down" and "Change every"'s ⓘ are approved (user, 2026-11-15); whether TalkBack offers the
 actions on the greyed-out last ticked row is the user's FP6 check.
 
 **0.8.0: Fill's frame on the subject** (user, 2026-11-02, from issue #3: "for 0.8.0";

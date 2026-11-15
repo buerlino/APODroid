@@ -53,7 +53,7 @@ Fixed after 7299474 (CLAUDE.md, The FP6 tests; in the commit that added these ma
 | page S4a | ★'s toast lost across a rotation | the save's end in `runs` |
 | background N1 | an arming could replace a run's retry pair | `ensure` under the job's lock |
 
-Accepted (CLAUDE.md, The FP6 tests): live S2 (once per split), S6 (a hand-picked engine with
+To be fixed before 0.7.0's tag: live S2 (once per split; CLAUDE.md, SPLIT). Accepted (CLAUDE.md, The FP6 tests): live S6 (a hand-picked engine with
 Fill draws Live's old copy), S8 (not tested), the ~70 ms of black after a process death; setup's
 rotation during Set (P25); background G14 (a lost Live with nothing to show keeps a stale record),
 J6 (a log line only).

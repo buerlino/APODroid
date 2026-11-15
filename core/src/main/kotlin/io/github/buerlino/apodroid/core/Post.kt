@@ -54,6 +54,8 @@ data class Post(
      * Eastern), NASA's `pubDate`. Null for a post stored before B15 ([publishedAt]).
      */
     val published: Instant? = null,
+    /** APOD's video on a video day when it's NASA's own mp4 (the hero's first `.mp4` source, VS1); null otherwise (YouTube, an image day, NASA, Earth). */
+    val videoUrl: String? = null,
 ) {
     /** [published], or for a post without one (stored before B15) its [date]'s 00:00 US Eastern. */
     val publishedAt: Instant
@@ -221,6 +223,7 @@ internal fun apodPosts(body: String): Sequence<Post> = wpPosts(body).asSequence(
         explanation = explanation(content),
         credit = credit(content),
         published = wpPublished(p.date),
+        videoUrl = if (isVideo) videoUrl(content) else null,
     )
 }
 
@@ -288,11 +291,26 @@ internal fun cleanTitle(rendered: String): String = decodeEntities(rendered).rep
  * Only the hero counts: image days often link YouTube in the explanation below it.
  */
 internal fun isVideo(content: String): Boolean {
-    val start = content.indexOf("media-detail-hero__media").coerceAtLeast(0)
-    val end = content.indexOf("<h1", start).takeIf { it >= 0 } ?: content.length
-    val hero = content.substring(start, end)
+    val hero = hero(content)
     return "<video" in hero || "<iframe" in hero
 }
+
+/** The hero block: from `media-detail-hero__media` (or the start) to the title's `<h1`. */
+private fun hero(content: String): String {
+    val start = content.indexOf("media-detail-hero__media").coerceAtLeast(0)
+    val end = content.indexOf("<h1", start).takeIf { it >= 0 } ?: content.length
+    return content.substring(start, end)
+}
+
+/**
+ * The hero's video when it's an mp4 (VS1): the first `<source>`'s or `<video>`'s `src` whose
+ * path ends in `.mp4`, entities decoded; null without one (a YouTube `<iframe>`, an image day).
+ */
+internal fun videoUrl(content: String): String? = videoSrc.findAll(hero(content))
+    .map { decodeEntities(it.groupValues[2]).trim() }
+    .firstOrNull { it.substringBefore('?').endsWith(".mp4", ignoreCase = true) }
+
+private val videoSrc = Regex("""<(?:source|video)\b[^>]*?\ssrc\s*=\s*(["'])(.*?)\1""", RegexOption.IGNORE_CASE)
 
 /**
  * The hero's `media-detail-hero__description` paragraph up to its first `<br>` (after it come

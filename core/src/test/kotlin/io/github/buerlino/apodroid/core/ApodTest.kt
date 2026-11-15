@@ -133,6 +133,28 @@ class ApodTest {
         assertFalse(parseApod(post(explanation = "<a href='https://youtu.be/abc'>video</a>$youtube")).isVideo)
     }
 
+    @Test
+    fun readsTheVideosMp4FromTheHeroInBothQuoteStyles() {
+        val single = "<video class='video-js'><source src='https://assets.example/x.mp4' type='video/mp4'></video>"
+        val double = "<video title=\"A\" data-setup='{\"controls\":true}'  >\n<source src=\"https://assets.example/a%20b.mp4\" type=\"video/mp4\"></video>"
+        val onVideo = "<video src=\"https://assets.example/v.MP4?x=1&amp;y=2\" controls></video>"
+        val youtube = "<figure><iframe src='https://www.youtube.com/embed/abc'></iframe></figure>"
+        assertEquals("https://assets.example/x.mp4", parseApod(post(hero = single)).videoUrl)
+        // Double quotes as on the real site (read from the content, as JSON would escape them).
+        fun content(hero: String) = "<p>Discover</p><div class='media-detail-hero__media'>$hero</div><h1>Title</h1>"
+        assertEquals("https://assets.example/a%20b.mp4", videoUrl(content(double)))
+        assertEquals("https://assets.example/v.MP4?x=1&y=2", videoUrl(content(onVideo)))
+        // The first source that is an mp4.
+        val webm = "<video><source src='https://assets.example/x.webm'><source data-src='y' src=\"https://assets.example/y.mp4\"></video>"
+        assertEquals("https://assets.example/y.mp4", videoUrl(content(webm)))
+        assertEquals(null, parseApod(post(hero = youtube)).videoUrl)
+        assertEquals(null, parseApod(post()).videoUrl)
+        // Only the hero: an mp4 in the explanation of an image day or a YouTube day counts not.
+        val below = "<video><source src='https://assets.example/z.mp4'></video>"
+        assertEquals(null, parseApod(post(explanation = below)).videoUrl)
+        assertEquals(null, parseApod(post(hero = youtube, explanation = below)).videoUrl)
+    }
+
     // Made-up hero meta rows shaped like the real ones (whitespace and tabs around the cells).
     private fun row(th: String, td: String) =
         "<tr class=\"media-detail-hero__meta-row\">\n\t<th scope=\"row\" class=\"label\">$th</th>\n\t<td class=\"p-sm\">\n\t\t$td\t</td>\n</tr>"

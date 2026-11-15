@@ -190,5 +190,27 @@ class SourcesTest {
             assertTrue(Regex("""<|&\w+;|\s[,;:)]|,;|\(\s|;\s*;|\s\s|::""").find(credit) == null, credit)
             assertTrue(credit == credit.trim(' ', ';'), credit)
         }
+        // VS1: 11 video posts, 9 NASA's own mp4, 2 YouTube; no image day has one.
+        val videos = apods.filter { it.isVideo }
+        assertEquals(11, videos.size)
+        assertEquals(9, videos.count { it.videoUrl != null })
+        for (p in apods) {
+            val url = p.videoUrl ?: continue
+            assertTrue(p.isVideo && url.startsWith("https://assets.science.nasa.gov/content/dam/") && url.endsWith(".mp4"), url)
+        }
+    }
+
+    /** VS1: 16 Oct 2026's video, its `<source>` inside the hero. */
+    @Test
+    fun readsTheRealVideoDaysMp4() {
+        val file = File("../private/video-day-2026-10-16.json")
+        assumeTrue(file.exists())
+        val text = file.readText().trim().let { if (it.startsWith("[")) it else "[$it]" }
+        val post = parseApod(text)
+        assertTrue(post.isVideo)
+        assertEquals(
+            "https://assets.science.nasa.gov/content/dam/science/cds/apod/apod/2026/october/CRS35-Holland30s1080p.mp4",
+            post.videoUrl,
+        )
     }
 }

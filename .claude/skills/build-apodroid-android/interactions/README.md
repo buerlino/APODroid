@@ -30,15 +30,18 @@ same day (113 cases). `CLAUDE.md` wins where a map disagrees.
 - A fix that changes a leaf's outcome updates that leaf.
 - Before a test pass, an agent reads `git diff <the maps' base>..HEAD` and updates what changed:
   the leaves, the test lists, the line numbers, and the base below.
-- Base: **7299474** (the maps' line numbers). The SUSPECTs' outcomes since then are below.
+- Base: **7299474** (the maps' line numbers; live.md's SPLIT parts read at 087856c). The SUSPECTs'
+  outcomes since then are below.
 
 ## The SUSPECTs and FAILs of 15 Nov and what became of them
 
-Fixed after 7299474 (CLAUDE.md, The FP6 tests; in the commit that added these maps):
+Fixed after 7299474 (CLAUDE.md, The FP6 tests; in the commit that added these maps; live S2 in
+087856c, SPLIT):
 
 | Map, id | Found | Now |
 |---|---|---|
 | live S1 (T08, T28) | Back from the picker saved when home was live already | nothing saved, nothing set |
+| live S2 (T09; N7, K7, K15) | equal columns with home live never offered the picker again ("once per split") | every such Set asks "Live on the lock screen too?" (live Q1–Q8): "Not now" saves, the lock screen its own still; OK the picker; Back saves nothing |
 | live S3 (T22) | "Lock screen" alone: Size Live saved, "Wallpaper set" | nothing saved, the lock screen put back, toast "Live goes on the home screen. Setup not saved." |
 | live S4 (T16) | the engine on the lock screen alone while home is live, kept | the lock screen with a column gets its own still |
 | live S5 (T34) | Fill + Where Home from a shared engine left it on the lock screen | one shared still in the same run (`sharedLockFollows`) |
@@ -53,7 +56,7 @@ Fixed after 7299474 (CLAUDE.md, The FP6 tests; in the commit that added these ma
 | page S4a | ★'s toast lost across a rotation | the save's end in `runs` |
 | background N1 | an arming could replace a run's retry pair | `ensure` under the job's lock |
 
-To be fixed before 0.7.0's tag: live S2 (once per split; CLAUDE.md, SPLIT). Accepted (CLAUDE.md, The FP6 tests): live S6 (a hand-picked engine with
+Accepted (CLAUDE.md, The FP6 tests): live S6 (a hand-picked engine with
 Fill draws Live's old copy), S8 (not tested), the ~70 ms of black after a process death; setup's
 rotation during Set (P25); background G14 (a lost Live with nothing to show keeps a stale record),
 J6 (a log line only).
@@ -62,4 +65,6 @@ Open, not run (the rules forbid deleting a gallery file): page S2a, ★ says "Al
 for a file deleted while the page stays resumed (☆ again after Home and reopen).
 
 **Not yet re-run on the FP6:** the fixes above (the signed build is installed since 15 Nov 15:15;
-the re-test waits for the phone to be unlocked).
+the re-test waits for the phone to be unlocked), and SPLIT, which needs its build (live T05–T09,
+T11, T33, T36, T37). A tablet re-test of SPLIT runs on 15 Nov (its cases: all those but T36); no
+result in these maps yet.

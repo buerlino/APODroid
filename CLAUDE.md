@@ -582,7 +582,22 @@ set it as wallpaper, and on video days kept the old wallpaper.
   - No help texts (user: the labels explain themselves), except the pause hint (Background
     update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Keep running, Background update).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
-  tapping opens the APOD page in the browser (no player). No ⛶, no ★. A neutral box below the
+  tapping opens the APOD page in the browser (no player). No ⛶, no ★. **The still behind ▶**
+  (VS1, 2026-11-15; `video-0.8.0.md`; Open question 2): when the video is NASA's own mp4
+  (`Post.videoUrl`, `:core`: the hero's first `<source>`'s or `<video>`'s `src` ending in `.mp4`,
+  stored as `<source>.videoUrl`; 9 of the 11 video posts in `last100.json`, the other 2 YouTube,
+  which stay black: `img.youtube.com` would be a new host), the page shows a frame about 3 s in
+  (`MediaMetadataRetriever`, `OPTION_CLOSEST_SYNC`, at most the screen's width or 1280 px,
+  `User-Agent` as the fetches), cropped to the tile's 3:2, 40% black over it, ▶ over that;
+  screen readers and texts unchanged. The page only, never the wallpaper (a still is often not
+  the subject). Once per post: made off the main thread when a page shows the tile, in the
+  process-wide `runs` (a rotation doesn't lose it), `videoStillTried` (the video URL) committed
+  first, then `files/video-still.jpg` via `.part` and `videoStill.date`/`videoStill.url` in one
+  commit, which the open page hears (`Store.watch`); a failure (offline, no frame) is logged
+  `Video still: couldn't …` and the tile stays black until the next post; a made one
+  `Video still: <ms> ms, <w>×<h>`. A new post or an image day deletes it (`refresh`). Decoded
+  with the pictures and let go with them in `onStop` (O12). A post stored before 0.8.0 has no
+  `videoUrl` (black, no migration) until a fetch stores it (the job's next run, D1). A neutral box below the
   tile (`surfaceVariant` fill, `outline` border) says what the video day does to the wallpaper;
   the text follows the stored settings (daily off / keep / my picture with or without a
   picture), also with turns. The texts (U0, user, 2026-11-02, from the mockup; short, "Tap ▶ to
@@ -1983,15 +1998,7 @@ press on the title block copies the link).
    run (`onStopJob`): `download()` ends within one chunk, the partial download is thrown away,
    nothing more is set, and the alarms' retry downloads afresh. An HTTP `Range` resume would keep
    it; left.
-2. A picture instead of the black ▶ tile on video days (user, 2026-10-18: a black tile isn't
-   nice; the user chose "note it down for future", nothing built). Checked on the 13 video
-   posts in `private/` (24 Jun to 16 Oct 2026): 11 are NASA's own `<video>` with an mp4 on
-   `assets.science.nasa.gov` (no `poster`), 2 are YouTube embeds. So a YouTube thumbnail
-   (`img.youtube.com/vi/<id>/hqdefault.jpg`, a new host) covers about 1 in 6; not worth it
-   alone. Idea: `MediaMetadataRetriever` on the mp4 URL (Android, no library, no new host),
-   a frame a few seconds in, shown dimmed behind ▶ on the page only, never the wallpaper,
-   black tile on any failure. The 16 Oct mp4: 25.7 MB, `accept-ranges: bytes`, `moov` at the
-   start (so a few hundred KB should do); untested on the phone, other files' layout unknown.
-   Fallback if it fails: a local tile (star field or logo), no network.
+2. Closed (VS1, 2026-11-15): a still from NASA's mp4 behind ▶ on video days (The app, Video
+   days on the page); YouTube days stay black.
 3. Closed (D1, 2026-11-15): a second picture on the same date arrives at the job's next run
    (Background update, A second post on the same date).

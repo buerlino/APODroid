@@ -107,6 +107,22 @@ Pages are always APOD, NASA, Earth (index 0, 1, 2).
 - **P2 No browser installed:** toast "No browser". NOT NOW (needs a phone without one).
 - **P3 Video day:** a black 3:2 tile with ▶ (`Play video on the web`), tap opens the page; no ⛶, ★,
   chip. NOT NOW (APOD is an image today).
+  - **P3a NASA's mp4** (VS1; `apod.videoUrl` set): the first open shows black, then the still
+    (a frame ~3 s in, cropped to 3:2, 40% black over it, ▶ over that). Log once:
+    `Video still: <ms> ms, <w>×<h>`; `files/video-still.jpg` and the prefs `videoStill.date`,
+    `videoStill.url`, `videoStillTried` written. Screen readers unchanged. A second open, a
+    rotation, a swipe: the file, no log line. NOT NOW (fake: SKILL.md's "Fake an old day" plus the
+    `videoUrl` pref; no `run -f` after it).
+  - **P3b A rotation during the first try:** the try goes on (process-wide `runs`); the rotated
+    page shows the still when it's made (the prefs listener). NOT NOW.
+  - **P3c The try fails** (airplane mode, a 404, no frame): black, `Video still: couldn't make one
+    of <url>: …`, `videoStillTried` noted; no new try on later opens until the next post. NOT NOW.
+  - **P3d YouTube day or a post stored before 0.8.0** (no `videoUrl`): black, no try, no log. NOT
+    NOW.
+  - **P3e The next post** (an image day or another video): `refresh` deletes the still and its
+    notes; a new video tries once. NOT NOW.
+  - **P3f The page stops** (Home, Back): the still is recycled with the pictures (O12) and decoded
+    from the file at the next open. NOT NOW.
 - **P4 Tap in crop mode:** nothing opens (the modifier is the frame's, MA:1531-1533). NOW (K-group).
 
 ### C. The caption (MA:1619-1710)

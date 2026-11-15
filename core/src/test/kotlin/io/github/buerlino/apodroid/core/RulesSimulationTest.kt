@@ -1045,8 +1045,10 @@ private class SimPhone(val seed: Int, private val soonDrawn: Boolean = false) : 
             val owner = records[screen]?.owner
             setNow[screen]?.let { picture ->
                 checked[12]++
-                // D1 (seed 1204 of 2000): the kept record's own picture again (a screen the engine covers, forgotten as not noted live) is no other source's.
-                if (owner == null || (picture != stored.picture(owner) && picture != leads[screen]?.picture)) fail(now, 12, "the order alone put ${picture.label()} on $screen, not $owner's")
+                // Equal columns (CLAUDE.md, Turns): the lock screen takes home's record and picture, so a
+                // lock screen forgotten as "not noted live" (Wallpaper: Live) gets home's kept one (seed 1204 of 2000).
+                val homes = screen == LOCK && equalColumns() && picture == records[HOME]?.picture
+                if (owner == null || (picture != stored.picture(owner) && !homes)) fail(now, 12, "the order alone put ${picture.label()} on $screen, not $owner's")
             }
             val lead = leads[screen] ?: continue
             if (lead.owner !in column || stored.picture(lead.owner) == null) continue

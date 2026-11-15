@@ -144,7 +144,8 @@ title, then (APOD only) the credit, then the explanation (2 lines, "more" when c
 From the stored records (`Store.screenState`); with three sources only; hidden in crop mode.
 - **H1 NASA page:** "On home screen". **APOD page:** "On lock screen". **Earth page:** no chip. NOW.
 - **H2 Both screens on the same post:** "On wallpaper". NOT NOW (needs equal columns).
-- **H3 In crop mode** the chip's place holds the "Whole picture" toggle. NOW (K-group).
+- **H3 In crop mode** the chip's place holds the "Whole picture" toggle. NOW (K-group). The top
+  right holds "Sideways" on a landscape picture (K16), so the chip's corner stays the top left.
 
 ### K. ⛶ crop mode (MA:1300-1348, 1510-1592, 1796-1883; ST:405-454)
 
@@ -214,6 +215,54 @@ Crop mode and the rest of the page:
 - **K14 ⛶ while Set or the daily switch's run goes:** dimmed, a tap does nothing. NOW only briefly
   (during D2's run, ~1 s): optional.
 - **K15 ★ in crop mode:** still works (MA:1593). NOW, optional.
+
+Sideways (SW2, 0.8.0; `cropSideways`, the pill in `PicturePage`, `pictureFrame`, `Store.setFile`'s
+sideways branch). Needs a landscape picture on the shown page (today's, or 9 Nov's APOD faked into
+`files/` with the skill's recipe) and a portrait or square one for K16a. Sideways turns the picture
+90° clockwise: its top at the screen's right; the band is position 0 at the picture's bottom.
+- **K16 ⛶ on a landscape picture.** The pill "Sideways" at the picture's top right (the chip's dark
+  pill), white while it equals the stored part; "Whole picture" stays at the top left. Screen
+  readers: "Sideways", a switch, "Off". No log.
+  - **K16a ⛶ on a portrait or square picture:** no "Sideways" pill (`sidewaysHelps`: wider than high).
+  - **K16b Tap "Sideways".** "✓ Sideways" in tertiary (", not set yet"); the frame becomes a band of the
+    screen's shape turned (a horizontal band across the full width on a normal wide picture, its
+    height = the picture's width × screen width ÷ screen height: 3630×2408 on 1080×2408 gives 1628
+    of 2408 rows), at the stored
+    position (the middle by default). The page's picture itself stays upright.
+  - **K16c Drag the band (Fill).** Up and down (a drag down lowers it, toward position 0, the
+    picture's bottom); horizontal drags do nothing (on a panorama whose turned picture is taller than
+    the screen: a strip moving left to right). Vertical drags outside the band also move it (the
+    whole picture is the drag area, as K1a's).
+- **K17 Sideways on, ✓, Size Fill.** Toast "Wallpaper set". Log: `Part: wallpaper set: Of(source=…)
+  on <screens>, sideways[, darker ×0.xx (grey nnn)]`, then `Part: <source> <date> set on <screens>`.
+  `files/debug-set.png` (debug build) is portrait, the screen's size, the picture turned clockwise
+  (the original's top at the right, its bottom band at position 0 at the left edge of the turned
+  picture). Both screens on the post: one set with both flags (`dumpsys wallpaper`: one shared
+  wallpaper, no lock wallpaper of its own); the lock screen alone (APOD mode, Where Lock): only the
+  lock id changes. The prefs: `<source>.sideways=true` beside `cropPosition` and `whole`.
+  - **K17a Sideways + Whole picture on, ✓.** The preview (spinner, then the screen-shaped picture)
+    drawn turned on its background (black, or the turned picture's middle blurred); the set the same
+    (`debug-whole.png` and `debug-set.png` turned), ", sideways" in the log.
+  - **K17b A bright landscape picture sideways** ("Darken bright pictures" on): `, sideways, darker
+    ×0.xx (grey nnn)`; `debug-set.png` turned and darker.
+- **K18 ⛶ again, "✓ Sideways" (stored, white), tap it off, ✓.** "Wallpaper set"; the log without
+  ", sideways"; set by `setStream` again (an upright, not darkened Fill: `debug-set.png` deleted).
+  `<source>.sideways=false`.
+- **K19 ✓ with only Sideways changed** counts as a change (sets); ✓ with it as stored and the band
+  not moved: nothing (K1d).
+- **K20 Back in crop mode with Sideways changed:** dropped; ⛶ again opens with the stored one.
+  **Rotation** (K12): the same, crop mode closed.
+- **K21 Sideways on, then Set as wallpaper with crop mode open:** the draft keeps it (`keepPart`) and
+  Set stores it with the setup (`<source>.sideways=true`), its set turned (`Set: wallpaper set: … ,
+  sideways`).
+- **K22 With Live** (the stored Size Live, Live on home, the source in home's column; K6): the band at
+  the clock's position (`livePosition`), no drag, moved by the minute tick; ✓ hands it over:
+  `Part: wallpaper shown live: Of(…) on HOME, sideways[, darker …]`, `live.sideways=true`; the
+  engine's `Live: decoded W×H` portrait-shaped (W < H: the turned picture at the screen's height),
+  `Live: drew … p=0.NN`; the home screen pans across the turned picture (a 3:2 picture about a third
+  of its turned width over the day). Details: live.md, ⛶ with Live.
+- **K23 A new post of that source** (a faked date): the part drops (keyed by `cropDate`/`cropUrl`),
+  the new picture goes on upright; ⛶ opens with "Sideways" off.
 
 ### S. ★ save to the gallery (MA:1238-1268, 1593-1610; ST:1607-1704)
 
@@ -397,7 +446,8 @@ Shown only while the daily switch is on; closed by default; act at once (no high
 ## 2. Counts
 
 - Leaves: 111 (T 7, W 6, P 4, C 8, H 3, K 22, S 10, R 7, BP 4, BV 6, BD 2, BH 6, L 5, E 1, O 5,
-  A 9, D 7).
+  A 9, D 7); SW2 added K16–K23 (15 with their sub-leaves), checked on the tablet, not in the list
+  below (it is the FP6's of 15 Nov).
 - Testable now: 89 (5 of them, BH1–BH4 and BH3a, only if the pause hint shows on the FP6; K4 only
   with the user's OK, it isn't reversible by hand). Not testable now: 22 (video day: P3, BV1–6;
   detector: BD1–2; failing site, set or disk: P2, K5, S5, BP3; time or new day: BP4, L5; empty store or

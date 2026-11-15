@@ -199,6 +199,13 @@ or days of time.
 - **F12 A screen without a record.** Starts on the turn's source, set at once. Unit:
   `aScreenWithNoRecordStartsOnTheTurnsSource`.
 - **F13 A pull / Set / forgotten picture.** Newest at once (page side; other agents).
+- **F14 A sideways part (SW2, 0.8.0).** The job's set of a post whose stored part is sideways
+  (`<source>.sideways`, keyed by `cropDate`/`cropUrl`) goes on turned clockwise, through a bitmap
+  (`setBitmap`, never `setStream`): `Daily job: wallpaper set: Of(…) on <screens>, sideways[,
+  darker ×k (grey g)]`, `files/debug-set.png` turned (debug build). Phone (tablet): ✓ a sideways
+  part (page.md K17), then `adb shell cmd jobscheduler run -f io.github.buerlino.apodroid 1` after
+  forgetting the record (or at the next change time): set sideways again. A new post of that source
+  (a faked date) drops the part: the next set upright, no ", sideways".
 
 ## G. Live (`Store.setDue` Live part `Store.kt:1045-1197`, `Live.kt`, `LiveWallpaper.kt`)
 
@@ -207,9 +214,10 @@ or days of time.
   home live and `getWallpaperId(FLAG_LOCK)` = -1. Phone: `dumpsys wallpaper`: note home's
   component and id (baseline, P1).
 - **G2 The hand-over (home due a new picture, Size Live, home live).** `live.part` → `live.jpg`,
-  one commit with the notes, home's record noted live, `wallpaperSetAt`: `wallpaper shown live:
-  <picture> on HOME[, darker ×k (grey g)]`; the engine: `Live: decoded W×H in N ms`, `Live: drew
-  <picture> p=…`. No WallpaperManager call (home's id unchanged). Phone: Tuesday morning (F3),
+  one commit with the notes (`live.whole`, `live.sideways` (SW2: the post's `Part.sideways`),
+  `live.darken`, `live.picture`), home's record noted live, `wallpaperSetAt`: `wallpaper shown live:
+  <picture> on HOME[, sideways][, darker ×k (grey g)]`; the engine: `Live: decoded W×H in N ms`
+  (portrait-shaped when sideways: the turned picture), `Live: drew <picture> p=…`. No WallpaperManager call (home's id unchanged). Phone: Tuesday morning (F3),
   or P1's switch-on.
 - **G3 The lock screen's still set with home live, columns differ.** `FLAG_LOCK` set first,
   `wallpaper set: … on LOCK`; home's engine untouched (home's id unchanged, component still
@@ -236,7 +244,10 @@ or days of time.
   handed over in the same run, `Live: the engine is on HOME, not noted live`. Phone: seen in P1's
   switch-on (Set's picker is the other agents').
 - **G11 A shared lock screen (B27, B28, `lockFollowsHome`).** Not the phone (not shared). Unit:
-  `LiveTest` B28 cases, SIM seed 235.
+  `LiveTest` B28 cases, SIM seed 235. B27's keep (the lock screen keeps what the engine draws, a
+  still `setFile`) honours `live.sideways` (SW2) with `live.whole` and `live.darken`: a sideways
+  copy is kept turned, at the clock's position (`liveAt`), its log `Live: the lock screen keeps
+  <picture>, still`; the set itself logs nothing more (no record written). Not the phone.
 - **G12 A failed lock set holds the hand-over (`handOverWaits`).** Unit only.
 - **G13 The engine's lock-only pick (7299474, `lostLive` branch 2).** Not the phone.
 - **G14 SUSPECT: a lost-Live screen with nothing to show keeps a stale record.** See SUSPECTs.

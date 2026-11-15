@@ -143,7 +143,7 @@ questions it depends on.
 | SA0 | The test on the desktop: each method's frame against the user's picks, and a new picking round | Opus, high | a day session, **the user** | 0.7.0 shipped |
 | SA1 | The runtime check, only if a library is still in the race: APK size, F-Droid, reproducible build | Opus, medium | a day session, no device | SA0, the user's answer to 2 |
 | SA2 | `:core`: the map (if by hand), the position from the map, tests | Opus, high | winston, no device | SA0, the user (SA1 skipped) |
-| SA3 | `Store`: the position noted once per post, `Store.set` and ⛶ start from it | Opus, high | winston, the emulator | SA2, SW3 |
+| SA3 | `Store`: the position noted once per post, `Store.set` and ⛶ start from it, the switch (default on) | Opus, high | winston, the emulator | SA2, SW3 |
 | SA4 | Tablet pass, then the FP6 with the user | Opus, high | rosie, then a day session with **the user** | SA3 |
 
 ### [ ] SA0. The test on the desktop (Opus, high; a day session with the user)
@@ -200,6 +200,16 @@ position is the frame with the largest sum; "pull": score = sum ÷ sum(middle) �
   the middle on fresh pictures (the 101 of `private/pictures/` not picked in October and the
   APODs since 2 Oct), only those where the two differ; tests the threshold rule on data it
   didn't come from. Decides Open 1.
+- **Round 2's result** (the user, 2026-11-15 evening; https://claude.ai/code/artifact/e6e83bc4-8067-4879-84d1-28e615c2d360,
+  private): 92 fresh pictures (67 old, 25 from 2 Oct to 15 Nov), the split fixed before: auto
+  moves ≥ 0.2 on 29, < 0.2 on 63. "Same" left out: ≥ 0.2 auto 18 : 6 (two-sided p 0.02),
+  < 0.2 23 : 20 (p 0.76), all 41 : 26. The threshold rule held on data it didn't come from.
+- **Decided** (the user, 2026-11-15 evening: "ship with setting but default enabled"; Open 1–3):
+  build it for 0.8.0; the method the importance map unchanged with the pull, used only when it
+  moves the frame by 0.2 or more of the travel, else the middle; **a switch in Setup, default
+  on**; no library. ⛶ overrides it. Its texts placeholders until the user approves them.
+  SA0's script, positions and the round-2 pictures are in `private/sa0/` and
+  `private/pictures-oct-nov/` (gitignored), for SA2's tests.
 
 ### [ ] SA1. The runtime check (Opus, medium; only if a library is still in the race)
 
@@ -211,44 +221,67 @@ position is the frame with the largest sum; "pull": score = sum ÷ sum(middle) �
 
 ### [ ] SA2. `:core`: the position from the map (Opus, high)
 
-Read first: this file's "How it would fit" and "For the 17 Nov deadline" (and SA0's results
-above), and release-0.8.0.md's "Rules for every 0.8.0 package". Built only if SA0 and the user said so.
-- **No library** for 17 Nov: the map by the method SA0 and the user chose, in plain `:core`
-  Kotlin (the importance map or another no-model one; Glimpse by hand only if the user chose it).
-  The input is an Android-free grey/RGB array of a small copy (`:app`'s `Drawing.kt` decodes it,
-  SA3); SA0's parameters (`sa0/scripts/` in the session's scratchpad are copied into this file's
-  results by the main session) as constants with their reason, as `Background.kt`'s.
-- `subjectPosition(map, w, h, screenW, screenH, sideways): Float?`: the frame's place with the
-  largest sum of the map (SA0's pull to the middle), null when the map is flat (the middle).
+Read first: this file's "How it would fit", "For the 17 Nov deadline" and SA0's results and
+"Decided" above, and release-0.8.0.md's "Rules for every 0.8.0 package".
+- **The map, exactly SA0's importance** (`private/sa0/compute.py`, its `importance` and
+  `position`; port it, don't retune): on a copy `WORK_H` = 128 px high (the long side for a tall
+  picture), RGB 0–1; brightness = the grey Gaussian-smoothed (σ as `compute.py`), detail = the
+  Sobel gradient magnitude of the grey, smoothed, saturation × value; each shifted to 0 and
+  divided by its 99.5th percentile, clipped to 0–1; the map = Gaussian(0.4 · bright + 0.4 ·
+  detail + 0.2 · sat, σ = 0.04 × the short side). Plain Kotlin (a separable Gaussian, a 3×3
+  Sobel, a percentile by sort): no library. The input an Android-free `IntArray` of ARGB pixels
+  with its width and height (`:app`'s `Drawing.kt` decodes the copy, SA3).
+- `subjectPosition(map, mapW, mapH, screenW, screenH, sideways): Float`: `position()`'s score per
+  frame place (the map's column or row sums, the frame's share against the middle frame's, minus
+  `PULL` = 0.10 × (2(p − 0.5))²), its best p; then **the threshold: if |p − 0.5| < 0.2, 0.5**
+  (`SUBJECT_MIN_MOVE`, with its reason: round 1 and 2's numbers). A flat or empty map: 0.5.
   `sideways`: the map turned clockwise, (h, w), position 0 the original's bottom band, so it
   agrees with `sidewaysFrame` (Frame.kt) and SW2's band.
-- **Tests:** a map with its peak left, right, in the middle, flat; the pull; sideways against
-  `sidewaysFrame`'s invariant; SA0's numbers for two or three real pictures (`assumeTrue` on
-  `private/pictures/`).
-- **Done when:** the tests pass; `CLAUDE.md` and the skill's "Where things are".
+- **Tests:** a map with its peak left, right, in the middle, flat; the pull; the threshold
+  (a peak giving p 0.65 → 0.5, one giving 0.75 → 0.75); sideways against `sidewaysFrame`'s
+  invariant; **the desktop's positions**: for every picture in `private/pictures/` and
+  `private/pictures-oct-nov/` (`assumeTrue` on the folders), decoded on the JVM (`ImageIO`, test
+  code only) to the same 128 px copy, `importance_pull` within 0.03 of `private/sa0/positions-
+  253.csv` / `positions-round2.csv` for at least 95% of them (report the misses; JPEG decoders
+  and resampling differ a little).
+- **Done when:** the tests pass; `CLAUDE.md` (Next features, 0.8.0's subject frame: the method,
+  the threshold and both rounds' numbers) and the skill's "Where things are".
 
-### [ ] SA3. `Store`: the position once per post, upright and sideways (Opus, high)
+### [ ] SA3. `Store`: the position once per post, upright and sideways, and the switch (Opus, high)
 
-Read first: this file's "How it would fit" and "For the 17 Nov deadline", and release-0.8.0.md's "Rules for every 0.8.0 package".
-After SA2 and SW3.
-- `refresh`, after a stored download (~869-897, after the `renameTo`), notes both positions
-  (`<source>.subjectPosition` and `<source>.subjectSideways`, keyed by the post's date and picture
-  URL as `cropDate`/`cropUrl`); on a failure nothing (the middle). A post stored before 0.8.0
-  gets none (no migration).
-- **Where it applies** (the user's part from ⛶ always wins): `Store.set` (`part?.position ?:
-  0.5f`, ~1565), the measure (`frameGrey` gets the same position), `copyForLive` doesn't (Live
-  pans by the clock), ⛶'s start (`startCrop` ~1405), and `setPart`'s no-change check (~1377,
-  today against 0.5: compare with the subject's position, else ✓ without a drag saves and sets
-  again). The effective sideways value (SW3) picks which of the two is used; toggling the pill
-  moves an undragged frame to that orientation's position.
-- **No setting** (Open 3's default: it's built only when it clearly wins, then it's the default;
-  the middle stays the fallback and ⛶ moves it).
-- **Device** (rosie, the emulator): a picture whose subject is off the middle (from SA0's list,
-  faked into `files/` as the skill says), set by `run -f 1`: the frame on the subject; ⛶ opens
-  there; ✓ elsewhere wins; sideways (SW3's switch or the pill) uses the sideways position; a new
-  post starts afresh; a broken picture gives the middle; the smoke list.
-- **Done when:** the tests and the device pass; `CLAUDE.md` (The app, Wallpaper and Choosing the
-  part); the maps (`page.md` K for ⛶'s start, `background.md` the job's set).
+Read first: this file's "How it would fit", "For the 17 Nov deadline" and "Decided", and
+release-0.8.0.md's "Rules for every 0.8.0 package". After SA2 and SW3.
+- `refresh`, after a stored download (~869-897, after the `renameTo`), decodes a copy 128 px
+  high (`Drawing.kt`, upright) and notes both positions (`<source>.subjectPosition` and
+  `<source>.subjectSideways`, keyed by the post's date and picture URL as `cropDate`/`cropUrl`);
+  on a failure nothing (logged; the middle). Logged `Subject: APOD 2026-11-16 p=0.78 (sideways
+  0.50) in <n> ms`. A post stored before 0.8.0 gets none (no migration); with D1 the next job
+  run doesn't re-download, so it stays the middle until the next post.
+- **The switch** in Setup after "Wide pictures sideways" (SW3), with a small ⓘ, part of the
+  draft as "Darken bright pictures" (`Setup.subject`, the pref `subject`, **default on**,
+  `Store.setup`, `saveSetup`, `draft()`/`adopt`, `setupChanged()`, the saved state, the
+  highlight); always shown. **Placeholder texts:** the label "Frame on the subject"; the ⓘ
+  "About Frame on the subject", its dialog "Moves the frame to the picture's subject when it
+  stands clearly off the middle. ⛶ moves it by hand." Add the ⓘ to `CLAUDE.md`'s list of
+  allowed help texts. Off: the middle, as 0.7.0.
+- **Where it applies** while the stored switch is on (the user's part from ⛶ always wins):
+  `Store.set` (`part?.position ?: 0.5f`, ~1565), the measure (`frameGrey` gets the same
+  position), ⛶'s start (`startCrop` ~1405), and `setPart`'s no-change check (~1377: compare with
+  the subject's position, else ✓ without a drag saves and sets again). `copyForLive` doesn't
+  (Live pans by the clock). The effective sideways value (SW3) picks which of the two positions;
+  toggling the pill moves an undragged frame to that orientation's position. The draft's switch
+  in ⛶'s preview: ⛶ follows the stored switch (as "Darken" follows the draft only for the
+  whole preview; night default).
+- **Device** (rosie, the emulator): a picture whose subject is off the middle (round 2's list,
+  `private/sa0/positions-round2.csv` with `importance_pull` ≥ 0.7 or ≤ 0.3, faked into `files/`
+  as the skill says) set by `run -f 1`: the frame on the subject (`debug-set.png`, the log's
+  `Subject:` line); ⛶ opens there; ✓ elsewhere wins; sideways uses the sideways position; a
+  picture with a small move stays in the middle; the switch off and Set: the middle; a new post
+  starts afresh; a broken picture gives the middle; screenshots of the switch and its ⓘ; the
+  smoke list.
+- **Done when:** the tests and the device pass; `CLAUDE.md` (The app, Settings: the switch and
+  the help-text list; Wallpaper and Choosing the part); the maps (`setup.md` a section as
+  "Darken bright pictures"'s, `page.md` K for ⛶'s start, `background.md` the job's set).
 
 ### [ ] SA4. Tablet pass, then the FP6 with the user (Opus, high)
 

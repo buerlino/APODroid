@@ -16,6 +16,7 @@ import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.Environment
+import android.os.Process
 import android.os.SystemClock
 import android.provider.MediaStore
 import android.provider.Settings
@@ -64,6 +65,9 @@ import io.github.buerlino.apodroid.core.fetchLatest
 import io.github.buerlino.apodroid.core.migrate
 import io.github.buerlino.apodroid.core.nextAlarm as coreNextAlarm
 import io.github.buerlino.apodroid.core.screenOnRunOwed as coreScreenOnRunOwed
+import io.github.buerlino.apodroid.core.liveSettling as coreLiveSettling
+import io.github.buerlino.apodroid.core.liveHolds
+import io.github.buerlino.apodroid.core.liveReconnect
 import io.github.buerlino.apodroid.core.randomOffset
 import io.github.buerlino.apodroid.core.retryAfter
 import io.github.buerlino.apodroid.core.orderAlone
@@ -161,6 +165,9 @@ data class Setup(
  * too when the switch went off between two sets and the second was left, O4c).
  */
 data class Updated(val done: String?, val setFailed: Boolean, val failure: Exception?, val wentToSet: Boolean)
+
+/** L8f1: a run held its sets while Android may be rebinding the engine ([Store.liveSettling]): a failed set, retried by the alarms. */
+class LiveSettling : Exception("Live: the engine's process just started, nothing set")
 
 /**
  * What fills APOD's turn on an APOD video day ("If APOD is a video", both modes): "Skip it"
@@ -1043,6 +1050,12 @@ class Store(private val context: Context) {
             sharedNote = prefs.getBoolean("live.shared", false),
             lockColumn = columns[Screen.LOCK].orEmpty().isNotEmpty(),
         )
+        // L8f1: in a process Android just started to rebind the engine (a process death with Live
+        // on) a screen that only looks not live isn't lost: nothing set, the run failed, retried.
+        if (liveHolds(liveSettling, lost)) {
+            Log.i("APODroid", "Live: ${lost.forget.joinToString("+")} not live yet, the engine's process ${processAge.seconds} s old: nothing set")
+            return Triple(null, LiveSettling(), false)
+        }
         if (lost.forget.isNotEmpty()) {
             Log.i("APODroid", "Live: ${if (Screen.HOME in lost.forget) "home isn't live" else "the lock screen isn't live"}, Fill on ${lost.forget.joinToString("+")}")
         }
@@ -1387,6 +1400,22 @@ class Store(private val context: Context) {
         val now = Instant.now()
         return coreScreenOnRunOwed(now, daily, nextAlarm(now), instant("lastRunAt"), stray, liveNoted)
     }
+
+    /** How long ago Android started this process. */
+    private val processAge: Duration
+        get() = Duration.ofMillis(SystemClock.elapsedRealtime() - Process.getStartElapsedRealtime())
+
+    /**
+     * L8f1: a non-preview engine created in this process ([LiveProcess.engine]) less than
+     * `:core`'s [liveReconnect] after its start: Android may be rebinding the engine after a
+     * process death, and its "home isn't live" then isn't trusted (`:core`'s [coreLiveSettling]).
+     */
+    val liveSettling: Boolean
+        get() = coreLiveSettling(LiveProcess.engine, processAge)
+
+    /** L8f1: what's left of [liveSettling]'s grace, zero when none. */
+    val liveSettlingLeft: Duration
+        get() = if (liveSettling) liveReconnect - processAge else Duration.ZERO
 
     /** The one engine on the lock screen too: home live and no lock wallpaper of its own (`getWallpaperId(FLAG_LOCK)` -1; 14+ only, L1). */
     val liveShared: Boolean

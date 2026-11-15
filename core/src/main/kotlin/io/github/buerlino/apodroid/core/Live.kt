@@ -73,24 +73,27 @@ data class LiveSets(val still: List<Pair<Picture, Set<Screen>>>, val engine: Pai
 /**
  * Which of a run's [sets] ([Plan.sets]) the engine takes and which are set still (live-0.7.0.md,
  * "Store, Size and Set"; Decisions 4, 5, 10):
- * - Size [Size.FILL], home not [homeLive], or no home column ([homeColumn] false: Live is
- *   home's): every set still, as 0.6.0 (a still set replaces APODroid's engine like any
- *   wallpaper, a stray on the lock screen too).
+ * - Size [Size.FILL], home not [homeLive], or no home column in [columns] (Live is home's):
+ *   every set still, as 0.6.0 (a still set replaces APODroid's engine like any wallpaper, a
+ *   stray on the lock screen too).
  * - Size Live and home live: home's set goes to the engine; the lock screen's goes to the engine
- *   too only while [shared] (the one engine on both) and it's due home's picture ([homePicture],
- *   home's after the plan, whether or not home is set this run), else it's set still
- *   (`FLAG_LOCK`; a shared engine then moves to home).
+ *   too only while [shared] (the one engine on both), the columns are equal ([equalColumns]: the
+ *   same turns, so the same pan; B28) and it's due home's picture ([homePicture], home's after
+ *   the plan, whether or not home is set this run), else it's set still (`FLAG_LOCK`; a shared
+ *   engine then moves to home). With columns that differ the lock screen's still set comes even
+ *   for home's picture: the one engine has one position, home's, not the lock screen's own.
  * A screen without a column has no set in [sets] (but Decision 12's, [lostLive]) and gets none.
  */
 fun stillOrLive(
     size: Size,
     homeLive: Boolean,
     shared: Boolean,
-    homeColumn: Boolean,
+    columns: Map<Screen, List<Source>>,
     homePicture: Picture?,
     sets: List<Pair<Picture, Set<Screen>>>,
 ): LiveSets {
-    if (size != Size.LIVE || !homeLive || !homeColumn) return LiveSets(sets)
+    if (size != Size.LIVE || !homeLive || columns[Screen.HOME].orEmpty().isEmpty()) return LiveSets(sets)
+    val lockShares = shared && equalColumns(columns)
     val still = mutableListOf<Pair<Picture, Set<Screen>>>()
     val engine = mutableSetOf<Screen>()
     var enginePicture: Picture? = null
@@ -100,7 +103,7 @@ fun stillOrLive(
             enginePicture = picture
         }
         if (Screen.LOCK in screens) {
-            if (shared && (Screen.HOME in screens || picture == homePicture)) {
+            if (lockShares && (Screen.HOME in screens || picture == homePicture)) {
                 engine += Screen.LOCK
                 if (enginePicture == null) enginePicture = picture
             } else {
@@ -163,18 +166,23 @@ fun lostLive(homeNoted: Boolean, lockNoted: Boolean, homeLive: Boolean, shared: 
 }
 
 /**
- * Whether home's hand-over in [split] ([stillOrLive]) would also change a lock screen the one
- * engine covers ([shared]) that has a column ([lockColumn]) and has no set of its own in this run
- * (L6, found by SIM): the engine would draw home's new picture there while the lock screen's
- * record names its own. The caller then forgets the lock screen's record and plans again, so it
- * gets its due picture this run: the engine's too when it's home's new one, else its still Fill
- * first (Decision 10). When it holds for that second plan too (nothing of its own to show, B27),
- * the lock screen keeps what the engine draws now by a still set before the hand-over, its record
- * kept. With equal columns the lock screen is due home's picture with it, so never.
+ * Whether a lock screen the one engine covers ([shared]) that has a column in [columns] and has
+ * no set of its own in [split] ([stillOrLive]) has to leave the engine this run: when home's
+ * hand-over would change it (L6, found by SIM: the engine would draw home's new picture there
+ * while the lock screen's record names its own), or whenever the columns differ (B28, the
+ * tablet's real night: the one engine pans by home's turns, not the lock screen's, even over the
+ * same picture). The caller then forgets the lock screen's record and plans again, so it gets its
+ * due picture this run: the engine's too when it's home's new one and the columns are equal, else
+ * its still Fill first (Decision 10). When it holds for that second plan too (nothing of its own
+ * to show, B27), the lock screen keeps what the engine draws now by a still set before the
+ * hand-over, its record kept. With equal columns the lock screen is due home's picture with it,
+ * so only without a hand-over (never).
  */
-fun lockFollowsHome(split: LiveSets, shared: Boolean, lockColumn: Boolean): Boolean {
-    val (_, screens) = split.engine ?: return false
-    return shared && lockColumn && Screen.HOME in screens && Screen.LOCK !in screens && split.still.none { Screen.LOCK in it.second }
+fun lockFollowsHome(split: LiveSets, shared: Boolean, columns: Map<Screen, List<Source>>): Boolean {
+    if (!shared || columns[Screen.LOCK].orEmpty().isEmpty() || split.still.any { Screen.LOCK in it.second }) return false
+    val engine = split.engine?.second.orEmpty()
+    if (Screen.LOCK in engine) return false
+    return Screen.HOME in engine || !equalColumns(columns)
 }
 
 /**

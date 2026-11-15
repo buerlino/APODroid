@@ -179,54 +179,54 @@ class LiveTest {
 
     @Test
     fun sizeFillSetsEverythingStill() {
-        assertEquals(LiveSets(both), stillOrLive(Size.FILL, homeLive = true, shared = true, homeColumn = true, homePicture = x, sets = both))
-        assertEquals(LiveSets(apart), stillOrLive(Size.FILL, homeLive = true, shared = false, homeColumn = true, homePicture = x, sets = apart))
+        assertEquals(LiveSets(both), stillOrLive(Size.FILL, homeLive = true, shared = true, columns = equal, homePicture = x, sets = both))
+        assertEquals(LiveSets(apart), stillOrLive(Size.FILL, homeLive = true, shared = false, columns = equal, homePicture = x, sets = apart))
     }
 
     @Test
     fun liveOnHomeOnlySetsTheLockScreenStill() {
         assertEquals(
             LiveSets(listOf(x to setOf(LOCK)), x to setOf(HOME)),
-            stillOrLive(Size.LIVE, homeLive = true, shared = false, homeColumn = true, homePicture = x, sets = both),
+            stillOrLive(Size.LIVE, homeLive = true, shared = false, columns = equal, homePicture = x, sets = both),
         )
     }
 
     @Test
     fun oneEngineOnBothTakesTheSamePictureWithNoStillSet() {
-        assertEquals(LiveSets(emptyList(), x to setOf(HOME, LOCK)), stillOrLive(Size.LIVE, true, true, true, x, both))
+        assertEquals(LiveSets(emptyList(), x to setOf(HOME, LOCK)), stillOrLive(Size.LIVE, true, true, equal, x, both))
         // The lock screen alone due home's picture (home's is on already): noted live, no set.
-        assertEquals(LiveSets(emptyList(), x to setOf(LOCK)), stillOrLive(Size.LIVE, true, true, true, x, listOf(x to setOf(LOCK))))
+        assertEquals(LiveSets(emptyList(), x to setOf(LOCK)), stillOrLive(Size.LIVE, true, true, equal, x, listOf(x to setOf(LOCK))))
     }
 
     @Test
     fun differentPicturesSetTheLockScreenStillBeforeHomesHandOver() {
-        val sets = stillOrLive(Size.LIVE, true, true, true, x, apart)
+        val sets = stillOrLive(Size.LIVE, true, true, equal, x, apart)
         assertEquals(LiveSets(listOf(y to setOf(LOCK)), x to setOf(HOME)), sets)
         // The lock screen alone due another picture than home's: still.
-        assertEquals(LiveSets(listOf(y to setOf(LOCK))), stillOrLive(Size.LIVE, true, true, true, x, listOf(y to setOf(LOCK))))
+        assertEquals(LiveSets(listOf(y to setOf(LOCK))), stillOrLive(Size.LIVE, true, true, equal, x, listOf(y to setOf(LOCK))))
     }
 
     @Test
     fun liveWithHomeNotLiveSetsEverythingStill() {
-        assertEquals(LiveSets(both), stillOrLive(Size.LIVE, homeLive = false, shared = false, homeColumn = true, homePicture = x, sets = both))
+        assertEquals(LiveSets(both), stillOrLive(Size.LIVE, homeLive = false, shared = false, columns = equal, homePicture = x, sets = both))
         // Also a lock screen the engine still shows (a stray after home's revert).
-        assertEquals(LiveSets(both), stillOrLive(Size.LIVE, homeLive = false, shared = true, homeColumn = true, homePicture = x, sets = both))
-        assertEquals(LiveSets(listOf(x to setOf(LOCK))), stillOrLive(Size.LIVE, false, true, true, x, listOf(x to setOf(LOCK))))
+        assertEquals(LiveSets(both), stillOrLive(Size.LIVE, homeLive = false, shared = true, columns = equal, homePicture = x, sets = both))
+        assertEquals(LiveSets(listOf(x to setOf(LOCK))), stillOrLive(Size.LIVE, false, true, equal, x, listOf(x to setOf(LOCK))))
     }
 
     @Test
     fun noHomeColumnSetsEverythingStill() {
         val lock = listOf(y to setOf(LOCK))
-        assertEquals(LiveSets(lock), stillOrLive(Size.LIVE, homeLive = true, shared = true, homeColumn = false, homePicture = null, sets = lock))
+        assertEquals(LiveSets(lock), stillOrLive(Size.LIVE, homeLive = true, shared = true, columns = mapOf(HOME to emptyList(), LOCK to listOf(NASA)), homePicture = null, sets = lock))
     }
 
     @Test
     fun aScreenWithoutAColumnGetsNothing() {
         // APOD mode's "Where" Home: the plan has home's set only, the lock screen gets none.
         val home = listOf(x to setOf(HOME))
-        assertEquals(LiveSets(emptyList(), x to setOf(HOME)), stillOrLive(Size.LIVE, true, true, true, x, home))
-        assertEquals(LiveSets(emptyList(), x to setOf(HOME)), stillOrLive(Size.LIVE, true, false, true, x, home))
-        assertEquals(LiveSets(emptyList()), stillOrLive(Size.LIVE, true, true, true, x, emptyList()))
+        assertEquals(LiveSets(emptyList(), x to setOf(HOME)), stillOrLive(Size.LIVE, true, true, equal, x, home))
+        assertEquals(LiveSets(emptyList(), x to setOf(HOME)), stillOrLive(Size.LIVE, true, false, equal, x, home))
+        assertEquals(LiveSets(emptyList()), stillOrLive(Size.LIVE, true, true, equal, x, emptyList()))
     }
 
     // Lost Live
@@ -266,7 +266,7 @@ class LiveTest {
             assertEquals(records.getValue(LOCK).owner, lock.owner)
             assertEquals(records.getValue(LOCK).stamp, lock.stamp)
             // Still: the engine doesn't cover the lock screen.
-            assertEquals(LiveSets(plan.sets), stillOrLive(Size.LIVE, true, false, true, records.getValue(HOME).picture, plan.sets))
+            assertEquals(LiveSets(plan.sets), stillOrLive(Size.LIVE, true, false, columns, records.getValue(HOME).picture, plan.sets))
         }
     }
 
@@ -284,7 +284,7 @@ class LiveTest {
                 assertEquals(bare(records.getValue(screen)), bare(plan.screens.getValue(screen).record))
             }
             if (columns != different) assertEquals(1, plan.sets.size)
-            val split = stillOrLive(Size.LIVE, homeLive = false, shared = true, homeColumn = true, homePicture = records.getValue(HOME).picture, sets = plan.sets)
+            val split = stillOrLive(Size.LIVE, homeLive = false, shared = true, columns = columns, homePicture = records.getValue(HOME).picture, sets = plan.sets)
             assertEquals(LiveSets(plan.sets), split)
             assertNull(split.engine)
         }
@@ -300,7 +300,7 @@ class LiveTest {
         val plan = lost.onPlan(due(columns, lost.forgetting(records)), records)
         val home = records.getValue(HOME).picture!!
         assertEquals(listOf(home to setOf(HOME, LOCK)), plan.sets)
-        assertEquals(LiveSets(plan.sets), stillOrLive(Size.LIVE, false, true, true, home, plan.sets))
+        assertEquals(LiveSets(plan.sets), stillOrLive(Size.LIVE, false, true, columns, home, plan.sets))
     }
 
     @Test
@@ -413,14 +413,62 @@ class LiveTest {
     fun homesHandOverOverASharedLockScreenNotDueItMakesTheLockScreenFollow() {
         // Home's new picture to the engine while it covers a lock screen of another column with nothing due there.
         val handOver = LiveSets(emptyList(), x to setOf(HOME))
-        assertTrue(lockFollowsHome(handOver, shared = true, lockColumn = true))
-        assertFalse(lockFollowsHome(handOver, shared = false, lockColumn = true))
-        assertFalse(lockFollowsHome(handOver, shared = true, lockColumn = false))
+        assertTrue(lockFollowsHome(handOver, shared = true, columns = split))
+        assertFalse(lockFollowsHome(handOver, shared = false, columns = split))
+        assertFalse(lockFollowsHome(handOver, shared = true, columns = homeOnly))
         // The lock screen has its own set this run, or goes with home: no.
-        assertFalse(lockFollowsHome(LiveSets(listOf(y to setOf(LOCK)), x to setOf(HOME)), shared = true, lockColumn = true))
-        assertFalse(lockFollowsHome(LiveSets(emptyList(), x to setOf(HOME, LOCK)), shared = true, lockColumn = true))
-        // Nothing for the engine: no.
-        assertFalse(lockFollowsHome(LiveSets(listOf(y to setOf(LOCK))), shared = true, lockColumn = true))
+        assertFalse(lockFollowsHome(LiveSets(listOf(y to setOf(LOCK)), x to setOf(HOME)), shared = true, columns = split))
+        assertFalse(lockFollowsHome(LiveSets(emptyList(), x to setOf(HOME, LOCK)), shared = true, columns = equal))
+        // Nothing for the engine and the lock screen's own still set: no.
+        assertFalse(lockFollowsHome(LiveSets(listOf(y to setOf(LOCK))), shared = true, columns = split))
+        // Nothing at all this run with equal columns: the shared engine stays.
+        assertFalse(lockFollowsHome(LiveSets(emptyList()), shared = true, columns = equal))
+    }
+
+    // B28, the tablet's real night of 2026-11-15: home APOD + NASA every 6 h, the lock screen APOD
+    // alone, the picker's "Home screen" made one shared engine; both showed APOD, so the lock screen
+    // stayed on the engine and panned by home's 6 h turn (p 0.28 at 07:41) instead of its own 18 h.
+    private val night = mapOf(HOME to listOf(APOD, NASA), LOCK to listOf(APOD))
+
+    @Test
+    fun aSharedLockScreenWithAnotherColumnGetsItsOwnStillForHomesPicture() {
+        // Both due home's picture: home to the engine, the lock screen still (FLAG_LOCK).
+        assertEquals(LiveSets(listOf(x to setOf(LOCK)), x to setOf(HOME)), stillOrLive(Size.LIVE, true, true, night, x, both))
+        // The lock screen alone due home's picture: still, not noted live.
+        assertEquals(LiveSets(listOf(x to setOf(LOCK))), stillOrLive(Size.LIVE, true, true, night, x, listOf(x to setOf(LOCK))))
+    }
+
+    @Test
+    fun aSharedLockScreenWithTheSameColumnStaysOnTheEngine() {
+        val same = mapOf(HOME to listOf(APOD, NASA), LOCK to listOf(NASA, APOD))
+        assertEquals(LiveSets(emptyList(), x to setOf(HOME, LOCK)), stillOrLive(Size.LIVE, true, true, same, x, both))
+        assertFalse(lockFollowsHome(LiveSets(emptyList()), shared = true, columns = same))
+    }
+
+    @Test
+    fun aLockScreenNotSharedIsUnchangedByItsColumn() {
+        for (columns in listOf(night, equal)) {
+            assertEquals(LiveSets(listOf(x to setOf(LOCK)), x to setOf(HOME)), stillOrLive(Size.LIVE, true, false, columns, x, both))
+            assertFalse(lockFollowsHome(LiveSets(emptyList(), x to setOf(HOME)), shared = false, columns = columns))
+            assertFalse(lockFollowsHome(LiveSets(emptyList()), shared = false, columns = columns))
+        }
+    }
+
+    @Test
+    fun aSharedLockScreenWithAnotherColumnAndNothingDueLeavesTheEngine() {
+        // The night's run after the picker's: nothing due on either screen, the engine on both.
+        val records = settled(night)
+        val plan = due(night, records)
+        assertTrue(plan.sets.isEmpty())
+        val split = stillOrLive(Size.LIVE, true, true, night, records.getValue(HOME).picture, plan.sets)
+        assertTrue(lockFollowsHome(split, shared = true, columns = night))
+        // Forgotten and planned again: its own picture, still, before nothing for the engine.
+        val again = due(night, records + (LOCK to records.getValue(LOCK).forget()))
+        val lockPicture = records.getValue(LOCK).picture!!
+        assertEquals(listOf(lockPicture to setOf(LOCK)), again.sets)
+        val splitAgain = stillOrLive(Size.LIVE, true, true, night, records.getValue(HOME).picture, again.sets)
+        assertEquals(LiveSets(listOf(lockPicture to setOf(LOCK))), splitAgain)
+        assertFalse(lockFollowsHome(splitAgain, shared = true, columns = night))
     }
 
     // L6f1: a failed lock still set while the engine covers the lock screen holds home's hand-over.
@@ -563,7 +611,7 @@ class LiveTest {
         assertFalse(liveHolds(settling, lost))
         assertEquals(setOf(HOME, LOCK), lost.forget)
         val sets = listOf(y to setOf(HOME, LOCK))
-        assertEquals(LiveSets(sets), stillOrLive(Size.LIVE, homeLive = false, shared = false, homeColumn = true, homePicture = y, sets = sets), "both still")
+        assertEquals(LiveSets(sets), stillOrLive(Size.LIVE, homeLive = false, shared = false, columns = equal, homePicture = y, sets = sets), "both still")
     }
 
     // L8f1 fix round 1: the tablet's split state after one kill: getWallpaperInfo doesn't name APODroid's for minutes, home's id unchanged.

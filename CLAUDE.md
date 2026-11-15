@@ -777,7 +777,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `Live: decoded <w>×<h> in <n> ms`, `Live: drew <picture> p=<0.00> in <n> ms`, and a stray's
   `Live: home isn't live (stray on the lock screen)` (14+, non-preview, at a visibility).
   **Is it on** (`Store.liveOn`, L1's table): home on 14+ when `getWallpaperInfo(FLAG_SYSTEM)`
-  names `LiveWallpaper`, below 14 when `getWallpaperId(FLAG_SYSTEM)` is the id a non-preview
+  names `LiveWallpaper` or home's wallpaper id is the one noted while it did (L8f1's fix round 1,
+  A process death isn't a revert), below 14 when `getWallpaperId(FLAG_SYSTEM)` is the id a non-preview
   engine noted at its start (`live.homeId`; untested, E), and again when the same live wallpaper
   is picked again (R2a, 2026-11-15: Android 11–13 give a new id and send the engine
   `COMMAND_REAPPLY`, `"android.wallpaper.reapply"`, hidden in the SDK, instead of a new engine;
@@ -1102,6 +1103,21 @@ Decision 12's Fill on both comes at that screen-on; the run removes the notes, s
 on a lock screen doesn't start one at every screen-on. `:core`'s `screenOnRunOwed`
 (`LiveTest`), `Store.screenOnRunOwed`. Logged `Live: screen on, run owed`. So a phone whose
 maker holds the alarms gets the picture when the user first looks at it, Live on.
+**A process death isn't a revert** (L8f1, 2026-11-15, regression 12: one `kill -9` with Live on and
+`lastRunAt` over 15 min old set Fill on both screens): Android rebinds the engine in a new process, and
+for a moment then `getWallpaperInfo(FLAG_SYSTEM)` may not name APODroid's, so for 15 s after the start
+of a process a non-preview engine was created in (`:core`'s `liveSettling`, `liveReconnect`;
+`Process.getStartElapsedRealtime`) the engine isn't a stray (it asks again at the grace's end) and a
+run that would forget a screen noted live sets nothing and counts as failed (`liveHolds`, logged
+`Live: HOME+LOCK not live yet, the engine's process 2 s old: nothing set`; the alarms retry 15 min
+after its start); Android's revert after two deaths within 10 s is still found after the grace,
+Fill on both (Decision 12). **The grace alone didn't hold** (fix round 1, 2026-11-15, rosie: in the
+split state, Live on home and the lock screen still, one kill left `getWallpaperInfo(FLAG_SYSTEM)` not
+naming APODroid's for 11 min and more, so the run 30 s on set Fill on both; home's wallpaper id stayed
+the same, while a revert or a new pick gave a new one): on 14+ home is also live while its wallpaper id
+is the one noted while `getWallpaperInfo` named APODroid's (`live.homeId`, `:core`'s `homeLive`; noted
+at each `liveOn` and engine start that finds it so, never by a rebound or stray engine). The grace
+stays (night default; the alternative: drop it, the id covers the rebind).
 
 **The detector** (O14, 2026-11-14; on-time-0.7.0.md, The detector; the texts placeholders until
 the user approves them from the tablet's screenshots): the page notices that the phone stopped

@@ -272,3 +272,47 @@ fun screenOnRunOwed(now: Instant, daily: Boolean, nextAlarm: Instant, lastRun: I
     if (lastRun != null && !lastRun.isAfter(now) && Duration.between(lastRun, now) < screenOnQuiet) return false
     return !nextAlarm.isAfter(now) || (stray && notedLive)
 }
+
+/**
+ * L8f1: how long after its process's start a Live engine's "home isn't live" isn't trusted. A
+ * process death with Live on (a low-memory kill, a crash, `kill -9`) makes Android rebind the
+ * wallpaper service in a new process, and for a moment then `getWallpaperInfo(FLAG_SYSTEM)` didn't
+ * name APODroid's (the tablet, Android 15, regression 12); AOSP gives a rebind 10 s
+ * (`WALLPAPER_RECONNECT_TIMEOUT_MS`) before it reverts, and the process starts after the rebind.
+ */
+val liveReconnect: Duration = Duration.ofSeconds(15)
+
+/**
+ * L8f1: whether the app's process is still in the rebind's grace: a non-preview engine was
+ * created in it ([engine]; a process the page or the job started with no engine, as after a
+ * force stop that dropped Live, has no grace) and it's younger than [liveReconnect]
+ * ([processAge]).
+ */
+fun liveSettling(engine: Boolean, processAge: Duration): Boolean =
+    engine && !processAge.isNegative && processAge < liveReconnect
+
+/**
+ * L8f1 fix round 1: whether APODroid's live wallpaper is on home. [named]: Android says so
+ * (`getWallpaperInfo(FLAG_SYSTEM)` names it, 14+; always false below 14, where the app can't
+ * ask). Else home's wallpaper id [id] equal to the one [noted] while home was live: a rebind
+ * after a process death keeps the id (the tablet, Android 15, split state: `getWallpaperInfo`
+ * didn't name APODroid's for 11 min and more after one `kill -9`, the id unchanged), while
+ * Android's revert (Decision 12), a force stop's default, a still set and a new pick each give
+ * home a new id. An id of 0 or less (none, or a failed read) never matches.
+ */
+fun homeLive(named: Boolean, id: Int, noted: Int?): Boolean = named || (id > 0 && id == noted)
+
+/**
+ * L8f1: a non-preview engine on 14+ is a stray (Decision 12: home reverted, the engine left on
+ * the lock screen) when home isn't live ([homeLive]), but not while [settling] ([liveSettling]):
+ * a rebind isn't a revert. The engine asks again at the grace's end.
+ */
+fun liveStray(homeLive: Boolean, settling: Boolean): Boolean = !homeLive && !settling
+
+/**
+ * L8f1: whether a run holds all its sets: while [settling] ([liveSettling]) a screen noted live
+ * that only looks not live ([lost], [lostLive]'s forget not empty) isn't lost. Nothing is set,
+ * handed over or forgotten, and the run counts as failed, so the alarms retry 15 min after its
+ * start, when a revert (Decision 12) still finds home not live and sets both screens Fill.
+ */
+fun liveHolds(settling: Boolean, lost: LostLive): Boolean = settling && lost.forget.isNotEmpty()

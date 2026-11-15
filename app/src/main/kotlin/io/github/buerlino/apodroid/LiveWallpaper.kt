@@ -19,6 +19,7 @@ import androidx.core.graphics.scale
 import io.github.buerlino.apodroid.core.LIVE_DECODE_BUDGET
 import io.github.buerlino.apodroid.core.Screen
 import io.github.buerlino.apodroid.core.liveDecodeSize
+import io.github.buerlino.apodroid.core.liveStray
 import java.io.File
 import java.time.Instant
 import java.util.Locale
@@ -41,6 +42,12 @@ import java.util.concurrent.Executors
  * ([liveDecodeSize]), so a rotation decodes nothing. Nothing throws out of it: two crashes of
  * the process within 10 s revert home to the default wallpaper.
  */
+/** L8f1: whether a non-preview engine was created in this process ([Store.liveSettling]). */
+internal object LiveProcess {
+    @Volatile
+    var engine = false
+}
+
 class LiveWallpaper : WallpaperService() {
     override fun onCreateEngine(): Engine = LiveEngine()
 
@@ -69,6 +76,13 @@ class LiveWallpaper : WallpaperService() {
         /** The frame last drawn, so the minute's tick draws only when it moved a pixel. */
         private var drawnFrame: Rect? = null
 
+        /** L8f1: at the rebind's grace's end, a visible engine asks again whether it's a stray ([checkStray], [runIfOwed]). */
+        private val settled = Runnable {
+            if (destroyed || !visible) return@Runnable
+            checkStray()
+            runIfOwed()
+        }
+
         private val tick = object : Runnable {
             override fun run() {
                 if (destroyed || !visible) return
@@ -84,8 +98,10 @@ class LiveWallpaper : WallpaperService() {
                 val store = Store(applicationContext).also { store = it }
                 val flags = if (isPreview) "preview" else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) "$wallpaperFlags" else "home"
                 Log.i(TAG, "Live: engine $flags created")
-                // Below 14 the system can't say whether home is live without QUERY_ALL_PACKAGES: the id says it.
-                if (!isPreview && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) store.noteHomeId()
+                // Home's id says whether home is live: below 14 the system can't say without QUERY_ALL_PACKAGES,
+                // and on 14+ a rebind after a process death may not say it for minutes (noted only while it does).
+                if (!isPreview) store.noteHomeId()
+                if (!isPreview) LiveProcess.engine = true
                 // Home's record and the copy's notes change together (Store.setDue's commit).
                 listener = store.watch { reload() }
                 reload()
@@ -130,6 +146,10 @@ class LiveWallpaper : WallpaperService() {
             checkStray()
             runIfOwed()
             draw()
+            handler.removeCallbacks(settled)
+            safely("wait for the rebind") {
+                store?.liveSettlingLeft?.takeIf { !it.isZero }?.let { handler.postDelayed(settled, it.toMillis() + 1) }
+            }
             handler.postDelayed(tick, TICK_MS)
         }
 
@@ -161,11 +181,13 @@ class LiveWallpaper : WallpaperService() {
         /**
          * A stray (14+): a non-preview engine while `getWallpaperInfo(FLAG_SYSTEM)` doesn't name
          * APODroid's is on the lock screen alone after Android reverted home. It still draws
-         * home's copy; the next run sets both screens Fill (Decision 12). Logged once a turn.
+         * home's copy; the next run sets both screens Fill (Decision 12). Logged once a turn. Not
+         * within the rebind's grace after a process death (L8f1, [Store.liveSettling]): asked
+         * again at its end.
          */
         private fun checkStray() {
             if (isPreview || Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
-            val now = safely("check home") { store?.liveOn(Screen.HOME) == false } == true
+            val now = safely("check home") { store?.let { liveStray(it.liveOn(Screen.HOME), it.liveSettling) } } == true
             if (now && !stray) Log.i(TAG, "Live: home isn't live (stray on the lock screen)")
             stray = now
         }

@@ -210,6 +210,44 @@ From T3 (rosie, 2026-11-15, R8 on the emulator, `.coord/runs/134-t3/tablet/f1-up
 - **Done when:** the Gradle check, the device pass; CLAUDE.md's sentence names the skip within
   the hour.
 
+### [ ] UI1. Setup's last changes from the FP6 (Opus, medium)
+
+(User, 2026-11-16 morning, testing 0.8.0 on the FP6.) Read first: release-0.8.0.md's "Rules for
+every 0.8.0 package"; CLAUDE.md, The app: Settings (Setup's rows, "A hidden setting goes back to
+the stored one", the highlight, Set as wallpaper, Advanced), "Auto: centre when unsure" (SA3b) and
+"Wide pictures sideways" (SW3, SW3f1); `interactions/setup.md` (X, J, the Set rows) and
+`page.md`'s Advanced cases. MainActivity ~2210-2240 (the rows, the Set button, Advanced).
+- **"Auto: centre when unsure" moves into Setup** (out of Advanced), right after "Wide pictures
+  sideways", as a switch with its ⓘ (the dialog text unchanged). The label without the colon:
+  **"Centre when unsure"** (placeholder: the user disliked "Auto: …"; the label for the user's
+  approval from the screenshot). It becomes **part of the draft** like every Setup row (Setup is a
+  draft until Set): `Setup.autoFallback`, `saveSetup` writes the pref `autoFallback` (same key,
+  default on, no migration), the saved state, the highlight ("On, not set yet"), the Setup row's
+  highlight, `orderAlone` comparing it with the rest of `Setup`. Set sets each screen afresh, so
+  a change shows at once. **Shown only while the draft's Size is Auto**; while hidden it goes back
+  to the stored value (CLAUDE.md's rule). Advanced keeps "Save every picture" (with "Largest
+  original") and "Keep running".
+- **"Wide pictures sideways" hidden, not greyed, while the draft's Size is Live** (replaces SW3f1's
+  greyed row); hidden, it goes back to the stored value. The stored value still counts as SW3f1
+  says (`sidewaysOf`: never under the stored Live).
+- **Set as wallpaper pinned at the bottom** while Setup is open: a bar at the bottom of the
+  screen (one column) or of the settings pane (two panes), over the scrolling content, which
+  gets bottom padding of the bar's height so its last row can scroll clear; the navigation bar's
+  inset respected; the theme's surface behind the button. While Setup is closed the button stays
+  in its place after Setup, as now. Enabled and disabled exactly as now; one button, not two
+  (screen readers find it once). No new text.
+- **Tests:** a `:core` test only where logic moves there (`orderAlone` with the new field).
+- **Device** (rosie, the emulator): Setup open, the bar at the bottom while scrolling, the last
+  row reachable above it, in portrait, the landscape two-pane layout and at font scale 2.0;
+  Setup closed: the button in its place, no bar. Size Centre and Live: no "Centre when unsure";
+  Auto: shown; its change highlights it and Setup's title, Set saves it (`autoFallback` in the
+  prefs) and sets at once; turned and then Size Live: the row gone and the draft back to the
+  stored value (Setup's title not highlighted). Live: "Wide pictures sideways" gone; Auto: back.
+  A rotation keeps the draft. Advanced: two switches. The smoke list. Screenshots for the user.
+- **Done when:** the Gradle check, the device pass; CLAUDE.md (Settings' order, the
+  `Setup`/draft list, the highlight list, SW3's and SA3b's paragraphs, Set as wallpaper's place,
+  Advanced's contents, the ⓘ list), the maps (setup.md X5, J, the Set rows; page.md's Advanced).
+
 ## The night's test pass (user, 2026-11-15 night: "test and then fix any issues")
 
 After `night.sh`'s SHIFT DONE (its regression and report done), by the main session, on the

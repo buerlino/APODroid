@@ -788,7 +788,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   readers: "Show explanation" / "Hide explanation" as the tap's label. The open explanation, an
   open ⓘ dialog and the pause hint's "Hide" question survive a rotation as page state
   (`openInfo`, `expandedPost`, `pauseConfirm` in the saved state; FP6 tests, 2026-11-15:
-  `rememberSaveable` lost them between the one-column and two-pane layouts).
+  `rememberSaveable` lost them between the one-column and two-pane layouts). Open per post
+  (`expandedPost`), so a swipe to another source and back keeps it open (0.6.0 closed it; kept,
+  user, 2026-11-16).
   Long press (user, 2026-10-07; the picture already opens the page): on the title block copies
   the page link, on the explanation its text. A toast confirms
   it only below Android 13, which shows its own confirmation. No `SelectionContainer`: its long
@@ -1341,7 +1343,13 @@ stays (night default; the alternative: drop it, the id covers the rebind).
 the app, so the change came only when something started it again. `:core`'s `Detector.kt`
 (`DetectorTest`). **The sign:** a force stop deletes the alarms (`am force-stop`, O7; ZUI's
 cleaner, O8, whose force stop leaves no other sign: `wasForceStopped()` false, the package not
-stopped), a process's death doesn't. So the first arming in a process (`DailyJob.ensure`'s
+stopped), a process's death doesn't. **Android 10–14's gap** (the night's test pass, 2026-11-16,
+the Android 14 emulator: 7 of 10 force stops missed; AOSP's `forceStopPackageLocked`): there a
+force stop deletes the alarms but cancels the `PendingIntent`s only on uninstall, so they live
+until system_server's GC and `FLAG_NO_CREATE` finds them; 15 and 16 cancel them (the
+`stay_stopped` flag, on in AOSP's builds; a maker could turn it off, unchecked). Fix for 0.9.0
+with E (user, 2026-11-16; `release-0.8.0.md` TP1: an exit record `REASON_USER_REQUESTED` after
+the last arming as a second sign on 11–14). So the first arming in a process (`DailyJob.ensure`'s
 `checkAlarms`, from the page's `onResume` or a receiver; not again in a process that armed or
 cancelled them) asks for the pair's `PendingIntent`s with `FLAG_NO_CREATE`; both missing while
 `daily` is on is noted (`alarmsLost`: `alarmsLostAt` and `lostAfterRun`, the last run's start)
@@ -1792,6 +1800,14 @@ library (ML Kit needs Play Services; Tesseract is large). Decided:
   2026-10-19 decision stands); learning per user (was "after 0.6.0", gone with the smart Auto).
   The preview on the page came with Live (0.7.0, L7: ⛶ mode).
 
+**0.8.0's release** (user, 2026-11-16; `release-0.8.0.md`): the night of 15 Nov built and merged
+every package (SW, SA, VS1, D1, R3, the fixes SW3f1, SA3c, D1f1, T3f1); the night's test pass on
+the Android 14 emulator (the four maps, an R8 smoke with the update from 0.7.0) found no FAIL and
+no crash, one DIFFERENT (the detector on 10–14: The detector, Android 10–14's gap; for 0.9.0).
+The texts approved (user, 2026-11-15 night and 2026-11-16): "Wide pictures sideways" and its ⓘ,
+"Auto: centre when unsure" and its ⓘ, the video still's 40% black, the changelog `12.txt` and the
+store description. The tag after the user's FP6 test of the release-signed build over 0.7.0.
+
 **0.7.0's release gate** (user, 2026-11-14 evening: "finish 0.7.0 asap"): the tag on 15 Nov, after the
 tablet's shift (O15, L9's tablet part, T2, the regression, their fix packages) and the FP6 passes with the
 user (L2, O17, L10's first day). **No real week before the tag**, unlike 0.6.0's W: the user tests 0.7.0
@@ -2139,3 +2155,8 @@ press on the title block copies the link).
    days on the page); YouTube days stay black.
 3. Closed (D1, 2026-11-15): a second picture on the same date arrives at the job's next run
    (Background update, A second post on the same date).
+4. For 0.9.0 (user, 2026-11-16, from the night's test pass), log lines only: a whole picture's
+   set line ends `, auto <p>` though it has no frame (also `, auto 0.50` for the fallback's
+   middle); `Refresh: … same post` logs for any stored date (NASA's and Earth's weekend checks),
+   not only today's; turning the daily switch on in a fresh process logs `Detector: the alarms
+   found gone` (no box follows).

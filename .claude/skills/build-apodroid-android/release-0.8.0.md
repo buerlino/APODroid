@@ -246,7 +246,7 @@ emulator `emulator-5564` (Android 14) and dev's debug build; nothing pushed, mas
   detector, TP1 below), the R8 smoke (the update from 0.7.0 with T3f1, SW3f1, the smoke list)
   PASS; no crash. T3f1 (T3's FIX) merged before the testers (#138).
 
-### [ ] TP1. The detector's sign on Android 11–14 (Opus, medium) — waits for the user
+### [ ] TP1. The detector's sign on Android 11–14 (Opus, medium) — 0.9.0
 
 From the background tester (2026-11-16, map background.md J2, P17's sign; the emulator, Android
 14): after `am force-stop` and a page open, no `Detector: the alarms found gone` in 7 of 10 tries,
@@ -263,5 +263,6 @@ Not a 0.8.0 regression; Android 10–14 moved to 0.9.0 (E).
   (`armedAt`) as "the alarms gone"; on 35+ `ApplicationStartInfo.wasForceStopped()` adds nothing
   the `PendingIntent`s don't show (ZUI's cleaner set neither, O8). A force stop with no process
   alive leaves no exit record on 14: accepted. API 29: as now.
-- **The question:** 0.8.0 (before the tag) or 0.9.0 with E? Recommended: 0.9.0, where E can test
-  it on 10–14; 0.8.0 ships the detector as 0.7.0 did.
+- **Decided** (user, 2026-11-16): 0.9.0, with E, which can test it on 10–14; 0.8.0 ships the
+  detector as 0.7.0 did. The changelog `12.txt` and the store description approved as written;
+  the open explanation kept across a swipe; the log oddities (CLAUDE.md, Open question 4) for 0.9.0.

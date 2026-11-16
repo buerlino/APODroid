@@ -164,6 +164,8 @@ What each brought: the tags and `changelogs/<versionCode>.txt`.
 - 0.6.0 (10): 2026-11-02, after its release gate (Next features) and the tag's build on the FP6.
 - 0.7.0 (11): 2026-11-15, after its release gate (Next features) and the FP6's re-test of the
   user-signed build.
+- 0.8.0 (12): 2026-11-16, after the night's test pass on the Android 14 emulator and the FP6's
+  update over 0.7.0 with the user's release-signed build (UI1 and FP1 from that test).
 
 ## Data source (checked 2026-10-01)
 

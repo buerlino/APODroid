@@ -55,7 +55,7 @@ Leaf format: **id**: pre → steps → screen / log / adb. "Set" = tap "Set as w
 ### A. The Setup row and its summary
 - **A1** closed at a fresh start (Recents-swipe, open): row "Setup", summary under it = stored setup, "▾". B0: "Home: NASA · Lock: APOD · 06:00 · Live". Tap → opens ("▴", summary hidden). Tap again → closes.
 - **A2** auto-open: any draft change that makes the draft differ opens it (LaunchedEffect, MainActivity.kt:2164); closing it by hand is allowed while highlighted; a rotation reopens it (the effect runs again on recreation).
-- **A3** highlight: title "Setup" in tertiary while anything shown in Setup differs (MainActivity.kt:2397-2401): mode switch, shown mode's Where (APOD mode) or list rows / order (list mode), Size, New picture at, As soon as it's out, Change every, If APOD is a video, Darken, Wide pictures sideways (SW3). Not the daily switch, not Advanced. Changing a value and back = no highlight.
+- **A3** highlight: title "Setup" in tertiary while anything shown in Setup differs (MainActivity.kt:2397-2401): mode switch, shown mode's Where (APOD mode) or list rows / order (list mode), Size, New picture at, As soon as it's out, Change every, If APOD is a video, Darken, Wide pictures sideways (SW3), Centre when unsure (UI1). Not the daily switch, not Advanced. Changing a value and back = no highlight.
 - **A4** after a Set that saved and didn't fail: Setup closes (also after `NTS`) (MainActivity.kt:1217); summary shows the new stored setup.
 - **A5** summary forms (MainActivity.kt:2428-2448): "X · both screens" when both columns have the same sources; "X · home screen"/"X · lock screen" when one is empty; else "Home: X · Lock: Y"; names in the stored order; then " · every 24 h from 06:00" when a column has ≥2 (daily on), " · 06:00" otherwise, nothing with daily off; " · Live" with Size Live. "As soon as it's out", Darken and Wide pictures sideways never appear.
 - **A6** summary is the stored setup: while the draft differs and Setup is closed, the summary still shows the stored one.
@@ -135,7 +135,7 @@ Order (≡ drag, "Move up"/"Move down")
 - **I2** off + Set → `Wset`; `Set:` entries have no `, darker` suffix. Visual: a bright picture is brighter than before.
 - **I3** on + Set → entries carry `, darker ×0.xx (grey nnn)` for a picture whose top third is > 100 grey; else identical.
 
-### X. Wide pictures sideways (always shown; SW3, 0.8.0; texts placeholders)
+### X. Wide pictures sideways (SW3, 0.8.0; hidden under the draft's Live since UI1; texts placeholders)
 The switch after "Darken bright pictures", the pref `wideSideways`, default off; the rule `:core`'s
 `sidewaysByDefault` (width ≥ 1.5 × height, by the file's upright size, `Store.kt`'s `uprightSize`), the
 value used `Store.turnsSideways` (the part's noted `<source>.sideways`, else the rule while the
@@ -144,8 +144,8 @@ Auto's). Needs a 3:2 or wider picture on a screen (9 Nov's APOD faked into `file
 with the skill's recipe), a 1.2:1 one and a portrait one for the upright cases.
 - **X1** ⓘ "About Wide pictures sideways" → dialog "Turns a wide picture a quarter turn, so more of it
   fills the screen. ⛶ › Sideways changes one picture." → OK. Toggle on → label and switch tertiary,
-  screen readers "On, not set yet"; Setup's title tertiary (also with the daily switch off: never
-  hidden, never put back); the summary unchanged (it never names it).
+  screen readers "On, not set yet"; Setup's title tertiary (also with the daily switch off); the
+  summary unchanged (it never names it).
 - **X2** on + Set → `Wset`; each screen set afresh: a 3:2 or wider picture without a noted part
   `Set: wallpaper set: <pic> on <screens>, sideways[, darker …]` (`debug-set.png` turned); a 1.2:1, a
   portrait or square one, and "my picture", without ", sideways" (`setStream`, upright). Not "the
@@ -155,14 +155,15 @@ with the skill's recipe), a 1.2:1 one and a portrait one for the upright cases.
   leaves the key missing (the switch's default).
 - **X4** off + Set → `Wset`; the wide picture upright again (no ", sideways"), a noted "on" part
   still sideways.
-- **X5** (SW3f1) draft Size Live → the switch's row greyed out (label and switch at 38%, the ⓘ still
-  opens its dialog, the toggle does nothing; screen readers "Disabled"), its value and highlight kept.
-  Set with Live on home: the hand-over of a wide picture without a noted part notes
+- **X5** (UI1, replaces SW3f1's greyed row) draft Size Live → the row gone (no label, no ⓘ, no
+  switch; screen readers don't find it), the draft back to the stored value: a toggled, unsaved switch
+  loses its change, its highlight and Setup's title highlight (when nothing else differs). Size back to
+  Auto or Centre: the row again, at the stored value. Set with Live on home: the hand-over of a wide picture without a noted part notes
   `live.sideways=false`, `wallpaper shown live: <pic> on HOME[, …]` without ", sideways"; a lock
   screen with its own still upright too (no ", sideways"). A part ✓'d "Sideways" on under Live:
   `live.sideways=true`, the engine's `Live: decoded W×H` portrait-shaped. ⛶ under the stored Live
   opens the pill on the part's noted value, else off. Size back to Auto (or Centre) and Set: the row
-  enabled, the wide picture sideways again (", sideways").
+  shown, the wide picture sideways again (", sideways").
 - **X6** a rotation and the system killing the app (P19's way) keep the draft's switch and its
   highlight; a Recents swipe drops it.
 
@@ -172,6 +173,16 @@ with the skill's recipe), a 1.2:1 one and a portrait one for the upright cases.
 - **J2** with Centre or Auto and a column on home emptied later, the home wallpaper is just left alone.
 - **J3** Auto: each still set's frame (a post without a ⛶ part) stands at the subject noted for the post (`<source>.subjectPosition`, `subjectSideways` for a sideways set; background.md E8), through `autoPosition`: the middle for a move under 0.2 while the pref `autoFallback` is on (default; its switch is SA3b's), else the subject. The set's log line notes `, auto 0.78` (the position used, `0.50` when it fell back). No subject noted or none found: the middle, no note. A ⛶ part wins (no note). **T3f1 (fixed at 28b46c7):** a page open or Set within the hour of the source's last check (`checkedRecently`) skips `checkSite` but notes a missing subject (the update from 0.7.0) all the same (`Subject: …`), so that Set's frame stands at the subject.
 - **J4** Centre: every still set at the middle (or the ⛶ part), no `, auto` note. Auto ↔ Centre is a Setup change (highlight, Set sets each screen afresh).
+- **J6** "Centre when unsure" (UI1; was SA3b's Advanced switch "Auto: centre when unsure"; label a
+  placeholder): a switch with ⓘ after "Wide pictures sideways", **only while the draft's Size is Auto**
+  (also with the daily switch off). ⓘ "About Centre when unsure" → dialog "With Size Auto, a picture
+  whose subject is only slightly off the middle stays centred. Off: Auto places every frame." → OK.
+  Toggle off → label and switch tertiary, "Off, not set yet", Setup's title tertiary; the summary
+  unchanged. Set → `Wset`, each screen set afresh, `autoFallback=false` in the prefs; a picture whose
+  subject moves the frame less than 0.2 now `, auto 0.6x` (was `, auto 0.50`). Not "the order alone".
+  Toggled, not Set, then Size Centre or Live → the row gone, the draft back to the stored value (Setup's
+  title not highlighted when nothing else differs); back to Auto → the stored value. A rotation keeps
+  the draft and its highlight. An update from 0.8.0 keeps the stored pref (same key, default on).
 - **J5** Live: the screens left still (a lock screen with its own column, home after a lost Live) at the middle (or the ⛶ part), as 0.7.0 (night default); Live's pan unchanged.
 
 ### K. The daily switch ("Change automatically", acts at once)
@@ -198,6 +209,13 @@ with the skill's recipe), a 1.2:1 one and a portrait one for the upright cases.
 - **M4** `CantSet`: a set threw (not provokable safely). Setup stays open.
 - **M5** `CantSave`: commit failed (full disk; not testable). Setup stays open; sets still run.
 - **M6** Set button greyed during Set and during the switch-on run.
+- **M9** (UI1) the button's place: Setup closed → after the Setup row, in the scroll (no bar). Setup
+  open → in a bar pinned at the bottom of the screen (one column) or of the settings pane (two panes),
+  the theme's surface behind it and a line above, above the navigation bar; the content scrolls under
+  it and its last row ("Wide pictures sideways" or "Centre when unsure", or Advanced's last row while
+  open) scrolls clear above it; also at font scale 2.0 (the bar taller, the space with it). One button
+  (TalkBack finds "Set as wallpaper" once). After a Set that saved, Setup closes and the button is back
+  in its place.
 - **M7** Set with crop mode open → the dragged part is kept and saved with the setup (don't run on the user's phone: changes today's part).
 - **M8** Set always re-arms (`Daily job: alarms for …`) with daily on, cancels with it off.
 
@@ -249,7 +267,9 @@ Each step starts where the previous ended. Before every Set: `adb logcat -c`; af
 | P32 | X2 | Set. | `Wset`; `Set: wallpaper set: <wide pic> on …, sideways`; a 1.2:1 or portrait picture on a screen without ", sideways". |
 | P33 | X3 | ⛶ on the wide picture → "✓ Sideways" shown (white) → tap it off → ✓. | `Wset`; `Part: wallpaper set: … ` without ", sideways"; `<source>.sideways=false` (debug). The next post of that source sideways again (page.md K24). |
 | P34 | X4 | Setup ▾ → toggle off → Set. | `Wset`; the wide picture upright (no ", sideways"); a part ✓'d "Sideways" on still turned. Restores the switch's default. |
-| P34a | X5 | (SW3f1) switch on, Size Auto, Set; then Size Live → screenshot → tap the row → ⓘ → OK → Set ("Home screen" in the picker); ⛶ → "Sideways" on → ✓; Size Auto → Set. | Greyed row (screenshot), the tap changes nothing, the dialog opens; `live.sideways=false`, hand-over and lock still without ", sideways"; after ⛶'s ✓ `live.sideways=true`, `… on HOME, sideways`; after Auto + Set the row enabled, `Set: wallpaper set: …, sideways` for the unnoted wide picture. |
+| P34a | X5 | (UI1) switch on, Size Auto, Set; then toggle it off (not Set) → Size Live → screenshot → Set ("Home screen" in the picker); ⛶ → "Sideways" on → ✓; Size Auto → Set. | No "Wide pictures sideways" row under Live (screenshot), Setup's title not tertiary from it; `wideSideways=true` still in the prefs after the Set; `live.sideways=false`, hand-over and lock still without ", sideways"; after ⛶'s ✓ `live.sideways=true`, `… on HOME, sideways`; after Auto the row back, on, untinted; Set: `Set: wallpaper set: …, sideways` for the unnoted wide picture. |
+| P34b | J6 | (UI1) Size Auto: "Centre when unsure" after "Wide pictures sideways" → ⓘ → OK → toggle off → screenshot → rotate → Set. Then toggle on → Size Centre → Size Live → Size Auto. | Dialog text as J6; label and switch tertiary, Setup's title tertiary, kept after the rotation; Set: `Wset`, `autoFallback=false`, Setup closes. Under Centre and Live the row gone and Setup's title untinted; back on Auto the row off (stored), untinted. Advanced: two switches. Restore: on + Set. |
+| P34c | M9 | (UI1) Setup open → scroll to the end; portrait, the landscape two-pane layout, font scale 2.0; Setup closed. | Open: the bar at the bottom (screen or settings pane), the last row fully visible above it at the end of the scroll, the bar above the navigation bar; closed: the button after the Setup row, no bar. Screenshots. |
 | P35 | J0 | (SA3a; the emulator) Setup ▾ → screenshot of Size in portrait, then in the landscape pane. | Three segments "Centre", "Auto", "Live", none wrapping alone; the stored one selected. |
 | P36 | J3, J4 | (the emulator; a picture whose subject is ≥ 0.2 off the middle on a screen, background.md E8) Size "Auto" → Set; then "Centre" → Set; then "Auto" → Set. | Auto: `Set: wallpaper set: … , auto 0.8x` (the noted position), `dumpsys wallpaper`'s crop off the middle; Centre: no `, auto`, the crop the middle; Auto again as the first. |
 

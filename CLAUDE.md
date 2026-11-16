@@ -316,25 +316,32 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (Setup is the draft, Advanced acts at once), then in APOD mode **Where**, with the switch on
   **Pictures from** (the list); then, always, **Size**; while the daily switch is on **New picture at**, "As soon as
   it's out" under it, then, while a column takes turns, "Change every", and "If APOD is a video";
-  then, always, "Darken bright pictures" and "Wide pictures sideways". Closed at a fresh start; it
+  then, always, "Darken bright pictures", then "Wide pictures sideways" (not while the draft's
+  Size is Live) and "Centre when unsure" (only while it's Auto; UI1). Closed at a fresh start; it
   opens by itself while the draft differs from the store in it, when "More NASA pictures" is
   turned (the area swaps), and closes after a Set that saved (also "Setup saved. Nothing to set
   yet."; a failed set leaves it open). Its state and Advanced's survive a rotation (the saved
-  state). **Set as wallpaper**, always, after Setup. **Advanced settings**, the same kind of
+  state). **Set as wallpaper**, always: after Setup while it's closed; while it's open in a bar
+  pinned at the bottom of the screen (one column) or of the settings pane (two panes), over the
+  scrolling content, the theme's `surface` behind it and a line above it, inside the page's
+  safe-drawing padding (so above the navigation bar); the content ends with a space of the bar's
+  height, so its last row scrolls clear (UI1, user, 2026-11-16, from the FP6; one button, never
+  two). **Advanced settings**, the same kind of
   row (no summary), closed by default, only while the daily switch is on (empty otherwise):
-  "Save every picture" with "Largest original" under it while on, then "Auto: centre when
-  unsure" (SA3b), then "Keep running" (O11).
-  - **Auto: centre when unsure** (SA3b, 2026-11-15; Next features, 0.8.0: Fill's frame on the
-    subject; the label and the ⓘ placeholders until the user's look): a switch in Advanced
-    settings after "Save every picture"'s group, before "Keep running", with a small ⓘ ("About
-    Auto: centre when unsure"; its dialog "With Size Auto, a picture whose subject is only
-    slightly off the middle stays centred. Off: Auto places every frame."), the pref
-    `autoFallback` (`Store.autoFallback`), default on, acting at once (not part of the draft,
-    never highlighted, nothing set: the next set uses it, as "Save every picture" changes no
-    picture). On: Auto keeps the middle for a subject that moves the frame less than 0.2 of
-    its travel (Wallpaper: Auto, the subject); off: Auto places every frame on its subject.
-    Shown only while the daily switch is on, as Advanced is; a one-off Set with the daily switch
-    off uses the stored pref (night default).
+  "Save every picture" with "Largest original" under it while on, then "Keep running" (O11).
+  - **Centre when unsure** (UI1, user, 2026-11-16, from the FP6: into Setup, the label without
+    "Auto:", a placeholder until the user's look; SA3b, 2026-11-15, built it as "Auto: centre
+    when unsure" in Advanced, acting at once; Next features, 0.8.0: Fill's frame on the
+    subject): a switch in Setup after "Wide pictures sideways", **shown only while the draft's
+    Size is Auto** (hidden, it goes back to the stored value), with a small ⓘ ("About Centre
+    when unsure"; its dialog "With Size Auto, a picture whose subject is only slightly off the
+    middle stays centred. Off: Auto places every frame.", unchanged), the pref `autoFallback`
+    (`Setup.autoFallback`, `Store.autoFallback`; the same key, default on, no migration). Part
+    of the draft as "Darken bright pictures" (`saveSetup`, the saved state, the highlight, "On,
+    not set yet", Setup's title; a change isn't "the order alone"); shown with the daily switch
+    off too. Set sets each screen afresh, so a change shows at once. On: Auto keeps the middle
+    for a subject that moves the frame less than 0.2 of its travel (Wallpaper: Auto, the
+    subject); off: Auto places every frame on its subject. Setup's summary doesn't name it.
   - **New picture at** (the label and the times approved by the user, 2026-10-24): a dropdown
     as "Largest original", the button "06:00 ▾" (12/24 h as the system says: "6:00 AM ▾"), a
     menu of 00:00 … 23:00 with ✓ before the chosen one, screen readers "New picture at: 06:00".
@@ -372,12 +379,11 @@ set it as wallpaper, and on video days kept the old wallpaper.
     (SW3f1, user, 2026-11-15: by the stored Size; with Live both screens stay upright, home's
     hand-over and the lock screen's still alike, one rule; a part noted by ⛶'s pill is
     unchanged under every Size); "my picture" never (no part, Fill centred). Part of the draft
-    as "Darken bright pictures" (the highlight, "On, not set yet", the saved state; always
-    shown, so never put back; a change isn't "the order alone"). Greyed out (disabled, the
-    label at 38% as Android does, the ⓘ still opens; screen readers "Disabled") while the
-    draft's Size is Live; it keeps its value, Set saves it, and it applies again when Size goes
-    back. Set sets each screen afresh. Setup's summary doesn't name
-    it.
+    as "Darken bright pictures" (the highlight, "On, not set yet", the saved state;
+    a change isn't "the order alone"). **Hidden while the draft's Size is Live** (UI1, user,
+    2026-11-16; replaces SW3f1's greyed-out row): hidden, it goes back to the stored value, so
+    Set saves the stored one; the stored value still counts as above (never under the stored
+    Live). Set sets each screen afresh. Setup's summary doesn't name it.
   - **Size** (L6, 2026-11-14; `live-0.7.0.md`, "Store, Size and Set"; the heading "Size" and
     the segments "Fill" and "Live" approved by the user, 2026-11-15; since 0.8.0, SA3a,
     [Centre | Auto | Live], the segments "Centre", "Auto", "Live" the user's, 2026-11-15:
@@ -406,7 +412,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "Setup" row's title while anything in it differs (the shown mode's "Where" or list and its
     order, the
     mode switch, Size, "New picture at", "As soon as it's out", "Change every", "If APOD is a
-    video", "Darken bright pictures", "Wide pictures sideways"; not ⛶). Not the daily
+    video", "Darken bright pictures", "Wide pictures sideways", "Centre when unsure"; not ⛶). Not the daily
     switch, nor Advanced (they act at once). Screen readers: a highlighted control's state adds
     "not set yet" ("Selected, not set yet", "Checked, not set yet", "On, not set yet"; the rows
     "collapsed, not set yet").
@@ -414,12 +420,13 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks, dropdowns and
     order), Size,
     "New picture at", "As soon as it's out", "Change every", "If APOD is a video", "Darken
-    bright pictures", "Wide pictures sideways", a newly picked "my picture" and the switch "More NASA pictures" change only the page
+    bright pictures", "Wide pictures sideways", "Centre when unsure", a newly picked "my picture" and the switch "More NASA pictures" change only the page
     (`MainActivity`'s draft state; no pref is written, no set, no scheduling). **A hidden
     setting goes back to the stored one** (user, 2026-10-22: else Set saved a hidden "Change
     every", and "Setup" stayed highlighted with nothing in it highlighted): "Change every" while
     it's hidden (no column with two or more, or the daily switch off), "New picture at", "As
-    soon as it's out", "If APOD is a video" and a newly picked "my picture" while the daily switch is off; so Set
+    soon as it's out", "If APOD is a video" and a newly picked "my picture" while the daily switch is off,
+    "Wide pictures sideways" while the draft's Size is Live, "Centre when unsure" while it isn't Auto (UI1); so Set
     saves, and "Setup" highlights, only what the page shows. Likewise the mode the page doesn't
     show (FP6 tests, 2026-11-15, P4 and P17: saved unmarked, and a hidden "Where" spoiled "the
     order alone"): Set saves the stored "Where" while the list shows and the stored list in
@@ -462,11 +469,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
     box, the battery hint, the opening page. **The job follows the stored setup only:**
     `onResume`'s `DailyJob.ensure` reads `store.daily`, the stored mode and columns; only Set
     and the daily switch schedule or cancel (Set by the stored switch, after saving the draft).
-    **At once:** Advanced ("Save every picture", "Largest original", "Auto: centre when
-    unsure": they change no picture, the next set uses the last; "Keep running", which starts or
-    stops its service),
+    **At once:** Advanced ("Save every picture", "Largest original": they change no picture, the
+    next set uses the last; "Keep running", which starts or stops its service),
     ★, and ⛶'s ✓ (U0, 2026-11-02: Choosing the part).
-  - **Set as wallpaper**: one button at the end of the Wallpaper section, both modes, the daily
+  - **Set as wallpaper**: one button at the end of the Wallpaper section (pinned at the bottom while Setup is open, UI1), both modes, the daily
     switch on or off, no Home / Lock / Both menu, enabled unless a Set or the daily switch's run goes. It saves the whole
     draft in one commit (`Store.saveSetup`: the settings, the list with its `lastScreens`, the
     parts, "my picture" renamed from `fallback-draft.jpg` to `fallback.jpg`), forgets the
@@ -615,7 +621,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Wide pictures sideways, SW3; Auto: centre when unsure, SA3b; Keep running, Background update).
+    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Wide pictures sideways, SW3; Centre when unsure, UI1; Keep running, Background update).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. **The still behind ▶**
   (VS1, 2026-11-15; `video-0.8.0.md`; Open question 2): when the video is NASA's own mp4
@@ -845,7 +851,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   middle), else the middle (Centre; under Size Live the screens that stay still, a lock screen
   with its own column, home after a lost Live: night default, the alternative Auto); the measure
   follows the same frame. `autoPosition` keeps the middle for a move under 0.2 while the pref
-  `autoFallback` is on (default; `Store.autoFallback`, Advanced's "Auto: centre when unsure"). The
+  `autoFallback` is on (default; `Store.autoFallback`, Setup's "Centre when unsure", UI1). The
   set's log line notes ", auto 0.78" (the position used) while Auto placed it by a subject.
   "My picture" has none (centred); Live's pan and its copy unchanged.
   **The darkening** (BR2, 2026-11-14; GitHub issue #2; the figures in Next features, 0.7.0:
@@ -1038,7 +1044,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   previous one, `notedPosition`, null staying null; the pref `<source>.cropPosition` removed for
   null, read only when there; the saved state's line writes and reads "null", `Part.toText`,
   `partOf`; a part from 0.7.0 keeps its number). So a part ✓'d only for "Whole picture" or the
-  "Sideways" pill keeps following Size (Centre ↔ Auto), "Auto: centre when unsure" and "Wide
+  "Sideways" pill keeps following Size (Centre ↔ Auto), "Centre when unsure" and "Wide
   pictures sideways". Toggling the pill moves an undragged frame to that orientation's position
   (a dragged one keeps its number). ✓'s no-change check (the page's) compares where the frames
   stand, so ✓ without a drag on a frame at the subject sets nothing; a drag that ends where the

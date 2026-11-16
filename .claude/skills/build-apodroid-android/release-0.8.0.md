@@ -240,3 +240,28 @@ emulator `emulator-5564` (Android 14) and dev's debug build; nothing pushed, mas
 4. **Last:** an R8 smoke of the final dev (T3's recipe: R8 debug-signed over v0.7.0's), and the
    morning report `.coord/test-pass-0.8.0/report.md`: what ran, what failed, what was fixed,
    the questions.
+- **Ran** (2026-11-16, 00:23–02:10, dev c3cff29 debug and its R8, `.coord/test-pass-0.8.0/`): the
+  maps brought to 3a4db15 (wp/maps-080, merged); setup 27 PASS, page 30 PASS, live 33 PASS (4
+  SKIPPED: AOSP 14's preview has no "Lock screen" alone), background 16 PASS and 1 DIFFERENT (the
+  detector, TP1 below), the R8 smoke (the update from 0.7.0 with T3f1, SW3f1, the smoke list)
+  PASS; no crash. T3f1 (T3's FIX) merged before the testers (#138).
+
+### [ ] TP1. The detector's sign on Android 11–14 (Opus, medium) — waits for the user
+
+From the background tester (2026-11-16, map background.md J2, P17's sign; the emulator, Android
+14): after `am force-stop` and a page open, no `Detector: the alarms found gone` in 7 of 10 tries,
+though `dumpsys alarm` listed no APODroid alarm each time. **Why** (AOSP read 2026-11-16,
+android14-release `ActivityManagerService.forceStopPackageLocked`): on 14 a force stop cancels a
+package's `PendingIntent`s only `if (packageName == null || uninstalling)`; the records live on
+(weakly held) until system_server's GC, so `DailyJob.checkAlarms`' `FLAG_NO_CREATE` (DailyJob.kt
+~209-216) finds them. On 15 and 16 they go too (`clearPendingIntentsForStoppedApp`, the
+`stay_stopped` flag, on in ap3a, ap4a, bp1a): so the tablet and the FP6 are right. Alarms go on
+every version. So on Android 10–14 the detector (O14) mostly stays silent after a force stop.
+Not a 0.8.0 regression; Android 10–14 moved to 0.9.0 (E).
+- **The idea** (to decide): on API 30–34 count also a `getHistoricalProcessExitReasons` entry
+  with `REASON_USER_REQUESTED` (a force stop's, also `pm clear`'s) newer than the last arming
+  (`armedAt`) as "the alarms gone"; on 35+ `ApplicationStartInfo.wasForceStopped()` adds nothing
+  the `PendingIntent`s don't show (ZUI's cleaner set neither, O8). A force stop with no process
+  alive leaves no exit record on 14: accepted. API 29: as now.
+- **The question:** 0.8.0 (before the tag) or 0.9.0 with E? Recommended: 0.9.0, where E can test
+  it on 10–14; 0.8.0 ships the detector as 0.7.0 did.

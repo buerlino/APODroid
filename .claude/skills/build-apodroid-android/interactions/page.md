@@ -306,7 +306,7 @@ pill opens on the value the set uses, the part's noted one, else, while the **st
   sideways, so the band stands at that position along the other axis (night default).
 With Size Auto (SA3b, 0.8.0; `startCrop`, `frameOf`, `cropMoved`, `:core`'s `framePosition`,
 `notedPosition`, `Part.kt`): ⛶ opens where the screen has the frame, by the **stored** Size, the
-sideways value used and the stored "Auto: centre when unsure" (A7); `Part.position` stays null until
+sideways value used and the stored "Centre when unsure" (setup.md J6; Advanced's A7 before UI1); `Part.position` stays null until
 the frame is dragged. Set up: a picture whose noted subject moves the frame 0.2 or more
 (`<source>.subjectPosition` in the prefs, the `Subject:` line), the stored Size Auto.
 - **K27 ⛶ on the subject picture, no stored part.** The frame at the subject (the `Subject:` line's
@@ -474,8 +474,8 @@ Under "Change automatically" while it's on, from the stored records.
 
 Shown only while the daily switch is on; closed by default; act at once (no highlight).
 - **A1 Tap "Advanced settings".** NOW. Opens ("▴"): "Save every picture" + ⓘ + switch, then (if on)
-  "Largest original 20 MB ▾", then "Auto: centre when unsure" + ⓘ + switch (SA3b, on by default),
-  then "Keep running" + ⓘ + switch. Tap again: closes.
+  "Largest original 20 MB ▾", then "Keep running" + ⓘ + switch (two switches: "Centre when unsure"
+  moved to Setup, UI1, setup.md J6). Tap again: closes.
 - **A2 ⓘ of "Save every picture".** NOW. Dialog "Saves each new picture to Pictures/APODroid: full
   size up to the limit, else screen size. A few hundred MB a month or more." OK, Back or a tap outside
   closes; the switch doesn't toggle.
@@ -493,14 +493,7 @@ Shown only while the daily switch is on; closed by default; act at once (no high
   (`Keep running: couldn't start: …` / `refused: …` on a refusal). **Don't tap "Stop" there.**
   - **A5a Off.** The service stops (no `ServiceRecord`), Active apps no longer lists it. Leave as found.
 - **A6 Rotate with Advanced open:** stays open (saved state).
-- **A7 ⓘ of "Auto: centre when unsure"** (SA3b). Dialog "With Size Auto, a picture whose subject is
-  only slightly off the middle stays centred. Off: Auto places every frame." OK, Back or a tap outside
-  closes; the switch doesn't toggle.
-- **A8 "Auto: centre when unsure" off.** At once, never highlighted, nothing set, no toast, no log;
-  the pref `autoFallback=false`. The next set with Size Auto of a picture whose subject moves the frame
-  less than 0.2 (`run -f 1` after a new post or a forgotten record, or Set) places it at the subject
-  (`, auto 0.6x`); ⛶ on it opens there (K27). On again: the middle at the next set. A one-off Set with
-  the daily switch off (the switch hidden) uses the stored pref.
+- **A7, A8** gone with UI1: "Centre when unsure" is Setup's, part of the draft (setup.md J6).
 
 ### D. "Change automatically" (MA:1015-1077, 2167-2173; ST:484-490; DJ:295-308)
 
@@ -612,7 +605,7 @@ settings). Deletions and restores are part of the list.
 33. **K27, K28, K29, K31** (SA3b): a picture whose `Subject:` line's `p=` is ≥ 0.2 off the middle,
     Size Auto stored: ⛶ opens at it; ✓ untouched: nothing; drag ✓: `cropPosition`, no `, auto`; the
     pill on an undragged frame jumps to `subjectSideways`.
-34. **A7, A8** (SA3b): the ⓘ text; off: `autoFallback=false`, nothing set; then a picture with
-    `p=0.55`–`0.65` set again (forget its record, `run -f 1`): `, auto 0.6x`; on again.
+34. **setup.md J6** (UI1; was A7, A8): Setup's "Centre when unsure" off + Set: `autoFallback=false`,
+    a picture with `p=0.55`–`0.65` `, auto 0.6x`; on again + Set.
 35. **K30, K33**: an undragged Whole part, Size Centre ↔ Auto and Set: the undragged frame follows
     Size, a dragged one stays.

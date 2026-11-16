@@ -1045,8 +1045,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
   null, read only when there; the saved state's line writes and reads "null", `Part.toText`,
   `partOf`; a part from 0.7.0 keeps its number). So a part ✓'d only for "Whole picture" or the
   "Sideways" pill keeps following Size (Centre ↔ Auto), "Centre when unsure" and "Wide
-  pictures sideways". Toggling the pill moves an undragged frame to that orientation's position
-  (a dragged one keeps its number). ✓'s no-change check (the page's) compares where the frames
+  pictures sideways". **A drag belongs to the orientation it was made in** (FP1, 2026-11-16,
+  the user's FP6 test: a band dragged sideways, the pill turned off and ✓ noted the band's
+  position as the upright frame's, so Auto's subject was lost): toggling the pill drops this
+  crop mode's drag (`cropMoved` cleared) and moves the frame to where ✓ would then put it, the
+  part's previous position in that orientation (null: Size and the subject; a stored number keeps
+  it), until it's dragged again. ✓'s no-change check (the page's) compares where the frames
   stand, so ✓ without a drag on a frame at the subject sets nothing; a drag that ends where the
   frame stood anyway is saved without a set (as a touched pill, SW3).
   **With Live** (L7, 2026-11-14; Decision 7): while the **stored** Size is Live, Live is on

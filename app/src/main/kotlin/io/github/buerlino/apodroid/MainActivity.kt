@@ -1790,12 +1790,12 @@ class MainActivity : ComponentActivity() {
                         .toggleable(cropSideways, role = Role.Switch) {
                             cropSidewaysTouched = true
                             // FP1: a drag belongs to the orientation it was made in, so a turn
-                            // drops it; the frame goes where that orientation puts it without
-                            // a position (SA3b: Size and the subject), and ✓ keeps the part's
-                            // previous position unless the frame is dragged again.
+                            // drops this crop mode's drag; the frame goes where ✓ would then put
+                            // it, the part's previous position (null: Size and the subject, SA3b;
+                            // a stored number keeps it, K26), until it's dragged again.
                             if (it != cropSideways) {
                                 cropMoved = false
-                                cropPosition = frameOf(post, parts.forPost(post)?.copy(position = null), it)
+                                cropPosition = frameOf(post, parts.forPost(post), it)
                             }
                             cropSideways = it
                         }

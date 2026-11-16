@@ -325,6 +325,12 @@ the frame is dragged. Set up: a picture whose noted subject moves the frame 0.2 
 - **K31 The pill on an undragged frame** (a landscape picture): the band jumps to the sideways
   subject's position (`subjectSideways`, the middle without one or with Centre); tap it back: the
   upright one. After a drag (K29) the pill keeps the number (K26).
+- **K31a A drag belongs to its orientation** (FP1, 2026-11-16, the FP6's bug): Size Auto, a
+  landscape picture under 3:2 whose subject is off the middle, no stored part. ⛶, pill on, drag
+  the band, pill off: the frame jumps back to the upright subject; ✓: no `<source>.cropPosition`
+  in the prefs (`<source>.sideways=false` noted), and the next Set logs `, auto <p>`. Pill on,
+  drag, ✓: `cropPosition` noted, `, sideways`. Pill off, drag, ✓: the upright drag noted, no
+  `, auto`. A page scroll started on the picture counts as a drag.
 - **K32 Rotate in crop mode:** crop mode closes (K12); an undragged part stays undragged. A Set with
   crop mode open (K21) stores the undragged part with the setup: `cropPosition` absent.
 - **K33 A dragged part, then Size Centre ↔ Auto and Set:** the part's position stays (the drag wins);
@@ -604,7 +610,8 @@ settings). Deletions and restores are part of the list.
     again. **K24, K24a–c** with "Wide pictures sideways" stored on (setup.md P31–P32 first).
 33. **K27, K28, K29, K31** (SA3b): a picture whose `Subject:` line's `p=` is ≥ 0.2 off the middle,
     Size Auto stored: ⛶ opens at it; ✓ untouched: nothing; drag ✓: `cropPosition`, no `, auto`; the
-    pill on an undragged frame jumps to `subjectSideways`.
+    pill on an undragged frame jumps to `subjectSideways`. **K31a** (FP1): drag sideways, pill off,
+    ✓: no `cropPosition`, the next Set `, auto <p>`.
 34. **setup.md J6** (UI1; was A7, A8): Setup's "Centre when unsure" off + Set: `autoFallback=false`,
     a picture with `p=0.55`–`0.65` `, auto 0.6x`; on again + Set.
 35. **K30, K33**: an undragged Whole part, Size Centre ↔ Auto and Set: the undragged frame follows

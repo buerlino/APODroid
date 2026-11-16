@@ -45,6 +45,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
@@ -273,12 +274,6 @@ class MainActivity : ComponentActivity() {
     /** "Largest original" ([Store.saveLimit], MB, 0: no limit): at once, as "Save every picture". */
     private var saveLimit by mutableIntStateOf(20)
 
-    /**
-     * "Auto: centre when unsure" ([Store.autoFallback], SA3b): at once, as "Save every picture"
-     * ([switchAutoFallback]); the next set uses it.
-     */
-    private var autoFallback by mutableStateOf(true)
-
     /** "Keep running" ([Store.keepRunning], O11): at once, as "Save every picture" ([switchKeepRunning]). */
     private var keepRunning by mutableStateOf(false)
 
@@ -311,6 +306,9 @@ class MainActivity : ComponentActivity() {
 
     /** "Wide pictures sideways" ([Store.wideSideways], SW3): a picture 3:2 or wider goes on sideways unless ⛶ noted otherwise. */
     private var wideSideways by mutableStateOf(false)
+
+    /** "Centre when unsure" ([Store.autoFallback], UI1; SA3b's Advanced switch before): Auto keeps the middle for a small move. */
+    private var autoFallback by mutableStateOf(true)
 
     /** Size ([Store.size], L6, SA3a): Centre, Auto (the frame on the subject), or Live (home's picture moving, drawn by APODroid's live wallpaper). */
     private var size by mutableStateOf(Sizing.AUTO)
@@ -538,7 +536,6 @@ class MainActivity : ComponentActivity() {
         saveEvery = store.saveEvery
         saveLimit = store.saveLimit
         keepRunning = store.keepRunning
-        autoFallback = store.autoFallback
         pauseHintHidden = store.pauseHintHidden
         videoNoticeDate = store.videoNoticeDate
         videoNoticeHidden = store.videoNoticeHidden
@@ -593,7 +590,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, wideSideways)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, wideSideways, autoFallback)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -606,6 +603,7 @@ class MainActivity : ComponentActivity() {
         soon = setup.soon
         darken = setup.darken
         wideSideways = setup.wideSideways
+        autoFallback = setup.autoFallback
         order = setup.order
         size = setup.size
     }
@@ -812,7 +810,6 @@ class MainActivity : ComponentActivity() {
     private fun readStatus() {
         stored = store.setup
         parts = stored.parts
-        autoFallback = store.autoFallback
         hasFallback = store.fallbackFile.exists()
         apod = store.apod
         pageScreen = store.pageScreen
@@ -1351,12 +1348,6 @@ class MainActivity : ComponentActivity() {
         store.saveEvery = on
     }
 
-    /** "Auto: centre when unsure" (SA3b): at once, nothing set; the next set uses it ([Store.set]). */
-    private fun switchAutoFallback(on: Boolean) {
-        autoFallback = on
-        store.autoFallback = on
-    }
-
     /** "Keep running" (O11): at once, the service started or stopped ([KeepRunning.ensure]). */
     private fun switchKeepRunning(on: Boolean) {
         keepRunning = on
@@ -1569,13 +1560,22 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun Page() {
         BoxWithConstraints(Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
+            // UI1: while Setup is open, Set as wallpaper stands in a bar pinned at the bottom of the
+            // screen (one column) or of the settings pane, over the scrolling content, which ends
+            // with a space of the bar's height so its last row scrolls clear.
+            var barHeight by remember { mutableIntStateOf(0) }
+            val barSpace = with(LocalDensity.current) { barHeight.toDp() }
             if (maxWidth < 600.dp) {
-                PullToRefreshBox(isRefreshing = refreshing, onRefresh = ::pullToRefresh) {
-                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                        PictureSide()
-                        HorizontalDivider()
-                        Settings()
+                Box(Modifier.fillMaxSize()) {
+                    PullToRefreshBox(isRefreshing = refreshing, onRefresh = ::pullToRefresh) {
+                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                            PictureSide()
+                            HorizontalDivider()
+                            Settings()
+                            if (setupOpen) Spacer(Modifier.height(barSpace))
+                        }
                     }
+                    if (setupOpen) SetBar(Modifier.align(Alignment.BottomCenter).onSizeChanged { barHeight = it.height })
                 }
             } else {
                 Row {
@@ -1585,8 +1585,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     VerticalDivider()
-                    Column(Modifier.weight(0.45f).fillMaxHeight().verticalScroll(rememberScrollState())) {
-                        Settings()
+                    Box(Modifier.weight(0.45f).fillMaxHeight()) {
+                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                            Settings()
+                            if (setupOpen) Spacer(Modifier.height(barSpace))
+                        }
+                        if (setupOpen) SetBar(Modifier.align(Alignment.BottomCenter).onSizeChanged { barHeight = it.height })
                     }
                 }
             }
@@ -2140,10 +2144,12 @@ class MainActivity : ComponentActivity() {
      * "Setup" (S5), a header that opens and closes the draft's settings (closed: the summary of
      * what is stored): the switch "More NASA pictures" at its top (J3), then in APOD mode
      * "Where", with the switch on the list ("Pictures from"), then Size [Centre | Auto | Live] (L6, SA3a); while the daily switch is on "New
-     * picture at", then, while a column takes turns, "Change every", and "If APOD is a video".
-     * The set button, always. Then, while the daily switch is on, "Advanced settings", closed by
-     * default: "Save every picture" (it acts at once). A setting the draft changed and Set
-     * hasn't saved shows in `tertiary` ([highlight]).
+     * picture at", then, while a column takes turns, "Change every", and "If APOD is a video";
+     * "Darken bright pictures", "Wide pictures sideways" (not with Live) and "Centre when unsure"
+     * (Auto only; UI1). The set button, always: here while Setup is closed, else pinned at the
+     * bottom ([SetBar], UI1). Then, while the daily switch is on, "Advanced settings", closed by
+     * default: "Save every picture" and "Keep running" (they act at once). A setting the draft
+     * changed and Set hasn't saved shows in `tertiary` ([highlight]).
      */
     @Composable
     private fun Settings() {
@@ -2159,6 +2165,9 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(daily, videoDays, draftFallback, stored.videoDays) { if (!daily) dropVideoDays() }
         LaunchedEffect(daily, pictureAt, stored.pictureAt) { if (!daily) pictureAt = stored.pictureAt }
         LaunchedEffect(daily, soon, stored.soon) { if (!daily) soon = stored.soon }
+        // UI1: "Wide pictures sideways" hidden under the draft's Live, "Centre when unsure" shown only with Auto.
+        LaunchedEffect(size, wideSideways, stored.wideSideways) { if (size == Sizing.LIVE) wideSideways = stored.wideSideways }
+        LaunchedEffect(size, autoFallback, stored.autoFallback) { if (size != Sizing.AUTO) autoFallback = stored.autoFallback }
         val setupChanged = setupChanged()
         // Opens by itself while the draft differs (a rotation, the system killing the app).
         LaunchedEffect(setupChanged) { if (setupChanged) setupOpen = true }
@@ -2212,33 +2221,31 @@ class MainActivity : ComponentActivity() {
                     "Darken bright pictures", darken, stored.darken, about = "About Darken bright pictures",
                     info = "Darkens a bright picture a little, so the clock and widgets stay readable.",
                 ) { darken = it }
-                // SW3: always shown, so never put back; the effective value is the stored switch's (Store.turnsSideways).
-                // SW3f1: Centre's and Auto's, so greyed out while the draft's Size is Live; it keeps its value and Set saves it.
-                DraftSwitch(
-                    "Wide pictures sideways", wideSideways, stored.wideSideways, about = "About Wide pictures sideways",
-                    info = "Turns a wide picture a quarter turn, so more of it fills the screen. ⛶ › Sideways changes one picture.",
-                    enabled = size != Sizing.LIVE,
-                ) { wideSideways = it }
+                // SW3, UI1: Centre's and Auto's, so hidden while the draft's Size is Live (put back to the stored value).
+                if (size != Sizing.LIVE) {
+                    DraftSwitch(
+                        "Wide pictures sideways", wideSideways, stored.wideSideways, about = "About Wide pictures sideways",
+                        info = "Turns a wide picture a quarter turn, so more of it fills the screen. ⛶ › Sideways changes one picture.",
+                    ) { wideSideways = it }
+                }
+                // UI1 (was SA3b's Advanced switch): Auto's, part of the draft, shown only with Size Auto.
+                if (size == Sizing.AUTO) {
+                    DraftSwitch(
+                        "Centre when unsure", autoFallback, stored.autoFallback, about = "About Centre when unsure",
+                        info = "With Size Auto, a picture whose subject is only slightly off the middle stays centred. " +
+                            "Off: Auto places every frame.",
+                    ) { autoFallback = it }
+                }
             }
-            // One button, both modes, the daily switch on or off: it applies the whole draft.
-            Button(
-                onClick = ::setAsWallpaper,
-                enabled = !setting && !switching,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            ) { Text("Set as wallpaper") }
+            // One button, both modes, the daily switch on or off: it applies the whole draft. While Setup is
+            // open it stands in the bar pinned at the bottom instead (UI1, SetBar): one button, never two.
+            if (!setupOpen) SetButton(Modifier.fillMaxWidth().padding(top = 8.dp))
 
             // Empty while the daily switch is off: hidden then.
             if (daily) {
                 Header("Advanced settings", advancedOpen, changed = false) { advancedOpen = !advancedOpen }
                 if (advancedOpen) {
                     SaveEverySwitch()
-                    // SA3b: at once, not the draft, so never highlighted; the next set uses it.
-                    DraftSwitch(
-                        "Auto: centre when unsure", autoFallback, autoFallback, about = "About Auto: centre when unsure",
-                        info = "With Size Auto, a picture whose subject is only slightly off the middle stays centred. " +
-                            "Off: Auto places every frame.",
-                        onChange = ::switchAutoFallback,
-                    )
                     val keepRow = remember { BringIntoViewRequester() }
                     // At once, not the draft: the stored state is the shown one, so never highlighted.
                     Box(Modifier.bringIntoViewRequester(keepRow)) {
@@ -2255,6 +2262,27 @@ class MainActivity : ComponentActivity() {
                         showKeepRunning = false
                     }
                 }
+            }
+        }
+    }
+
+    /** "Set as wallpaper": enabled unless Set or the daily switch's run goes; it applies the whole draft ([setAsWallpaper]). */
+    @Composable
+    private fun SetButton(modifier: Modifier) {
+        Button(onClick = ::setAsWallpaper, enabled = !setting && !switching, modifier = modifier) { Text("Set as wallpaper") }
+    }
+
+    /**
+     * The bar pinned at the bottom while Setup is open (UI1): the theme's surface behind
+     * [SetButton], a line above it. Inside the page's safe-drawing padding, so above the
+     * navigation bar. The only Set button then ([Settings] leaves its own out).
+     */
+    @Composable
+    private fun SetBar(modifier: Modifier) {
+        Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
+            Column {
+                HorizontalDivider()
+                SetButton(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp))
             }
         }
     }
@@ -2308,20 +2336,15 @@ class MainActivity : ComponentActivity() {
      */
     @Composable
     private fun DraftSwitch(
-        label: String, checked: Boolean, stored: Boolean, about: String, info: String, enabled: Boolean = true,
+        label: String, checked: Boolean, stored: Boolean, about: String, info: String,
         onChange: (Boolean) -> Unit,
     ) {
         val changed = checked != stored
-        // Disabled (SW3f1): the label at 38% as Android greys out (the highlight's tertiary too), the ⓘ still opens.
-        val labelColor = when {
-            enabled -> highlight(changed)
-            changed -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.38f)
-            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-        }
+        val labelColor = highlight(changed)
         Row(
             Modifier
                 .fillMaxWidth()
-                .toggleable(checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)
+                .toggleable(checked, role = Role.Switch, onValueChange = onChange)
                 .semantics { if (changed) stateDescription = "${if (checked) "On" else "Off"}, not set yet" },
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -2340,7 +2363,6 @@ class MainActivity : ComponentActivity() {
             Switch(
                 checked = checked,
                 onCheckedChange = null,
-                enabled = enabled,
                 colors = if (!changed) SwitchDefaults.colors() else SwitchDefaults.colors(
                     checkedTrackColor = colors.tertiary,
                     checkedThumbColor = colors.onTertiary,
@@ -2398,7 +2420,8 @@ class MainActivity : ComponentActivity() {
         allSources != stored.allSources ||
             (if (allSources) Source.entries.any(::rowChanged) || order != stored.order else where != stored.where) ||
             interval != stored.interval || pictureAt != stored.pictureAt || soon != stored.soon ||
-            darken != stored.darken || wideSideways != stored.wideSideways || size != stored.size || videoDaysChanged()
+            darken != stored.darken || wideSideways != stored.wideSideways || size != stored.size ||
+            autoFallback != stored.autoFallback || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
     private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
@@ -3001,6 +3024,7 @@ private fun Setup.toBundle() = Bundle().apply {
     putBoolean("soon", soon)
     putBoolean("darken", darken)
     putBoolean("wideSideways", wideSideways)
+    putBoolean("autoFallback", autoFallback)
     putString("size", size.name)
     putString("order", order.joinToString(",") { it.name })
     // SA3b: a position or sideways not noted is "null" (partOf reads it back).
@@ -3022,6 +3046,7 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         soon = bundle.getBoolean("soon"),
         darken = bundle.getBoolean("darken", true),
         wideSideways = bundle.getBoolean("wideSideways", false),
+        autoFallback = bundle.getBoolean("autoFallback", true),
         size = sizeOf(bundle.getString("size")),
         order = orderOf(bundle.getString("order")),
         parts = Source.entries.mapNotNull { source ->

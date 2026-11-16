@@ -133,7 +133,8 @@ enum class Where(val screens: Set<Screen>) {
  * still set on the subject, [Store.subject]; or Live, home's picture drawn by APODroid's live
  * wallpaper while Android's picker put it on home); [wideSideways] "Wide pictures
  * sideways" (SW3: a picture 3:2 or wider goes on sideways unless its part notes otherwise,
- * [Store.turnsSideways]). Not the daily switch: it acts at once ([Store.switchDaily]).
+ * [Store.turnsSideways]); [autoFallback] "Centre when unsure" (UI1, was SA3b's Advanced switch: with
+ * Size Auto a subject only slightly off the middle stays centred, [Store.autoFallback]). Not the daily switch: it acts at once ([Store.switchDaily]).
  */
 /** A post's subject (SA3a, [Store.subject]): Fill's raw frame positions upright and sideways (`:core`'s subjectPosition), null where none was found. */
 data class Subject(val position: Float?, val sideways: Float?)
@@ -151,6 +152,7 @@ data class Setup(
     val order: List<Source> = Source.entries,
     val size: Sizing = Sizing.AUTO,
     val wideSideways: Boolean = false,
+    val autoFallback: Boolean = true,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
     val columns: Map<Screen, List<Source>>
@@ -325,7 +327,7 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, wideSideways)
+        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, wideSideways, autoFallback)
 
     /**
      * The list's order (OR2, the pref `order`, a comma list of all three; read tolerantly by
@@ -397,6 +399,7 @@ class Store(private val context: Context) {
             putBoolean("soon", setup.soon)
             putBoolean("darken", setup.darken)
             putBoolean("wideSideways", setup.wideSideways)
+            putBoolean("autoFallback", setup.autoFallback)
             putString("size", setup.size.name)
             if (setup.allSources) putString("order", order.joinToString(",") { it.name })
             if (newOrder) putString("orderFrom", from.toString())
@@ -654,15 +657,14 @@ class Store(private val context: Context) {
         set(value) = prefs.edit { putBoolean("keepRunning", value) }
 
     /**
-     * Auto's fallback (SA3a; SA3b's switch "Auto: centre when unsure" in Advanced settings, at
-     * once, no set: the next set uses it): on, Auto keeps the middle
+     * Auto's fallback (SA3a; Setup's switch "Centre when unsure", part of the [setup] since UI1,
+     * saved by [saveSetup]; was SA3b's "Auto: centre when unsure" in Advanced, at once): on, Auto keeps the middle
      * for a picture whose subject would move the frame less than `:core`'s SUBJECT_MIN_MOVE;
      * off, Auto places every frame on its subject. The pref `autoFallback`, default on; read by
      * each [set].
      */
-    var autoFallback: Boolean
+    val autoFallback: Boolean
         get() = prefs.getBoolean("autoFallback", true)
-        set(value) = prefs.edit { putBoolean("autoFallback", value) }
 
     /** The user hid the hint about Android pausing the app, accepting the warning. */
     var pauseHintHidden: Boolean

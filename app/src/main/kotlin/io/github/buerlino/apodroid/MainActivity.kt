@@ -378,6 +378,7 @@ class MainActivity : ComponentActivity() {
     /**
      * Whether ⛶'s frame was dragged since it opened (SA3b): ✓ then notes [cropPosition]; else the
      * part keeps its previous position (null, not dragged, so the stored Size keeps deciding).
+     * The "Sideways" pill turning the frame clears it (FP1: a drag belongs to its orientation).
      */
     private var cropMoved by mutableStateOf(false)
 
@@ -1787,10 +1788,16 @@ class MainActivity : ComponentActivity() {
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.4f))
                         .toggleable(cropSideways, role = Role.Switch) {
-                            cropSideways = it
                             cropSidewaysTouched = true
-                            // SA3b: an undragged frame goes where that orientation puts it.
-                            if (!cropMoved) cropPosition = frameOf(post, parts.forPost(post), it)
+                            // FP1: a drag belongs to the orientation it was made in, so a turn
+                            // drops it; the frame goes where that orientation puts it without
+                            // a position (SA3b: Size and the subject), and ✓ keeps the part's
+                            // previous position unless the frame is dragged again.
+                            if (it != cropSideways) {
+                                cropMoved = false
+                                cropPosition = frameOf(post, parts.forPost(post)?.copy(position = null), it)
+                            }
+                            cropSideways = it
                         }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                         .clearAndSetSemantics {

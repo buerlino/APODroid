@@ -248,6 +248,31 @@ the stored one", the highlight, Set as wallpaper, Advanced), "Auto: centre when 
   `Setup`/draft list, the highlight list, SW3's and SA3b's paragraphs, Set as wallpaper's place,
   Advanced's contents, the ⓘ list), the maps (setup.md X5, J, the Set rows; page.md's Advanced).
 
+### [ ] FP1. ⛶'s frame dragged sideways kept upright (Opus, medium)
+
+From the user's FP6 test (2026-11-16 morning, 0.8.0 release build over 0.7.0; the debug run
+`.coord/test-pass-0.8.0/debug-auto.md`). Read first: release-0.8.0.md's "Rules for every 0.8.0
+package"; CLAUDE.md, Choosing the part (SA3b's undragged part, SW2's Sideways pill).
+- **The bug:** in ⛶ with the Sideways pill on, a vertical drag on the picture (the band's own
+  gesture, or a page scroll started on the picture) moves the band and sets `cropMoved`
+  (MainActivity `cropFrame` ~2111-2128); turning the pill off keeps `cropPosition` and
+  `cropMoved` (~1789 only re-places an undragged frame), so ✓'s `keepPart` (~1456,
+  `notedPosition`) notes the sideways band's position as the upright frame's. Seen: the FP6's
+  Set with Size Auto went on at 0.557 (`mCropHint` 861–1977 of 2663) instead of the subject 0.17,
+  no `, auto`; ⛶ opened there after.
+- **The fix:** a drag belongs to the orientation it was made in. When the pill changes
+  orientation, `cropMoved = false` and `cropPosition = frameOf(post, the part without a
+  position, the new orientation)`, so ✓ notes the previous stored position (null: Size and the
+  subject decide) unless the frame is dragged again in the new orientation. Whole picture
+  unchanged. No new text.
+- **Tests:** none in `:core` unless logic moves there.
+- **Device** (rosie, the emulator, Size Auto, a landscape picture under 3:2 with a subject off the
+  middle): ⛶, pill on, drag the band, pill off, ✓: no `cropPosition` in the prefs, the next Set
+  logs `, auto <p>`; pill on, drag, ✓: `cropPosition` noted, `, sideways`; pill off, drag, ✓:
+  the upright drag noted. The smoke list.
+- **Done when:** the Gradle check, the device pass; CLAUDE.md (Choosing the part: a drag belongs
+  to its orientation); `interactions/page.md`'s ⛶ cases.
+
 ## The night's test pass (user, 2026-11-15 night: "test and then fix any issues")
 
 After `night.sh`'s SHIFT DONE (its regression and report done), by the main session, on the

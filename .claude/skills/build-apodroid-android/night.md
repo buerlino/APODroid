@@ -161,6 +161,7 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 58 | D1f1 | Seed 1204: confirm the app, tighten invariant 12 | winston | opus, medium | no | D1 | release-0.8.0.md D1f1 |
 | 59 | T3f1 | Auto's subject at a page open or Set within the hour | winston | opus, medium | yes | SA3c | release-0.8.0.md T3f1 |
 | 60 | UI1 | Setup's last changes: Centre when unsure into Setup, hide sideways under Live, Set pinned | winston | opus, medium | yes | T3f1 | release-0.8.0.md UI1 |
+| 61 | FP1 | ⛶'s frame dragged sideways kept upright: drop the drag when the pill turns | winston | opus, medium | yes | UI1 | release-0.8.0.md FP1 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

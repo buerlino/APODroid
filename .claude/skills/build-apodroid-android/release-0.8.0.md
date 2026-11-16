@@ -329,3 +329,12 @@ Not a 0.8.0 regression; Android 10–14 moved to 0.9.0 (E).
 - **Decided** (user, 2026-11-16): 0.9.0, with E, which can test it on 10–14; 0.8.0 ships the
   detector as 0.7.0 did. The changelog `12.txt` and the store description approved as written;
   the open explanation kept across a swipe; the log oddities (CLAUDE.md, Open question 4) for 0.9.0.
+
+## Before the tag (2026-11-16, 09:30)
+
+UI1 (#139, b2b61c8) and FP1 (#140, b403aca) merged with emulator PASS; master = dev = b403aca,
+pushed. The release-signed build of b403aca is on the FP6 (`private/0.8.0-test/apodroid-v0.8.0.apk`).
+Open: the user's FP6 check of UI1 and FP1 (Setup's rows by Size, Set pinned, Advanced's two
+switches, ⛶'s Sideways drag dropped when turned off), the label "Centre when unsure" (approval),
+then the tag v0.8.0 on master. Today's APOD keeps the frame saved before FP1 (about 0.56) until
+the user moves it in ⛶ or the next post.

@@ -2124,7 +2124,7 @@ the map agrees to 1e-15 and the positions exactly (10 pictures, by hand). **Buil
 2026-11-15): Size [Centre | Auto | Live] (The app, Settings: Size), the subject noted per post
 and Auto in each still set (Wallpaper: Auto, the subject); (SA3b, 2026-11-15) ⛶ from the
 subject, an undragged part (The app, Choosing the part) and Advanced's "Auto: centre when
-unsure" (The app, Settings).
+unsure", since UI1 Setup's "Centre when unsure" (The app, Settings).
 
 **0.6.0: APOD first** (user, 2026-10-19; built 2026-10-20 to 24; the how in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different

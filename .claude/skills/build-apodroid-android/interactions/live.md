@@ -612,7 +612,7 @@ still at the new part. Log `Part: wallpaper set: Of(source=APOD…) on LOCK`.
   the off ✓), beside `live.whole` and `live.darken`.
 - The hand-over reads the part only (SW3f1): a part not noted by the pill (`<source>.sideways`
   missing) hands over upright under Live whatever "Wide pictures sideways" says (`live.sideways`
-  false, no ", sideways"; the switch is greyed out while the draft's Size is Live, setup.md X5); the
+  false, no ", sideways"; the switch is hidden while the draft's Size is Live since UI1, setup.md X5); the
   lock screen's own still under Live upright too.
 - With "Whole picture" too: `live.whole` and `live.sideways` both true, the engine draws the turned
   whole picture still (`p=0.50`).

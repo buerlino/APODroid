@@ -357,7 +357,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     stored value; Live never limits), with the daily switch off too. Part of the draft as "Darken
     bright pictures" (`saveSetup`, the saved state, the highlight, "On, not set yet"; a change
     isn't "the order alone"); Set sets each screen afresh. On: with the stored Size Centre or Auto
-    every still set enlarges Fill at most 2× (Wallpaper: Keep pictures sharp). Setup's summary
+    every still set enlarges Fill at most 2× (Wallpaper: the limited set). Setup's summary
     doesn't name it.
   - **Centre when unsure** (UI1, user, 2026-11-16, from the FP6: into Setup, the label without
     "Auto:", a placeholder until the user's look; SA3b, 2026-11-15, built it as "Auto: centre

@@ -70,8 +70,10 @@ packages unattended): `night.md`.
   alarms found gone and nothing but a stopped app explains it: a `Lost(at, lastRun)`, else null),
   `missedChange(stamps, offset, lost)` (the latest change time of a run's sets after `lost.lastRun`
   whose run was `missAfter`, 30 min, overdue at `lost.at`; `stoppedSinceArmed(sdk, exits, armedAt)`,
-  TP1: on API 30–34 a `UserExit` (`REASON_USER_REQUESTED`, not "remove task") after the last arming
-  counts as the alarms gone, read by `DailyJob.userExits` in `checkAlarms`; `Store.armedAt`; tests in `DetectorTest`, W's day among them).
+  TP1: on API 30–34 only a force stop's `UserExit` (`REASON_USER_REQUESTED`, the description
+  starting "stop ", AOSP's "stop <package> due to …") after the last arming counts as the alarms
+  gone (a Recents swipe's "remove task", `killBackgroundProcesses`' "kill background" and
+  `pm clear` don't), read by `DailyJob.userExits` in `checkAlarms`; `Store.armedAt`; tests in `DetectorTest`, W's day among them).
   `core/.../Live.kt` (0.7.0, L3): `Size` (CENTRE, AUTO, LIVE since SA3a, 0.8.0; was FILL, LIVE) and `sizeOf(name)` (0.7.0's FILL and anything unknown read as AUTO), `liveSpan` (18 h), `livePosition(now, zone, time, turns)`
   (the frame's place by the clock: from the column's change time over the shorter of its turn and 18 h, then
   still at 1), `LIVE_DECODE_BUDGET` (50,000,000 bytes) and `liveDecodeSize(width, height, screenHeight, maxBytes)`

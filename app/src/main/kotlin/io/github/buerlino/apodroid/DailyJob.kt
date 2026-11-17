@@ -223,7 +223,7 @@ class DailyJob : JobService() {
          * O8, which leaves no other sign on the tablet), a process's death doesn't; a boot, an
          * update and a pending run explain it ([Store.noteAlarmsGone]). Within a process that armed
          * or cancelled them they're known, so it asks only once. On 11–14 (TP1) a force stop leaves
-         * the `PendingIntent`s until system_server's GC, so an exit the user asked for after the
+         * the `PendingIntent`s until system_server's GC, so a force stop's exit record after the
          * last arming counts too ([stoppedSinceArmed], [userExits]).
          */
         private fun checkAlarms(context: Context) {

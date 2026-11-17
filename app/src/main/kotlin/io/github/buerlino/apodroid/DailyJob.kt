@@ -293,6 +293,12 @@ class DailyJob : JobService() {
                 .build()
 
         /**
+         * The daily switch turned on (LG): its own arming explains the missing alarms (as a boot does),
+         * so the first arming in this process doesn't ask ([checkAlarms]) and logs nothing.
+         */
+        fun switchedOn() = synchronized(lock) { armedHere = true }
+
+        /**
          * Off is off: cancels both jobs, a running run too (it then ends without effect), and both
          * alarms, so the next on arms afresh.
          */

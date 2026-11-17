@@ -1037,6 +1037,7 @@ class MainActivity : ComponentActivity() {
             KeepRunning.stop(this)
             return
         }
+        DailyJob.switchedOn()
         switchRuns.on()
         runNext()
     }

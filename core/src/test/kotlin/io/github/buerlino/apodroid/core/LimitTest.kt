@@ -9,7 +9,6 @@ import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -19,8 +18,8 @@ import kotlin.test.fail
 // SH0 (sharp-0.9.0.md, Testing 1): the oracle for SH1's `limitedLayout` and `limitedFit`, written from
 // sharp-0.9.0.md's Terms and The rules before either exists. `SharpOracle` is a naive reading of them in
 // doubles; `LimitTableTest` compares SH1's code with it over Testing 1's generated table, ±1 px;
-// `LimitPropertiesTest` checks Testing 1's properties over 100,000 seeded cases. Both are @Ignored until
-// SH1 (its stubs in Limit.kt throw). `LimitOracleTest` runs now: it checks the oracle and the table
+// `LimitPropertiesTest` checks Testing 1's properties over 100,000 seeded cases (both were
+// @Ignored until SH1 implemented Limit.kt). `LimitOracleTest` checks the oracle and the table
 // against 0.8.0's `wallpaperFrame`, `sidewaysFrame` and `fitFrame` where no limit bites.
 
 /** A rectangle in doubles: the oracle's answer before any rounding (right and bottom exclusive, as [Frame]). */
@@ -365,7 +364,6 @@ internal val sharpFitExamples = listOf(
 
 // ---- SH1's code against the oracle ----
 
-@Ignore("SH1 implements limitedLayout")
 class LimitTableTest {
     @Test
     fun layoutMatchesTheOracleOverTheTable() {
@@ -486,7 +484,6 @@ internal fun sharpRandomCases(seed: Long, n: Int): List<SharpRandomCase> {
 private const val SHARP_SEED = 20_261_117L
 private const val SHARP_CASES = 100_000
 
-@Ignore("SH1 implements limitedLayout")
 class LimitPropertiesTest {
     private val cases = sharpRandomCases(SHARP_SEED, SHARP_CASES)
 

@@ -122,20 +122,20 @@ class FrameTest {
         val narrow = { 1200 to 1000 }
         // Noted by ⛶'s pill: as noted, whatever the switch and the size.
         for (on in listOf(true, false)) {
-            assert(sidewaysOf(true, on, Size.AUTO, narrow) && sidewaysOf(true, on, Size.AUTO, wide))
-            assert(!sidewaysOf(false, on, Size.AUTO, wide) && !sidewaysOf(false, on, Size.AUTO, narrow))
+            assert(wideSidewaysOf(true, on, Size.AUTO, narrow) && wideSidewaysOf(true, on, Size.AUTO, wide))
+            assert(!wideSidewaysOf(false, on, Size.AUTO, wide) && !wideSidewaysOf(false, on, Size.AUTO, narrow))
         }
         // Not noted (null): the rule while the switch is on, else upright.
-        assert(sidewaysOf(null, true, Size.AUTO, wide) && !sidewaysOf(null, true, Size.AUTO, narrow) && !sidewaysOf(null, true, Size.AUTO) { null })
-        assert(!sidewaysOf(null, false, Size.AUTO, wide))
+        assert(wideSidewaysOf(null, true, Size.AUTO, wide) && !wideSidewaysOf(null, true, Size.AUTO, narrow) && !wideSidewaysOf(null, true, Size.AUTO) { null })
+        assert(!wideSidewaysOf(null, false, Size.AUTO, wide))
         // The size is read only when the rule needs it.
         var read = 0
-        sidewaysOf(true, true, Size.AUTO) { read++; 3630 to 2408 }
-        sidewaysOf(null, false, Size.AUTO) { read++; 3630 to 2408 }
+        wideSidewaysOf(true, true, Size.AUTO) { read++; 3630 to 2408 }
+        wideSidewaysOf(null, false, Size.AUTO) { read++; 3630 to 2408 }
         assertEquals(0, read)
-        assert(sidewaysOf(null, true, Size.AUTO) { read++; 3630 to 2408 })
+        assert(wideSidewaysOf(null, true, Size.AUTO) { read++; 3630 to 2408 })
         assertEquals(1, read)
-        sidewaysOf(null, true, Size.LIVE) { read++; 3630 to 2408 }
+        wideSidewaysOf(null, true, Size.LIVE) { read++; 3630 to 2408 }
         assertEquals(1, read)
     }
 
@@ -145,11 +145,70 @@ class FrameTest {
         val wide = { 3630 to 2408 }
         val narrow = { 1200 to 1000 }
         for (size in Size.entries) for (on in listOf(true, false)) {
-            assert(sidewaysOf(true, on, size, wide) && sidewaysOf(true, on, size, narrow))
-            assert(!sidewaysOf(false, on, size, wide) && !sidewaysOf(false, on, size, narrow))
-            assert(!sidewaysOf(null, on, size, narrow))
-            assertEquals(on && size != Size.LIVE, sidewaysOf(null, on, size, wide))
+            assert(wideSidewaysOf(true, on, size, wide) && wideSidewaysOf(true, on, size, narrow))
+            assert(!wideSidewaysOf(false, on, size, wide) && !wideSidewaysOf(false, on, size, narrow))
+            assert(!wideSidewaysOf(null, on, size, narrow))
+            assertEquals(on && size != Size.LIVE, wideSidewaysOf(null, on, size, wide))
         }
+    }
+
+    /**
+     * 0.9.0's rule (sharp-0.9.0.md, Testing 1): pill {true, false, none} × Size × source {APOD, NASA,
+     * Earth, my picture} × shape {portrait, square, landscape} × up {true, false}, each against The rules.
+     */
+    @Test
+    fun sidewaysOfsTruthTable() {
+        val shapes = mapOf("portrait" to (1000 to 1500), "square" to (1200 to 1200), "landscape" to (1500 to 1022))
+        val sources: List<Source?> = Source.entries + null
+        var cases = 0
+        var turned = 0
+        for (pill in listOf(true, false, null)) for (size in Size.entries) for (source in sources) {
+            for ((shape, wh) in shapes) for (up in listOf(true, false)) {
+                val want = when {
+                    source == null -> false // my picture: no part, never turned
+                    pill != null -> pill // ⛶'s pill, under every Size
+                    else -> size == Size.AUTO && source == Source.APOD && shape == "landscape" && !up
+                }
+                val got = sidewaysOf(pill, size, source, { wh }, { up })
+                assertEquals(want, got, "pill $pill, $size, ${source ?: "my picture"}, $shape, up $up")
+                cases++
+                if (got) turned++
+            }
+        }
+        assertEquals(3 * 3 * 4 * 3 * 2, cases)
+        // The pill's true for the three sources (54), and Auto's one turn.
+        assertEquals(3 * 3 * 3 * 2 + 1, turned)
+    }
+
+    @Test
+    fun sidewaysOfReadsOnlyWhatItNeeds() {
+        var sizes = 0
+        var texts = 0
+        fun of(noted: Boolean?, size: Size, source: Source?, wh: Pair<Int, Int>?) =
+            sidewaysOf(noted, size, source, { sizes++; wh }, { texts++; false })
+        assert(of(true, Size.AUTO, Source.APOD, 3000 to 1000))
+        assert(!of(null, Size.CENTRE, Source.APOD, 3000 to 1000))
+        assert(!of(null, Size.AUTO, Source.NASA, 3000 to 1000))
+        assert(!of(null, Size.AUTO, null, 3000 to 1000))
+        assertEquals(0 to 0, sizes to texts)
+        assert(!of(null, Size.AUTO, Source.APOD, 1000 to 3000))
+        assert(!of(null, Size.AUTO, Source.APOD, null))
+        assertEquals(2 to 0, sizes to texts, "no text read for a portrait or unknown size")
+        assert(of(null, Size.AUTO, Source.APOD, 3000 to 1000))
+        assertEquals(3 to 1, sizes to texts)
+        // Any landscape turns, not only 3:2 (W > H by one pixel).
+        assert(of(null, Size.AUTO, Source.APOD, 1001 to 1000) && !of(null, Size.AUTO, Source.APOD, 1000 to 1000))
+    }
+
+    /** Auto's turn with the word table: a galaxy text turns, a horizon text doesn't (SH2a's device case, in :core). */
+    @Test
+    fun autosTurnByTheText() {
+        fun turns(title: String, size: Size = Size.AUTO) =
+            sidewaysOf(null, size, Source.APOD, { 3000 to 1000 }) { hasUp(title, null, "") }
+        assert(turns("A spiral galaxy and its nebulae in a field of stars"))
+        assert(!turns("Trees and a lake below the horizon at sunset"))
+        assert(!turns("A spiral galaxy and its nebulae in a field of stars", Size.CENTRE))
+        assert(!turns("A spiral galaxy and its nebulae in a field of stars", Size.LIVE))
     }
 
     @Test

@@ -173,7 +173,7 @@ import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.sidewaysHelps
-import io.github.buerlino.apodroid.core.sidewaysOf
+import io.github.buerlino.apodroid.core.wideSidewaysOf
 import io.github.buerlino.apodroid.core.sizeOf
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
@@ -1466,13 +1466,13 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Whether [source]'s picture goes on sideways with a part noting [sideways] (SW3, `:core`'s
-     * [sidewaysOf], as [Store.turnsSideways]): that value, else the rule by its [uprightSizes]
+     * [wideSidewaysOf], as [Store.turnsSideways]): that value, else the rule by its [uprightSizes]
      * while the **stored** "Wide pictures sideways" is on and the stored Size isn't Live (SW3f1: under
      * Live ⛶'s pill opens on the part's explicit value, else upright). Stored, not the draft's: ✓ sets at once
      * by the stored setup (as ⛶ with Live, T04).
      */
     private fun turnsSideways(source: Source, sideways: Boolean?): Boolean =
-        sidewaysOf(sideways, stored.wideSideways, stored.size) { uprightSizes[source]?.let { it.width to it.height } }
+        wideSidewaysOf(sideways, stored.wideSideways, stored.size) { uprightSizes[source]?.let { it.width to it.height } }
 
     /**
      * ✓ (U0, 2026-11-02: users expected ✓ to set it): [keepPart], then, when the part differs from

@@ -47,6 +47,7 @@ class SourcesTest {
         assertEquals("A rocket's plume over a made-up pad.", post.explanation)
         assertEquals(false, post.isVideo)
         assertEquals(Instant.parse("2026-10-16T16:33:00Z"), post.published)
+        assertEquals(null, post.alt) // SH1: APOD's only
     }
 
     @Test
@@ -106,6 +107,7 @@ class SourcesTest {
         assertEquals("https://science.nasa.gov/earth/earth-observatory/made-up-coast/", post.pageUrl)
         assertEquals("Satellites saw smoke drift over a made-up coast.", post.explanation)
         assertEquals(Instant.parse("2026-10-16T04:00:00Z"), post.published)
+        assertEquals(null, post.alt) // SH1: APOD's only
     }
 
     @Test
@@ -213,6 +215,7 @@ class SourcesTest {
                 assertTrue(p.explanation.length > 50 && '<' !in p.explanation, p.explanation)
                 assertTrue(p.date.year == 2026, "${p.date}")
                 assertEquals(null, p.credit)
+                assertEquals(null, p.alt)
                 assertPublishedOn(p)
             }
         }
@@ -224,7 +227,11 @@ class SourcesTest {
             assertTrue(Regex("""^[\p{L} &]*Credit[\p{L} &]*: \S""").containsMatchIn(credit), credit)
             assertTrue(Regex("""<|&\w+;|\s[,;:)]|,;|\(\s|;\s*;|\s\s|::""").find(credit) == null, credit)
             assertTrue(credit == credit.trim(' ', ';'), credit)
+            // SH1: the alt text plain (no video day has one; a few image days have none, an empty alt).
+            val alt = p.alt ?: continue
+            assertTrue(!p.isVideo && alt.isNotBlank() && alt == alt.trim() && Regex("""<|&\w+;|&#""").find(alt) == null, alt)
         }
+        assertEquals(82, apods.count { it.alt != null }) // 89 image days, 7 with an empty alt
         // VS1: 11 video posts, 9 NASA's own mp4, 2 YouTube; no image day has one.
         val videos = apods.filter { it.isVideo }
         assertEquals(11, videos.size)

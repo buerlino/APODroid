@@ -56,6 +56,11 @@ data class Post(
     val published: Instant? = null,
     /** APOD's video on a video day when it's NASA's own mp4 (the hero's first `.mp4` source, VS1); null otherwise (YouTube, an image day, NASA, Earth). */
     val videoUrl: String? = null,
+    /**
+     * The picture's alt text, APOD's `featured_image.alt` (0.9.0, SH1: Auto's turn reads it, [hasUp]),
+     * tags stripped and entities decoded; null without one, on a video day, and for NASA and Earth.
+     */
+    val alt: String? = null,
 ) {
     /** [published], or for a post without one (stored before B15) its [date]'s 00:00 US Eastern. */
     val publishedAt: Instant
@@ -224,6 +229,7 @@ internal fun apodPosts(body: String): Sequence<Post> = wpPosts(body).asSequence(
         credit = credit(content),
         published = wpPublished(p.date),
         videoUrl = if (isVideo) videoUrl(content) else null,
+        alt = if (isVideo) null else p.featured_image?.alt?.let(::plainText)?.takeIf { it.isNotEmpty() },
     )
 }
 
@@ -404,4 +410,4 @@ private class WpPost(
 private class Rendered(val rendered: String? = null)
 
 @Serializable
-private class Image(val file: String? = null)
+private class Image(val file: String? = null, val alt: String? = null)

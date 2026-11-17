@@ -166,4 +166,29 @@ class DetectorTest {
             assertEquals(false, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T09:30"), d)), armed))
         }
     }
+
+    @Test
+    fun aForceStopBySubreasonCounts() {
+        // TP1f1: T4 saw no line after 11 force stops on the Android 14 emulator; a record whose summary
+        // names the subreason counts whatever its description says.
+        val armed = at("2026-11-16T06:04")
+        val summary = "ApplicationExitInfo(timestamp=2026-12-01 07:01:22.500 pid=19443 realUid=10142 packageUid=10142 " +
+            "definingUid=10142 user=0 process=io.github.buerlino.apodroid reason=10 (USER REQUESTED) subreason=21 (FORCE STOP) " +
+            "status=0 importance=400 pss=0 rss=0 description=stop io.github.buerlino.apodroid due to from pid 19658 state=empty)"
+        assertEquals(true, isForceStopSummary(summary))
+        for (d in listOf(null, "", "force-stop")) {
+            assertEquals(true, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T09:30"), d, forceStop = true)), armed))
+        }
+        // Still only after the arming, and only on 30-34.
+        assertEquals(false, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T06:00"), null, forceStop = true)), armed))
+        assertEquals(false, stoppedSinceArmed(35, listOf(UserExit(at("2026-11-16T09:30"), null, forceStop = true)), armed))
+    }
+
+    @Test
+    fun otherSubreasonsArentAForceStop() {
+        assertEquals(false, isForceStopSummary(null))
+        assertEquals(false, isForceStopSummary("reason=10 (USER REQUESTED) subreason=22 (REMOVE TASK) description=remove task"))
+        assertEquals(false, isForceStopSummary("reason=10 (USER REQUESTED) subreason=0 (UNKNOWN) description=kill background"))
+        assertEquals(false, isForceStopSummary("reason=10 subreason=210"))
+    }
 }

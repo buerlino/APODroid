@@ -1457,7 +1457,11 @@ sign on 11–14** (TP1, 2026-11-17; `release-0.8.0.md` TP1, the idea the user's,
 with the `PendingIntent`s there, on API 30–34 an exit record (`getHistoricalProcessExitReasons`)
 with `REASON_USER_REQUESTED` and a force stop's description ("stop <package> due to …", AOSP's
 `forceStopPackageLocked`) newer than the last arming (`armedAt`, noted by each arming with
-`armedBoot`) counts as the alarms gone (`:core`'s `stoppedSinceArmed`, `UserExit`; logged
+`armedBoot`) counts as the alarms gone, as does a user-requested record whose summary names the subreason
+`subreason=21 (FORCE STOP)` (TP1f1: T4 on the Android 14 emulator saw no line after 11 force stops
+with such a record in `dumpsys activity exit-info`; the cause not found by reading, so every record is
+read and logged, `Detector: <n> exit records, armed …`, for the device's check) (`:core`'s
+`stoppedSinceArmed`, `UserExit`, `isForceStopSummary`; logged
 `Detector: stopped by the user since the arming (exit record)` before the usual line); no other
 user-requested record counts (TP1's fix round 1): a Recents swipe's ("remove task") and
 `killBackgroundProcesses`' ("kill background", "kill all background": `am kill`, task killers,

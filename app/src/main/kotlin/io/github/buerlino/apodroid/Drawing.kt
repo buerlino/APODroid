@@ -14,11 +14,13 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.core.graphics.withClip
 import io.github.buerlino.apodroid.core.Frame
+import io.github.buerlino.apodroid.core.Layout
 import io.github.buerlino.apodroid.core.blurBackground
 import io.github.buerlino.apodroid.core.blurSize
 import io.github.buerlino.apodroid.core.edgeCopySize
 import io.github.buerlino.apodroid.core.edgesBlack
 import io.github.buerlino.apodroid.core.fitFrame
+import io.github.buerlino.apodroid.core.limitedFit
 import io.github.buerlino.apodroid.core.gray
 import io.github.buerlino.apodroid.core.sidewaysFrame as coreSidewaysFrame
 import io.github.buerlino.apodroid.core.topThirdMean
@@ -159,9 +161,42 @@ fun turned(bitmap: Bitmap): Bitmap =
         bitmap.recycle()
     }
 
-/** The whole picture of [file] on a bitmap of the [screen]'s size ([drawWhole]), turned when [sideways]. */
-fun wholePicture(file: File, screen: Size, sideways: Boolean = false): Bitmap =
-    createBitmap(screen.width, screen.height).also { drawWhole(Canvas(it), file, screen, sideways) }
+/**
+ * The whole picture of [file] on a bitmap of the [screen]'s size ([drawWhole]), turned when [sideways],
+ * enlarged at most [limit] (SH2c, "Keep pictures sharp"; null: as large as fits).
+ */
+fun wholePicture(file: File, screen: Size, sideways: Boolean = false, limit: Double? = null): Bitmap =
+    createBitmap(screen.width, screen.height).also { drawWhole(Canvas(it), file, screen, sideways, limit) }
+
+/**
+ * "Keep pictures sharp"'s set (SH2c, `:core`'s [Layout] from limitedLayout while it bites): a bitmap
+ * of the [screen]'s size, the whole picture's background ([drawBackground]: black or blurred), and
+ * [layout]'s frame of [file] decoded alone, upright, straight to its dest size (the decoder's crop
+ * after `setTargetSize`, which enlarges as the whole picture's does) and drawn into the dest, turned
+ * 90° clockwise when sideways ([drawTurned]). Not darkened: the caller measures what's drawn.
+ */
+fun limitedPicture(file: File, screen: Size, layout: Layout): Bitmap {
+    val bitmap = createBitmap(screen.width, screen.height)
+    val canvas = Canvas(bitmap)
+    drawBackground(canvas, file, screen, layout.sideways)
+    val dest = layout.dest.run { Rect(left, top, right, bottom) }
+    val frame = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
+        val (w, h) = info.size.width to info.size.height
+        val s = layout.scale
+        val (tw, th) = maxOf(1, (w * s).roundToInt()) to maxOf(1, (h * s).roundToInt())
+        decoder.setTargetSize(tw, th)
+        val f = layout.frame
+        fun x(v: Int) = (v * tw.toDouble() / w).roundToInt().coerceIn(0, tw)
+        fun y(v: Int) = (v * th.toDouble() / h).roundToInt().coerceIn(0, th)
+        val crop = Rect(x(f.left), y(f.top), x(f.right), y(f.bottom))
+        decoder.crop = crop
+        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+    }
+    val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+    if (layout.sideways) drawTurned(canvas, frame, null, dest, paint) else canvas.drawBitmap(frame, null, dest, paint)
+    frame.recycle()
+    return bitmap
+}
 
 /**
  * The whole picture (A3), drawn onto [canvas], whose drawing area is [screen]'s size: [file]
@@ -174,12 +209,13 @@ fun wholePicture(file: File, screen: Size, sideways: Boolean = false): Bitmap =
  * upright at the turned fit's size and drawn 1:1 through [drawTurned]; its background the turned
  * picture's middle. The black edges are measured upright (the strip is the same on all four sides).
  */
-fun drawWhole(canvas: Canvas, file: File, screen: Size, sideways: Boolean = false) {
+fun drawWhole(canvas: Canvas, file: File, screen: Size, sideways: Boolean = false, limit: Double? = null) {
     val background = if (hasBlackEdges(file)) null else blurred(file, screen, sideways)
     lateinit var frame: Frame
     val picture = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
         val (w, h) = info.size.width to info.size.height
-        frame = if (sideways) fitFrame(h, w, screen.width, screen.height) else fitFrame(w, h, screen.width, screen.height)
+        // SH2c: limitedFit is fitFrame exactly without a limit or within its tolerance.
+        frame = if (sideways) limitedFit(h, w, screen.width, screen.height, limit) else limitedFit(w, h, screen.width, screen.height, limit)
         val (fw, fh) = maxOf(1, frame.right - frame.left) to maxOf(1, frame.bottom - frame.top)
         if (sideways) decoder.setTargetSize(fh, fw) else decoder.setTargetSize(fw, fh)
         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
@@ -197,6 +233,20 @@ fun drawWhole(canvas: Canvas, file: File, screen: Size, sideways: Boolean = fals
         }
     }
     picture.recycle()
+}
+
+/**
+ * The whole picture's background (A3) on [canvas] of the [screen]'s size: black, and over it, unless
+ * [file]'s edges are nearly black ([edgesBlack]), its middle blurred and darkened ([blurred]),
+ * enlarged to the screen; the turned picture's middle when [sideways]. "Keep pictures sharp"'s
+ * bands (SH2c, [limitedPicture]).
+ */
+fun drawBackground(canvas: Canvas, file: File, screen: Size, sideways: Boolean) {
+    canvas.drawColor(Color.BLACK)
+    if (hasBlackEdges(file)) return
+    val blur = blurred(file, screen, sideways)
+    canvas.drawBitmap(blur, null, Rect(0, 0, screen.width, screen.height), Paint(Paint.FILTER_BITMAP_FLAG))
+    blur.recycle()
 }
 
 /** Whether [file]'s edges are nearly black, from an upright grey copy [edgeCopySize] large ([edgesBlack]). */

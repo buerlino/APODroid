@@ -175,6 +175,9 @@ import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.sidewaysHelps
+import io.github.buerlino.apodroid.core.SHARP_LIMIT
+import io.github.buerlino.apodroid.core.limitBites
+import io.github.buerlino.apodroid.core.limitedLayout
 import io.github.buerlino.apodroid.core.sidewaysOf
 import io.github.buerlino.apodroid.core.sizeOf
 import kotlin.math.roundToInt
@@ -308,6 +311,9 @@ class MainActivity : ComponentActivity() {
 
     /** "Centre when unsure" ([Store.autoFallback], UI1; SA3b's Advanced switch before): Auto keeps the middle for a small move. */
     private var autoFallback by mutableStateOf(true)
+
+    /** "Keep pictures sharp" ([Store.sharp], SH2c): with Size Centre or Auto, Fill enlarged at most 2×. */
+    private var sharp by mutableStateOf(false)
 
     /** Size ([Store.size], L6, SA3a): Centre, Auto (the frame on the subject), or Live (home's picture moving, drawn by APODroid's live wallpaper). */
     private var size by mutableStateOf(Sizing.AUTO)
@@ -591,7 +597,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, autoFallback)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, autoFallback, sharp)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -604,6 +610,7 @@ class MainActivity : ComponentActivity() {
         soon = setup.soon
         darken = setup.darken
         autoFallback = setup.autoFallback
+        sharp = setup.sharp
         order = setup.order
         size = setup.size
     }
@@ -1461,7 +1468,40 @@ class MainActivity : ComponentActivity() {
      */
     private fun frameOf(post: Post, part: Part?, sideways: Boolean): Float {
         val subject = store.subject(post)
-        return framePosition(stored.size, part?.position, if (sideways) subject?.sideways else subject?.position, store.autoFallback)
+        // SH2c: the limited frame's subject while the stored limit bites for the file.
+        val raw = when {
+            sharpBites(post.source, sideways) && sideways -> subject?.sidewaysSharp
+            sharpBites(post.source, sideways) -> subject?.positionSharp
+            sideways -> subject?.sideways
+            else -> subject?.position
+        }
+        return framePosition(stored.size, part?.position, raw, store.autoFallback)
+    }
+
+    /**
+     * The limit on ⛶'s frame (SH2c, as [Store.limit]) by the **stored** setup: SHARP_LIMIT while
+     * the stored "Keep pictures sharp" is on and the stored Size is Centre or Auto, else null.
+     */
+    private val storedLimit: Double?
+        get() = SHARP_LIMIT.takeIf { stored.sharp && stored.size != Sizing.LIVE }
+
+    /** Whether the stored limit bites for [source]'s file ([uprightSizes]) in that orientation (`:core`'s [limitBites]). */
+    private fun sharpBites(source: Source, sideways: Boolean): Boolean =
+        uprightSizes[source]?.let { limitBites(it.width, it.height, screen.width, screen.height, sideways, storedLimit) } == true
+
+    /**
+     * ⛶'s frame on the page's [picture] at [position] (SH2c): [pictureFrame], or while the stored
+     * limit bites for [source]'s file the limited layout's frame (`:core`'s [limitedLayout]),
+     * scaled from the file's upright size to the page's picture, the whole picture along an axis
+     * that doesn't move.
+     */
+    private fun cropRect(source: Source, picture: ImageBitmap, sideways: Boolean, position: Float): android.graphics.Rect {
+        val upright = uprightSizes[source]
+        if (upright == null || !sharpBites(source, sideways)) return pictureFrame(picture.width, picture.height, screen, position, sideways)
+        val f = limitedLayout(upright.width, upright.height, screen.width, screen.height, sideways, position, storedLimit).frame
+        fun x(v: Int) = (v.toDouble() * picture.width / upright.width).roundToInt()
+        fun y(v: Int) = (v.toDouble() * picture.height / upright.height).roundToInt()
+        return android.graphics.Rect(x(f.left), y(f.top), x(f.right), y(f.bottom))
     }
 
     /**
@@ -1735,7 +1775,7 @@ class MainActivity : ComponentActivity() {
                     .then(
                         when {
                             crop && cropWhole -> Modifier
-                            live -> Modifier.shadeFrame(picture, cropSideways) { livePreviewPosition() }
+                            live -> Modifier.shadeFrame(source, picture, cropSideways) { livePreviewPosition() }
                             crop -> Modifier.cropFrame(picture, post)
                             else -> Modifier.clickable { openPage(post.pageUrl) }
                         },
@@ -2071,10 +2111,12 @@ class MainActivity : ComponentActivity() {
         val file = store.imageFile(source)
         val screen = screen
         val darken = darken
-        val preview by produceState<ImageBitmap?>(null, picture, darken, sideways) {
+        // SH2c: enlarged at most to the stored limit (`:core`'s limitedFit), as ✓ sets it.
+        val limit = storedLimit
+        val preview by produceState<ImageBitmap?>(null, picture, darken, sideways, limit) {
             val drawn = withContext(Dispatchers.IO) {
                 runCatching {
-                    val whole = wholePicture(file, screen, sideways)
+                    val whole = wholePicture(file, screen, sideways, limit)
                     val factor = if (darken) darkening(topThirdGrey(whole)) else 1f
                     if (factor < 1f) darkened(whole, factor) else whole
                 }
@@ -2103,10 +2145,10 @@ class MainActivity : ComponentActivity() {
      * white; [sideways] (SW2): the band the turned picture shows ([pictureFrame]), on the page's
      * upright picture.
      */
-    private fun Modifier.shadeFrame(picture: ImageBitmap, sideways: Boolean, position: () -> Float): Modifier = drawWithContent {
+    private fun Modifier.shadeFrame(source: Source, picture: ImageBitmap, sideways: Boolean, position: () -> Float): Modifier = drawWithContent {
         drawContent()
         val scale = size.width / picture.width
-        val frame = pictureFrame(picture.width, picture.height, screen, position(), sideways)
+        val frame = cropRect(source, picture, sideways, position())
         val topLeft = Offset(frame.left * scale, frame.top * scale)
         val frameSize = Size(frame.width() * scale, frame.height() * scale)
         clipRect(topLeft.x, topLeft.y, topLeft.x + frameSize.width, topLeft.y + frameSize.height, ClipOp.Difference) {
@@ -2123,12 +2165,13 @@ class MainActivity : ComponentActivity() {
      */
     private fun Modifier.cropFrame(picture: ImageBitmap, post: Post): Modifier {
         val sideways = cropSideways
-        val full = pictureFrame(picture.width, picture.height, screen, 0f, sideways)
-        val end = pictureFrame(picture.width, picture.height, screen, 1f, sideways)
+        // SH2c: the limited frame while the stored limit bites; along an axis that doesn't move, no drag.
+        val full = cropRect(post.source, picture, sideways, 0f)
+        val end = cropRect(post.source, picture, sideways, 1f)
         val horizontal = full.width() < picture.width
         // +1 when the frame moves right or down as the position grows, -1 the other way.
         val sign = if ((if (horizontal) end.left - full.left else end.top - full.top) < 0) -1f else 1f
-        return shadeFrame(picture, sideways) { cropPosition }.pointerInput(picture, post, sideways) {
+        return shadeFrame(post.source, picture, sideways) { cropPosition }.pointerInput(picture, post, sideways) {
             // The distance the frame can travel, in pixels on the page.
             val travel = if (horizontal) {
                 size.width * (1 - full.width().toFloat() / picture.width)
@@ -2154,7 +2197,7 @@ class MainActivity : ComponentActivity() {
      * what is stored): the switch "More NASA pictures" at its top (J3), then in APOD mode
      * "Where", with the switch on the list ("Pictures from"), then Size [Centre | Auto | Live] (L6, SA3a); while the daily switch is on "New
      * picture at", then, while a column takes turns, "Change every", and "If APOD is a video";
-     * "Darken bright pictures", "Wide pictures sideways" (not with Live) and "Centre when unsure"
+     * "Darken bright pictures", "Keep pictures sharp" (not with Live; SH2c) and "Centre when unsure"
      * (Auto only; UI1). The set button, always: here while Setup is closed, else pinned at the
      * bottom ([SetBar], UI1). Then, while the daily switch is on, "Advanced settings", closed by
      * default: "Save every picture" and "Keep running" (they act at once). A setting the draft
@@ -2176,6 +2219,8 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(daily, soon, stored.soon) { if (!daily) soon = stored.soon }
         // UI1: "Centre when unsure" shown only with Auto.
         LaunchedEffect(size, autoFallback, stored.autoFallback) { if (size != Sizing.AUTO) autoFallback = stored.autoFallback }
+        // SH2c: "Keep pictures sharp" hidden with Size Live (Live never limits).
+        LaunchedEffect(size, sharp, stored.sharp) { if (size == Sizing.LIVE) sharp = stored.sharp }
         val setupChanged = setupChanged()
         // Opens by itself while the draft differs (a rotation, the system killing the app).
         LaunchedEffect(setupChanged) { if (setupChanged) setupOpen = true }
@@ -2229,6 +2274,13 @@ class MainActivity : ComponentActivity() {
                     "Darken bright pictures", darken, stored.darken, about = "About Darken bright pictures",
                     info = "Darkens a bright picture a little, so the clock and widgets stay readable.",
                 ) { darken = it }
+                // SH2c: Centre's and Auto's, part of the draft, shown with the daily switch off too.
+                if (size != Sizing.LIVE) {
+                    DraftSwitch(
+                        "Keep pictures sharp", sharp, stored.sharp, about = "About Keep pictures sharp",
+                        info = "A small picture is enlarged at most 2×; the rest of the screen shows it blurred.",
+                    ) { sharp = it }
+                }
                 // UI1 (was SA3b's Advanced switch): Auto's, part of the draft, shown only with Size Auto.
                 if (size == Sizing.AUTO) {
                     DraftSwitch(
@@ -2422,7 +2474,7 @@ class MainActivity : ComponentActivity() {
             (if (allSources) Source.entries.any(::rowChanged) || order != stored.order else where != stored.where) ||
             interval != stored.interval || pictureAt != stored.pictureAt || soon != stored.soon ||
             darken != stored.darken || size != stored.size ||
-            autoFallback != stored.autoFallback || videoDaysChanged()
+            autoFallback != stored.autoFallback || sharp != stored.sharp || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
     private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
@@ -3025,6 +3077,7 @@ private fun Setup.toBundle() = Bundle().apply {
     putBoolean("soon", soon)
     putBoolean("darken", darken)
     putBoolean("autoFallback", autoFallback)
+    putBoolean("sharp", sharp)
     putString("size", size.name)
     putString("order", order.joinToString(",") { it.name })
     // SA3b: a position or sideways not noted is "null" (partOf reads it back).
@@ -3046,6 +3099,7 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         soon = bundle.getBoolean("soon"),
         darken = bundle.getBoolean("darken", true),
         autoFallback = bundle.getBoolean("autoFallback", true),
+        sharp = bundle.getBoolean("sharp", false),
         size = sizeOf(bundle.getString("size")),
         order = orderOf(bundle.getString("order")),
         parts = Source.entries.mapNotNull { source ->

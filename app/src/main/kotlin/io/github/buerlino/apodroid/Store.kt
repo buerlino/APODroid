@@ -61,6 +61,12 @@ import io.github.buerlino.apodroid.core.sidewaysSubjectPosition
 import io.github.buerlino.apodroid.core.sizeOf
 import io.github.buerlino.apodroid.core.subjectCopySize
 import io.github.buerlino.apodroid.core.subjectPosition
+import io.github.buerlino.apodroid.core.SHARP_LIMIT
+import io.github.buerlino.apodroid.core.SHARP_TOLERANCE
+import io.github.buerlino.apodroid.core.fillScale
+import io.github.buerlino.apodroid.core.limitBites
+import io.github.buerlino.apodroid.core.limitedLayout
+import io.github.buerlino.apodroid.core.limitedSubjectPosition
 import io.github.buerlino.apodroid.core.livePosition
 import io.github.buerlino.apodroid.core.equalColumns
 import io.github.buerlino.apodroid.core.handOverWaits
@@ -140,10 +146,17 @@ enum class Where(val screens: Set<Screen>) {
  * still set on the subject, [Store.subject]; or Live, home's picture drawn by APODroid's live
  * wallpaper while Android's picker put it on home; with Auto an APOD landscape picture goes on
  * sideways by its text, [Store.turnsSideways]); [autoFallback] "Centre when unsure" (UI1, was SA3b's Advanced switch: with
- * Size Auto a subject only slightly off the middle stays centred, [Store.autoFallback]). Not the daily switch: it acts at once ([Store.switchDaily]).
+ * Size Auto a subject only slightly off the middle stays centred, [Store.autoFallback]); [sharp] "Keep
+ * pictures sharp" (SH2c: with Size Centre or Auto, Fill enlarged at most 2×, [Store.sharp]). Not the
+ * daily switch: it acts at once ([Store.switchDaily]).
  */
-/** A post's subject (SA3a, [Store.subject]): Fill's raw frame positions upright and sideways (`:core`'s subjectPosition), null where none was found. */
-data class Subject(val position: Float?, val sideways: Float?)
+/**
+ * A post's subject (SA3a, [Store.subject]): Fill's raw frame positions upright and sideways (`:core`'s
+ * subjectPosition), null where none was found; [positionSharp] and [sidewaysSharp] those for "Keep
+ * pictures sharp"'s limited frame (SH2c, `:core`'s limitedSubjectPosition), null where the limit
+ * doesn't bite (or none was found), 0.5 where no axis moves.
+ */
+data class Subject(val position: Float?, val sideways: Float?, val positionSharp: Float? = null, val sidewaysSharp: Float? = null)
 
 data class Setup(
     val allSources: Boolean,
@@ -158,6 +171,7 @@ data class Setup(
     val order: List<Source> = Source.entries,
     val size: Sizing = Sizing.AUTO,
     val autoFallback: Boolean = true,
+    val sharp: Boolean = false,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
     val columns: Map<Screen, List<Source>>
@@ -332,7 +346,7 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, autoFallback)
+        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, autoFallback, sharp)
 
     /**
      * The list's order (OR2, the pref `order`, a comma list of all three; read tolerantly by
@@ -404,6 +418,7 @@ class Store(private val context: Context) {
             putBoolean("soon", setup.soon)
             putBoolean("darken", setup.darken)
             putBoolean("autoFallback", setup.autoFallback)
+            putBoolean("sharp", setup.sharp)
             putString("size", setup.size.name)
             if (setup.allSources) putString("order", order.joinToString(",") { it.name })
             if (newOrder) putString("orderFrom", from.toString())
@@ -666,6 +681,19 @@ class Store(private val context: Context) {
      */
     val autoFallback: Boolean
         get() = prefs.getBoolean("autoFallback", true)
+
+    /**
+     * "Keep pictures sharp" (SH2c, `sharp-0.9.0.md`; Setup's switch, part of the [setup], saved by
+     * [saveSetup]): with Size Centre or Auto each still set enlarges Fill at most `:core`'s
+     * SHARP_LIMIT (2×, with its tolerance), the rest of the screen the whole picture's background
+     * ([limit]). The pref `sharp`, default off.
+     */
+    val sharp: Boolean
+        get() = prefs.getBoolean("sharp", false)
+
+    /** The limit on a still set's enlargement (SH2c): SHARP_LIMIT while [sharp] is on and Size is Centre or Auto; null (Fill) else, Live's still screens too. */
+    val limit: Double?
+        get() = SHARP_LIMIT.takeIf { sharp && size != Sizing.LIVE }
 
     /** The user hid the hint about Android pausing the app, accepting the warning. */
     var pauseHintHidden: Boolean
@@ -1067,7 +1095,7 @@ class Store(private val context: Context) {
             prefs.getString(source.key("subjectUrl"), null) != post.imageUrl
         ) return null
         fun float(key: String) = source.key(key).takeIf(prefs::contains)?.let { prefs.getFloat(it, 0.5f) }
-        return Subject(float("subjectPosition"), float("subjectSideways"))
+        return Subject(float("subjectPosition"), float("subjectSideways"), float("subjectPositionSharp"), float("subjectSidewaysSharp"))
     }
 
     /**
@@ -1079,11 +1107,16 @@ class Store(private val context: Context) {
      * ([sidewaysSubjectPosition]: the same decoded pixels turned clockwise, their own copy); noted with
      * the post's date and picture URL in one edit. A failure (out of memory too) is noted
      * without positions, so it isn't tried again for that post, and never fails the refresh.
+     * SH2c: also the positions for "Keep pictures sharp"'s limited frame, upright and sideways, where
+     * the limit would bite for the file (`:core`'s limitedSubjectPosition, whatever the switch says, so
+     * turning it on needs no new note), and `<source>.subjectSharp`; a post noted by 0.8.0 (without
+     * it) is noted again once.
      */
     fun noteSubject(source: Source): Unit = synchronized(refreshLock) {
         val post = post(source) ?: return
         val file = imageFile(source)
-        if (post.isVideo || post.imageUrl == null || !file.exists() || subject(post) != null) return
+        if (post.isVideo || post.imageUrl == null || !file.exists()) return
+        if (subject(post) != null && prefs.getBoolean(source.key("subjectSharp"), false)) return
         val started = SystemClock.elapsedRealtime()
         val screen = screen
         val found = runCatching {
@@ -1102,9 +1135,12 @@ class Store(private val context: Context) {
             val (w, h) = size.width to size.height
             val (cw, ch) = subjectCopySize(w, h, screen.width, screen.height)
             val copy = boxResize(pixels, dw, dh, cw, ch)
+            val turns = sidewaysHelps(w, h)
             Subject(
                 subjectPosition(copy, cw, ch, w, h, screen.width, screen.height),
-                if (sidewaysHelps(w, h)) sidewaysSubjectPosition(pixels, dw, dh, w, h, screen.width, screen.height) else null,
+                if (turns) sidewaysSubjectPosition(pixels, dw, dh, w, h, screen.width, screen.height) else null,
+                limitedSubjectPosition(pixels, dw, dh, w, h, screen.width, screen.height, sideways = false),
+                if (turns) limitedSubjectPosition(pixels, dw, dh, w, h, screen.width, screen.height, sideways = true) else null,
             )
         }
         val ms = SystemClock.elapsedRealtime() - started
@@ -1117,10 +1153,18 @@ class Store(private val context: Context) {
             putString(source.key("subjectUrl"), post.imageUrl)
             subject.position?.let { putFloat(source.key("subjectPosition"), it) } ?: remove(source.key("subjectPosition"))
             subject.sideways?.let { putFloat(source.key("subjectSideways"), it) } ?: remove(source.key("subjectSideways"))
+            subject.positionSharp?.let { putFloat(source.key("subjectPositionSharp"), it) } ?: remove(source.key("subjectPositionSharp"))
+            subject.sidewaysSharp?.let { putFloat(source.key("subjectSidewaysSharp"), it) } ?: remove(source.key("subjectSidewaysSharp"))
+            putBoolean(source.key("subjectSharp"), true)
         }
         if (found.isSuccess) {
             val sideways = subject.sideways?.let { String.format(Locale.ROOT, " (sideways %.2f)", it) }.orEmpty()
-            Log.i("APODroid", String.format(Locale.ROOT, "Subject: %s %s p=%.2f%s in %d ms", source.name, post.date, subject.position, sideways, ms))
+            // SH2c: the limited frame's, where the limit would bite.
+            val sharp = listOfNotNull(
+                subject.positionSharp?.let { String.format(Locale.ROOT, "%.2f", it) },
+                subject.sidewaysSharp?.let { String.format(Locale.ROOT, "sideways %.2f", it) },
+            ).takeIf { it.isNotEmpty() }?.joinToString(prefix = " (sharp ", postfix = ")").orEmpty()
+            Log.i("APODroid", String.format(Locale.ROOT, "Subject: %s %s p=%.2f%s%s in %d ms", source.name, post.date, subject.position, sideways, sharp, ms))
         }
     }
 
@@ -1904,13 +1948,22 @@ class Store(private val context: Context) {
         val sideways = picture is Picture.Of && turnsSideways(picture.source, part, post)
         // SH2a: the log's ", auto turn" when Auto's turn (not ⛶'s pill) turned it.
         val autoTurn = sideways && part?.sideways == null
-        // SA3a: ⛶'s dragged part (SA3b: a part's position is null while not dragged), else with Auto the subject for this orientation, else the middle ("my picture" too).
+        // SH2c: "Keep pictures sharp" with Size Centre or Auto ("my picture" too); Live's still screens not.
+        val limit = limit
+        val bites = part?.whole != true && uprightSize(file)?.let { limitBites(it.width, it.height, screen.width, screen.height, sideways, limit) } == true
+        // SA3a: ⛶'s dragged part (SA3b: a part's position is null while not dragged), else with Auto the subject for this
+        // orientation (SH2c: for the limited frame while the limit bites), else the middle ("my picture" too).
         val subject = post?.let(::subject)
-        val raw = if (sideways) subject?.sideways else subject?.position
+        val raw = when {
+            bites && sideways -> subject?.sidewaysSharp
+            bites -> subject?.positionSharp
+            sideways -> subject?.sideways
+            else -> subject?.position
+        }
         val position = framePosition(size, part?.position, raw, autoFallback)
         // The log's note while Auto placed the frame by the subject (the middle when it fell back).
         val auto = if (size == Sizing.AUTO && part?.position == null && raw != null) String.format(Locale.ROOT, ", auto %.2f", position) else ""
-        return auto + setFile(file, screens, position, part?.whole == true, sideways, factor = null, autoTurn = autoTurn)
+        return auto + setFile(file, screens, position, part?.whole == true, sideways, factor = null, autoTurn = autoTurn, limit = limit)
     }
 
     /**
@@ -1918,10 +1971,15 @@ class Store(private val context: Context) {
      * clockwise when [sideways] (the frame `:core`'s sidewaysFrame, the band drawn through a
      * rotating matrix into a bitmap of the screen's size, `setBitmap`); darkened by [factor], or
      * with null by the measure while [darken] is on. An upright picture keeps every path as it
-     * was. Writes no record.
+     * was. [limit] (SH2c, "Keep pictures sharp", [Store.limit]): while it bites (`:core`'s
+     * limitBites) the picture goes on at the limit, Fill's frame shorter or the picture whole along
+     * an axis, on the whole picture's background ([limitedPicture]), measured as drawn, `setBitmap`,
+     * the hint all of it; the whole picture enlarged at most to it (`:core`'s limitedFit). While it
+     * doesn't, every path as before, byte for byte. Writes no record.
      */
     private fun setFile(
         file: File, screens: Set<Screen>, position: Float, whole: Boolean, sideways: Boolean, factor: Float?, autoTurn: Boolean = false,
+        limit: Double? = null,
     ): String {
         val flags = screens.fold(0) { flags, it -> flags or if (it == Screen.HOME) WallpaperManager.FLAG_SYSTEM else WallpaperManager.FLAG_LOCK }
         val manager = WallpaperManager.getInstance(context)
@@ -1930,14 +1988,27 @@ class Store(private val context: Context) {
         val fixed = factor
         if (whole) {
             // The screen's size already: the hint is all of it. Measured with its background (Open 5).
-            val whole = wholePicture(file, screen, sideways)
+            val whole = wholePicture(file, screen, sideways, limit)
             dumpWhole(whole)
             val grey = if (darken) topThirdGrey(whole) else null
             val factor = fixed ?: grey?.let(::darkening) ?: 1f
             val bitmap = if (factor < 1f) darkened(whole, factor) else whole
             dumpSet(bitmap)
             manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
-            return sidewaysNote(sideways, autoTurn) + darker(factor, grey)
+            return sidewaysNote(sideways, autoTurn) + wholeSharpNote(file, sideways, limit) + darker(factor, grey)
+        }
+        val upright = if (limit == null) null else uprightSize(file)
+        if (upright != null && limitBites(upright.width, upright.height, screen.width, screen.height, sideways, limit)) {
+            // SH2c: at the limit on the whole picture's background, measured as drawn (as the whole picture).
+            val layout = limitedLayout(upright.width, upright.height, screen.width, screen.height, sideways, position, limit)
+            val drawn = limitedPicture(file, screen, layout)
+            val grey = if (darken) topThirdGrey(drawn) else null
+            val factor = fixed ?: grey?.let(::darkening) ?: 1f
+            val bitmap = if (factor < 1f) darkened(drawn, factor) else drawn
+            dumpSet(bitmap)
+            manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
+            val e = fillScale(upright.width, upright.height, screen.width, screen.height, sideways)
+            return sidewaysNote(sideways, autoTurn) + sharpNote(layout.scale, "Fill", e) + darker(factor, grey)
         }
         // A failed measure leaves the picture as it is: the set matters more than the darkening.
         val grey = if (!darken) null else runCatching { frameGrey(file, screen, position, sideways) }
@@ -1967,6 +2038,18 @@ class Store(private val context: Context) {
 
     /** The log's note of a sideways set or hand-over (SW2): ", sideways", ", sideways, auto turn" when Auto's turn (not ⛶'s pill) turned it (SH2a), or "". */
     private fun sidewaysNote(sideways: Boolean, autoTurn: Boolean = false) = if (!sideways) "" else if (autoTurn) ", sideways, auto turn" else ", sideways"
+
+    /** The log's note of a set "Keep pictures sharp" held (SH2c): ", sharp ×2.00 (Fill ×2.43)" (the scale used, then [what]'s enlargement [e] without it). */
+    private fun sharpNote(scale: Double, what: String, e: Double) = String.format(Locale.ROOT, ", sharp ×%.2f (%s ×%.2f)", scale, what, e)
+
+    /** [sharpNote] of the whole picture of [file] when [limit] held its fit (`:core`'s limitedFit), else "". */
+    private fun wholeSharpNote(file: File, sideways: Boolean, limit: Double?): String {
+        if (limit == null) return ""
+        val upright = uprightSize(file) ?: return ""
+        val (w, h) = if (sideways) upright.height to upright.width else upright.width to upright.height
+        val fit = minOf(screen.width.toDouble() / w, screen.height.toDouble() / h)
+        return if (fit > limit * SHARP_TOLERANCE) sharpNote(limit, "whole", fit) else ""
+    }
 
     /** The log's note of a darkened set ([set]): ", darker ×0.78 (grey 141)", or "" at 1. */
     private fun darker(factor: Float, grey: Double?) =

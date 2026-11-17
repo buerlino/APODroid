@@ -113,6 +113,23 @@ class SourcesTest {
     }
 
     @Test
+    fun readsTheNewEarthLinkFormToTheOldImageUrl() {
+        val old = parseLatest(Source.EARTH, earth()).imageUrl
+        val dam = "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/iotd/2026/coast/coast_20261011_th.jpg"
+        for (form in listOf("$dam/jcr:content/coast_20261011_th.jpg?w=720&h=480", "$dam/jcr:content")) {
+            assertEquals(old, parseLatest(Source.EARTH, earth(image = form)).imageUrl)
+        }
+        val post = parseLatest(Source.EARTH, earth(image = "$dam/jcr:content/coast_20261011_th.jpg"))
+        assertEquals("$old?h=2484", renditionUrl(post.imageUrl!!, 2484))
+        assertEquals(dam.replace("_th", ""), originalUrl(post))
+    }
+
+    @Test
+    fun makesTheEarthThumbnailUrl() {
+        assertEquals("https://a.b/c/coast_20261011_th.jpg", earthThumbnail("https://a.b/c/coast_20261011.jpg"))
+    }
+
+    @Test
     fun failsWithoutAnEarthPostOrPicture() {
         assertFailsWith<SiteChanged> { parseLatest(Source.EARTH, "[]") }
         assertFailsWith<SiteChanged> { parseLatest(Source.EARTH, earth(image = null)) }

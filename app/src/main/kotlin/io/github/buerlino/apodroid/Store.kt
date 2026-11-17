@@ -39,6 +39,8 @@ import io.github.buerlino.apodroid.core.Record
 import io.github.buerlino.apodroid.core.Restart
 import io.github.buerlino.apodroid.core.Rotation
 import io.github.buerlino.apodroid.core.Screen
+import io.github.buerlino.apodroid.core.HttpStatus
+import io.github.buerlino.apodroid.core.earthThumbnail
 import io.github.buerlino.apodroid.core.SiteChanged
 import io.github.buerlino.apodroid.core.StandIn
 import io.github.buerlino.apodroid.core.StorageFailed
@@ -920,13 +922,15 @@ class Store(private val context: Context) {
         if (stored != null && latest.date < stored.date && isComplete(stored)) return
         val url = latest.imageUrl
         val file = imageFile(source)
-        if (url != null && (latest.date != stored?.date || url != stored.imageUrl || !file.exists())) {
+        if (url != null && (latest.date != stored?.date || url != stored.imageUrl || !file.exists() ||
+                (source == Source.EARTH && prefs.getString("earth.thumbFallback", null) == url))) {
             // Else every page open, job run and retry would download it again (13 MB, say).
             if (url == prefs.getString(source.key("badUrl"), null)) throw SiteChanged("Not an image, not downloaded again: $url")
             val part = File(context.filesDir, "${source.name.lowercase()}.part")
             try {
                 downloadPicture(latest, url, part)
                 if (!isImage(part)) throw SiteChanged("Not an image: $url")
+                if (source == Source.EARTH) prefs.edit { remove("earth.thumbFallback") }
             } catch (e: SiteChanged) {
                 part.delete()
                 prefs.edit { putString(source.key("badUrl"), url) }
@@ -1100,6 +1104,20 @@ class Store(private val context: Context) {
      * back to [url] as is (1280 px for APOD); NASA's is the original, so it fails.
      */
     private fun downloadPicture(post: Post, url: String, part: File) {
+        try {
+            downloadRendition(post, url, part)
+        } catch (e: IOException) {
+            // EF1: Earth's picture missing (404, 410 or not an image), never the network or a timeout:
+            // else a slow connection would store the thumbnail under the picture's key for good.
+            val missing = e is SiteChanged || (e is HttpStatus && (e.code == 404 || e.code == 410))
+            if (post.source != Source.EARTH || !missing) throw e
+            Log.w("APODroid", "Earth: picture missing, the thumbnail instead: $e")
+            downloadRendition(post, earthThumbnail(url), part)
+            prefs.edit { putString("earth.thumbFallback", url) }
+        }
+    }
+
+    private fun downloadRendition(post: Post, url: String, part: File) {
         val rendition = renditionUrl(url, screen.height)
         try {
             download(rendition, part, userAgent)
@@ -1111,6 +1129,7 @@ class Store(private val context: Context) {
             Log.w("APODroid", "Rendition failed, plain picture instead: $e")
         }
         download(url, part, userAgent)
+        if (!isImage(part)) throw SiteChanged("Not an image: $url")
     }
 
     /**

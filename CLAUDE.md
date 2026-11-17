@@ -1459,16 +1459,18 @@ with `REASON_USER_REQUESTED` and a force stop's description ("stop <package> due
 `forceStopPackageLocked`) newer than the last arming (`armedAt`, noted by each arming with
 `armedBoot`) counts as the alarms gone, as does a user-requested record whose summary names the subreason
 `subreason=21 (FORCE STOP)` (TP1f1: T4 on the Android 14 emulator saw no line after 11 force stops
-with such a record in `dumpsys activity exit-info`; the cause not found by reading, so on 30–34 every user-requested record is
-read and the newest logged (none read elsewhere, `readsExitRecords`), `Detector: <n> exit records, armed …`, for the device's check) (`:core`'s
+with such a record in `dumpsys activity exit-info`; the cause not found by reading, so on 30–34 every record is read, the newest three logged, and only
+the user-requested ones count (none read elsewhere, `readsExitRecords`), `Detector: <n> exit records, armed …`, for the device's check) (`:core`'s
 `stoppedSinceArmed`, `UserExit`, `isForceStopSummary`; logged
 `Detector: stopped by the user since the arming (exit record)` before the usual line); no other
 user-requested record counts (TP1's fix round 1): a Recents swipe's ("remove task") and
 `killBackgroundProcesses`' ("kill background", "kill all background": `am kill`, task killers,
 makers' cleaners) leave the alarms, and `pm clear` wipes `armedAt`. 35+
-and 29 as before. A force stop with no process alive leaves no record (accepted). Not yet
-checked on a device (the night ran it without one, Opus pass 52): T4 on the Android 14 emulator;
-11–13 wait for E (0.10.0). So the first arming in a process (`DailyJob.ensure`'s
+and 29 as before. A force stop with no process alive leaves no record (accepted). Checked on
+the Android 14 emulator (TP1f1, pipeline run 156, 2026-11-17): ten force stops with the process alive,
+`Detector: the alarms found gone` each time (six by the exit record, four with the `PendingIntent`s
+already gone), the box after a missed change; a Recents swipe and `am kill` only the records' line;
+why T4's build saw no line not found. 11–13 wait for E (0.10.0). So the first arming in a process (`DailyJob.ensure`'s
 `checkAlarms`, from the page's `onResume` or a receiver; not again in a process that armed or
 cancelled them) asks for the pair's `PendingIntent`s with `FLAG_NO_CREATE`; both missing while
 `daily` is on is noted (`alarmsLost`: `alarmsLostAt` and `lostAfterRun`, the last run's start)

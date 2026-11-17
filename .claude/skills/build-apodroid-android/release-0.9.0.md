@@ -223,5 +223,8 @@ From T4 (rosie, 2026-11-17, the Android 14 emulator, dev c46ca02's debug build;
   returns (count, reason, timestamp, description) and `armedAt`, then the fix.
 - **Device** (rosie, the emulator): the ten force stops as T4 (the line and the box each time); a
   Recents swipe and `am kill`: no line; the smoke list.
+- **Checked** (TP1f1, run 156, rosie, the Android 14 emulator): PASS; ten force stops, `the alarms
+  found gone` each time (six by the exit record, four with the `PendingIntent`s already gone), the box
+  after a missed change faked; `am kill` and a Recents swipe no claim; the smoke list. So R4's line stays.
 - **Done when:** the Gradle check, the device pass. Else R4's changelog line becomes "should now notice"
   before the tag (R4).

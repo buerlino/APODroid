@@ -417,9 +417,10 @@ or days of time.
   <armedAt>; <time> reason <r> <description> (force stop); …` (the newest three; TP1f1, to see
   what Android returns). A record
   older than the arming, a Recents swipe ("remove task"), `am kill` or a cleaner's
-  `killBackgroundProcesses` ("kill background", "kill all background"), 29 and 35+: no
-  `Detector:` line (J1). Phone: the Android 14 emulator, `am force-stop`
-  with the process alive, a change time faked past, a page open, ten times: the line each time.
+  `killBackgroundProcesses` ("kill background", "kill all background"): only the records' line;
+  29 and 35+: no `Detector:` line (J1). Phone: the Android 14 emulator, `am force-stop`
+  with the process alive, a change time faked past, a page open, ten times: J2's line each time
+  (TP1f1, run 156: six by the record, four with the `PendingIntent`s already gone, J2).
   Unit: `DetectorTest`.
 - **J3 Gone, explained** (boot, update, job 2 pending, no run yet). `Detector: the alarms found gone
   (booted …, updated …, run pending …)`. Phone: no.

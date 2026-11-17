@@ -42,6 +42,8 @@ same day (113 cases). `CLAUDE.md` wins where a map disagrees.
   X1–X6) and P31–P34a, J6, M9; page K16, K23, K24–K26 (rewritten: Auto's turn, ✓ notes the
   orientation with a drag), K31, §4 32; background E8, F15, P22; live's hand-over line. Line
   numbers not moved.
+- 2026-11-17, SH2b (0.9.0, the original when smaller than the screen; the check of 0.8.0's
+  post): background E9 (E9a–E9d) and P23–P25. Line numbers not moved.
 
 ## The SUSPECTs and FAILs of 15 Nov and what became of them
 

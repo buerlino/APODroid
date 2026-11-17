@@ -245,7 +245,11 @@ over 10 minutes. 1000 users ≈ 5000–10000 requests a day, spread over the day
 zones. The risk is fragility, not load. Since 0.5.0 (WP7c, 2026-10-18) NASA and Earth have no
 post on weekends, so their checks repeat: a page open skips a source checked without a problem
 within the hour (The page); the job's runs always check. A picture that isn't one is
-downloaded once (Fetch).
+downloaded once (Fetch). Since 0.9.0 (SH2b) each new picture costs one more request first, at
+most 64 KB of the original (rarely 512 KB more for a JPEG with a large header), and the original
+instead of the rendition when it's smaller than the screen (often less data: 5 Nov's 549 KB PNG
+instead of its 6.5 MB rendition); the update from 0.8.0 probes each stored post once and
+downloads its original again where it's smaller.
 
 **User-Agent (2026-10-02):** both requests send
 `APODroid/<versionName> (+https://github.com/buerlino/APODroid)`, so the site can tell this app
@@ -673,7 +677,23 @@ set it as wallpaper, and on video days kept the old wallpaper.
   The picture is downloaded as tall as the screen (`renditionUrl(imageUrl, screen.height)`,
   0.5.0; [Sharper wallpaper](#next-features)); if that fails, APOD and Earth fall back to the
   plain `imageUrl` (1280 px for APOD), NASA fails (its plain URL is the original, up to 97 MB).
-  The original's size from its first bytes (0.9.0, SH1): `:core`'s `imageSize(bytes)` (JPEG's first SOFn, PNG's IHDR, WebP's VP8/VP8L/VP8X, GIF; else null, a TIFF too); the probe in the app in SH2b.
+  The original's size from its first bytes (0.9.0, SH1): `:core`'s `imageSize(bytes)` (JPEG's first SOFn, PNG's IHDR, WebP's VP8/VP8L/VP8X, GIF; else null, a TIFF too).
+  **The original when it's smaller than the screen** (0.9.0, SH2b; `sharp-0.9.0.md`, The download
+  and the size): each new picture's download first probes the original (`originalUrl`; `:core`'s
+  `originalSize`: a GET with `Range: bytes=0-65535`, 206 or a 200 read only that far, then
+  `0-524287` only for a JPEG whose frame lies further, `probeMore`); when it wouldn't cover the
+  screen at 1:1 (`takesOriginal`: `max(sw ÷ w, sh ÷ h) ≥ 1`, its size as the header names it) the
+  original is downloaded instead (`.part`, decodable, renamed; its failure falls back to the
+  rendition), so the stored file has its true size (7 Nov's APOD 1500×1022, not the server's
+  3646×2484 enlargement). A failed probe or no size (a TIFF): the rendition, logged. No probe where
+  the host doesn't scale (the rendition is the original). Noted `<source>.sizeChecked` (the picture
+  URL). **A post stored by 0.8.0** (no `sizeChecked` for its URL): at a refresh finding the same
+  post, or a page open or Set skipping the check (T3f1's hooks), once per post (`sizeChecked`
+  committed first), the probe; a smaller original replaces the stored file (the same post and key,
+  no set: the screens keep the rendition until their next set), the subject noted again; a failure
+  never fails the refresh. Not while `earth.thumbFallback` is noted. Logged `Refresh: APOD
+  2026-11-07 original 1500×1022 (smaller than the screen)`, `… rendition (original 4000×3000)`, `…
+  probe failed: …`, `… stored picture replaced by the original`.
   It goes to the source's file, `files/apod.jpg`, `nasa.jpg` or `earth.jpg` (whatever its
   format; no storage permission; 0.5.0), via a `.part` file, and replaces the old one only when
   complete and decodable. One that isn't an image

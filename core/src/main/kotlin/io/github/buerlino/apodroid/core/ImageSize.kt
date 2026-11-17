@@ -87,3 +87,26 @@ private fun ByteArray.u16be(i: Int) = (u8(i) shl 8) or u8(i + 1)
 private fun ByteArray.u16le(i: Int) = u8(i) or (u8(i + 1) shl 8)
 private fun ByteArray.u24le(i: Int) = u8(i) or (u8(i + 1) shl 8) or (u8(i + 2) shl 16)
 private fun ByteArray.u32be(i: Int) = (u8(i).toLong() shl 24) or (u8(i + 1).toLong() shl 16) or (u8(i + 2).toLong() shl 8) or u8(i + 3).toLong()
+
+// SH2b (sharp-0.9.0.md, The download and the size): the probe of the original and its choice.
+
+/** The probe's first request: the original's first 64 KB (`Range: bytes=0-65535`). */
+const val PROBE_BYTES = 65_536
+
+/** The probe's second request, when a JPEG's frame lies past the first 64 KB (a large APP1, say). */
+const val PROBE_MORE_BYTES = 524_288
+
+/**
+ * Whether a second, larger probe could find the size [first] (the first request's bytes) didn't
+ * hold: only a JPEG cut off at [PROBE_BYTES] (its segments before the frame can be long; PNG's,
+ * GIF's and WebP's sizes sit in their first 30 bytes, and a TIFF has none [imageSize] reads).
+ */
+fun probeMore(first: ByteArray): Boolean =
+    imageSize(first) == null && first.size >= PROBE_BYTES && first.startsWith(0xFF, 0xD8)
+
+/**
+ * The original (w×h as its header names it) is downloaded instead of the screen-tall rendition
+ * when it wouldn't cover the screen (sw×sh, portrait) at 1:1: `max(sw ÷ w, sh ÷ h) ≥ 1`. The
+ * rendition would then be the original enlarged by the server (7 Nov's 1500×1022 as 3646×2484).
+ */
+fun takesOriginal(w: Int, h: Int, sw: Int, sh: Int): Boolean = sw >= w || sh >= h

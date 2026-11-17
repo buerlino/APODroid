@@ -11,8 +11,8 @@ time", "Traffic", "Wallpaper", "Problems and status lines"), `DailyJob.kt`, `Ala
 below has the tag `APODroid` (`adb logcat -d -s APODroid`). Line numbers are of 3a4db15.
 
 **Counts:** 105 leaves (A 10, B 7, C 7, D 9, E 7, F 13, G 14, H 7, I 8, J 7, K 5, L 3, M 7, N 1);
-**3 SUSPECTs** (G14, J6, N1; N1 fixed since); 0.8.0 added E1b, E3b, E8, E8a, F14–F16; 22 phone
-cases in the list at the end (P18–P22 0.8.0's).
+**3 SUSPECTs** (G14, J6, N1; N1 fixed since); 0.8.0 added E1b, E3b, E8, E8a, F14–F16; 0.9.0
+(SH2b) E9, E9a; 25 phone cases in the list at the end (P18–P22 0.8.0's, P23–P25 0.9.0's).
 
 ## The phone (FP6, LineageOS, Android 16, release build of 7299474)
 
@@ -206,6 +206,34 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
   check (no fetch): the `Subject:` line all the same; Set then logs `, auto <p>` when the subject
   moves the frame 0.2 or more (before, Set went on at the middle until a pull or the next post).
   Phone (the emulator): v0.7.0's R8, a Set, `install -r` of the fix, open the page within the hour.
+- **E9 The original's size (SH2b, 0.9.0).** Every download of a new picture in `refresh` (another
+  date or picture URL, a missing file, Earth's thumbnail retried) first probes the original
+  (`originalUrl`: APOD's and Earth's `content/dam`, NASA's enclosure): a GET with `Range:
+  bytes=0-65535` (206, or a 200 read only that far), a second with `bytes=0-524287` only for a
+  JPEG whose frame lies past the first 64 KB (`:core`'s `originalSize`, `probeMore`). No probe when
+  the host doesn't scale (NASA's `images-assets.nasa.gov`: the rendition is the original).
+  - **E9a The original smaller than the screen** (`takesOriginal`: `max(sw ÷ w, sh ÷ h) ≥ 1`, w×h as
+    its header names it, the screen's portrait size): the original downloaded instead of the
+    rendition (`.part`, decodable, renamed), `Refresh: APOD 2026-11-07 original 1500×1022 (smaller
+    than the screen)`; `apod.jpg` is 1500×1022. Its download failing (not a stop, not storage):
+    `… original 1500×1022 failed, the rendition instead: …`, then the rendition as before.
+  - **E9b The original covers the screen:** `Refresh: APOD <date> rendition (original 4000×3000)`,
+    the screen-tall rendition as before.
+  - **E9c The probe failed** (the network, an HTTP error, a raw space in the URL) or found no size
+    (a TIFF): `… probe failed: …` (`… probe failed: no size in the original's first bytes`), the
+    rendition as before; nothing else changes (no problem note, no failed run: the rendition's own
+    download decides). An Earth picture that's missing: the probe's `HTTP 404`, then EF1's thumbnail.
+  - Each such download notes `<source>.sizeChecked` (the picture URL), so E9d isn't owed.
+  - **E9d A post stored by 0.8.0** (the rendition, no `<source>.sizeChecked` for its URL): checked
+    once, at a refresh that finds the same post (the job's run, a pull, a page open after the hour)
+    or a page open or Set that skips the check (T3f1's hooks, `noteStored`): `sizeChecked`
+    committed first, then the probe (E9a–c's lines); when the original is smaller, it replaces
+    `apod.jpg` (the same post and record: nothing is set, the screens keep the rendition until their
+    next set), the subject's note dropped and noted again (`Subject: …` follows), `Refresh: APOD
+    <date> stored picture replaced by the original`. A failed download: `… couldn't store the
+    original: …`, the rendition kept; never a failure of the refresh. Not while
+    `earth.thumbFallback` names the post's URL (each refresh tries the real picture anyway). Not
+    again for that post (the next runs log nothing of it); a stop during it isn't retried either.
 
 ## F. What each screen gets (`dueWallpapers`, `Screens.kt:230-363`)
 
@@ -477,11 +505,11 @@ or days of time.
 
 ---
 
-## Phone test list (prioritized, 22 cases)
+## Phone test list (prioritized, 25 cases)
 
 On the Android 14 emulator (tester-rules-emulator.md): `run-as` reads the prefs, `adb root` kills,
 the clock may be stepped and set back; P16 (a real morning) SKIPPED, real timing; P14's buckets read
-only. P18–P22 are 0.8.0's, for the emulator.
+only. P18–P22 are 0.8.0's, P23–P25 0.9.0's (SH2b), for the emulator.
 
 General rules: USB adb (airplane mode cuts wireless adb). `adb logcat -c` is fine before a case;
 `adb logcat -G 16M` once if the buffer rolls (harmless). Never change the clock, the zone, clear
@@ -595,6 +623,19 @@ as it's out"?), Advanced (Save every picture, Keep running), the page's status l
 22. **P22, sideways by the job (F14, F15).** Size Auto stored, APOD 3000×1000 faked as a new post
     with the galaxy text (setup.md X), `run -f 1`: `… , sideways, auto turn`; the horizon text:
     upright; a ⛶ part noted off: upright; Size Centre: upright.
+
+23. **P23, E9a and E9b (SH2b).** Fresh data (or APOD's keys and `apod.jpg` removed), the 7 Nov
+    post served (the skill's fake feed, or a real day whose original is under 2484 px high),
+    `run -f 1`: `Refresh: APOD 2026-11-07 original 1500×1022 (smaller than the screen)`, `apod.jpg`
+    1500×1022 (`run-as … cat files/apod.jpg` and its header). A post with a large original: `…
+    rendition (original W×H)`, `apod.jpg` as tall as the screen.
+24. **P24, E9d (SH2b).** The 0.8.0 state: 7 Nov's rendition as `apod.jpg` (`?h=<screen height>`),
+    `sizeChecked` removed, the page opened (within the hour or with today's post: the skip hook):
+    `… original 1500×1022 (smaller …)`, `… stored picture replaced by the original`, then
+    `Subject: APOD 2026-11-07 …`; `sizeChecked` = the URL; a second open logs none of it.
+25. **P25, E9c (SH2b).** Airplane mode between the feed and the probe is hard to time: instead
+    a faked `imageUrl` whose original answers 404 (APOD) at a pull: `… probe failed: …HTTP 404`,
+    then the rendition's own outcome.
 
 End state check (after the last case): `dumpsys alarm` has the pair at the clock's next check,
 job 1 periodic, `dumpsys wallpaper` home = APODroid's engine and lock its own still, Keep running

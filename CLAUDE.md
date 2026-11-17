@@ -36,7 +36,7 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - 0.7.0, turns as a plain rotation (the "hasn't shown" rule and the waiting go; planned 2026-11-11): [.claude/skills/build-apodroid-android/rotation-0.7.0.md](.claude/skills/build-apodroid-android/rotation-0.7.0.md).
 - 0.7.0, "As soon as it's out" (a switch: a new picture goes on within the hour, not only in the 3-hour window; planned 2026-11-13): [.claude/skills/build-apodroid-android/soon-0.7.0.md](.claude/skills/build-apodroid-android/soon-0.7.0.md).
 - 0.7.0, the list's order (drag the sources into order; after a Set of a new order the top goes on at the next "New picture at", what's on kept until then; planned 2026-11-14): [.claude/skills/build-apodroid-android/order-0.7.0.md](.claude/skills/build-apodroid-android/order-0.7.0.md).
-- 0.8.0's release plan (deadline 17 Nov; user, 2026-11-15: Sideways, the subject frame as Size [Centre | Auto | Live] with Auto the default, the video still, the second post on a date; Android 10–14, E, moves to 0.9.0; the device checks on the Android 14 emulator while pascaline has the tablet): [.claude/skills/build-apodroid-android/release-0.8.0.md](.claude/skills/build-apodroid-android/release-0.8.0.md).
+- 0.8.0's release plan (deadline 17 Nov; user, 2026-11-15: Sideways, the subject frame as Size [Centre | Auto | Live] with Auto the default, the video still, the second post on a date; Android 10–14, E, moves to 0.9.0, then 0.10.0; the device checks on the Android 14 emulator while pascaline has the tablet): [.claude/skills/build-apodroid-android/release-0.8.0.md](.claude/skills/build-apodroid-android/release-0.8.0.md).
 - 0.8.0, Fill's frame on the subject (issue #3, a saliency map; planned 2026-11-02): [.claude/skills/build-apodroid-android/subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md).
 - 0.8.0, Sideways (issue #4: a wide picture turned 90° clockwise, a toggle per picture in ⛶ mode, later a Setup switch; planned 2026-11-15): [.claude/skills/build-apodroid-android/sideways-0.8.0.md](.claude/skills/build-apodroid-android/sideways-0.8.0.md).
 - A clearer Setup and leaner texts (planned for 0.7.0, 2026-10-29; MK and UI1–UI3 built in 0.6.0 as U0, 2026-11-02, with ⛶'s ✓ setting again; what's left for 0.7.0 is there): [.claude/skills/build-apodroid-android/lean-ui-0.7.0.md](.claude/skills/build-apodroid-android/lean-ui-0.7.0.md).
@@ -151,7 +151,7 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
   tests don't cover R8, so test release builds on the phone.
 - Android SDK in `~/Android/Sdk`. The user tests on real devices over adb; the emulator only for
   the Android versions no device has (10–14; user, 2026-10-29: E; postponed to 0.7.0, user,
-  2026-11-02: release 0.6.0 as soon as possible; to 0.8.0, user, 2026-11-14; to 0.9.0, user, 2026-11-15), never for real timing (Doze, buckets, makers' cleaners).
+  2026-11-02: release 0.6.0 as soon as possible; to 0.8.0, user, 2026-11-14; to 0.9.0, user, 2026-11-15; to 0.10.0, user, 2026-11-17), never for real timing (Doze, buckets, makers' cleaners).
 - Git branch `master`, remote `origin`. `dev` holds the night shift's merges until the user fast-forwards master.
 
 **Releases** (F-Droid builds only the newest tag: it ships 0.5.0, 0.3.1 and 0.3.0 and skipped
@@ -1780,7 +1780,7 @@ starts then; W also sees real weekday mornings and a weekend. **SIM**, a seeded 
 the rules over months in `:core` (test code only): the job and the rules gave 13 of the 24 fix
 packages B2–B24. **E**, Android 10–14 in the emulator (user, 2026-10-29, a baseline for 0.7.0's Live and on-time
 work; `emulator.md`): **postponed to 0.7.0** (user, 2026-11-02: release 0.6.0 as soon as possible), so
-0.6.0 ships Android 10–14 untested on a device, an accepted risk (E moved on to 0.8.0, then to 0.9.0, user, 2026-11-15; 0.8.0 ships Android 10–14 untested on a device, SW2T ran on the Android 14 emulator). **Accepted, no change:** the RARE bucket's about one alarm
+0.6.0 ships Android 10–14 untested on a device, an accepted risk (E moved on to 0.8.0, then to 0.9.0, user, 2026-11-15, then to 0.10.0, user, 2026-11-17; 0.8.0 ships Android 10–14 untested on a device, SW2T ran on the Android 14 emulator). **Accepted, no change:** the RARE bucket's about one alarm
 an hour (Android's quota; the pause hint covers Optimized); CR2's finding 4 (a Set that
 changes the picture time or "Change every" costs one spare check; noting `lastRunAt` at Set
 could drop an owed check); a Set tap in the same input burst as the time menu's closing goes to

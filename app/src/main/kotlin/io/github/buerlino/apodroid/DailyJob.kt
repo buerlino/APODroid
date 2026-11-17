@@ -13,8 +13,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import io.github.buerlino.apodroid.core.JobRuns
 import io.github.buerlino.apodroid.core.UserExit
+import io.github.buerlino.apodroid.core.isForceStopSummary
+import io.github.buerlino.apodroid.core.readsExitRecords
 import io.github.buerlino.apodroid.core.stoppedSinceArmed
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -202,15 +205,28 @@ class DailyJob : JobService() {
 
         /**
          * This app's process exits the user asked for (`REASON_USER_REQUESTED`: a force stop, `pm
-         * clear`, a Recents swipe), from Android's records (API 30+; none below, or on a failure).
+         * clear`, a Recents swipe), from Android's records (API 30–34 only, [readsExitRecords]: none
+         * elsewhere, or on a failure). Only user-requested records; [UserExit.forceStop] marks those
+         * whose summary names the force stop's subreason.
          */
-        private fun userExits(context: Context): List<UserExit> {
-            if (Build.VERSION.SDK_INT < 30) return emptyList()
+        private fun userExits(context: Context, armedAt: Instant?): List<UserExit> {
+            // The explicit R check for lint (it can't read :core's readsExitRecords).
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || !readsExitRecords(Build.VERSION.SDK_INT)) return emptyList()
+            return readExitRecords(context, armedAt)
+        }
+
+        @RequiresApi(Build.VERSION_CODES.R)
+        private fun readExitRecords(context: Context, armedAt: Instant?): List<UserExit> {
             return runCatching {
-                context.getSystemService(ActivityManager::class.java)
-                    .getHistoricalProcessExitReasons(context.packageName, 0, 16)
+                // All of them (0: no cap), TP1f1: 16 dropped none on T4's emulator, but costs nothing.
+                val records = context.getSystemService(ActivityManager::class.java)
+                    .getHistoricalProcessExitReasons(context.packageName, 0, 0)
+                // TP1f1: what Android returns, for the check on a device (T4 saw no `Detector:` line).
+                Log.i("APODroid", "Detector: ${records.size} exit records, armed $armedAt" + records.sortedByDescending { it.timestamp }.take(3)
+                    .joinToString("") { "; ${Instant.ofEpochMilli(it.timestamp)} reason ${it.reason} ${it.description}${if (isForceStopSummary(it.toString())) " (force stop)" else ""}" })
+                records
                     .filter { it.reason == ApplicationExitInfo.REASON_USER_REQUESTED }
-                    .map { UserExit(Instant.ofEpochMilli(it.timestamp), it.description) }
+                    .map { UserExit(Instant.ofEpochMilli(it.timestamp), it.description, isForceStopSummary(it.toString())) }
             }.onFailure { Log.w("APODroid", "Detector: couldn't read the exit records: $it") }.getOrDefault(emptyList())
         }
 
@@ -232,7 +248,8 @@ class DailyJob : JobService() {
                 PendingIntent.getBroadcast(context, code, alarmIntent(context), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE) == null
             }
             if (!gone) {
-                if (!stoppedSinceArmed(Build.VERSION.SDK_INT, userExits(context), Store(context).armedAt)) return
+                val armedAt = Store(context).armedAt
+                if (!stoppedSinceArmed(Build.VERSION.SDK_INT, userExits(context, armedAt), armedAt)) return
                 Log.i("APODroid", "Detector: stopped by the user since the arming (exit record)")
             }
             Store(context).noteAlarmsGone(runPending = scheduler(context).getPendingJob(RUN) != null)

@@ -242,8 +242,8 @@ sideways branch). Needs a landscape picture on the shown page (today's, or 9 Nov
 `files/` with the skill's recipe) and a portrait or square one for K16a. Sideways turns the picture
 90° clockwise: its top at the screen's right; the band is position 0 at the picture's bottom.
 - **K16 ⛶ on a landscape picture.** The pill "Sideways" at the picture's top right (the chip's dark
-  pill), white while it equals what the stored part puts on (SW3: the noted value, else the stored
-  "Wide pictures sideways" rule, K24); "Whole picture" stays at the top left. Screen
+  pill), white while it equals what the stored part puts on (the noted value, else Auto's turn,
+  0.9.0, K24); "Whole picture" stays at the top left. Screen
   readers: "Sideways", a switch, "Off". No log.
   - **K16a ⛶ on a portrait or square picture:** no "Sideways" pill (`sidewaysHelps`: wider than high,
     by the file's upright size, `uprightSize`, SW3).
@@ -285,25 +285,31 @@ sideways branch). Needs a landscape picture on the shown page (today's, or 9 Nov
   `Live: drew … p=0.NN`; the home screen pans across the turned picture (a 3:2 picture about a third
   of its turned width over the day). Details: live.md, ⛶ with Live.
 - **K23 A new post of that source** (a faked date): the part drops (keyed by `cropDate`/`cropUrl`),
-  the new picture goes on upright; ⛶ opens with "Sideways" off (with "Wide pictures sideways" on
-  and a 3:2 or wider new picture: sideways, K24).
+  the new picture goes on upright; ⛶ opens with "Sideways" off (with the stored Size Auto, an APOD
+  landscape picture whose text has no up: sideways by Auto's turn, K24).
 
-With "Wide pictures sideways" (SW3, 0.8.0; setup.md X; `turnsSideways`, `cropSidewaysTouched`): the
-pill opens on the value the set uses, the part's noted one, else, while the **stored** switch is on,
-`sidewaysByDefault` (3:2 or wider). The draft's switch doesn't change ⛶ until Set.
-- **K24 The switch stored on, ⛶ on a 3:2 or wider picture without a noted part:** "✓ Sideways"
-  white (it's what's on), the band. On a 1.2:1 picture: "Sideways" off, white.
-  - **K24a ✓ untouched** (the band dragged or not): the part keeps no `<source>.sideways` key (null,
-    the switch's default); a moved band sets as K1d with ", sideways".
+With Auto's turn (0.9.0, SH2a; setup.md X; `turnsSideways(post, …)`, `cropSidewaysTouched`,
+`notedSideways`): the pill opens on the value the set uses, the part's noted one, else, while the
+**stored** Size is Auto, sideways for an APOD landscape picture whose text has no up (`hasUp` of the
+stored title, `alt`, explanation). The draft's Size doesn't change ⛶ until Set. Set up: APOD 3000×1000
+faked with the galaxy text (setup.md X), the stored Size Auto.
+- **K24 ⛶ on it without a noted part:** "✓ Sideways" white (it's what's on), the band. With the
+  horizon text, or the stored Size Centre, or NASA's page with the same picture: "Sideways" off, white.
+  - **K24a ✓ untouched and undragged:** nothing set (K28); no `<source>.sideways` key (null, Auto's
+    turn). **Dragged, ✓:** "Wallpaper set", `Part: wallpaper set: … , sideways` (no `auto turn`: the
+    part notes it), `<source>.cropPosition` and `<source>.sideways=true` noted (0.9.0: ✓ notes the
+    orientation with a dragged position), so Size Centre and Set later keeps the band sideways at its
+    place (no jump to the other axis).
   - **K24b Tap it off, ✓:** "Wallpaper set", upright (`setStream`, no ", sideways"),
-    `<source>.sideways=false`: this picture only; the next post (K23) sideways again by the rule.
+    `<source>.sideways=false`: this picture only; the next post (K23) by Auto's turn again.
   - **K24c Tap it off and on again, ✓:** nothing set (the value used unchanged), but
-    `<source>.sideways=true` noted (a touched pill notes its value), so the switch off later keeps
+    `<source>.sideways=true` noted (a touched pill notes its value), so Size Centre later keeps
     this picture sideways.
-- **K25 The switch stored off, a part ✓'d on:** stays sideways (setup.md X4). The draft's switch
-  on, not Set: ⛶ still opens as stored (night default: ✓ sets by the stored setup).
-- **K26 A part's position with the switch:** its number stays when the switch turns the picture
-  sideways, so the band stands at that position along the other axis (night default).
+- **K25 The stored Size Centre, a part ✓'d on:** stays sideways (setup.md X4). The draft's Size Auto,
+  not Set: ⛶ still opens as stored (✓ sets by the stored setup).
+- **K26 A part's position from before 0.9.0** (a number, no `<source>.sideways`): its number stays
+  when Auto's turn turns the picture, so the band stands at that position along the other axis (no
+  migration). A part dragged since SH2a notes its orientation (K24a), so it can't.
 With Size Auto (SA3b, 0.8.0; `startCrop`, `frameOf`, `cropMoved`, `:core`'s `framePosition`,
 `notedPosition`, `Part.kt`): ⛶ opens where the screen has the frame, by the **stored** Size, the
 sideways value used and the stored "Centre when unsure" (setup.md J6; Advanced's A7 before UI1); `Part.position` stays null until
@@ -324,7 +330,7 @@ the frame is dragged. Set up: a picture whose noted subject moves the frame 0.2 
   set's line). A part ✓'d by 0.7.0 keeps its number (no migration).
 - **K31 The pill on an undragged frame** (a landscape picture): the band jumps to the sideways
   subject's position (`subjectSideways`, the middle without one or with Centre); tap it back: the
-  upright one. After a drag (K29) the pill keeps the number (K26).
+  upright one. After a drag (K29) the pill keeps the number (K26), and ✓ notes the orientation (K24a).
 - **K31a A drag belongs to its orientation** (FP1, 2026-11-16, the FP6's bug): Size Auto, a
   landscape picture under 3:2 whose subject is off the middle, no stored part. ⛶, pill on, drag
   the band, pill off: the frame jumps back to the upright subject; ✓: no `<source>.cropPosition`
@@ -607,7 +613,8 @@ settings). Deletions and restores are part of the list.
     removed): `Video still: couldn't make one of …`, black tile, no try at the next open. **P3d**
     `videoUrl` removed: black, no line. Restore the real post with a pull.
 32. **K16, K16b, K17, K18** (SW2): a landscape picture faked; the pill, the band, ✓ `…, sideways`, off
-    again. **K24, K24a–c** with "Wide pictures sideways" stored on (setup.md P31–P32 first).
+    again. **K24, K24a–c** with Auto's turn (0.9.0: APOD 3000×1000 with the galaxy text, setup.md P32
+    first).
 33. **K27, K28, K29, K31** (SA3b): a picture whose `Subject:` line's `p=` is ≥ 0.2 off the middle,
     Size Auto stored: ⛶ opens at it; ✓ untouched: nothing; drag ✓: `cropPosition`, no `, auto`; the
     pill on an undragged frame jumps to `subjectSideways`. **K31a** (FP1): drag sideways, pill off,

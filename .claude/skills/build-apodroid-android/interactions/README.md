@@ -38,6 +38,10 @@ same day (113 cases). `CLAUDE.md` wins where a map disagrees.
   BP2, BH4, K's frame kind; live §0, N1, T04/T16/T22–T24/T31/T34/T36); new cases: live T38–T39,
   page §4 (31–35), background E8a and P18–P22; the engine's log `Live: engine <flags> destroyed`;
   T3f1 (the subject not noted by a page open or Set within the hour) fixed at 28b46c7: setup J3, background E8a.
+- 2026-11-17, SH2a (0.9.0, Auto's turn; "Wide pictures sideways" removed): setup X (rewritten,
+  X1–X6) and P31–P34a, J6, M9; page K16, K23, K24–K26 (rewritten: Auto's turn, ✓ notes the
+  orientation with a drag), K31, §4 32; background E8, F15, P22; live's hand-over line. Line
+  numbers not moved.
 
 ## The SUSPECTs and FAILs of 15 Nov and what became of them
 

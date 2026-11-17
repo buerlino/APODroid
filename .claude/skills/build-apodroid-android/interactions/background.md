@@ -408,6 +408,13 @@ or days of time.
   `Detector:` line. Phone: yes (P5/P6).
 - **J2 Gone, unexplained** (a force stop). `Detector: the alarms found gone, after the run of
   <lastRunAt>`. Phone: only P17.
+- **J2a The PendingIntents there, an exit record** (API 30–34 only, TP1: a force stop there
+  leaves the `PendingIntent`s until system_server's GC). A `REASON_USER_REQUESTED` exit after the
+  last arming (`armedAt`), not a Recents swipe's ("remove task"): `Detector: stopped by the user
+  since the arming (exit record)`, then J2's or J3's line. A record older than the arming, a
+  swipe, 29 and 35+: no `Detector:` line (J1). Phone: the Android 14 emulator, `am force-stop`
+  with the process alive, a change time faked past, a page open, ten times: the line each time.
+  Unit: `DetectorTest`.
 - **J3 Gone, explained** (boot, update, job 2 pending, no run yet). `Detector: the alarms found gone
   (booted …, updated …, run pending …)`. Phone: no.
 - **J4 The next ordinary run judges.** A set due by a change time after the last run, found

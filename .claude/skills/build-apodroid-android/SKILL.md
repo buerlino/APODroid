@@ -28,6 +28,10 @@ packages unattended): `night.md`.
   also the crop hint, and `fitFrame`, where the whole picture goes on the screen (F1's Fit; ⛶'s whole picture since A3), and `sidewaysFrame`, the band of the upright picture a clockwise-turned one shows (SW1); SW3's `sidewaysByDefault` (3:2 or wider), `sidewaysOf` (a part's noted value, else the rule while "Wide pictures sideways" is on and the stored Size isn't Live, SW3f1) and `uprightOf` (EXIF 5–8 swap the size)
   (tests in `FrameTest`; a hint widened for landscape was tried and dropped, `CLAUDE.md`,
   Wallpaper).
+  `core/.../Limit.kt` (0.9.0, SH0's stubs, SH1 implements them): `SHARP_LIMIT` 2.0, `SHARP_TOLERANCE` 1.03,
+  `Layout`, `limitedLayout` (Fill at most L×, `sharp-0.9.0.md`'s Terms), `limitedFit` (the whole picture at most
+  L×). Tests in `LimitTest.kt`: `SharpOracle`, the naive reference; `LimitOracleTest` (runs now: the oracle and
+  the table against 0.8.0's frames); `LimitTableTest` and `LimitPropertiesTest` (@Ignored until SH1).
   `core/.../Background.kt` (0.6.0, A1): the background behind a whole picture: `edgesBlack`
   (black or blurred, from a small grey copy; `gray` for an ARGB pixel; `edgeCopySize`, the copy's size, A3), `blurSize`,
   `blurRadius`, `blurBackground` (tests in `BackgroundTest`).

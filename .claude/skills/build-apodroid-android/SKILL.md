@@ -460,6 +460,12 @@ what it leaves open.
   `debug-set.png`'s pixels, synthetic pictures only): Android 10–14's codec on an EXIF crop, a
   real wide panorama's frame, the lock screen by eye, the wallpaper colours from a darkened set,
   screen readers' "not set yet", and the FP6.
+- Keep pictures sharp and Auto's turn (SH2a–c; SH4, 2026-11-17, the Android 14 emulator, pipeline
+  run 154: 151 sets of made-up pictures by `debug-set.png`'s pixels, the probe on four real
+  originals, the update from 0.8.0): "my picture" limited, the darkening while the limit bites, a
+  real picture by eye on a phone, the probe's 200 (no real host answers with it; `ProbeTest` only),
+  real timing, and the FP6 with the user (`sharp-0.9.0.md`, Testing 6). The device bullets of LG,
+  EF1f1, UI1f1 and TP1 (merged with tablet SKIP) wait for T4.
 - The detector (O14, 2026-11-14; the tablet, Android 15, pipeline run 101, and O15, run 115, on
   debug and R8: a force stop, the clock stepped, Keep running off and on, a reboot, a page before
   T + offset + 30 min, a bucket holding the alarm without a force stop: the whitelist off and

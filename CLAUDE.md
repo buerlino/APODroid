@@ -1491,7 +1491,7 @@ times (a new post outside the window waits for the next change time; no setting,
 JSON of every source in use also while today's post is stored (not `force`, which is also
 `setDue`'s pull and would put the newest on at once), so it arrives at the next run; the picture
 is downloaded only for a new post (another date or picture URL). Logged `Refresh: APOD
-2026-11-16 same post` or `… new picture`. **A failed check of a stored day** (night default; the
+2026-11-16 same post` (only for today's stored post, else `… stored, nothing newer`, LG) or `… new picture`. **A failed check of a stored day** (night default; the
 alternative: a problem as any other check): with today's post stored and complete, a failed fetch
 (the network, an HTTP error, `SiteChanged`, a failed download of the second picture) is only
 logged, `Refresh: APOD 2026-11-16 stored, check failed: …`: no `<source>.problem`, no failed
@@ -2263,8 +2263,4 @@ press on the title block copies the link).
    days on the page); YouTube days stay black.
 3. Closed (D1, 2026-11-15): a second picture on the same date arrives at the job's next run
    (Background update, A second post on the same date).
-4. For 0.9.0 (user, 2026-11-16, from the night's test pass), log lines only: a whole picture's
-   set line ends `, auto <p>` though it has no frame (also `, auto 0.50` for the fallback's
-   middle); `Refresh: … same post` logs for any stored date (NASA's and Earth's weekend checks),
-   not only today's; turning the daily switch on in a fresh process logs `Detector: the alarms
-   found gone` (no box follows).
+4. Closed (LG, 2026-11-17): three log lines: ", auto <p>" only for a Fill frame Auto placed by a subject (not a whole picture, not the fallback's middle); `Refresh: … same post` only for today's stored post, else `stored, nothing newer`; the daily switch on doesn't log `Detector: the alarms found gone` (its own arming explains it, `DailyJob.switchedOn`).

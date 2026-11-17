@@ -989,7 +989,13 @@ class Store(private val context: Context) {
         store(latest, gap.takeIf { stored == null || latest.date != stored.date || latest.imageUrl != stored.imageUrl })
         // D1: the job asks every run, also with today's post stored.
         if (stored != null && latest.date == stored.date) {
-            Log.i("APODroid", "Refresh: ${source.name} ${latest.date} ${if (url == stored.imageUrl) "same post" else "new picture"}")
+            // LG: "same post" only for today's; an older stored date is a weekend's check (NASA, Earth).
+            val note = when {
+                url != stored.imageUrl -> "new picture"
+                latest.date == LocalDate.now(usEastern) -> "same post"
+                else -> "stored, nothing newer"
+            }
+            Log.i("APODroid", "Refresh: ${source.name} ${latest.date} $note")
         }
         // After storing: a page drawing meanwhile shows the video entry, never the old picture under it.
         if (url == null) file.delete()
@@ -1962,7 +1968,7 @@ class Store(private val context: Context) {
         }
         val position = framePosition(size, part?.position, raw, autoFallback)
         // The log's note while Auto placed the frame by the subject (the middle when it fell back).
-        val auto = if (size == Sizing.AUTO && part?.position == null && raw != null) String.format(Locale.ROOT, ", auto %.2f", position) else ""
+        val auto = if (size == Sizing.AUTO && part?.whole != true && part?.position == null && raw != null && position != 0.5f) String.format(Locale.ROOT, ", auto %.2f", position) else ""
         return auto + setFile(file, screens, position, part?.whole == true, sideways, factor = null, autoTurn = autoTurn, limit = limit)
     }
 

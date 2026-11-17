@@ -200,7 +200,7 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
   picture" has none). Phone (the emulator): a fake into `files/` (the skill), the
   `<source>.subject*` keys removed, `run -f 1`: the line; a broken picture: `couldn't`. SA3c: a
   landscape picture's sideways position is its turned picture's own (`sidewaysSubjectPosition`);
-  with Size Auto and "Wide pictures sideways" on, the next set's band (`files/debug-set.png`) and
+  with Size Auto and the picture turned (⛶'s pill, or Auto's turn since 0.9.0, F15), the next set's band (`files/debug-set.png`) and
   ⛶'s frame stand at the line's "(sideways …)" (through `autoPosition`).
   - **E8a (T3f1, fixed at 28b46c7):** the update from 0.7.0 (no `subject*` keys), a page open within the hour of the last
   check (no fetch): the `Subject:` line all the same; Set then logs `, auto <p>` when the subject
@@ -247,16 +247,21 @@ or days of time.
   PASS on the Android 14 emulator (SW2T, 2026-11-15; the tablet HA24BZ2Y not run): `run -f 1`
   with the record faked a day back gave `Daily job: wallpaper set: … on HOME+LOCK, sideways`,
   `debug-set.png` turned; a faked new post went on upright.
-- **F15 "Wide pictures sideways" (SW3, 0.8.0).** Each set of a source's post (the job's, the page's,
-  Set's, ✓'s, the hand-over's `live.sideways`, so B27's keep) turns it when its part notes
-  `<source>.sideways=true`, or notes nothing (the key missing, also a part from 0.7.0) while the
-  stored `wideSideways` is on and the picture file's upright size (`uprightSize`, EXIF's quarter
-  turns swapped) is 3:2 or wider (`:core`'s `sidewaysByDefault`, `sidewaysOf`; `Store.turnsSideways`).
-  So with the switch on a new wide post goes on sideways at its change time with no ⛶ at all:
-  `Daily job: wallpaper set: Of(…) on <screens>, sideways`; a 1.2:1 or portrait post upright; "my
-  picture" never. Unit: `FrameTest.wideSidewaysTurns3To2AndWider`, `aNotedPartWinsElseTheSwitchsRule`,
-  `theUprightSizeSwapsOnlyForAQuarterTurn`. Phone (the emulator): the switch on and Set (setup.md
-  X2), then a faked new wide post and `run -f 1`: sideways.
+- **F15 Auto's turn (0.9.0, SH2a; was SW3's "Wide pictures sideways", removed).** Each set of a
+  source's post (the job's, the page's, Set's, ✓'s, the hand-over's `live.sideways`, so B27's keep)
+  turns it when its part notes `<source>.sideways=true`, or notes nothing (the key missing, also a
+  part from 0.7.0) while the **stored** Size is Auto, the source is APOD, the picture file's upright
+  size (`uprightSize`, EXIF's quarter turns swapped) is landscape (W > H) and the stored post's text
+  has no up (`:core`'s `sidewaysOf`, `hasUp` of `title`, `<source>.alt`, `explanation`;
+  `Store.turnsSideways`). `<source>.alt` is written with each stored post (a post stored before
+  0.9.0 has none until this run's fetch stores it again, D1). So with Auto a new APOD galaxy post goes
+  on sideways at its change time with no ⛶ at all: `Daily job: wallpaper set: Of(…) on <screens>,
+  sideways, auto turn`; a horizon text, a portrait post, NASA's and Earth's, Centre's and Live's
+  upright; "my picture" never. The pref `wideSideways` is no longer read. Unit:
+  `FrameTest.sidewaysOfsTruthTable`, `sidewaysOfReadsOnlyWhatItNeeds`, `autosTurnByTheText`,
+  `theUprightSizeSwapsOnlyForAQuarterTurn`, `UpWordsTest`, `PartTest.checkNotesTheOrientationWithADrag`.
+  Phone (the emulator): Size Auto stored, APOD 3000×1000 faked as a new post with the galaxy text
+  (setup.md X), `run -f 1`: `, sideways, auto turn`; the horizon text: upright.
 - **F16 Auto's frame (SA3a, 0.8.0).** Each still set (the job's, the page's, Set's, ✓'s) places
   the frame by `:core`'s `framePosition`: the post's ⛶ part, else with Size Auto (the default; a
   stored 0.7.0 `FILL` reads as Auto) `autoPosition` of the noted subject for the set's
@@ -587,8 +592,9 @@ as it's out"?), Advanced (Save every picture, Keep running), the page's status l
 21. **P21, Auto's frame (F16).** Size Auto stored, a picture with `p` ≥ 0.2 off the middle, the
     record forgotten (`wallpaperDate` removed), `run -f 1`: `Daily job: wallpaper set: … , auto
     0.xx`; `autoFallback=false` and a picture with `p` 0.55–0.65: `, auto 0.6x`; on again: `, auto 0.50`.
-22. **P22, sideways by the job (F14, F15).** "Wide pictures sideways" stored on (setup.md P32), a
-    3:2 picture faked as a new post, `run -f 1`: `… , sideways`; a ⛶ part noted off: upright.
+22. **P22, sideways by the job (F14, F15).** Size Auto stored, APOD 3000×1000 faked as a new post
+    with the galaxy text (setup.md X), `run -f 1`: `… , sideways, auto turn`; the horizon text:
+    upright; a ⛶ part noted off: upright; Size Centre: upright.
 
 End state check (after the last case): `dumpsys alarm` has the pair at the clock's next check,
 job 1 periodic, `dumpsys wallpaper` home = APODroid's engine and lock its own still, Keep running

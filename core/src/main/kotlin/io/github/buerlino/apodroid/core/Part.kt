@@ -8,11 +8,12 @@ import java.time.LocalDate
  * the picture goes on turned 90° clockwise, [sideways] (0.8.0, SW2, issue #4: its top at the
  * screen's right; the frame then [sidewaysFrame], position 0 the bottom band).
  *
- * Two of them have three values. [sideways] (SW3): true or false as ⛶'s pill noted it, null for
- * "Wide pictures sideways"'s default ([sidewaysOf]). [position] (SA3b): the frame's place when ⛶'s
- * frame was dragged, null when it wasn't, so the stored Size decides ([framePosition]: Auto's
- * subject, else the middle); a part ✓'d only for "Whole picture" or the pill keeps following
- * Centre or Auto, Advanced's "Auto: centre when unsure" and the sideways switch.
+ * Two of them have three values. [sideways] (SW3): true or false as ⛶'s pill noted it (or a drag
+ * since 0.9.0, [notedSideways]), null for Auto's turn ([sidewaysOf]). [position] (SA3b): the
+ * frame's place when ⛶'s frame was dragged, null when it wasn't, so the stored Size decides
+ * ([framePosition]: Auto's subject, else the middle); a part ✓'d only for "Whole picture" or the
+ * pill keeps following Centre or Auto and "Centre when unsure"; one ✓'d only for "Whole picture"
+ * keeps Auto's turn too.
  */
 data class Part(val date: LocalDate, val url: String?, val position: Float?, val whole: Boolean, val sideways: Boolean? = null) {
     /** The part as one line for the page's saved state ([partOf] reads it): "date|position|whole|sideways|url", "null" for a value not noted. */
@@ -43,3 +44,13 @@ fun Map<Source, Part>.forPost(post: Post): Part? = this[post.source]?.takeIf { p
  * opened, else the part's [previous] one (null, not dragged, stays null).
  */
 fun notedPosition(moved: Boolean, dragged: Float, previous: Float?): Float? = if (moved) dragged else previous
+
+/**
+ * The orientation ⛶'s ✓ notes (0.9.0, sharp-0.9.0.md, The rules: ✓ notes the orientation with a
+ * dragged position): the pill's [shown] value when it was [touched] or the frame was [moved] since
+ * ⛶ opened (a drag belongs to the orientation it was made in, so a later change of Size or of
+ * NASA's text can't move the noted position to the other axis), else the part's [previous] one
+ * (null, Auto's turn, stays null).
+ */
+fun notedSideways(touched: Boolean, moved: Boolean, shown: Boolean, previous: Boolean?): Boolean? =
+    if (touched || moved) shown else previous

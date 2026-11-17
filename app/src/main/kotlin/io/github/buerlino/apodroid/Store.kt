@@ -56,6 +56,7 @@ import io.github.buerlino.apodroid.core.Part
 import io.github.buerlino.apodroid.core.forPost
 import io.github.buerlino.apodroid.core.framePosition
 import io.github.buerlino.apodroid.core.sidewaysHelps
+import io.github.buerlino.apodroid.core.sidewaysOf
 import io.github.buerlino.apodroid.core.sidewaysSubjectPosition
 import io.github.buerlino.apodroid.core.sizeOf
 import io.github.buerlino.apodroid.core.subjectCopySize
@@ -67,7 +68,6 @@ import io.github.buerlino.apodroid.core.lockFollowsHome
 import io.github.buerlino.apodroid.core.lostLive
 import io.github.buerlino.apodroid.core.opensPicker
 import io.github.buerlino.apodroid.core.sharedLockFollows
-import io.github.buerlino.apodroid.core.wideSidewaysOf
 import io.github.buerlino.apodroid.core.stillOrLive
 import io.github.buerlino.apodroid.core.unnotedLive
 import io.github.buerlino.apodroid.core.uprightOf
@@ -87,6 +87,7 @@ import io.github.buerlino.apodroid.core.screenOnRunOwed as coreScreenOnRunOwed
 import io.github.buerlino.apodroid.core.liveSettling as coreLiveSettling
 import io.github.buerlino.apodroid.core.liveHolds
 import io.github.buerlino.apodroid.core.homeLive
+import io.github.buerlino.apodroid.core.hasUp
 import io.github.buerlino.apodroid.core.liveReconnect
 import io.github.buerlino.apodroid.core.randomOffset
 import io.github.buerlino.apodroid.core.retryAfter
@@ -135,9 +136,8 @@ enum class Where(val screens: Set<Screen>) {
  * the list's order (OR2: the turns' order, all three sources, the top first; saved only while
  * the list shows); [size] Size (L6, SA3a: Centre, a still set at the middle as 0.6.0; Auto, a
  * still set on the subject, [Store.subject]; or Live, home's picture drawn by APODroid's live
- * wallpaper while Android's picker put it on home); [wideSideways] "Wide pictures
- * sideways" (SW3: a picture 3:2 or wider goes on sideways unless its part notes otherwise,
- * [Store.turnsSideways]); [autoFallback] "Centre when unsure" (UI1, was SA3b's Advanced switch: with
+ * wallpaper while Android's picker put it on home; with Auto an APOD landscape picture goes on
+ * sideways by its text, [Store.turnsSideways]); [autoFallback] "Centre when unsure" (UI1, was SA3b's Advanced switch: with
  * Size Auto a subject only slightly off the middle stays centred, [Store.autoFallback]). Not the daily switch: it acts at once ([Store.switchDaily]).
  */
 /** A post's subject (SA3a, [Store.subject]): Fill's raw frame positions upright and sideways (`:core`'s subjectPosition), null where none was found. */
@@ -155,7 +155,6 @@ data class Setup(
     val darken: Boolean = true,
     val order: List<Source> = Source.entries,
     val size: Sizing = Sizing.AUTO,
-    val wideSideways: Boolean = false,
     val autoFallback: Boolean = true,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
@@ -331,7 +330,7 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, wideSideways, autoFallback)
+        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, autoFallback)
 
     /**
      * The list's order (OR2, the pref `order`, a comma list of all three; read tolerantly by
@@ -402,7 +401,6 @@ class Store(private val context: Context) {
             putInt("pictureAt", setup.pictureAt)
             putBoolean("soon", setup.soon)
             putBoolean("darken", setup.darken)
-            putBoolean("wideSideways", setup.wideSideways)
             putBoolean("autoFallback", setup.autoFallback)
             putString("size", setup.size.name)
             if (setup.allSources) putString("order", order.joinToString(",") { it.name })
@@ -424,7 +422,7 @@ class Store(private val context: Context) {
         // Null (SA3b, ⛶'s frame not dragged): the stored Size's frame, so the key goes.
         part.position?.let { putFloat(source.key("cropPosition"), it) } ?: remove(source.key("cropPosition"))
         putBoolean(source.key("whole"), part.whole)
-        // Null (SW3): the switch's default, so the key goes.
+        // Null (SW3): Auto's turn decides, so the key goes.
         part.sideways?.let { putBoolean(source.key("sideways"), it) } ?: remove(source.key("sideways"))
     }
 
@@ -568,20 +566,17 @@ class Store(private val context: Context) {
         get() = prefs.getBoolean("darken", true)
 
     /**
-     * "Wide pictures sideways" (SW3, part of the [setup], default off: an update from 0.7.0
-     * changes nothing): a picture 3:2 or wider goes on sideways unless ⛶ noted otherwise
-     * ([turnsSideways]).
+     * Whether [source]'s stored picture goes on sideways with its post's [part] (0.9.0, SH2a,
+     * `:core`'s [sidewaysOf]): the part's noted value (⛶'s pill), else Auto's turn: the stored
+     * [size] Auto, APOD, landscape by its [uprightSize], and [post]'s text ([hasUp] of its title,
+     * alt and explanation) without an up; else upright. The pref `wideSideways` (SW3's "Wide
+     * pictures sideways") is no longer read (left in the prefs, no migration). The one reading
+     * for [set] and [copyForLive]; the page's ⛶ reads the same rule.
      */
-    val wideSideways: Boolean
-        get() = prefs.getBoolean("wideSideways", false)
-
-    /**
-     * Whether [source]'s stored picture goes on sideways with its post's [part] (SW3, `:core`'s
-     * [wideSidewaysOf]): the part's noted value, else, while the stored [wideSideways] is on,
-     * whether it's 3:2 or wider ([uprightSize]) and the stored [size] isn't Live (SW3f1). The one reading for [set], [copyForLive] and ⛶.
-     */
-    fun turnsSideways(source: Source, part: Part?): Boolean =
-        wideSidewaysOf(part?.sideways, wideSideways, size) { uprightSize(imageFile(source))?.let { it.width to it.height } }
+    fun turnsSideways(source: Source, part: Part?, post: Post? = post(source)): Boolean =
+        sidewaysOf(part?.sideways, size, source, { uprightSize(imageFile(source))?.let { it.width to it.height } }) {
+            post?.let { hasUp(it.title, it.alt, it.explanation) } ?: true
+        }
 
     /**
      * This device's offset after the clock's checks ([randomOffset], 0–10 min), drawn once and
@@ -778,6 +773,8 @@ class Store(private val context: Context) {
             pageUrl = prefs.getString(source.key("pageUrl"), null).orEmpty(),
             isVideo = prefs.getBoolean(source.key("isVideo"), false),
             explanation = prefs.getString(source.key("explanation"), null).orEmpty(),
+            // SH2a, APOD only (Auto's turn); a post stored before 0.9.0 has none until the next fetch (the job's next run, D1).
+            alt = prefs.getString(source.key("alt"), null),
             // APOD only; a post stored by 0.5.0 has none until the next one.
             credit = prefs.getString(source.key("credit"), null),
             // B15; a post stored before it has none and counts from its date's 00:00 US Eastern (Post.publishedAt).
@@ -802,6 +799,7 @@ class Store(private val context: Context) {
         putBoolean(source.key("isVideo"), post.isVideo)
         putString(source.key("explanation"), post.explanation)
         putString(source.key("credit"), post.credit)
+        putString(source.key("alt"), post.alt)
         putString(source.key("videoUrl"), post.videoUrl)
         post.published?.let { putLong(source.key("published"), it.toEpochMilli()) } ?: remove(source.key("published"))
     }
@@ -881,7 +879,7 @@ class Store(private val context: Context) {
      * before a rotation (they run in this process), until [stopWatching]. Android holds the listener weakly: keep the one returned.
      */
     fun watch(action: () -> Unit) = OnSharedPreferenceChangeListener { _, key ->
-        if (key in recordKeys || key == "missedAt" || key in videoStillKeys || Source.entries.any { key in listOf(it.key("date"), it.key("imageUrl"), it.key("title"), it.key("explanation"), it.key("credit"), it.key("savedUri"), it.key("problem"), it.key("httpCode")) }) {
+        if (key in recordKeys || key == "missedAt" || key in videoStillKeys || Source.entries.any { key in listOf(it.key("date"), it.key("imageUrl"), it.key("title"), it.key("explanation"), it.key("credit"), it.key("alt"), it.key("savedUri"), it.key("problem"), it.key("httpCode")) }) {
             action()
         }
     }.also(prefs::registerOnSharedPreferenceChangeListener)
@@ -1632,9 +1630,10 @@ class Store(private val context: Context) {
             part.delete()
             throw StorageFailed(e)
         }
-        val noted = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
+        val post = (picture as? Picture.Of)?.let { stored.post(it.source) }
+        val noted = post?.let(parts::forPost)
         val whole = noted?.whole == true
-        val sideways = picture is Picture.Of && turnsSideways(picture.source, noted)
+        val sideways = picture is Picture.Of && turnsSideways(picture.source, noted, post)
         val grey = if (!darken) null else runCatching { if (whole) wholeGrey(liveFile, screen, sideways) else pictureGrey(liveFile, sideways) }
             .onFailure { Log.w("APODroid", "Live: couldn't measure the brightness: $it") }.getOrNull()
         return LiveCopy(whole, sideways, grey?.let(::darkening) ?: 1f, grey)
@@ -1776,7 +1775,7 @@ class Store(private val context: Context) {
                     // Missing (SA3b, not dragged): Size decides (framePosition: Auto's subject, else the middle).
                     source.key("cropPosition").takeIf(prefs::contains)?.let { prefs.getFloat(it, 0.5f) },
                     prefs.getBoolean(source.key("whole"), false),
-                    // Missing (SW3, a part from before 0.8.0 or untouched by the pill): the switch's default.
+                    // Missing (SW3, a part from before 0.8.0 or untouched by the pill): Auto's turn (SH2a).
                     source.key("sideways").takeIf(prefs::contains)?.let { prefs.getBoolean(it, false) },
                 )
             }
@@ -1797,19 +1796,24 @@ class Store(private val context: Context) {
      * drawn turned, always through a bitmap (`setStream` can't turn). The frame's position
      * (SA3a, `:core`'s framePosition): the part's, else with Size Auto the [subject]'s for the
      * picture's orientation, else the middle (Centre; the screens Live leaves still). Writes no
-     * record. Returns the log's note: ", auto 0.78", ", sideways" and ", darker ×0.78 (grey 141)", or "".
+     * record. The orientation [turnsSideways] (⛶'s pill, else Auto's turn, SH2a). Returns the log's note:
+     * ", auto 0.78", ", sideways" (", sideways, auto turn" when Auto's turn, not the pill, turned it)
+     * and ", darker ×0.78 (grey 141)", or "".
      */
     private fun set(picture: Picture, screens: Set<Screen>, stored: Stored): String {
         val file = if (picture is Picture.Of) imageFile(picture.source) else fallbackFile
-        val part = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(parts::forPost)
-        val sideways = picture is Picture.Of && turnsSideways(picture.source, part)
+        val post = (picture as? Picture.Of)?.let { stored.post(it.source) }
+        val part = post?.let(parts::forPost)
+        val sideways = picture is Picture.Of && turnsSideways(picture.source, part, post)
+        // SH2a: the log's ", auto turn" when Auto's turn (not ⛶'s pill) turned it.
+        val autoTurn = sideways && part?.sideways == null
         // SA3a: ⛶'s dragged part (SA3b: a part's position is null while not dragged), else with Auto the subject for this orientation, else the middle ("my picture" too).
-        val subject = (picture as? Picture.Of)?.let { stored.post(it.source) }?.let(::subject)
+        val subject = post?.let(::subject)
         val raw = if (sideways) subject?.sideways else subject?.position
         val position = framePosition(size, part?.position, raw, autoFallback)
         // The log's note while Auto placed the frame by the subject (the middle when it fell back).
         val auto = if (size == Sizing.AUTO && part?.position == null && raw != null) String.format(Locale.ROOT, ", auto %.2f", position) else ""
-        return auto + setFile(file, screens, position, part?.whole == true, sideways, factor = null)
+        return auto + setFile(file, screens, position, part?.whole == true, sideways, factor = null, autoTurn = autoTurn)
     }
 
     /**
@@ -1819,7 +1823,9 @@ class Store(private val context: Context) {
      * with null by the measure while [darken] is on. An upright picture keeps every path as it
      * was. Writes no record.
      */
-    private fun setFile(file: File, screens: Set<Screen>, position: Float, whole: Boolean, sideways: Boolean, factor: Float?): String {
+    private fun setFile(
+        file: File, screens: Set<Screen>, position: Float, whole: Boolean, sideways: Boolean, factor: Float?, autoTurn: Boolean = false,
+    ): String {
         val flags = screens.fold(0) { flags, it -> flags or if (it == Screen.HOME) WallpaperManager.FLAG_SYSTEM else WallpaperManager.FLAG_LOCK }
         val manager = WallpaperManager.getInstance(context)
         val screen = screen
@@ -1834,7 +1840,7 @@ class Store(private val context: Context) {
             val bitmap = if (factor < 1f) darkened(whole, factor) else whole
             dumpSet(bitmap)
             manager.setBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), true, flags)
-            return sidewaysNote(sideways) + darker(factor, grey)
+            return sidewaysNote(sideways, autoTurn) + darker(factor, grey)
         }
         // A failed measure leaves the picture as it is: the set matters more than the darkening.
         val grey = if (!darken) null else runCatching { frameGrey(file, screen, position, sideways) }
@@ -1859,11 +1865,11 @@ class Store(private val context: Context) {
             val crop = imageBounds(file)?.let { wallpaperFrame(it.outWidth, it.outHeight, screen, position) }
             file.inputStream().use { manager.setStream(it, crop, true, flags) }
         }
-        return sidewaysNote(sideways) + darker(factor, grey)
+        return sidewaysNote(sideways, autoTurn) + darker(factor, grey)
     }
 
-    /** The log's note of a sideways set or hand-over (SW2): ", sideways", or "". */
-    private fun sidewaysNote(sideways: Boolean) = if (sideways) ", sideways" else ""
+    /** The log's note of a sideways set or hand-over (SW2): ", sideways", ", sideways, auto turn" when Auto's turn (not ⛶'s pill) turned it (SH2a), or "". */
+    private fun sidewaysNote(sideways: Boolean, autoTurn: Boolean = false) = if (!sideways) "" else if (autoTurn) ", sideways, auto turn" else ", sideways"
 
     /** The log's note of a darkened set ([set]): ", darker ×0.78 (grey 141)", or "" at 1. */
     private fun darker(factor: Float, grey: Double?) =

@@ -331,8 +331,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (Setup is the draft, Advanced acts at once), then in APOD mode **Where**, with the switch on
   **Pictures from** (the list); then, always, **Size**; while the daily switch is on **New picture at**, "As soon as
   it's out" under it, then, while a column takes turns, "Change every", and "If APOD is a video";
-  then, always, "Darken bright pictures", then "Wide pictures sideways" (not while the draft's
-  Size is Live) and "Centre when unsure" (only while it's Auto; UI1). Closed at a fresh start; it
+  then, always, "Darken bright pictures", then "Centre when unsure" (only while the draft's Size
+  is Auto; UI1). Closed at a fresh start; it
   opens by itself while the draft differs from the store in it, when "More NASA pictures" is
   turned (the area swaps), and closes after a Set that saved (also "Setup saved. Nothing to set
   yet."; a failed set leaves it open). Its state and Advanced's survive a rotation (the saved
@@ -347,7 +347,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   - **Centre when unsure** (UI1, user, 2026-11-16, from the FP6: into Setup, the label without
     "Auto:", a placeholder until the user's look; SA3b, 2026-11-15, built it as "Auto: centre
     when unsure" in Advanced, acting at once; Next features, 0.8.0: Fill's frame on the
-    subject): a switch in Setup after "Wide pictures sideways", **shown only while the draft's
+    subject): a switch in Setup after "Darken bright pictures", **shown only while the draft's
     Size is Auto** (hidden, it goes back to the stored value), with a small ⓘ ("About Centre
     when unsure"; its dialog "With Size Auto, a picture whose subject is only slightly off the
     middle stays centred. Off: Auto places every frame.", unchanged), the pref `autoFallback`
@@ -382,23 +382,13 @@ set it as wallpaper, and on video days kept the old wallpaper.
     default: a one-off Set darkens too, so the page shows what it uses; never hidden, so never
     put back). Set sets each screen afresh, so a change shows at once. Setup's summary doesn't
     name it (as "As soon as it's out"). After Size (L6's row stands after "Where" or the list).
-  - **Wide pictures sideways** (SW3, 2026-11-15; `sideways-0.8.0.md`, Option C; the label and
-    the ⓘ placeholders until the user's look from rosie's screenshots): a switch after "Darken
-    bright pictures" with a small ⓘ ("About Wide pictures sideways"; its dialog "Turns a wide
-    picture a quarter turn, so more of it fills the screen. ⛶ › Sideways changes one
-    picture."), the pref `wideSideways` (`Setup.wideSideways`), default off (an update from
-    0.7.0 changes nothing, no migration). On: a picture 3:2 or wider (`:core`'s
-    `sidewaysByDefault`: width ≥ 1.5 × height, by its upright size, night default; the
-    alternative 1.4:1) goes on sideways (Wallpaper: the sideways set) unless its part notes
-    otherwise (Choosing the part, Sideways), every source, with Size Centre or Auto only
-    (SW3f1, user, 2026-11-15: by the stored Size; with Live both screens stay upright, home's
-    hand-over and the lock screen's still alike, one rule; a part noted by ⛶'s pill is
-    unchanged under every Size); "my picture" never (no part, Fill centred). Part of the draft
-    as "Darken bright pictures" (the highlight, "On, not set yet", the saved state;
-    a change isn't "the order alone"). **Hidden while the draft's Size is Live** (UI1, user,
-    2026-11-16; replaces SW3f1's greyed-out row): hidden, it goes back to the stored value, so
-    Set saves the stored one; the stored value still counts as above (never under the stored
-    Live). Set sets each screen afresh. Setup's summary doesn't name it.
+  - **Wide pictures sideways** (SW3, 0.8.0) **removed** (0.9.0, SH2a; `sharp-0.9.0.md`, decided 4:
+    Auto's turn replaces it, one mode): no row, no ⓘ, no `Setup.wideSideways`, no draft,
+    highlight or saved-state line; `saveSetup` no longer writes the pref `wideSideways`, and
+    nothing reads it (left in the prefs, no migration: an update from 0.8.0 with it on puts
+    Centre's pictures upright again, Auto's by their text). With Size Auto an APOD landscape
+    picture goes on sideways by its text (Wallpaper: Auto's turn); ⛶'s pill still decides one
+    picture (Choosing the part, Sideways).
   - **Size** (L6, 2026-11-14; `live-0.7.0.md`, "Store, Size and Set"; the heading "Size" and
     the segments "Fill" and "Live" approved by the user, 2026-11-15; since 0.8.0, SA3a,
     [Centre | Auto | Live], the segments "Centre", "Auto", "Live" the user's, 2026-11-15:
@@ -427,7 +417,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "Setup" row's title while anything in it differs (the shown mode's "Where" or list and its
     order, the
     mode switch, Size, "New picture at", "As soon as it's out", "Change every", "If APOD is a
-    video", "Darken bright pictures", "Wide pictures sideways", "Centre when unsure"; not ⛶). Not the daily
+    video", "Darken bright pictures", "Centre when unsure"; not ⛶). Not the daily
     switch, nor Advanced (they act at once). Screen readers: a highlighted control's state adds
     "not set yet" ("Selected, not set yet", "Checked, not set yet", "On, not set yet"; the rows
     "collapsed, not set yet").
@@ -435,13 +425,13 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks, dropdowns and
     order), Size,
     "New picture at", "As soon as it's out", "Change every", "If APOD is a video", "Darken
-    bright pictures", "Wide pictures sideways", "Centre when unsure", a newly picked "my picture" and the switch "More NASA pictures" change only the page
+    bright pictures", "Centre when unsure", a newly picked "my picture" and the switch "More NASA pictures" change only the page
     (`MainActivity`'s draft state; no pref is written, no set, no scheduling). **A hidden
     setting goes back to the stored one** (user, 2026-10-22: else Set saved a hidden "Change
     every", and "Setup" stayed highlighted with nothing in it highlighted): "Change every" while
     it's hidden (no column with two or more, or the daily switch off), "New picture at", "As
     soon as it's out", "If APOD is a video" and a newly picked "my picture" while the daily switch is off,
-    "Wide pictures sideways" while the draft's Size is Live, "Centre when unsure" while it isn't Auto (UI1); so Set
+    "Centre when unsure" while the draft's Size isn't Auto (UI1); so Set
     saves, and "Setup" highlights, only what the page shows. Likewise the mode the page doesn't
     show (FP6 tests, 2026-11-15, P4 and P17: saved unmarked, and a hidden "Where" spoiled "the
     order alone"): Set saves the stored "Where" while the list shows and the stored list in
@@ -636,7 +626,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Wide pictures sideways, SW3; Centre when unsure, UI1; Keep running, Background update).
+    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Centre when unsure, UI1; Keep running, Background update).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. **The still behind ▶**
   (VS1, 2026-11-15; `video-0.8.0.md`; Open question 2): when the video is NASA's own mp4
@@ -870,6 +860,24 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `autoFallback` is on (default; `Store.autoFallback`, Setup's "Centre when unsure", UI1). The
   set's log line notes ", auto 0.78" (the position used) while Auto placed it by a subject.
   "My picture" has none (centred); Live's pan and its copy unchanged.
+  **Auto's turn** (0.9.0, SH1 `:core`, SH2a the app; `sharp-0.9.0.md`, S1 and The rules; replaces
+  0.8.0's "Wide pictures sideways", whose `wideSidewaysOf` and `sidewaysByDefault` went): the
+  orientation of every still set and of Live's copy is `:core`'s `sidewaysOf(noted, size,
+  source, picture, hasUp)` (`Store.turnsSideways`): ⛶'s pill when it noted one (true or false,
+  under every Size); else sideways while the **stored** Size is Auto, the source is APOD, the
+  picture is landscape by its file's upright size (W > H, `sidewaysHelps`) and NASA's text for it
+  doesn't say it has an up; else upright. Centre and Live never turn by it, nor NASA's and
+  Earth's pictures; "my picture" never (no part). The text: `UpWords.kt`'s `hasUp(title, alt,
+  explanation)` of the stored post (SH1: the word table `up-words.tsv`, a `:core` resource, a
+  copy of `private/up-words-2026-11-17.tsv`, `upScore` > −2.0; the title, the alt unless "See
+  Explanation…", the explanation's first 600 characters); the alt is `<source>.alt`, written
+  with the post (`Store.store`, so a changed alt for the same date is stored as a changed title;
+  a post stored before 0.9.0 has none until the job's next run fetches it again, D1). The order
+  on a set: the orientation, then the position for it (Auto, the subject: the sideways subject
+  while it's turned). The set's log line notes ", sideways, auto turn" when Auto's turn (not the
+  pill) turned it (the job's, the page's, Set's; ⛶'s ✓ with an untouched pill too). An update
+  from 0.8.0 with "Wide pictures sideways" on: Centre's pictures upright again, Auto's by their
+  text (for 0.9.0's changelog).
   **Keep pictures sharp** (0.9.0, `sharp-0.9.0.md`; SH1 `:core`, the app in SH2c): `Limit.kt`'s `limitedLayout` (Fill's frame and its place on the screen at an enlargement of at most `SHARP_LIMIT` 2×, plain Fill up to × `SHARP_TOLERANCE` 1.03, a smaller axis whole and centred) and `limitedFit` (the whole picture likewise).
   **The darkening** (BR2, 2026-11-14; GitHub issue #2; the figures in Next features, 0.7.0:
   bright pictures darker): while "Darken bright pictures" is on (the stored `darken`), each set
@@ -903,7 +911,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   measured turned, its background the turned picture's middle (`wholePicture`'s flag; the black
   edges measured upright). An upright picture keeps every path byte for byte (`setStream`, the
   EXIF photo's `setBitmap`, the whole picture); the user's own picture is never sideways (no
-  part). The log's set line notes ", sideways" before any ", darker …" (the job's, the page's,
+  part). The log's set line notes ", sideways" (", sideways, auto turn" when Auto's turn turned
+  it, 0.9.0) before any ", darker …" (the job's, the page's,
   Set's, "Part: wallpaper set: …", and the hand-overs' "wallpaper shown live: …"); every
   sideways set writes `files/debug-set.png`, a sideways whole one `files/debug-whole.png` too.
   **Home and lock set separately** (M0, 2026-10-20; tablet, Android 15; the FP6 unchecked): both
@@ -928,8 +937,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the file's time, length, the whole and sideways flags and the darkening) on a background thread at the screen's portrait
   height within 50 MB (`liveDecodeSize`), out of memory a quarter of the bytes, then again, else
   black; **sideways** (SW2, `live.sideways`, the hand-over's note of its post's `Part.sideways`
-  as noted by ⛶'s pill, never by "Wide pictures sideways", which is Centre's and Auto's, SW3f1,
-  false for a copy from before 0.8.0): `liveDecodeSize` on the turned size (the axes swapped),
+  as noted by ⛶'s pill, never by Auto's turn, which is Auto's only (0.9.0; SW3f1 for 0.8.0's
+  switch), false for a copy from before 0.8.0): `liveDecodeSize` on the turned size (the axes swapped),
   decoded upright and turned once (`turned`: a turned landscape picture at most the screen's
   height squared, about 23 MB on the FP6, 46 MB at the peak while turning), then panned as any
   other, so position 0 is the bottom band as in `sidewaysFrame`; whole and sideways the
@@ -1061,8 +1070,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   previous one, `notedPosition`, null staying null; the pref `<source>.cropPosition` removed for
   null, read only when there; the saved state's line writes and reads "null", `Part.toText`,
   `partOf`; a part from 0.7.0 keeps its number). So a part ✓'d only for "Whole picture" or the
-  "Sideways" pill keeps following Size (Centre ↔ Auto), "Centre when unsure" and "Wide
-  pictures sideways". **A drag belongs to the orientation it was made in** (FP1, 2026-11-16,
+  "Sideways" pill keeps following Size (Centre ↔ Auto) and "Centre when unsure" (one ✓'d only
+  for "Whole picture" keeps Auto's turn too). **A drag belongs to the orientation it was made in** (FP1, 2026-11-16,
   the user's FP6 test: a band dragged sideways, the pill turned off and ✓ noted the band's
   position as the upright frame's, so Auto's subject was lost): toggling the pill drops this
   crop mode's drag (`cropMoved` cleared) and moves the frame to where ✓ would then put it, the
@@ -1108,27 +1117,28 @@ set it as wallpaper, and on video days kept the old wallpaper.
   drop it, reopening ⛶ shows the stored one, a Set from open crop mode stores it, the saved
   state carries it with the part. The toggle shows in `tertiary` while it differs from the
   stored one; screen readers: "Sideways", a switch, "On"/"Off" with ", not set yet" while it
-  differs. Clockwise only (user, 2026-11-15). **Three values** (SW3, 2026-11-15, Setup's
-  "Wide pictures sideways"): `Part.sideways` is true or false as the pill noted it, or null
-  (the pref `<source>.sideways` missing, a part from 0.7.0 too) for the switch's default; the
-  value used (`:core`'s `wideSidewaysOf`, `Store.turnsSideways`, the page's `turnsSideways`) is the
-  noted one, else `sidewaysByDefault` while the **stored** switch is on and the **stored** Size
-  isn't Live (SW3f1: `wideSidewaysOf`'s `size`; so with Live ⛶'s pill opens on the part's explicit
-  value, else upright), else upright, by the
-  picture file's upright size (`Store.kt`'s `uprightSize`: `imageBounds` swapped when the EXIF
-  orientation transposes it, `:core`'s `uprightOf`; for `set`, `copyForLive`, so `live.sideways`
-  and B27's keep, and ⛶'s pill, read by `show()` as `uprightSizes`). ⛶ opens on that value by
-  the stored switch, not the draft's (night default, as ⛶ with Live: ✓ sets by the stored
-  setup; the alternative the draft's switch). An untouched pill keeps the part's value at ✓
-  (null stays null, so a later switch change applies to it; a touched flag in crop mode's
-  state), a touched one notes its value; ✓'s no-change check compares the values used, and a
-  touched pill whose value is the one used anyway is saved without a set. A part's position
-  keeps its number when the switch turns that picture sideways, so it then moves along the
-  other axis (night default). Checked on the
+  differs. Clockwise only (user, 2026-11-15). **Three values** (SW3, 2026-11-15; since 0.9.0,
+  SH2a, the pill's, else Auto's turn): `Part.sideways` is true or false as the pill noted it (or a
+  drag, below), or null (the pref `<source>.sideways` missing, a part from 0.7.0 too) for Auto's
+  turn; the value used (`:core`'s `sidewaysOf`, `Store.turnsSideways`, the page's
+  `turnsSideways`) is the noted one, else Auto's turn (Wallpaper: Auto's turn) by the **stored**
+  Size, the source, the picture file's upright size (`Store.kt`'s `uprightSize`: `imageBounds`
+  swapped when the EXIF orientation transposes it, `:core`'s `uprightOf`; for `set`,
+  `copyForLive`, so `live.sideways` and B27's keep, and ⛶'s pill, read by `show()` as
+  `uprightSizes`) and the stored post's text. So with Centre or Live the pill opens on the part's
+  explicit value, else upright. ⛶'s pill opens on that value, by the stored Size, not the draft's
+  (as ⛶ with Live: ✓ sets by the stored setup). An untouched pill keeps the part's value at ✓
+  (null stays null, so a later change of Size or of NASA's text applies to it; a touched flag in
+  crop mode's state), a touched one notes its value; ✓'s no-change check compares the values
+  used, and a touched pill whose value is the one used anyway is saved without a set. **✓ notes
+  the orientation with a dragged position** (0.9.0, SH2a; `sharp-0.9.0.md`, The rules, FP1's
+  kind): when ✓ notes a position after a drag it also notes `Part.sideways` as the orientation the
+  drag was made in (`:core`'s `notedSideways`), so a later change of Size or of NASA's text can't
+  move the noted position to the other axis. A part noted before 0.9.0 with a position and no
+  sideways keeps its number when Auto's turn turns that picture, so it then moves along the other
+  axis (no migration). Checked on the
   Android 14 emulator (SW2T, 2026-11-15: Fill, both screens and the lock screen alone, Whole, the
   darkening, Live, the job, a new post; `sideways-0.8.0.md`, SW2); the FP6's look on 17 Nov.
-  **Auto's turn** (0.9.0, `sharp-0.9.0.md`, The rules; SH1 `:core`, the app in SH2a, which removes 0.8.0's `wideSidewaysOf` and `sidewaysByDefault`): `:core`'s `sidewaysOf(noted, size, source, picture, hasUp)`: the pill, else sideways with Size Auto for an APOD landscape picture whose text has no up, else upright; "my picture" never.
-  `UpWords.kt`'s `hasUp(title, alt, explanation)` (SH1): the word table `up-words.tsv` (a `:core` resource, a copy of `private/up-words-2026-11-17.tsv`), `upScore` > −2.0; the title, the alt unless "See Explanation…", the explanation's first 600 characters.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title. The one exception is Keep running's (O11, Background update): a
   foreground service must have one; the permission is still never asked, so on Android 13+ it
@@ -1828,6 +1838,16 @@ library (ML Kit needs Play Services; Tesseract is large). Decided:
   planned for 0.7.0, issue #2), screen-aware placement (clock and dock), per-screen Size (the
   2026-10-19 decision stands); learning per user (was "after 0.6.0", gone with the smart Auto).
   The preview on the page came with Live (0.7.0, L7: ⛶ mode).
+
+**0.9.0: Sharp pictures, Auto's turn** (user, 2026-11-16 and 17; [sharp-0.9.0.md](.claude/skills/build-apodroid-android/sharp-0.9.0.md),
+its decisions and the user's 300 labels, S1): no picture from another source when one is small;
+"Keep pictures sharp" (SH2c); **Auto turns by content**: with Size Auto an APOD landscape picture
+goes on sideways when NASA's text for it doesn't say it has an up (a word table in `:core`, the
+cautious threshold: 0 of 86 the user wanted upright turned under leave-one-out); Centre and Live
+never turn by it, ⛶'s pill still decides one picture. **"Wide pictures sideways" removed**
+(Auto's turn replaces it, one mode). ✓ notes the orientation with a dragged position.
+**Built** (SH1 `:core`, SH2a the app, 2026-11-17): The app, Settings (Wide pictures sideways
+removed); Wallpaper: Auto's turn; Choosing the part, Sideways' three values.
 
 **0.8.0's release** (user, 2026-11-16; `release-0.8.0.md`): the night of 15 Nov built and merged
 every package (SW, SA, VS1, D1, R3, the fixes SW3f1, SA3c, D1f1, T3f1); the night's test pass on

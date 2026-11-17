@@ -106,52 +106,6 @@ class FrameTest {
         assert(sidewaysHelps(3630, 2408) && !sidewaysHelps(500, 500) && !sidewaysHelps(400, 1200))
     }
 
-    @Test
-    fun wideSidewaysTurns3To2AndWider() {
-        // 3:2 exactly and wider turn; 1.2:1, a square, a portrait and an unknown size don't.
-        assert(sidewaysByDefault(3000, 2000) && sidewaysByDefault(3630, 2408) && sidewaysByDefault(6000, 1000))
-        assert(!sidewaysByDefault(2999, 2000) && !sidewaysByDefault(1200, 1000) && !sidewaysByDefault(500, 500))
-        assert(!sidewaysByDefault(1000, 1500) && !sidewaysByDefault(0, 0) && !sidewaysByDefault(10, 0))
-        // No overflow on huge sizes.
-        assert(sidewaysByDefault(Int.MAX_VALUE, Int.MAX_VALUE / 2) && !sidewaysByDefault(Int.MAX_VALUE / 2, Int.MAX_VALUE / 2))
-    }
-
-    @Test
-    fun aNotedPartWinsElseTheSwitchsRule() {
-        val wide = { 3630 to 2408 }
-        val narrow = { 1200 to 1000 }
-        // Noted by ⛶'s pill: as noted, whatever the switch and the size.
-        for (on in listOf(true, false)) {
-            assert(wideSidewaysOf(true, on, Size.AUTO, narrow) && wideSidewaysOf(true, on, Size.AUTO, wide))
-            assert(!wideSidewaysOf(false, on, Size.AUTO, wide) && !wideSidewaysOf(false, on, Size.AUTO, narrow))
-        }
-        // Not noted (null): the rule while the switch is on, else upright.
-        assert(wideSidewaysOf(null, true, Size.AUTO, wide) && !wideSidewaysOf(null, true, Size.AUTO, narrow) && !wideSidewaysOf(null, true, Size.AUTO) { null })
-        assert(!wideSidewaysOf(null, false, Size.AUTO, wide))
-        // The size is read only when the rule needs it.
-        var read = 0
-        wideSidewaysOf(true, true, Size.AUTO) { read++; 3630 to 2408 }
-        wideSidewaysOf(null, false, Size.AUTO) { read++; 3630 to 2408 }
-        assertEquals(0, read)
-        assert(wideSidewaysOf(null, true, Size.AUTO) { read++; 3630 to 2408 })
-        assertEquals(1, read)
-        wideSidewaysOf(null, true, Size.LIVE) { read++; 3630 to 2408 }
-        assertEquals(1, read)
-    }
-
-    @Test
-    fun theSwitchIsCentresAndAutosAnExplicitPartEverySizes() {
-        // SW3f1: each Size × noted null/true/false × wide/not wide.
-        val wide = { 3630 to 2408 }
-        val narrow = { 1200 to 1000 }
-        for (size in Size.entries) for (on in listOf(true, false)) {
-            assert(wideSidewaysOf(true, on, size, wide) && wideSidewaysOf(true, on, size, narrow))
-            assert(!wideSidewaysOf(false, on, size, wide) && !wideSidewaysOf(false, on, size, narrow))
-            assert(!wideSidewaysOf(null, on, size, narrow))
-            assertEquals(on && size != Size.LIVE, wideSidewaysOf(null, on, size, wide))
-        }
-    }
-
     /**
      * 0.9.0's rule (sharp-0.9.0.md, Testing 1): pill {true, false, none} × Size × source {APOD, NASA,
      * Earth, my picture} × shape {portrait, square, landscape} × up {true, false}, each against The rules.
@@ -215,7 +169,7 @@ class FrameTest {
     fun theUprightSizeSwapsOnlyForAQuarterTurn() {
         for (o in listOf(0, 1, 2, 3, 4, 9, -1)) assertEquals(4000 to 3000, uprightOf(4000, 3000, o), "orientation $o")
         for (o in 5..8) assertEquals(3000 to 4000, uprightOf(4000, 3000, o), "orientation $o")
-        // A camera photo stored 4000×3000 with orientation 6 stands upright: no wide rule.
-        assert(!uprightOf(4000, 2400, 6).let { (w, h) -> sidewaysByDefault(w, h) } && sidewaysByDefault(4000, 2400))
+        // A camera photo stored 4000×2400 with orientation 6 stands upright: not landscape, so no turn.
+        assert(!uprightOf(4000, 2400, 6).let { (w, h) -> sidewaysHelps(w, h) } && sidewaysHelps(4000, 2400))
     }
 }

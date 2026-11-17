@@ -1,0 +1,6 @@
+- "Keep pictures sharp": a small picture is enlarged at most 2×
+- Auto turns a wide APOD sideways unless NASA's text says it has an up
+- "Wide pictures sideways" is gone: Auto does it
+- The original is downloaded when it's smaller than the screen
+- Earth Observatory pictures load from NASA's new links
+- The stopped-app note now works on Android 11–14 too

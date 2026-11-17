@@ -190,6 +190,7 @@ GET https://science.nasa.gov/wp-json/wp/v2/image-article?categories=22766&per_pa
     `APOD: <date> – ` prefix, year first (`2026 October 28`) or day first (`29 October 2026`, 29 Oct 2026 only; B26), is stripped and HTML entities decoded (`&#8211;`, `&#8217;`; some
     titles have a plain `–`, one had `-` with no space after it, 3 Apr 2026 had no day number).
   - `featured_image.file`: the picture (image days only; missing on the video day 16 Oct 2026).
+  - `featured_image.alt`: the picture's alt text, `Post.alt` (0.9.0, SH1: tags stripped, entities decoded, blank as null; null on video days, NASA, Earth; 82 of `last100.json`'s 89 image days), for Auto's turn (the app in SH2a).
   - `link`: the post's page, for "open on the web".
   - `content.rendered`: for the video check and the explanation.
 - The full response (about 21 KB per post), not `_fields=` (which drops `featured_image`).
@@ -682,6 +683,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   The picture is downloaded as tall as the screen (`renditionUrl(imageUrl, screen.height)`,
   0.5.0; [Sharper wallpaper](#next-features)); if that fails, APOD and Earth fall back to the
   plain `imageUrl` (1280 px for APOD), NASA fails (its plain URL is the original, up to 97 MB).
+  The original's size from its first bytes (0.9.0, SH1): `:core`'s `imageSize(bytes)` (JPEG's first SOFn, PNG's IHDR, WebP's VP8/VP8L/VP8X, GIF; else null, a TIFF too); the probe in the app in SH2b.
   It goes to the source's file, `files/apod.jpg`, `nasa.jpg` or `earth.jpg` (whatever its
   format; no storage permission; 0.5.0), via a `.part` file, and replaces the old one only when
   complete and decodable. One that isn't an image
@@ -868,6 +870,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `autoFallback` is on (default; `Store.autoFallback`, Setup's "Centre when unsure", UI1). The
   set's log line notes ", auto 0.78" (the position used) while Auto placed it by a subject.
   "My picture" has none (centred); Live's pan and its copy unchanged.
+  **Keep pictures sharp** (0.9.0, `sharp-0.9.0.md`; SH1 `:core`, the app in SH2c): `Limit.kt`'s `limitedLayout` (Fill's frame and its place on the screen at an enlargement of at most `SHARP_LIMIT` 2×, plain Fill up to × `SHARP_TOLERANCE` 1.03, a smaller axis whole and centred) and `limitedFit` (the whole picture likewise).
   **The darkening** (BR2, 2026-11-14; GitHub issue #2; the figures in Next features, 0.7.0:
   bright pictures darker): while "Darken bright pictures" is on (the stored `darken`), each set
   (the job's, the page's, Set's, ⛶'s ✓; the user's own picture too) first measures what the
@@ -1108,9 +1111,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   differs. Clockwise only (user, 2026-11-15). **Three values** (SW3, 2026-11-15, Setup's
   "Wide pictures sideways"): `Part.sideways` is true or false as the pill noted it, or null
   (the pref `<source>.sideways` missing, a part from 0.7.0 too) for the switch's default; the
-  value used (`:core`'s `sidewaysOf`, `Store.turnsSideways`, the page's `turnsSideways`) is the
+  value used (`:core`'s `wideSidewaysOf`, `Store.turnsSideways`, the page's `turnsSideways`) is the
   noted one, else `sidewaysByDefault` while the **stored** switch is on and the **stored** Size
-  isn't Live (SW3f1: `sidewaysOf`'s `size`; so with Live ⛶'s pill opens on the part's explicit
+  isn't Live (SW3f1: `wideSidewaysOf`'s `size`; so with Live ⛶'s pill opens on the part's explicit
   value, else upright), else upright, by the
   picture file's upright size (`Store.kt`'s `uprightSize`: `imageBounds` swapped when the EXIF
   orientation transposes it, `:core`'s `uprightOf`; for `set`, `copyForLive`, so `live.sideways`
@@ -1124,6 +1127,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   other axis (night default). Checked on the
   Android 14 emulator (SW2T, 2026-11-15: Fill, both screens and the lock screen alone, Whole, the
   darkening, Live, the job, a new post; `sideways-0.8.0.md`, SW2); the FP6's look on 17 Nov.
+  **Auto's turn** (0.9.0, `sharp-0.9.0.md`, The rules; SH1 `:core`, the app in SH2a, which removes 0.8.0's `wideSidewaysOf` and `sidewaysByDefault`): `:core`'s `sidewaysOf(noted, size, source, picture, hasUp)`: the pill, else sideways with Size Auto for an APOD landscape picture whose text has no up, else upright; "my picture" never.
+  `UpWords.kt`'s `hasUp(title, alt, explanation)` (SH1): the word table `up-words.tsv` (a `:core` resource, a copy of `private/up-words-2026-11-17.tsv`), `upScore` > −2.0; the title, the alt unless "See Explanation…", the explanation's first 600 characters.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title. The one exception is Keep running's (O11, Background update): a
   foreground service must have one; the permission is still never asked, so on Android 13+ it

@@ -18,20 +18,26 @@ packages unattended): `night.md`.
 
 - `core/.../Post.kt`: `Source`, `Post`, `fetchLatest(source, userAgent)`, `parseLatest`
   (`parseApod`, `nasaPosts`, `earthPosts`), `download(url, to, userAgent, limit)` (`TooLarge` over the limit, F6), `renditionUrl`,
-  `originalUrl`, title, video, explanation and credit parsing (`apodPosts`, `credit`; `videoUrl`, the hero's first mp4, VS1), `Post.fileName`,
+  `originalUrl`, title, video, explanation and credit parsing (`apodPosts`, `credit`; `videoUrl`, the hero's first mp4, VS1; `Post.alt`, `featured_image.alt`, SH1), `Post.fileName`,
   `Post.published` and `publishedAt` (B15: the publish time, `wpPublished` for WordPress's `date`), `usEastern` (the posts' dates' zone; also `Store.isCurrent`'s today). Tests with made-up data
   shaped like the real responses: APOD in `ApodTest` (also the HTTP part), NASA, Earth and the
   URLs in `SourcesTest`, whose `readsEveryRealPost` reads `private/` when it's there. Real
   responses in `private/` (`latest.json`, `last100.json`, `iotd-feed-2026-10-16.xml`,
   `eo-last40-2026-10-16.json`, `video-day-2026-10-16.json`).
   `core/.../Frame.kt`: `wallpaperFrame`, the part of the picture the wallpaper shows, which is
-  also the crop hint, and `fitFrame`, where the whole picture goes on the screen (F1's Fit; ⛶'s whole picture since A3), and `sidewaysFrame`, the band of the upright picture a clockwise-turned one shows (SW1); SW3's `sidewaysByDefault` (3:2 or wider), `sidewaysOf` (a part's noted value, else the rule while "Wide pictures sideways" is on and the stored Size isn't Live, SW3f1) and `uprightOf` (EXIF 5–8 swap the size)
+  also the crop hint, and `fitFrame`, where the whole picture goes on the screen (F1's Fit; ⛶'s whole picture since A3), and `sidewaysFrame`, the band of the upright picture a clockwise-turned one shows (SW1); `sidewaysOf` (0.9.0, SH1: a part's noted value, else Auto's turn: Size Auto, APOD, landscape, no up by `hasUp`; my picture never), SW3's `sidewaysByDefault` (3:2 or wider) and `wideSidewaysOf` (0.8.0's rule, the app's until SH2a) and `uprightOf` (EXIF 5–8 swap the size)
   (tests in `FrameTest`; a hint widened for landscape was tried and dropped, `CLAUDE.md`,
   Wallpaper).
-  `core/.../Limit.kt` (0.9.0, SH0's stubs, SH1 implements them): `SHARP_LIMIT` 2.0, `SHARP_TOLERANCE` 1.03,
+  `core/.../Limit.kt` (0.9.0, SH1, to SH0's signatures): `SHARP_LIMIT` 2.0, `SHARP_TOLERANCE` 1.03,
   `Layout`, `limitedLayout` (Fill at most L×, `sharp-0.9.0.md`'s Terms), `limitedFit` (the whole picture at most
-  L×). Tests in `LimitTest.kt`: `SharpOracle`, the naive reference; `LimitOracleTest` (runs now: the oracle and
-  the table against 0.8.0's frames); `LimitTableTest` and `LimitPropertiesTest` (@Ignored until SH1).
+  L×). Tests in `LimitTest.kt` (SH0's oracle): `SharpOracle`, the naive reference; `LimitOracleTest` (the oracle
+  and the table against 0.8.0's frames); `LimitTableTest` (the table, ±1 px) and `LimitPropertiesTest` (100,000
+  seeded cases).
+  `core/.../ImageSize.kt` (0.9.0, SH1): `imageSize(bytes)`, a picture's size from its first bytes (JPEG, PNG,
+  WebP, GIF; else null); tests in `ImageSizeTest` (made-up headers, the JDK's pictures, `private/pictures*`).
+  `core/.../UpWords.kt` (0.9.0, SH1): `upScore`, `hasUp` (Auto's turn), the table
+  `core/src/main/resources/io/github/buerlino/apodroid/core/up-words.tsv` (from `private/up-words-build.py`), read
+  once by an absolute path; tests in `UpWordsTest` (the builder's scores, the tokenizer, the 300 labels in `private/`).
   `core/.../Background.kt` (0.6.0, A1): the background behind a whole picture: `edgesBlack`
   (black or blurred, from a small grey copy; `gray` for an ARGB pixel; `edgeCopySize`, the copy's size, A3), `blurSize`,
   `blurRadius`, `blurBackground` (tests in `BackgroundTest`).

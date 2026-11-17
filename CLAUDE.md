@@ -414,7 +414,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     the segments "Fill" and "Live" approved by the user, 2026-11-15; since 0.8.0, SA3a,
     [Centre | Auto | Live], the segments "Centre", "Auto", "Live" the user's, 2026-11-15:
     Next features, 0.8.0: Fill's frame on the subject): a segmented row [Centre | Auto | Live]
-    after "Where" or the list, always shown (never
+    after "Where" or the list, always shown, its heading with a small ⓘ ("About Size", SZ1: a dialog of four lines, Centre, Auto, Live and "⛶ changes one picture.", user-approved; never
     put back), the pref `size` (`CENTRE`, `AUTO`, `LIVE`, read by `:core`'s `sizeOf`; default
     Auto, and 0.7.0's `FILL` reads as Auto until the first Set rewrites it, no migration: an
     update shows Auto selected, unhighlighted, and sets nothing). Part of the draft (`Setup.size`, `saveSetup`, the saved state, the
@@ -648,7 +648,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Keep pictures sharp, SH2c; Centre when unsure, UI1; Keep running, Background update).
+    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; Size, SZ1; As soon as it's out, SO2; Darken bright pictures, BR2; Keep pictures sharp, SH2c; Centre when unsure, UI1; Keep running, Background update).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. **The still behind ▶**
   (VS1, 2026-11-15; `video-0.8.0.md`; Open question 2): when the video is NASA's own mp4

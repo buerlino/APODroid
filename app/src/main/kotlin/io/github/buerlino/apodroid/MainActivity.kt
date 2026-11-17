@@ -2251,7 +2251,7 @@ class MainActivity : ComponentActivity() {
                     PictureList()
                 }
                 // Always shown (L6), as "Where": never put back.
-                Heading("Size", size != stored.size)
+                SizeHeading(size != stored.size)
                 Segments(Sizing.entries.map { it to it.label }, size, size != stored.size) { size = it }
                 if (daily) {
                     PictureAtChoice()
@@ -2435,6 +2435,36 @@ class MainActivity : ComponentActivity() {
                 onDismissRequest = { openInfo = null },
                 confirmButton = { TextButton(onClick = { openInfo = null }) { Text("OK") } },
                 text = { Text(info) },
+            )
+        }
+    }
+
+    /** "Size" with a small ⓘ (SZ1): what the three modes do, one line each. */
+    @Composable
+    private fun SizeHeading(changed: Boolean) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Heading("Size", changed)
+            Text(
+                "ⓘ",
+                Modifier
+                    .clickable(role = Role.Button, onClick = { openInfo = "About Size" })
+                    .padding(horizontal = 8.dp)
+                    .clearAndSetSemantics { contentDescription = "About Size" },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (openInfo == "About Size") {
+            AlertDialog(
+                onDismissRequest = { openInfo = null },
+                confirmButton = { TextButton(onClick = { openInfo = null }) { Text("OK") } },
+                text = {
+                    Text(
+                        "Centre: the picture's middle.\n" +
+                            "Auto: the frame on the subject; a wide APOD goes on sideways unless its text says it has a top.\n" +
+                            "Live: a wide picture moves across the home screen over the day.\n" +
+                            "\u26F6 changes one picture.",
+                    )
+                },
             )
         }
     }

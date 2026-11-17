@@ -16,6 +16,7 @@ import android.util.Log
 import io.github.buerlino.apodroid.core.JobRuns
 import io.github.buerlino.apodroid.core.UserExit
 import io.github.buerlino.apodroid.core.isForceStopSummary
+import io.github.buerlino.apodroid.core.readsExitRecords
 import io.github.buerlino.apodroid.core.stoppedSinceArmed
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -203,10 +204,12 @@ class DailyJob : JobService() {
 
         /**
          * This app's process exits the user asked for (`REASON_USER_REQUESTED`: a force stop, `pm
-         * clear`, a Recents swipe), from Android's records (API 30+; none below, or on a failure).
+         * clear`, a Recents swipe), from Android's records (API 30–34 only, [readsExitRecords]: none
+         * elsewhere, or on a failure). Only user-requested records; [UserExit.forceStop] marks those
+         * whose summary names the force stop's subreason.
          */
         private fun userExits(context: Context, armedAt: Instant?): List<UserExit> {
-            if (Build.VERSION.SDK_INT < 30) return emptyList()
+            if (!readsExitRecords(Build.VERSION.SDK_INT)) return emptyList()
             return runCatching {
                 // All of them (0: no cap), TP1f1: 16 dropped none on T4's emulator, but costs nothing.
                 val records = context.getSystemService(ActivityManager::class.java)
@@ -215,7 +218,7 @@ class DailyJob : JobService() {
                 Log.i("APODroid", "Detector: ${records.size} exit records, armed $armedAt" + records.sortedByDescending { it.timestamp }.take(3)
                     .joinToString("") { "; ${Instant.ofEpochMilli(it.timestamp)} reason ${it.reason} ${it.description}${if (isForceStopSummary(it.toString())) " (force stop)" else ""}" })
                 records
-                    .filter { it.reason == ApplicationExitInfo.REASON_USER_REQUESTED || isForceStopSummary(it.toString()) }
+                    .filter { it.reason == ApplicationExitInfo.REASON_USER_REQUESTED }
                     .map { UserExit(Instant.ofEpochMilli(it.timestamp), it.description, isForceStopSummary(it.toString())) }
             }.onFailure { Log.w("APODroid", "Detector: couldn't read the exit records: $it") }.getOrDefault(emptyList())
         }

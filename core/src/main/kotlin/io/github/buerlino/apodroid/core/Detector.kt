@@ -67,6 +67,12 @@ fun isForceStopSummary(summary: String?): Boolean =
     summary != null && Regex("""subreason=21\b|\(FORCE STOP\)""").containsMatchIn(summary)
 
 /**
+ * Whether the detector reads the exit records at all (TP1f1's fix round 1): only where they can count,
+ * Android 11–14 (API 30–34, [stoppedSinceArmed]); elsewhere nothing is read or logged.
+ */
+fun readsExitRecords(sdk: Int): Boolean = sdk in 30..34
+
+/**
  * The second sign of a force stop (TP1, `release-0.8.0.md`), on Android 11–14 (API 30–34) only: there
  * a force stop deletes the alarms but leaves their `PendingIntent`s until system_server's GC (AOSP's
  * `forceStopPackageLocked` cancels them only on uninstall), so the `FLAG_NO_CREATE` check mostly
@@ -78,5 +84,5 @@ fun isForceStopSummary(summary: String?): Boolean =
  * is no arming noted yet. A force stop with no process alive leaves no record (accepted).
  */
 fun stoppedSinceArmed(sdk: Int, exits: Collection<UserExit>, armedAt: Instant?): Boolean =
-    sdk in 30..34 && armedAt != null &&
+    readsExitRecords(sdk) && armedAt != null &&
         exits.any { it.at > armedAt && (it.forceStop || it.description?.startsWith("stop ") == true) }

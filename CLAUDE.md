@@ -1459,8 +1459,8 @@ with `REASON_USER_REQUESTED` and a force stop's description ("stop <package> due
 `forceStopPackageLocked`) newer than the last arming (`armedAt`, noted by each arming with
 `armedBoot`) counts as the alarms gone, as does a user-requested record whose summary names the subreason
 `subreason=21 (FORCE STOP)` (TP1f1: T4 on the Android 14 emulator saw no line after 11 force stops
-with such a record in `dumpsys activity exit-info`; the cause not found by reading, so every record is
-read and logged, `Detector: <n> exit records, armed …`, for the device's check) (`:core`'s
+with such a record in `dumpsys activity exit-info`; the cause not found by reading, so on 30–34 every user-requested record is
+read and the newest logged (none read elsewhere, `readsExitRecords`), `Detector: <n> exit records, armed …`, for the device's check) (`:core`'s
 `stoppedSinceArmed`, `UserExit`, `isForceStopSummary`; logged
 `Detector: stopped by the user since the arming (exit record)` before the usual line); no other
 user-requested record counts (TP1's fix round 1): a Recents swipe's ("remove task") and

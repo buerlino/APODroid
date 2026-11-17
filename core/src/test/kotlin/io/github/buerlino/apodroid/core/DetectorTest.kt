@@ -123,6 +123,13 @@ class DetectorTest {
     }
 
     @Test
+    fun theExitRecordsAreReadOnlyOn11To14() {
+        // TP1f1's fix round 1: the FP6 (Android 16) read and logged every record at each new process.
+        for (sdk in 30..34) assertEquals(true, readsExitRecords(sdk))
+        for (sdk in listOf(29, 35, 36, 37)) assertEquals(false, readsExitRecords(sdk))
+    }
+
+    @Test
     fun aForceStopAfterTheArmingCountsOn11To14() {
         // TP1: the emulator (Android 14) after `am force-stop`: the PendingIntents still there, an
         // exit record the user asked for after the last arming.

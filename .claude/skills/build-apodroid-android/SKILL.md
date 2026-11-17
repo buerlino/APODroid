@@ -74,7 +74,7 @@ packages unattended): `night.md`.
   starting "stop ", AOSP's "stop <package> due to …", or `forceStop`: the summary's `subreason=21
   (FORCE STOP)`, `isForceStopSummary`, TP1f1) after the last arming counts as the alarms
   gone (a Recents swipe's "remove task", `killBackgroundProcesses`' "kill background" and
-  `pm clear` don't), read by `DailyJob.userExits` in `checkAlarms` (all records, logged `Detector: <n> exit records, …`, TP1f1); `Store.armedAt`; tests in `DetectorTest`, W's day among them).
+  `pm clear` don't), read by `DailyJob.userExits` in `checkAlarms` (30–34 only, `readsExitRecords`; all records, logged `Detector: <n> exit records, …`, only user-requested ones count, TP1f1); `Store.armedAt`; tests in `DetectorTest`, W's day among them).
   `core/.../Live.kt` (0.7.0, L3): `Size` (CENTRE, AUTO, LIVE since SA3a, 0.8.0; was FILL, LIVE) and `sizeOf(name)` (0.7.0's FILL and anything unknown read as AUTO), `liveSpan` (18 h), `livePosition(now, zone, time, turns)`
   (the frame's place by the clock: from the column's change time over the shorter of its turn and 18 h, then
   still at 1), `LIVE_DECODE_BUDGET` (50,000,000 bytes) and `liveDecodeSize(width, height, screenHeight, maxBytes)`

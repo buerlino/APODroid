@@ -174,7 +174,28 @@ fun download(url: String, to: File, userAgent: String, limit: Long = 0) {
     }
 }
 
-private fun <T> get(url: String, accept: String, userAgent: String, read: HttpURLConnection.(InputStream) -> T): T {
+/**
+ * Blocking. The first [length] bytes of [url] (fewer when the file is shorter): a GET with
+ * `Range: bytes=0-<length − 1>`, taking HTTP 206 or a server's 200 that ignores the range (read
+ * only that far, then closed). Throws as [download] does ([SiteChanged] for a URL that doesn't
+ * parse, [HttpStatus] for any other answer, an [IOException] for the network).
+ */
+fun firstBytes(url: String, userAgent: String, length: Int): ByteArray =
+    get(url, "image/*", userAgent, range = length) { it.readNBytes(length) }
+
+/**
+ * Blocking. The original's size (SH2b's probe) from its first [PROBE_BYTES], again from its first
+ * [PROBE_MORE_BYTES] when [probeMore] says the frame may lie further; null when the header names
+ * none (a TIFF, say). Throws as [firstBytes].
+ */
+fun originalSize(url: String, userAgent: String): Pair<Int, Int>? {
+    val first = firstBytes(url, userAgent, PROBE_BYTES)
+    imageSize(first)?.let { return it }
+    return if (probeMore(first)) imageSize(firstBytes(url, userAgent, PROBE_MORE_BYTES)) else null
+}
+
+/** [range]: the bytes asked for from the start (`Range: bytes=0-<range − 1>`), so 206 is an answer too; null: the whole, 200 only. */
+private fun <T> get(url: String, accept: String, userAgent: String, range: Int? = null, read: HttpURLConnection.(InputStream) -> T): T {
     // Whatever it throws (a raw space, no scheme) is the site's URL, not the network.
     val address = runCatching { URI(url).toURL() }.getOrElse { throw SiteChanged("Bad URL: $url", it) }
     val conn = address.openConnection() as HttpURLConnection
@@ -183,7 +204,9 @@ private fun <T> get(url: String, accept: String, userAgent: String, read: HttpUR
         conn.readTimeout = 30_000
         conn.setRequestProperty("Accept", accept)
         conn.setRequestProperty("User-Agent", userAgent)
-        if (conn.responseCode != HttpURLConnection.HTTP_OK) throw HttpStatus(conn.responseCode)
+        range?.let { conn.setRequestProperty("Range", "bytes=0-${it - 1}") }
+        val code = conn.responseCode
+        if (code != HttpURLConnection.HTTP_OK && !(range != null && code == HttpURLConnection.HTTP_PARTIAL)) throw HttpStatus(code)
         return conn.inputStream.use { conn.read(it) }
     } finally {
         conn.disconnect()

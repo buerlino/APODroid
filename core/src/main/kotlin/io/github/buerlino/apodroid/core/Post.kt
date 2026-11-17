@@ -257,6 +257,12 @@ internal fun earthPicture(thumbnail: String): String =
 /** The `_th` file of Earth's picture [url] (its [renditionUrl] still scales it), the fallback when the picture is missing. */
 fun earthThumbnail(url: String): String = url.replace(Regex("""(\.\w+)$"""), "_th$1")
 
+/** EF1: Earth's picture is missing (HTTP 404 or 410, or not an image), the only case for the thumbnail; never a timeout, the network or another HTTP error. */
+fun earthPictureMissing(e: Throwable): Boolean = e is SiteChanged || (e is HttpStatus && (e.code == 404 || e.code == 410))
+
+/** EF1: the `earth.thumbFallback` note after a download: the picture's URL while the thumbnail came, else none (a real download clears it). */
+fun thumbFallbackNote(thumbnailUsed: Boolean, url: String): String? = if (thumbnailUsed) url else null
+
 private val thumbnailSuffix = Regex("""_th(\.\w+)$""")
 
 /**

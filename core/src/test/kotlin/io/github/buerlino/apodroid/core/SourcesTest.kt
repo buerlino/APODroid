@@ -7,6 +7,8 @@ import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SourcesTest {
@@ -127,6 +129,22 @@ class SourcesTest {
     @Test
     fun makesTheEarthThumbnailUrl() {
         assertEquals("https://a.b/c/coast_20261011_th.jpg", earthThumbnail("https://a.b/c/coast_20261011.jpg"))
+    }
+
+    @Test
+    fun earthFallsBackOnlyWhenThePictureIsMissing() {
+        assertTrue(earthPictureMissing(HttpStatus(404)))
+        assertTrue(earthPictureMissing(HttpStatus(410)))
+        assertTrue(earthPictureMissing(SiteChanged("Not an image")))
+        assertFalse(earthPictureMissing(HttpStatus(503)))
+        assertFalse(earthPictureMissing(java.net.SocketTimeoutException("slow")))
+        assertFalse(earthPictureMissing(java.io.IOException("network")))
+    }
+
+    @Test
+    fun theThumbnailNoteStaysUntilARealDownload() {
+        assertEquals("https://a.b/c.jpg", thumbFallbackNote(true, "https://a.b/c.jpg"))
+        assertNull(thumbFallbackNote(false, "https://a.b/c.jpg"))
     }
 
     @Test

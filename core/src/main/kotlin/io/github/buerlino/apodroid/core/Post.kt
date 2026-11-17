@@ -292,6 +292,9 @@ fun earthPictureMissing(e: Throwable): Boolean = e is SiteChanged || (e is HttpS
 /** EF1: the `earth.thumbFallback` note after a download: the picture's URL while the thumbnail came, else none (a real download clears it). */
 fun thumbFallbackNote(thumbnailUsed: Boolean, url: String): String? = if (thumbnailUsed) url else null
 
+/** EF1f1: the real picture replaces a stored thumbnail: one was noted for [url] and this download isn't one. */
+fun thumbReplaced(notedUrl: String?, url: String, thumbnailUsed: Boolean): Boolean = notedUrl == url && !thumbnailUsed
+
 private val thumbnailSuffix = Regex("""_th(\.\w+)$""")
 
 /**

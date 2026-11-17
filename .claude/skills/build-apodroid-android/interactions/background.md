@@ -228,6 +228,11 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
     (a TIFF): `… probe failed: …` (`… probe failed: no size in the original's first bytes`), the
     rendition as before; nothing else changes (no problem note, no failed run: the rendition's own
     download decides). An Earth picture that's missing: the probe's `HTTP 404`, then EF1's thumbnail.
+  - **E9c1 The real picture replaces a stored thumbnail** (EF1f1: `earth.thumbFallback` noted for
+    the URL, the next refresh downloads the real file): the screens showing that post and its
+    subject note are forgotten, the next run sets the real picture at its own subject; log
+    `Refresh: EARTH <date> real picture instead of the thumbnail`. Phone case: fake the note with
+    the thumbnail on the lock screen, refresh, the real picture is set.
   - Each such download notes `<source>.sizeChecked` (the picture URL), so E9d isn't owed.
   - **E9d A post stored by 0.8.0** (the rendition, no `<source>.sizeChecked` for its URL): checked
     once, at a refresh that finds the same post (the job's run, a pull, a page open after the hour)

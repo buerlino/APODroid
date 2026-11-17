@@ -157,6 +157,17 @@ data class Record(
     fun forget(): Record = copy(picture = null)
 }
 
+/**
+ * EF1f1: the records whose picture is [post]'s ([Picture.Of.url] null matches by date), forgotten as
+ * Set forgets one (the picture dropped, owner, stamp and notes kept), so the next run sets the
+ * stored file again. The screens showing something else aren't in the result.
+ */
+fun forgetShowing(records: Map<Screen, Record>, post: Picture.Of): Map<Screen, Record> =
+    records.filterValues { r ->
+        val p = r.picture
+        p is Picture.Of && p.source == post.source && p.date == post.date && (p.url == null || p.url == post.url)
+    }.mapValues { it.value.forget() }
+
 /** A screen after a run: its [record], to write after its set when [set], else at once (when it changed). */
 data class Due(val record: Record, val set: Boolean)
 

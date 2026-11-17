@@ -43,6 +43,9 @@ import io.github.buerlino.apodroid.core.HttpStatus
 import io.github.buerlino.apodroid.core.earthPictureMissing
 import io.github.buerlino.apodroid.core.earthThumbnail
 import io.github.buerlino.apodroid.core.thumbFallbackNote
+import io.github.buerlino.apodroid.core.thumbReplaced
+import io.github.buerlino.apodroid.core.forgetShowing
+import io.github.buerlino.apodroid.core.picture
 import io.github.buerlino.apodroid.core.SiteChanged
 import io.github.buerlino.apodroid.core.StandIn
 import io.github.buerlino.apodroid.core.StorageFailed
@@ -970,6 +973,17 @@ class Store(private val context: Context) {
             if (!part.renameTo(file)) {
                 part.delete()
                 throw StorageFailed(IOException("Couldn't rename ${part.name}"))
+            }
+            // EF1f1: the real picture replaces a stored thumbnail; the screens showing it and its subject note go.
+            val replaced = source == Source.EARTH && thumbReplaced(prefs.getString("earth.thumbFallback", null), url, thumbnail)
+            if (replaced) synchronized(wallpaperLock) {
+                val forgotten = forgetShowing(records(), latest.picture())
+                prefs.edit {
+                    forgotten.forEach { (screen, record) -> putRecord(screen, record) }
+                    remove(source.key("subjectDate"))
+                    remove(source.key("subjectUrl"))
+                }
+                Log.i("APODroid", "Refresh: EARTH ${latest.date} real picture instead of the thumbnail")
             }
             prefs.edit {
                 remove(source.key("badUrl"))

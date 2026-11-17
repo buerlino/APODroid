@@ -612,6 +612,27 @@ class ScreensTest {
         assertEquals(pic(APOD), plan.screens.getValue(HOME).record.picture)
     }
 
+    // EF1f1
+
+    @Test
+    fun theRealPictureForgetsOnlyTheScreensShowingThePost() {
+        val earth = pic(EARTH)
+        val records = mapOf(
+            HOME to Record(EARTH, earth, t0),
+            LOCK to Record(NASA, pic(NASA), t0),
+        )
+        val forgotten = forgetShowing(records, earth)
+        assertEquals(mapOf(HOME to Record(EARTH, null, t0)), forgotten)
+    }
+
+    @Test
+    fun aThumbnailIsReplacedOnlyByARealDownloadOfTheSameUrl() {
+        assertTrue(thumbReplaced("u", "u", false))
+        assertFalse(thumbReplaced("u", "u", true))
+        assertFalse(thumbReplaced(null, "u", false))
+        assertFalse(thumbReplaced("old", "u", false))
+    }
+
     // Starting
 
     @Test

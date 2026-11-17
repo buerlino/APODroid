@@ -1925,6 +1925,10 @@ never turn by it, ⛶'s pill still decides one picture. **"Wide pictures sideway
 **Built** (SH1 `:core`, SH2a the app, 2026-11-17): The app, Settings (Wide pictures sideways
 removed); Wallpaper: Auto's turn; Choosing the part, Sideways' three values. (SH2c, 2026-11-17)
 Settings: Keep pictures sharp; Wallpaper: the limited set; Choosing the part (⛶'s limited frame).
+**Checked on the device** (SH4, 2026-11-17, the Android 14 emulator; `sharp-0.9.0-sh4.md`): the
+pixels of 151 sets of made-up pictures (14 sizes, Centre and Auto, the switch, Whole, Home, Lock,
+the job, a change time, Set, parts, the pill) by `scripts/sh4_check.py`, and the probe on real
+URLs with the update from 0.8.0: no FAIL. The probe's 200 is `ProbeTest`'s only (no real host).
 
 **0.8.0's release** (user, 2026-11-16; `release-0.8.0.md`): the night of 15 Nov built and merged
 every package (SW, SA, VS1, D1, R3, the fixes SW3f1, SA3c, D1f1, T3f1); the night's test pass on

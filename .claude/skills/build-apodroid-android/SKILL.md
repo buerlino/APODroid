@@ -411,6 +411,12 @@ packages unattended): `night.md`.
   - `am kill` keeps the page's saved draft, so a Set after reopening saves that draft, not prefs
     pushed meanwhile. A Compose popup takes the tap that closes it: in one `input` line, a Set
     tap right after a menu choice goes to the menu.
+  - Checking a set's pixels (SH4, 2026-11-17): `scripts/sh4_pictures.py` makes pictures whose R
+    and B say where each pixel came from; `scripts/sh4_run.py <pictures> <out> <case>…` fakes APOD's
+    post (dated a day ahead, `sizeChecked` set, `darken` off), sets it by the job, a faked change
+    time or Set and checks `files/debug-set.png` with `scripts/sh4_check.py` (`SH4_DEFER=1` and
+    `--recheck` move the slow pure-Python check off the device's time). In a wait loop, `pgrep -f`
+    on a pattern in the loop's own command line matches its own shell: it never ends.
   - Real split screen needs a second app picked in Recents (another app's screen): use `wm size
     600x1340` and back instead (V9).
 

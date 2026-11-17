@@ -383,12 +383,22 @@ run puts the real picture on at its own subject. Logged `Refresh: EARTH <date> r
 instead of the thumbnail`. A unit test where the rule can be in `:core`; device (emulator): a
 faked `thumbFallback` with the thumbnail on the lock screen, a refresh, the real picture set.
 
-### [ ] SH4. The device pass (rosie; Opus, high)
+### [x] SH4. The device pass (rosie; Opus, high)
 
 Testing 2 and 3 on `emulator-5564` (and the tablet if attached and free): write the pixel-check
 script under `scripts/` (Python 3 stdlib only, reads a PNG; no PIL), the made-up pictures, the
 faked prefs; every case, a PASS / FAIL / DIFFERENT line each with the `debug-set.png` pulled.
 A FAIL becomes a `### [ ] SH4f<n>` package in this file, with the case and the log.
+
+**Done** (2026-11-17, run 154, the Android 14 emulator; the tablet is pascaline's): every line in
+[sharp-0.9.0-sh4.md](sharp-0.9.0-sh4.md); the scripts `scripts/sh4_pictures.py`, `sh4_check.py`,
+`sh4_run.py`, `sh4_download.py`. Testing 2: 151 of 151 PASS (14 sizes × Centre/Auto × the switch ×
+Whole by the job; Home, Lock, Set's path, a faked change time, dragged parts, the pill, the up
+text); a layout without a limit took 0.8.0's `setStream` each time. Testing 3: the probe on four
+real originals (7 Nov and a `%20` name: the original; the TIFF and a 4000×4000: the rendition),
+the update from 0.8.0 (Earth's thumbnail: one re-download, part and ★ reset; APOD's rendition:
+checked once, the original then) PASS; DIFFERENT: no real host answers the probe with 200 (only
+`ProbeTest` covers it). No FAIL, no SH4f.
 
 ## Open
 

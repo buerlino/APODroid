@@ -612,6 +612,59 @@ class ScreensTest {
         assertEquals(pic(APOD), plan.screens.getValue(HOME).record.picture)
     }
 
+    // EF1f1
+
+    @Test
+    fun theRealPictureForgetsOnlyTheScreensShowingThePost() {
+        val earth = pic(EARTH)
+        val records = mapOf(
+            HOME to Record(EARTH, earth, t0),
+            LOCK to Record(NASA, pic(NASA), t0),
+        )
+        val forgotten = forgetShowing(records, earth)
+        assertEquals(mapOf(HOME to Record(EARTH, null, t0)), forgotten)
+    }
+
+    @Test
+    fun theRealPictureKeepsAScreenWithoutAColumn() {
+        val earth = pic(EARTH)
+        val r = Record(EARTH, earth, t0)
+        assertEquals(mapOf(HOME to r.forget()), forgetShowing(mapOf(HOME to r, LOCK to r), earth, setOf(HOME)))
+    }
+
+    @Test
+    fun theRealPictureKeepsRecordsOfOtherDatesAndUrls() {
+        val earth = pic(EARTH)
+        val otherDate = Record(EARTH, pic(EARTH, d2), t0)
+        val otherUrl = Record(EARTH, earth.copy(url = "https://x/other.jpg"), t0)
+        assertEquals(emptyMap(), forgetShowing(mapOf(HOME to otherDate, LOCK to otherUrl), earth))
+    }
+
+    @Test
+    fun aRecordWithoutAUrlIsForgottenByDate() {
+        val earth = pic(EARTH)
+        val records = mapOf(HOME to Record(EARTH, Picture.Of(EARTH, d1, null), t0))
+        assertEquals(mapOf(HOME to Record(EARTH, null, t0)), forgetShowing(records, earth))
+    }
+
+    @Test
+    fun bothScreensShowingThePostAreForgottenWithOwnerStampAndNotesKept() {
+        val earth = pic(EARTH)
+        val r = Record(EARTH, earth, t0, shown(earth))
+        val forgotten = forgetShowing(mapOf(HOME to r, LOCK to r), earth)
+        assertEquals(mapOf(HOME to r.forget(), LOCK to r.forget()), forgotten)
+        assertEquals(shown(earth), forgotten.getValue(HOME).shown)
+        assertEquals(t0, forgotten.getValue(LOCK).stamp)
+    }
+
+    @Test
+    fun aThumbnailIsReplacedOnlyByARealDownloadOfTheSameUrl() {
+        assertTrue(thumbReplaced("u", "u", false))
+        assertFalse(thumbReplaced("u", "u", true))
+        assertFalse(thumbReplaced(null, "u", false))
+        assertFalse(thumbReplaced("old", "u", false))
+    }
+
     // Starting
 
     @Test

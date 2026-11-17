@@ -33,3 +33,4 @@ private/
 captures/
 .externalNativeBuild/
 .cxx/
+__pycache__/

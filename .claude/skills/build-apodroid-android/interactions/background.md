@@ -197,7 +197,12 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
   one). Once per post: the next runs log nothing. A picture that won't decode (or out of memory):
   `Subject: APOD 2026-11-16 couldn't: …`, the date and URL noted without positions (not tried
   again), the refresh goes on; its sets the middle. No `Subject:` line on a video day ("my
-  picture" has none). Phone (the emulator): a fake into `files/` (the skill), the
+  picture" has none). **E8b (SH2c, 0.9.0):** the same note also holds the positions for "Keep
+  pictures sharp"'s limited frame where the limit would bite for the file (whatever the switch says):
+  `<source>.subjectPositionSharp`, `subjectSidewaysSharp` (`:core`'s `limitedSubjectPosition`, 0.5
+  when no axis moves), and `<source>.subjectSharp=true`; the line adds ` (sharp 0.81, sideways
+  0.50)` when there are any. A post noted by 0.8.0 (no `subjectSharp`) is noted again once (one
+  more `Subject:` line after the update). Phone (the emulator): a fake into `files/` (the skill), the
   `<source>.subject*` keys removed, `run -f 1`: the line; a broken picture: `couldn't`. SA3c: a
   landscape picture's sideways position is its turned picture's own (`sidewaysSubjectPosition`);
   with Size Auto and the picture turned (⛶'s pill, or Auto's turn since 0.9.0, F15), the next set's band (`files/debug-set.png`) and
@@ -290,6 +295,15 @@ or days of time.
   `theUprightSizeSwapsOnlyForAQuarterTurn`, `UpWordsTest`, `PartTest.checkNotesTheOrientationWithADrag`.
   Phone (the emulator): Size Auto stored, APOD 3000×1000 faked as a new post with the galaxy text
   (setup.md X), `run -f 1`: `, sideways, auto turn`; the horizon text: upright.
+- **F17 Keep pictures sharp (0.9.0, SH2c; setup.md Y).** Each still set (the job's, the page's,
+  Set's, ✓'s; not Live's hand-over, B27's keep or any screen under the stored Size Live) while the
+  stored `sharp` is on: after the orientation and the position, `:core`'s `limitBites` on the file's
+  upright size; biting, `limitedPicture` (the background, the frame decoded alone at its dest size,
+  turned when sideways), measured as drawn, `setBitmap`. The job's line: `Daily job: wallpaper set:
+  Of(…) on <screens>[, auto 0.xx][, sideways…], sharp ×2.00 (Fill ×2.43)[, darker ×k (grey g)]`;
+  the whole picture's `, sharp ×2.00 (whole ×n.nn)`. Not biting: every path as before. Unit:
+  `LimitTest` (the layout), `SharpTest`. Phone (the emulator): setup.md P34e, then `run -f 1` with
+  the record forgotten: the same line from `Daily job:`.
 - **F16 Auto's frame (SA3a, 0.8.0).** Each still set (the job's, the page's, Set's, ✓'s) places
   the frame by `:core`'s `framePosition`: the post's ⛶ part, else with Size Auto (the default; a
   stored 0.7.0 `FILL` reads as Auto) `autoPosition` of the noted subject for the set's
@@ -636,6 +650,11 @@ as it's out"?), Advanced (Save every picture, Keep running), the page's status l
 25. **P25, E9c (SH2b).** Airplane mode between the feed and the probe is hard to time: instead
     a faked `imageUrl` whose original answers 404 (APOD) at a pull: `… probe failed: …HTTP 404`,
     then the rendition's own outcome.
+
+26. **P26, E8b and F17 (SH2c).** APOD 1500×1022 faked, `subjectSharp` removed: a page open logs
+    `Subject: APOD … p=… (sharp 0.xx)`; a second open nothing. `sharp=true`, Size Auto, the record
+    forgotten, `run -f 1`: `Daily job: wallpaper set: … , sharp ×2.00 (Fill ×2.43)`, `debug-set.png`
+    with the bands; `sharp=false`: no ", sharp".
 
 End state check (after the last case): `dumpsys alarm` has the pair at the clock's next check,
 job 1 periodic, `dumpsys wallpaper` home = APODroid's engine and lock its own still, Keep running

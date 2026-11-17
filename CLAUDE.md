@@ -39,6 +39,8 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - 0.8.0's release plan (deadline 17 Nov; user, 2026-11-15: Sideways, the subject frame as Size [Centre | Auto | Live] with Auto the default, the video still, the second post on a date; Android 10–14, E, moves to 0.9.0, then 0.10.0; the device checks on the Android 14 emulator while pascaline has the tablet): [.claude/skills/build-apodroid-android/release-0.8.0.md](.claude/skills/build-apodroid-android/release-0.8.0.md).
 - 0.8.0, Fill's frame on the subject (issue #3, a saliency map; planned 2026-11-02): [.claude/skills/build-apodroid-android/subject-0.8.0.md](.claude/skills/build-apodroid-android/subject-0.8.0.md).
 - 0.8.0, Sideways (issue #4: a wide picture turned 90° clockwise, a toggle per picture in ⛶ mode, later a Setup switch; planned 2026-11-15): [.claude/skills/build-apodroid-android/sideways-0.8.0.md](.claude/skills/build-apodroid-android/sideways-0.8.0.md).
+- 0.9.0's release plan (user, 2026-11-16 and 17: LG, TP1, EF1f1, UI1f1, SZ1, R4, T4, T5; E and ER moved to 0.10.0): [.claude/skills/build-apodroid-android/release-0.9.0.md](.claude/skills/build-apodroid-android/release-0.9.0.md).
+- 0.9.0, sharp pictures and Auto's turn (Keep pictures sharp, Size Auto turning an APOD by its text, the original when smaller than the screen, Earth's picture link; planned 2026-11-16): [.claude/skills/build-apodroid-android/sharp-0.9.0.md](.claude/skills/build-apodroid-android/sharp-0.9.0.md).
 - A clearer Setup and leaner texts (planned for 0.7.0, 2026-10-29; MK and UI1–UI3 built in 0.6.0 as U0, 2026-11-02, with ⛶'s ✓ setting again; what's left for 0.7.0 is there): [.claude/skills/build-apodroid-android/lean-ui-0.7.0.md](.claude/skills/build-apodroid-android/lean-ui-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).
@@ -166,6 +168,9 @@ What each brought: the tags and `changelogs/<versionCode>.txt`.
   user-signed build.
 - 0.8.0 (12): 2026-11-16, after the night's test pass on the Android 14 emulator and the FP6's
   update over 0.7.0 with the user's release-signed build (UI1 and FP1 from that test).
+- 0.9.0 (13): 2026-11-17, after SH4, T4 and T5 on the Android 14 emulator (no FAIL, no crash) and
+  the user's release-signed build; the user's FP6 test follows the tag (user, 2026-11-17: "lets
+  release now, i can test the release if we need to fix we do it after 0.9.1"), a fix ships as 0.9.1.
 
 ## Data source (checked 2026-10-01)
 
@@ -2278,6 +2283,10 @@ press on the title block copies the link).
   (needs a `FileProvider`). Still out, as above: a notification, the still frame on video days,
   help texts, `api.nasa.gov` as a fallback. NASA History Image of the Day (on Flickr; user,
   2026-10-16).
+  ESO Picture of the Week, ESA/Webb and ESA/Hubble Picture of the Month (user, 2026-11-16):
+  weekly or monthly, so the same picture again for weeks in the turns; no credit in the feeds
+  (CC BY needs it, so a second page fetch per post); "More NASA pictures" renamed and F-Droid's
+  `NonFreeNet` text changed: too much for the gain.
 
 ## Open questions
 
@@ -2292,3 +2301,10 @@ press on the title block copies the link).
 3. Closed (D1, 2026-11-15): a second picture on the same date arrives at the job's next run
    (Background update, A second post on the same date).
 4. Closed (LG, 2026-11-17): three log lines: ", auto <p>" only for a Fill frame Auto placed by a subject (not a whole picture, not the fallback's middle); `Refresh: … same post` only for today's stored post, else `stored, nothing newer`; the daily switch on doesn't log `Detector: the alarms found gone` (its own arming explains it, `DailyJob.switchedOn`).
+5. For 0.9.1 (user, 2026-11-17, from T5 and Opus pass 56): the detector's exit-record sign
+   (TP1, `:core`'s `stoppedSinceArmed`) takes any force stop's record newer than `armedAt`, so after
+   the clock is set back past a force stop an old record counts again: `Detector: stopped by the user
+   since the arming (exit record)`, the alarms noted gone, and a later miss could show the box for a
+   change that wasn't late. Seen once on the emulator (the clock back from a faked 28 Nov to 17 Nov,
+   then `am kill` and a page open; no box then). Fix: also ignore records stamped later than now (or
+   than the arming's boot), with a `DetectorTest` case.

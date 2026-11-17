@@ -41,6 +41,32 @@ class ApodTest {
         assertEquals(Instant.parse("2026-03-03T05:05:00Z"), apod.published)
     }
 
+    /** SH1: `featured_image.alt`, tags stripped and entities decoded, for Auto's turn. */
+    @Test
+    fun readsTheAltText() {
+        // [json]: the alt's JSON value as it stands in the response.
+        fun alt(json: String?) =
+            parseApod(post(image = """{"id":7,"file":"https://assets.example/n.jpg"${json?.let { ",\"alt\":$it" }.orEmpty()}}""")).alt
+        assertEquals(
+            "Rise of the “Harvest” Moon over Etna & the anti-twilight’s colours.",
+            alt("\" Rise of the &#8220;Harvest&#8221; Moon <em>over</em>  Etna &amp; the anti-twilight&#8217;s colours. \""),
+        )
+        assertEquals(
+            "See Explanation. Clicking on the picture will download the highest resolution version available.",
+            alt("\"See Explanation.  Clicking on the picture will download\\nthe highest resolution version available.\""),
+        )
+        assertEquals(null, alt(null), "no alt")
+        assertEquals(null, alt("\"\""), "an empty alt")
+        assertEquals(null, alt("\" <br> \""), "only a tag")
+        assertEquals(null, alt("null"), "alt null")
+        assertEquals(null, parseApod(post()).alt, "the default made-up post has none")
+        // A video day: no picture, so no alt, whatever featured_image says.
+        val mp4 = "<video class='video-js'><source src='https://assets.example/x.mp4' type='video/mp4'></video>"
+        val video = parseApod(post(hero = mp4, image = """{"id":7,"file":"https://assets.example/n.jpg","alt":"A NASA logo"}"""))
+        assertTrue(video.isVideo)
+        assertEquals(null, video.alt)
+    }
+
     @Test
     fun readsThePublishTimeInUsEasternSummerTime() {
         val apod = parseApod(post().replace("2026-03-03T00:05:00", "2026-10-23T00:05:00"))

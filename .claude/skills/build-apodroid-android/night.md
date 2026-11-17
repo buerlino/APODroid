@@ -162,6 +162,13 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 59 | T3f1 | Auto's subject at a page open or Set within the hour | winston | opus, medium | yes | SA3c | release-0.8.0.md T3f1 |
 | 60 | UI1 | Setup's last changes: Centre when unsure into Setup, hide sideways under Live, Set pinned | winston | opus, medium | yes | T3f1 | release-0.8.0.md UI1 |
 | 61 | FP1 | ⛶'s frame dragged sideways kept upright: drop the drag when the pill turns | winston | opus, medium | yes | UI1 | release-0.8.0.md FP1 |
+| 62 | EF1 | Earth's picture link (its new form; the thumbnail only when the picture is missing) | winston | sonnet, medium | yes | — | sharp-0.9.0.md EF1 |
+| 63 | SH0 | The oracle tests for the limited layout, from the plan only | winston | opus, high | no | — | sharp-0.9.0.md SH0 |
+| 64 | SH1 | `:core`: imageSize, the up words, the new sidewaysOf, the limited layout | winston | opus, high | no | SH0 | sharp-0.9.0.md SH1 |
+| 65 | SH2a | Auto turns by content; Wide pictures sideways removed; ✓ notes the orientation | winston | opus, high | yes | SH1 | sharp-0.9.0.md SH2a |
+| 66 | SH2b | The download: the probe, the original when smaller than the screen | winston | opus, high | yes | SH1, EF1 | sharp-0.9.0.md SH2b |
+| 67 | SH2c | Keep pictures sharp: the set, Auto's limited position, the switch, ⛶ | winston | opus, high | yes | SH2a, SH2b | sharp-0.9.0.md SH2c |
+| 68 | SH4 | Device pass of the sharp pictures and Auto's turn (emulator) | rosie | opus, high | no | SH2c | sharp-0.9.0.md SH4 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

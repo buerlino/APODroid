@@ -169,6 +169,12 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 66 | SH2b | The download: the probe, the original when smaller than the screen | winston | opus, high | yes | SH1, EF1 | sharp-0.9.0.md SH2b |
 | 67 | SH2c | Keep pictures sharp: the set, Auto's limited position, the switch, ⛶ | winston | opus, high | yes | SH2a, SH2b | sharp-0.9.0.md SH2c |
 | 68 | SH4 | Device pass of the sharp pictures and Auto's turn (emulator) | rosie | opus, high | no | SH2c | sharp-0.9.0.md SH4 |
+| 69 | LG | Three log lines (Open question 4) | winston | sonnet, medium | yes | — | release-0.9.0.md LG |
+| 70 | EF1f1 | Earth's real picture replaces a stored thumbnail on the screens too | winston | sonnet, medium | yes | EF1 | sharp-0.9.0.md EF1f1 |
+| 71 | UI1f1 | The detector's Keep running button lands behind the Set bar | winston | sonnet, medium | yes | — | release-0.9.0.md UI1f1 |
+| 72 | TP1 | The detector's sign on Android 11–14 (process exit records) | winston | opus, medium | yes | — | release-0.9.0.md TP1 |
+| 73 | R4 | The release's texts: versionCode 13, the changelog; E to 0.10.0 | winston | sonnet, medium | no | LG, EF1f1, UI1f1, TP1, SH4 | release-0.9.0.md R4 |
+| 74 | T4 | Final pass on the combined tree (emulator, R8, the update from 0.8.0) | rosie | opus, high | no | R4 | release-0.9.0.md T4 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

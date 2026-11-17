@@ -370,6 +370,17 @@ the check of 0.8.0's post, the log lines, Traffic in CLAUDE.md, the maps.
 - CLAUDE.md (Settings, Wallpaper: the limited set, Choosing the part, Next features), the maps.
 - **Device** (emulator): Testing 2's cases for one example each way (the full table is SH4's).
 
+### [ ] EF1f1. Earth's real picture replaces a stored thumbnail on the screens too (Sonnet, medium)
+
+From Opus pass 50 (2026-11-17): when the real picture finally replaces a stored thumbnail
+(`earth.thumbFallback` noted, the next refresh gets the real file), the URL stays the key, so the
+screens keep the thumbnail until the next post, and the subject noted from the thumbnail (a 3:2
+crop) stays too. On that swap, forget the post's subject note and the records of the screens
+showing it (as Set forgets a record: the picture dropped, the owner and stamp kept), so the next
+run puts the real picture on at its own subject. Logged `Refresh: EARTH <date> real picture
+instead of the thumbnail`. A unit test where the rule can be in `:core`; device (emulator): a
+faked `thumbFallback` with the thumbnail on the lock screen, a refresh, the real picture set.
+
 ### [ ] SH4. The device pass (rosie; Opus, high)
 
 Testing 2 and 3 on `emulator-5564` (and the tablet if attached and free): write the pixel-check

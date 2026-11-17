@@ -237,13 +237,31 @@ internal fun earthPosts(body: String): Sequence<Post> = wpPosts(body).asSequence
         source = Source.EARTH,
         date = wpDate(p.date),
         title = decodeEntities(p.title?.rendered.orEmpty()).trim(),
-        imageUrl = thumbnail.substringBefore('?').replace(thumbnailSuffix, "$1"),
+        imageUrl = earthPicture(thumbnail),
         pageUrl = p.link,
         isVideo = false,
         explanation = plainText(p.excerpt?.rendered.orEmpty()),
         published = wpPublished(p.date),
     )
 }
+
+/**
+ * Earth's picture link from `featured_image_url` (EF1): the query dropped, then a `/jcr:content/…`
+ * tail, then `_th` before the extension; `content/dam` becomes `dynamicimage/assets`, so
+ * [renditionUrl] scales it. The old and the new form give the same link.
+ */
+internal fun earthPicture(thumbnail: String): String =
+    thumbnail.substringBefore('?').substringBefore("/jcr:content").replace(thumbnailSuffix, "$1")
+        .replace("/content/dam/", "/dynamicimage/assets/")
+
+/** The `_th` file of Earth's picture [url] (its [renditionUrl] still scales it), the fallback when the picture is missing. */
+fun earthThumbnail(url: String): String = url.replace(Regex("""(\.\w+)$"""), "_th$1")
+
+/** EF1: Earth's picture is missing (HTTP 404 or 410, or not an image), the only case for the thumbnail; never a timeout, the network or another HTTP error. */
+fun earthPictureMissing(e: Throwable): Boolean = e is SiteChanged || (e is HttpStatus && (e.code == 404 || e.code == 410))
+
+/** EF1: the `earth.thumbFallback` note after a download: the picture's URL while the thumbnail came, else none (a real download clears it). */
+fun thumbFallbackNote(thumbnailUsed: Boolean, url: String): String? = if (thumbnailUsed) url else null
 
 private val thumbnailSuffix = Regex("""_th(\.\w+)$""")
 

@@ -39,6 +39,10 @@ import io.github.buerlino.apodroid.core.Record
 import io.github.buerlino.apodroid.core.Restart
 import io.github.buerlino.apodroid.core.Rotation
 import io.github.buerlino.apodroid.core.Screen
+import io.github.buerlino.apodroid.core.HttpStatus
+import io.github.buerlino.apodroid.core.earthPictureMissing
+import io.github.buerlino.apodroid.core.earthThumbnail
+import io.github.buerlino.apodroid.core.thumbFallbackNote
 import io.github.buerlino.apodroid.core.SiteChanged
 import io.github.buerlino.apodroid.core.StandIn
 import io.github.buerlino.apodroid.core.StorageFailed
@@ -920,12 +924,14 @@ class Store(private val context: Context) {
         if (stored != null && latest.date < stored.date && isComplete(stored)) return
         val url = latest.imageUrl
         val file = imageFile(source)
-        if (url != null && (latest.date != stored?.date || url != stored.imageUrl || !file.exists())) {
+        if (url != null && (latest.date != stored?.date || url != stored.imageUrl || !file.exists() ||
+                (source == Source.EARTH && prefs.getString("earth.thumbFallback", null) == url))) {
             // Else every page open, job run and retry would download it again (13 MB, say).
             if (url == prefs.getString(source.key("badUrl"), null)) throw SiteChanged("Not an image, not downloaded again: $url")
             val part = File(context.filesDir, "${source.name.lowercase()}.part")
+            var thumbnail = false
             try {
-                downloadPicture(latest, url, part)
+                thumbnail = downloadPicture(latest, url, part)
                 if (!isImage(part)) throw SiteChanged("Not an image: $url")
             } catch (e: SiteChanged) {
                 part.delete()
@@ -936,7 +942,14 @@ class Store(private val context: Context) {
                 part.delete()
                 throw StorageFailed(IOException("Couldn't rename ${part.name}"))
             }
-            prefs.edit { remove(source.key("badUrl")) }
+            prefs.edit {
+                remove(source.key("badUrl"))
+                // EF1: noted only once the thumbnail is stored, cleared by a real download.
+                if (source == Source.EARTH) {
+                    val note = thumbFallbackNote(thumbnail, url)
+                    if (note != null) putString("earth.thumbFallback", note) else remove("earth.thumbFallback")
+                }
+            }
         }
         // A new post (another date or picture) is marked as its check says; the same post keeps its mark.
         store(latest, gap.takeIf { stored == null || latest.date != stored.date || latest.imageUrl != stored.imageUrl })
@@ -1099,7 +1112,21 @@ class Store(private val context: Context) {
      * original's size (NASA's go up to 97 MB). If that fails, APOD and Earth Observatory fall
      * back to [url] as is (1280 px for APOD); NASA's is the original, so it fails.
      */
-    private fun downloadPicture(post: Post, url: String, part: File) {
+    private fun downloadPicture(post: Post, url: String, part: File): Boolean {
+        try {
+            downloadRendition(post, url, part)
+            return false
+        } catch (e: IOException) {
+            // EF1: Earth's picture missing (404, 410 or not an image), never the network or a timeout:
+            // else a slow connection would store the thumbnail under the picture's key for good.
+            if (post.source != Source.EARTH || !earthPictureMissing(e)) throw e
+            Log.w("APODroid", "Earth: picture missing, the thumbnail instead: $e")
+            downloadRendition(post, earthThumbnail(url), part)
+            return true
+        }
+    }
+
+    private fun downloadRendition(post: Post, url: String, part: File) {
         val rendition = renditionUrl(url, screen.height)
         try {
             download(rendition, part, userAgent)
@@ -1111,6 +1138,7 @@ class Store(private val context: Context) {
             Log.w("APODroid", "Rendition failed, plain picture instead: $e")
         }
         download(url, part, userAgent)
+        if (!isImage(part)) throw SiteChanged("Not an image: $url")
     }
 
     /**

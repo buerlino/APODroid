@@ -275,6 +275,18 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (taxonomy `science-org`, term 22453 `eo-image-of-the-day`, 9450 posts). 0.6 KB; 97 KB
   without `_fields`. `featured_image_url` is a thumbnail (`…_th.jpg?w=720&h=480…`); without the
   query and the `_th` it's the post's lead picture (`_th` on 40 of 40, HTTP 200 on 10 of 10).
+  **The link's forms** (EF1, 0.9.0): the old one `…/dynamicimage/assets/…_th.jpg?w=720…`, the new
+  `…/content/dam/…_th.jpg/jcr:content/…`; `earthPicture` drops the query, then a `/jcr:content/…`
+  tail, then `_th`, and turns `content/dam` into `dynamicimage/assets` (so `renditionUrl` scales
+  it): both give the same `imageUrl`; `originalUrl` gives `content/dam` again (★'s fallback to the
+  stored picture covers a 404). **The fallback:** only when Earth's picture is missing (HTTP 404 or
+  410, or not an image) `downloadPicture` takes the `_th` file (`:core`'s `earthThumbnail`, its
+  `?h=` rendition), never on a timeout, the network or another HTTP error (a slow connection
+  would store the thumbnail for good); noted as `earth.thumbFallback` (the picture URL), and the
+  real file is tried again at each refresh while it's noted (cleared by a real download).
+  `imageUrl` stays the key (parts, ★, the subject) whichever file came. The update from 0.8.0
+  changes a stored thumbnail's `imageUrl` once: one re-download, the log's "new picture", ★ and
+  ⛶'s part reset (expected).
   `excerpt`: one sentence (128 to 155 characters), the explanation. `date` US Eastern,
   00:00–00:01, Monday to Friday only. Originals (`content/dam`) 0.2–2.9 MB, 720–2160 px wide,
   mostly 1:1 to 3:2, one 1440×600; `?h=2484` 0.3–1.5 MB (upscaled). No video posts. The old

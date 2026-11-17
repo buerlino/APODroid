@@ -35,6 +35,9 @@ packages unattended): `night.md`.
   seeded cases).
   `core/.../ImageSize.kt` (0.9.0, SH1): `imageSize(bytes)`, a picture's size from its first bytes (JPEG, PNG,
   WebP, GIF; else null); tests in `ImageSizeTest` (made-up headers, the JDK's pictures, `private/pictures*`).
+  SH2b: `PROBE_BYTES`, `PROBE_MORE_BYTES`, `probeMore(first)`, `takesOriginal(w, h, sw, sh)` there; the probe
+  `firstBytes(url, userAgent, length)` and `originalSize(url, userAgent)` in `Post.kt` (`get`'s `range`: 206 too);
+  tests in `ProbeTest` (a local server with and without range support).
   `core/.../UpWords.kt` (0.9.0, SH1): `upScore`, `hasUp` (Auto's turn), the table
   `core/src/main/resources/io/github/buerlino/apodroid/core/up-words.tsv` (from `private/up-words-build.py`), read
   once by an absolute path; tests in `UpWordsTest` (the builder's scores, the tokenizer, the 300 labels in `private/`).
@@ -132,7 +135,9 @@ packages unattended): `night.md`.
   page, the pull, Set and the job run: refresh the sources in use and `show`, noting how the
   check went, then set while `daily` is on or with `set`; returns `Updated`: what it set,
   `setFailed`, the first failure; throws only a stop), `refresh(source)`
-  (the picture through `downloadPicture`: the rendition, else the plain URL), `allSources`,
+  (the picture through `downloadPicture`: SH2b's `downloadOriginal` first, the original when it's smaller than the
+  screen, else the rendition, else the plain URL; `<source>.sizeChecked`; `checkSize`, the check of a post stored by
+  0.8.0, from `refresh` on the same post and `noteStored`, T3f1's skip hooks with `noteSubject`), `allSources`,
   `list` (the list's columns in both modes; before the first save APOD on "Where"'s screens,
   `hasList`), `columns` (the mode's, `Setup.columns`), `hasTurns`, `pictureAt` (J2, pref `pictureAt`, default
   `:core`'s `DEFAULT_PICTURE_AT`), `soon` (SO2, pref `soon`, default off: "As soon as it's out"), `darken` (BR2, pref `darken`, default on: "Darken bright pictures"), `turnsSideways(source, part, post)` (0.9.0, SH2a: `:core`'s `sidewaysOf` by the stored Size and `hasUp` of the post's title, `alt`, explanation; SW3's `wideSideways` pref no longer read), `Setup.pictureTime`, `offset` (pref `offset`, seconds, drawn once),

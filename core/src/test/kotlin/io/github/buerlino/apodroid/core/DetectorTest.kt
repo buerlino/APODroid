@@ -121,4 +121,49 @@ class DetectorTest {
         assertEquals("12:30 AM change", missedWhen(missed, at("2026-11-17T08:00:00"), zurich, "12:30 AM"))
         assertEquals("12:30 AM change on 17 Nov", missedWhen(missed, at("2026-11-18T08:00:00"), zurich, "12:30 AM"))
     }
+
+    @Test
+    fun aForceStopAfterTheArmingCountsOn11To14() {
+        // TP1: the emulator (Android 14) after `am force-stop`: the PendingIntents still there, an
+        // exit record the user asked for after the last arming.
+        val armed = at("2026-11-16T06:04")
+        val stop = listOf(UserExit(at("2026-11-16T09:30"), "stop io.github.buerlino.apodroid due to from pid 1234"))
+        for (sdk in 30..34) assertEquals(true, stoppedSinceArmed(sdk, stop, armed))
+        // 29 has no records, 15+ cancel the PendingIntents themselves: as before.
+        assertEquals(false, stoppedSinceArmed(29, stop, armed))
+        assertEquals(false, stoppedSinceArmed(35, stop, armed))
+        assertEquals(false, stoppedSinceArmed(36, stop, armed))
+    }
+
+    @Test
+    fun aStopBeforeTheArmingIsNone() {
+        // The force stop's record is older than the arming after it (a page open armed again).
+        val stop = listOf(UserExit(at("2026-11-16T09:30"), "stop io.github.buerlino.apodroid due to from pid 1234"))
+        assertEquals(false, stoppedSinceArmed(34, stop, at("2026-11-16T09:31")))
+        assertEquals(false, stoppedSinceArmed(34, stop, at("2026-11-16T09:30")))
+        assertEquals(false, stoppedSinceArmed(34, emptyList(), at("2026-11-16T06:00")))
+    }
+
+    @Test
+    fun noArmingNotedIsNone() {
+        assertEquals(false, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T09:30"), null)), null))
+    }
+
+    @Test
+    fun aRecentsSwipeIsNone() {
+        // A swipe from Recents kills the process as the user's ("remove task") but leaves the alarms.
+        val armed = at("2026-11-16T06:04")
+        assertEquals(false, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T09:30"), "remove task")), armed))
+        assertEquals(true, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T09:30"), "remove task"), UserExit(at("2026-11-16T10:00"), "stop io.github.buerlino.apodroid due to from pid 1234")), armed))
+    }
+
+    @Test
+    fun aBackgroundKillIsNone() {
+        // TP1 fix round 1: `am kill`, task killers and cleaners call killBackgroundProcesses, recorded as
+        // REASON_USER_REQUESTED on 30-34, but the alarms stay. Only a force stop's "stop …" counts.
+        val armed = at("2026-11-16T06:04")
+        for (d in listOf("kill background", "kill all background", null, "")) {
+            assertEquals(false, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T09:30"), d)), armed))
+        }
+    }
 }

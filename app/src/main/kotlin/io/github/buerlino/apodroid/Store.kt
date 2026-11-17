@@ -724,9 +724,11 @@ class Store(private val context: Context) {
      * the next process that finds them gone ([noteAlarmsGone]) can tell a boot or an update from a
      * stopped app. The boot by `Settings.Global.BOOT_COUNT`, which a clock change doesn't move
      * (the boot's moment, the clock less the time since boot, as a fallback where it's missing);
-     * the install by `lastUpdateTime`, compared as a value.
+     * the install by `lastUpdateTime`, compared as a value. And when (`armedAt`, the clock), for the
+     * exit records of 11–14 ([DailyJob]'s check, TP1: [stoppedSinceArmed]).
      */
     fun noteArmed() = prefs.edit {
+        putLong("armedAt", System.currentTimeMillis())
         putInt("armedBoot", bootCount() ?: -1)
         putLong("armedBootAt", bootMoment())
         putLong("armedUpdate", updateTime())
@@ -753,6 +755,10 @@ class Store(private val context: Context) {
             putLong("lostAfterRun", lost.lastRun.toEpochMilli())
         }
     }
+
+    /** When the alarms were last armed (`armedAt`, TP1); null before 0.9.0's first arming. */
+    val armedAt: Instant?
+        get() = instant("armedAt")
 
     /** The alarms found gone and not yet judged by a run's sets ([judgeMiss]). */
     private fun lost(): Lost? {

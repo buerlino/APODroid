@@ -177,6 +177,7 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 74 | T4 | Final pass on the combined tree (emulator, R8, the update from 0.8.0) | rosie | opus, high | no | R4, SZ1 | release-0.9.0.md T4 |
 | 75 | SZ1 | An ⓘ for Size: Centre, Auto (and its turn), Live (text approved) | winston | sonnet, medium | yes | R4 | release-0.9.0.md SZ1 |
 | 76 | TP1f1 | The detector's exit record isn't seen on Android 14 (debug on the emulator, then fix) | winston | opus, medium | yes | TP1, T4 | release-0.9.0.md TP1f1 |
+| 77 | T5 | A second emulator round on the final tree (T4 again, the gaps, 0.8.0's paths, screenshots) | rosie | opus, high | no | TP1f1 | release-0.9.0.md T5 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

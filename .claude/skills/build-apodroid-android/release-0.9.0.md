@@ -122,6 +122,27 @@ user's approval. **Approved** (user, 2026-11-17): `changelogs/13.txt` and the st
 written (c997e5b); the line "The stopped-app note now works on Android 11–14 too" stays if T4's
 check of TP1 passes, else it becomes "should now notice" before the tag.
 
+### [ ] T5. A second emulator round on the final tree (rosie; Opus, high)
+
+(User, 2026-11-17: "can we do another round of tests using the emulator?") After TP1f1, on
+`emulator-5564` (Android 14), dev's tree as it will be tagged, an R8 build where a case allows it.
+1. **T4 again, all of it** (the update from v0.8.0 on R8, LG, EF1f1, UI1f1, SZ1, the smoke list),
+   and TP1 as TP1f1 left it: the ten force stops (the line and the box each time), a Recents swipe
+   and `am kill` (no line).
+2. **What T4 and SH4 left out:** the maps' 0.9.0 cases by hand (setup P31–P34e, page K24–K26 and
+   K34a–d); "my picture" under Keep pictures sharp (centred, never turned); the darkening while the
+   limit bites (`, darker` on the set line, `debug-set.png` darker in the top third); Keep pictures
+   sharp hidden under Live, back to the stored value; ⛶'s Sideways pill on a picture Auto turned and
+   on one it didn't, under Centre and Auto; a dragged frame then a Size change.
+3. **A regression sweep of 0.8.0's paths on this tree:** Live (the picker with "Home screen", the
+   hand-over, a new post handed over, a lost Live by another wallpaper), Darken bright pictures,
+   the order's drag and Set, "If APOD is a video" with a faked video day, ★ save, the daily switch
+   off and on.
+4. **Screenshots for the user's eye** (`.coord/runs/<n>-t5/tablet/`): the home screen after a set of
+   (a) a small APOD with Keep pictures sharp off and on, (b) an APOD Auto turned and one it kept
+   upright, (c) an Earth picture, (d) Setup open under Auto and under Live.
+Done when: no FAIL and no crash; a FIX goes in as its own package. Not the FP6, not real timing.
+
 ### [ ] T4. The final pass on the combined tree (rosie; Opus, high)
 
 As 0.8.0's T3, on `emulator-5564` (Android 14; the tablet when attached): the maps' cases touched

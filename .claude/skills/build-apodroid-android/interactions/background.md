@@ -12,7 +12,7 @@ below has the tag `APODroid` (`adb logcat -d -s APODroid`). Line numbers are of 
 
 **Counts:** 105 leaves (A 10, B 7, C 7, D 9, E 7, F 13, G 14, H 7, I 8, J 7, K 5, L 3, M 7, N 1);
 **3 SUSPECTs** (G14, J6, N1; N1 fixed since); 0.8.0 added E1b, E3b, E8, E8a, F14–F16; 0.9.0
-(SH2b) E9, E9a; 25 phone cases in the list at the end (P18–P22 0.8.0's, P23–P25 0.9.0's).
+(SH2b) E9, E9a; 26 phone cases in the list at the end (P18–P22 0.8.0's, P23–P26 0.9.0's).
 
 ## The phone (FP6, LineageOS, Android 16, release build of 7299474)
 
@@ -519,7 +519,7 @@ or days of time.
 
 ---
 
-## Phone test list (prioritized, 25 cases)
+## Phone test list (prioritized, 26 cases)
 
 On the Android 14 emulator (tester-rules-emulator.md): `run-as` reads the prefs, `adb root` kills,
 the clock may be stepped and set back; P16 (a real morning) SKIPPED, real timing; P14's buckets read

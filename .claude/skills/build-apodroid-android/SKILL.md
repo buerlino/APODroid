@@ -30,7 +30,9 @@ packages unattended): `night.md`.
   Wallpaper).
   `core/.../Limit.kt` (0.9.0, SH1, to SH0's signatures): `SHARP_LIMIT` 2.0, `SHARP_TOLERANCE` 1.03,
   `Layout`, `limitedLayout` (Fill at most L×, `sharp-0.9.0.md`'s Terms), `limitedFit` (the whole picture at most
-  L×). Tests in `LimitTest.kt` (SH0's oracle): `SharpOracle`, the naive reference; `LimitOracleTest` (the oracle
+  L×); SH2c: `fillScale` (Fill's enlargement), `limitBites` (whether the limit changes a set), `limitedShape`
+  (the limited frame's shape, Auto's "screen"); `Subject.kt`'s `limitedSubjectPosition` (Auto's position for the
+  limited frame; tests in `SharpTest`). Tests in `LimitTest.kt` (SH0's oracle): `SharpOracle`, the naive reference; `LimitOracleTest` (the oracle
   and the table against 0.8.0's frames); `LimitTableTest` (the table, ±1 px) and `LimitPropertiesTest` (100,000
   seeded cases).
   `core/.../ImageSize.kt` (0.9.0, SH1): `imageSize(bytes)`, a picture's size from its first bytes (JPEG, PNG,
@@ -176,6 +178,11 @@ packages unattended): `night.md`.
   at the hand-over, BR3: the file whole, or drawn whole at the screen's shape, 200 px high), `drawWhole` (a file all of it, `fitFrame`, on black
   when `hasBlackEdges`, else on `blurred`; decoded straight to the frame's size, A3),
   `wholePicture` (that on a bitmap of the screen's size), `wallpaperFrame` (`:core`'s as a `Rect`).
+  "Keep pictures sharp" (SH2c): `drawWhole`/`wholePicture` take a `limit` (`:core`'s `limitedFit`), `drawBackground`
+  (black or `blurred`, the whole picture's background), `limitedPicture` (a `Layout`'s frame decoded alone at its
+  dest size on that background, turned when sideways), used by `Store.setFile` while `limitBites` (`Store.limit`,
+  `Store.sharp`); `Store.noteSubject` notes `subjectPositionSharp`/`subjectSidewaysSharp`; the page's `cropRect`,
+  `storedLimit`, `sharpBites` for ⛶.
   Sideways (SW2): every decode above takes `sideways` (the picture turned 90° clockwise); `pictureFrame` (Fill's
   frame or `:core`'s `sidewaysFrame` band, the one frame for the set, the measure, Live's keep and ⛶),
   `drawTurned` (a bitmap's part drawn turned through a rotating `Matrix`, clipped), `drawSideways` (a decoded band

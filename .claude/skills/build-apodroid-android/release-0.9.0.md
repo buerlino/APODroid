@@ -142,6 +142,97 @@ check of TP1 passes, else it becomes "should now notice" before the tag.
    (a) a small APOD with Keep pictures sharp off and on, (b) an APOD Auto turned and one it kept
    upright, (c) an Earth picture, (d) Setup open under Auto and under Live.
 Done when: no FAIL and no crash; a FIX goes in as its own package. Not the FP6, not real timing.
+- **Checked** (T5, pipeline run 157, rosie, 2026-11-17, 15:51–16:27; the Android 14 emulator
+  `emulator-5564`; dev 514f5e4's R8 build signed with the debug key over v0.8.0's R8 (T4's), then the
+  debug build of the same tree over that data; evidence in `.coord/runs/157-t5/tablet/`): **PASS**, no
+  FAIL, no crash (`logcat -b crash` empty, `exit-info` no CRASH: 10 FORCE STOP, 4 KILL BACKGROUND, 1
+  REMOVE TASK, 1 SIGNALED, all the test's own).
+  - **The update from 0.8.0 (R8):** 0.8.0 with home APOD + NASA every 24 h, lock Earth, Size Centre,
+    "Wide pictures sideways" on, the daily switch on, Set (0.8.0 set Earth's thumbnail on the lock screen
+    `, sideways`). `install -r`: the prefs as before but `armedAt`, `armedUpdate`; `MY_PACKAGE_REPLACED,
+    arming again`, the same 06:08:14 alarm; ids 188/189 unchanged, nothing set; `wideSideways=true` left
+    in the prefs (P34a). The page open: `Refresh: APOD 2026-11-17 original 960×1200 (smaller than the
+    screen)`, `… stored picture replaced by the original`, NASA `rendition (original 7008×4672)`, no set.
+    `run -f 1`: `Refresh: EARTH … original 2160×1440 (smaller than the screen)`, `… new picture`, `Daily
+    job: wallpaper set: Of(EARTH …ISS075-E-250951.jpg) on LOCK`, upright (crop 756–1404 of 1440, no
+    ", sideways": P34a). Size Auto and Set: `on HOME, auto 0.78`. Size Live and Set ("Home screen" in
+    AOSP's picker): `wallpaper shown live`, `live.sideways=false`, no ", sideways" (P34a's Live half).
+  - **The smoke list (R8):** the app starts; the page with "More NASA pictures" on and in APOD mode (the
+    draft); Set after a draft change (Size Auto, ids 191/192); `run -f 1` ended well (`Last successful
+    run`, no `failedRuns`).
+  - **Live (R8; the 0.8.0 sweep):** the picker by Set's dialog ("Next, in Android's preview: / Set
+    wallpaper › Home screen", columns differ), OK, AOSP's "Set wallpaper › Home screen": `Live: back from
+    the picker, a wallpaper changed, home live`, Earth's still Fill on the lock screen and APOD handed
+    over. A new post (APOD's date and home's record faked a day back, the kill-edit-kill of SKILL.md):
+    `run -f 1` `Daily job: wallpaper shown live: Of(APOD 2026-11-17 …) on HOME`, the engine `Live: drew …`.
+    Another wallpaper (AOSP's picker, its built-in picture, "Home screen"): `run -f 1` `Live: home isn't
+    live, Fill on HOME+LOCK`, home at the middle (210–750 of 960), the live notes gone.
+  - **LG** (debug): a faked Saturday (28 Nov), a pull: `Refresh: APOD 2026-11-17 stored, nothing newer`,
+    NASA's and Earth's the same. The daily switch off, `am kill`, on: `Switch on: wallpaper set …`, no
+    `Detector:` line. Whole-picture sets not repeated (T4's).
+  - **EF1f1** (debug): lock Earth, `earth.thumbFallback` faked with the real 3600×2400 thumbnail, the
+    subject 0.10, the lock record forgotten: the page set it `on LOCK, auto 0.10` (crop 252–1332).
+    `run -f 1`: `original 2160×1440`, `Subject: EARTH … p=0.54`, `real picture instead of the thumbnail`,
+    `Daily job: wallpaper set: … on LOCK` in the same run (crop 756–1404), `thumbFallback` gone.
+  - **UI1f1** (debug): the box's "Keep running" with Setup open: Advanced opens, the switch fully above the
+    Set bar in one column and two panes (`s04-…`, `s05-…`), as T4.
+  - **SZ1** (debug): "About Size" → the four lines word for word; a rotation keeps it; OK closes it.
+    TalkBack not run (none on the image).
+  - **TP1 as TP1f1 left it** (debug): 10 force stops with the process alive and no clock step: the line
+    `Detector: stopped by the user since the arming (exit record)` and `the alarms found gone` 10 of 10
+    (no change missed, so no box). Again with the clock stepped to the next day's 07:00 each time (18–28
+    Nov, 11 stops): the line 11 of 11, `missed the change of …` and the box ("Your phone stopped APODroid:
+    the 6:00 AM change came late.") 10 of 11; the first, 18 Nov, logged `nothing missed`: that day is the
+    order's anchor (`orderFrom` 2026-11-18) and its top, APOD, was already on, so nothing was due (right:
+    nothing lost). `am kill` and a Recents swipe: only the records' line (KILL BACKGROUND, REMOVE TASK),
+    no claim.
+  - **Setup P31, P34d** (debug, R8): no "Wide pictures sideways" under any Size; "Keep pictures sharp"
+    under Centre and Auto, gone under Live; "Centre when unsure" only under Auto. P34d: the ⓘ's text as
+    Y1; on in the draft: tertiary (`p34d-…`), kept after a rotation; Live hides it; back on Auto it shows
+    the stored off.
+  - **P32** (debug, the job): 2026-03-20's 3000×1544 picture with the galaxy text under Auto: `on
+    HOME+LOCK, sideways, auto turn`, `debug-set.png` turned (top at the right, `b1-…`); with the horizon
+    text: no ", sideways", `setStream`, no `debug-set.png`, centred (1153–1847: p=0.34 under 0.2's move).
+  - **P33, K24, K24a–c, K33** (debug): the galaxy text, Set at Centre: upright; Set at Auto: `, sideways,
+    auto turn`; ⛶ shows "Sideways" on; ✓ untouched: nothing set, no `sideways` key (K24a); pill off, ✓:
+    `Part: wallpaper set: … on HOME+LOCK` without ", sideways", `sideways=false` (K24b); Set at Centre,
+    pill on, ✓: `, sideways` without `auto turn` (P33). K24c (a fresh post): off and on, ✓: nothing set,
+    `sideways=true` noted. K24a dragged: `Part: wallpaper set: … , sideways`, `cropPosition=0.0`,
+    `sideways=true`; then Size Centre and Set (K33, a dragged frame then a Size change): `, sideways`, the
+    position 0.0 and the orientation kept.
+  - **The pill under Centre and Auto, no part** (debug): the galaxy text at Centre and the horizon text at
+    Auto: "Sideways" off (`pill-…`); the galaxy text at Auto: on (K24).
+  - **P34** (debug): the galaxy text on NASA's post (3000×1544), Size Auto: `Of(NASA …) on HOME+LOCK`,
+    upright (`setStream`, 1153–1847).
+  - **P34e, K34, K34a** (debug, the job): 2026-01-05's 1080×734 with the horizon text: sharp off
+    `setStream` (375–705 of 734), no `debug-set.png`; on `, sharp ×2.00 (Fill ×3.27)`, the picture a band
+    1468 high on black (its edges black); Centre the same, no `, auto`. ⛶ with sharp on: a frame clearly
+    wider than with it off (`k34-crop-sharp-…`). K34a (the picture at 300×204): the frame the whole picture;
+    a drag and ✓: nothing saved, nothing set.
+  - **The darkening while the limit bites** (debug): 2026-02-20's 1178×682 (bright), Auto, sharp on:
+    darken off `, sharp ×2.00 (Fill ×3.52)`, `debug-set.png` top third mean grey 142.6; darken on `, sharp
+    ×2.00 (Fill ×3.52), darker ×0.70 (grey 143)`, the top third 99.9.
+  - **"My picture" under Keep pictures sharp** (debug): an APOD video day faked, "If APOD is a video" "Use
+    my picture" (`MINE`), `fallback.jpg` the 1080×734 landscape picture, Size Auto, sharp on: `Daily job:
+    wallpaper set: Own on HOME+LOCK, sharp ×2.00 (Fill ×3.27)`, no ", sideways"; `debug-set.png` upright
+    and centred (mean difference 0.4 from the centred crop, 23.5 from the left one).
+  - **The 0.8.0 sweep (debug):** Darken bright pictures (above); the order: NASA's "≡" dragged above APOD
+    and Set, the order alone: nothing set, `order=NASA,APOD,EARTH`, `orderFrom=2026-11-18`; the video day
+    with "Use my picture" (above); ★: "Saved", `Pictures/APODroid/APOD_2026-11-18_…jpg` (the stored copy:
+    the faked post's original URL fails), deleted after; the daily switch off and on (LG).
+  - **Screenshots for the user's eye:** (a) `a-home-small-apod-sharp-false.png`, `…-true.png`; (b)
+    `b1-home-apod-auto-turned.png`, `b2-home-apod-auto-upright.png` (the same 3000×1544 picture, the galaxy
+    and the horizon text); (c) `c-home-earth.png` (Earth's real 17 Nov picture, centred, upright); (d)
+    `d1-setup-open-auto.png`, `d2-setup-open-live.png` (and `d2-setup-open-live-r8.png`).
+  - **Seen, not a FIX:** after the clock went back from the faked 28 Nov to the real 17 Nov, an `am kill`
+    then a page open logged `Detector: stopped by the user since the arming (exit record)` and `the alarms
+    found gone` (the force stops' records stamped 27–28 Nov were "after" the arming of 17 Nov); `nothing
+    missed`, no box. Only a clock set back past a force stop does this. AOSP's picker's "Home screen" over
+    a live home made the lock screen shared (Android's).
+  - Not run: P34b (Centre when unsure's sequence), P34c (the bar at font scale 2.0), K25 (the draft's Auto
+    over a stored Centre), K26 (a part's number from before 0.9.0), K31a, K34b's dragged ✓, K34c ("Whole
+    picture" at 2×), K34d (Live), a stand-in NASA or Earth on a video day, TalkBack; real timing, Doze,
+    ZUI's cleaner and picker (not on the emulator); Android 10–13 (E, 0.10.0).
 
 ### [ ] T4. The final pass on the combined tree (rosie; Opus, high)
 

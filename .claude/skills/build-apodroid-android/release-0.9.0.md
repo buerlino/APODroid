@@ -132,3 +132,75 @@ tablet SKIP, none run on a device): LG's three `logcat` lines, EF1f1's faked `ea
 swap (the screens set again with the real picture, at its subject), UI1f1's Keep running above the
 Set bar in one column and two panes, TP1's ten force stops with the process alive (the exit-record
 line each time; a Recents swipe and `am kill` none); SZ1's ⓘ (the four lines, a rotation, TalkBack).
+- **Checked** (T4, rosie, 2026-11-17, 14:55–15:14; the tablet HA24BZ2Y not attached: the Android 14
+  emulator `emulator-5564`; dev c46ca02's debug build (`.coord/runs/155-t4/app-debug.apk`) and its R8
+  build over v0.8.0's R8, both signed with the debug key; evidence in `.coord/runs/155-t4/tablet/`):
+  **FIX, one finding (TP1f1 below)**; everything else passed, no crash (`exit-info`: no CRASH, no
+  `E AndroidRuntime`).
+  - **The update from 0.8.0 (R8):** 0.8.0 with home APOD + NASA every 24 h, lock Earth, Size Auto,
+    the daily switch on, Set. 0.8.0 had stored Earth's thumbnail (`…_th.jpg/jcr:content/renditions/
+    cq5dam.web.1280.1280.jpeg`, 79 KB, on the lock screen) and APOD's rendition (556 KB). `install -r`:
+    the prefs as before but `armedAt`, `armedBootAt`, `armedUpdate`; `MY_PACKAGE_REPLACED, arming
+    again`, the same 06:02:44 alarm; wallpaper ids 178/179 unchanged, nothing set. The page open (within
+    the hour): `Refresh: APOD 2026-11-17 original 960×1200 (smaller than the screen)`, `… stored picture
+    replaced by the original`, `Subject: APOD … p=0.78`, no set (home's id unchanged); NASA `rendition
+    (original 7008×4672)`. `run -f 1`: `Refresh: APOD … same post`, `Refresh: EARTH 2026-11-17 original
+    2160×1440 (smaller than the screen)`, `… new picture`, `Subject: EARTH … p=0.54`, `Daily job:
+    wallpaper set: Of(EARTH …ISS075-E-250951.jpg) on LOCK` (crop 756–1404 of 1440 high; the
+    thumbnail's was 252–468 of 480). `earth.imageUrl` the real picture; `sizeChecked` noted for all three.
+  - **LG** (debug): the whole picture by ⛶'s ✓ (`Part: wallpaper set: … on HOME+LOCK`) and by Set
+    (`Set: wallpaper set: … on HOME+LOCK`): no `, auto` (the Fill set before it had `, auto 0.78`). A
+    Saturday (clock at 21 Nov 10:00): the alarm's run and a pull `Refresh: APOD 2026-11-17 stored,
+    nothing newer` (the page open itself skipped the check, checked within the hour). The daily switch
+    on after `am kill`: `Switch on: wallpaper set …`, no `Detector: the alarms found gone`.
+  - **EF1f1** (debug): lock Earth, `earth.thumbFallback` faked with the real thumbnail (3600×2400) in
+    `earth.jpg`, the subject faked 0.10, the lock record forgotten: the page set it `on LOCK, auto 0.10`
+    (crop 252–1332). `run -f 1`: `Refresh: EARTH … original 2160×1440 (smaller than the screen)`,
+    `Subject: EARTH … p=0.54`, `Refresh: EARTH 2026-11-17 real picture instead of the thumbnail`, and in
+    the same run `Daily job: wallpaper set: Of(EARTH …) on LOCK` (crop 756–1404: centred, 0.54 being
+    under "Centre when unsure"'s 0.2; no `, auto`, as LG says). `thumbFallback` gone. Seen, not a FIX:
+    the swap is followed by `Refresh: EARTH 2026-11-17 stored, nothing newer` in the same refresh.
+  - **UI1f1** (debug): the detector's box faked (`missedAt`, `missedKeep=false`), Setup open, the box's
+    "Keep running": Advanced opens and scrolls; one column: the row 1976–2081 px, the bar's line at about
+    2082 (`s04-…`); two panes (landscape): the row 782–887, the line about 888 (`s05-…`). The switch
+    shows fully above the bar both times, with no margin.
+  - **SZ1** (debug): Setup open, "About Size" (screen readers' name, `uiautomator`'s content-desc) →
+    the dialog with the four lines word for word; a rotation to landscape kept it; OK closed it
+    (`s02-…`, `s03-…`). TalkBack itself not run (the AOSP image has none).
+  - **TP1: FIX (TP1f1).** Ten times: the page open (process alive, adj 700), Home, `am force-stop`, the
+    clock to the next day's 07:00 (home's turn due), a page open. No `Detector:` line any time, no box;
+    `dumpsys activity exit-info` lists each force stop (`reason=10 (USER REQUESTED) subreason=21 (FORCE
+    STOP)`, `description=stop io.github.buerlino.apodroid due to from pid …`), and the sets came from
+    job 1 the arming ran at once (`tp1-log.txt`). Again without a clock step: `armedAt` 07:01:12.330, the
+    force stop's record 07:01:22.500, a page open: `Daily job: alarms for …` first, no `Detector:` line.
+    The Recents swipe and `am kill` (no line expected) not run: nothing fires after a force stop either.
+  - **The smoke list** (R8): the app starts; the page in APOD mode (0.8.0's first open) and with "More
+    NASA pictures" on; Size Centre and Set: `Set: wallpaper set: … on HOME, … on LOCK`, home's crop
+    210–750 of 960 (the middle), ids 181/182; `run -f 1` ended well (`Last successful run` 15:12:52, no
+    `failedRuns`).
+  - Seen on the debug build too: no "Wide pictures sideways" row under Auto (setup X1); the switch-on's
+    Fill `, auto 0.78`.
+  - Not run: the maps' other 0.9.0 cases by hand (setup P31–P34e's screenshots under each Size, page
+    K24–K26, K34a–d: SH4 checked their sets by the pixels, 151 cases); TalkBack; real timing, Doze,
+    ZUI's cleaner and picker (not on the emulator); Android 10–13 (E, 0.10.0); the release-signed
+    update (the user's, on the FP6).
+
+### [ ] TP1f1. The detector's exit record isn't seen on Android 14 (Opus, medium)
+
+From T4 (rosie, 2026-11-17, the Android 14 emulator, dev c46ca02's debug build;
+`.coord/runs/155-t4/tablet/tp1-log.txt`, `tp1-one-full.txt`).
+- **The bug:** after `am force-stop` with the process alive, the next page open logs no `Detector:`
+  line at all (neither `stopped by the user since the arming (exit record)` nor `the alarms found
+  gone`), 11 of 11 tries, so no box. The record is there: `dumpsys activity exit-info` shows `reason=10
+  (USER REQUESTED) subreason=21 (FORCE STOP)`, `description=stop io.github.buerlino.apodroid due to
+  from pid 19658 state=empty`, timestamp 07:01:22.500, after `armedAt` 07:01:12.330. The new process's
+  first APODroid line is onResume's `Daily job: alarms for …`, so `ensure` → `checkAlarms` ran with
+  `armedHere` false, found the `PendingIntent`s (14's gap) and `stoppedSinceArmed` returned false.
+  `userExits` logged no failure. Where the records differ from what `DetectorTest` assumes (an empty
+  list from `getHistoricalProcessExitReasons(packageName, 0, 16)` for the app itself, another
+  `description`, the timestamp) needs a look on the device: a temporary debug log of what `userExits`
+  returns (count, reason, timestamp, description) and `armedAt`, then the fix.
+- **Device** (rosie, the emulator): the ten force stops as T4 (the line and the box each time); a
+  Recents swipe and `am kill`: no line; the smoke list.
+- **Done when:** the Gradle check, the device pass. Else R4's changelog line becomes "should now notice"
+  before the tag (R4).

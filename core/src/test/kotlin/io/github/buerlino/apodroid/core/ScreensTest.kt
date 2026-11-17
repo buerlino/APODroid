@@ -626,6 +626,13 @@ class ScreensTest {
     }
 
     @Test
+    fun theRealPictureKeepsAScreenWithoutAColumn() {
+        val earth = pic(EARTH)
+        val r = Record(EARTH, earth, t0)
+        assertEquals(mapOf(HOME to r.forget()), forgetShowing(mapOf(HOME to r, LOCK to r), earth, setOf(HOME)))
+    }
+
+    @Test
     fun theRealPictureKeepsRecordsOfOtherDatesAndUrls() {
         val earth = pic(EARTH)
         val otherDate = Record(EARTH, pic(EARTH, d2), t0)

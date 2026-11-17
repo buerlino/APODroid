@@ -160,10 +160,15 @@ data class Record(
 /**
  * EF1f1: the records whose picture is [post]'s ([Picture.Of.url] null matches by date), forgotten as
  * Set forgets one (the picture dropped, owner, stamp and notes kept), so the next run sets the
- * stored file again. The screens showing something else aren't in the result.
+ * stored file again. The screens showing something else aren't in the result, nor are those
+ * outside [used] (without a column: setDue never sets them, so a forgotten record would stay empty).
  */
-fun forgetShowing(records: Map<Screen, Record>, post: Picture.Of): Map<Screen, Record> =
-    records.filterValues { r ->
+fun forgetShowing(
+    records: Map<Screen, Record>,
+    post: Picture.Of,
+    used: Set<Screen> = Screen.entries.toSet(),
+): Map<Screen, Record> =
+    records.filterKeys { it in used }.filterValues { r ->
         val p = r.picture
         p is Picture.Of && p.source == post.source && p.date == post.date && (p.url == null || p.url == post.url)
     }.mapValues { it.value.forget() }

@@ -976,14 +976,21 @@ class Store(private val context: Context) {
             }
             // EF1f1: the real picture replaces a stored thumbnail; the screens showing it and its subject note go.
             val replaced = source == Source.EARTH && thumbReplaced(prefs.getString("earth.thumbFallback", null), url, thumbnail)
-            if (replaced) synchronized(wallpaperLock) {
-                // Only while the daily switch is on: setDue doesn't run otherwise, so a forgotten record would name nothing
-                // while the thumbnail stays; Set and the switch's start forget the records then.
-                val forgotten = if (daily) forgetShowing(records(), latest.picture()) else emptyMap()
+            if (replaced) {
+                // The subject goes first and is noted again before the records are forgotten (under the lock), so a
+                // setDue beside this refresh never sets the real picture at the middle.
                 prefs.edit {
-                    forgotten.forEach { (screen, record) -> putRecord(screen, record) }
                     remove(source.key("subjectDate"))
                     remove(source.key("subjectUrl"))
+                }
+                noteSubject(source)
+                synchronized(wallpaperLock) {
+                    // Only while the daily switch is on: setDue doesn't run otherwise, so a forgotten record would name
+                    // nothing while the thumbnail stays; Set and the switch's start forget the records then. Only the
+                    // screens with a column, as Set's restartAndForget.
+                    val used = columns.filterValues { it.isNotEmpty() }.keys
+                    val forgotten = if (daily) forgetShowing(records(), latest.picture(), used) else emptyMap()
+                    prefs.edit { forgotten.forEach { (screen, record) -> putRecord(screen, record) } }
                 }
                 Log.i("APODroid", "Refresh: EARTH ${latest.date} real picture instead of the thumbnail")
             }

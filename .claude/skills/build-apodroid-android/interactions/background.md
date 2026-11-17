@@ -11,7 +11,7 @@ time", "Traffic", "Wallpaper", "Problems and status lines"), `DailyJob.kt`, `Ala
 below has the tag `APODroid` (`adb logcat -d -s APODroid`). Line numbers are of 3a4db15.
 
 **Counts:** 105 leaves (A 10, B 7, C 7, D 9, E 7, F 13, G 14, H 7, I 8, J 7, K 5, L 3, M 7, N 1);
-**3 SUSPECTs** (G14, J6, N1; N1 fixed since); 0.8.0 added E1b, E3b, E8, E8a, F14–F16; 0.9.0
+**3 SUSPECTs** (G14, J6, N1; N1 and J6 fixed since); 0.8.0 added E1b, E3b, E8, E8a, F14–F16; 0.9.0
 (SH2b) E9, E9a; 26 phone cases in the list at the end (P18–P22 0.8.0's, P23–P26 0.9.0's).
 
 ## The phone (FP6, LineageOS, Android 16, release build of 7299474)
@@ -135,8 +135,8 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
 - **D2 A good run, nothing new (the phone on Sunday).** Steps: `adb shell cmd jobscheduler run -f
   io.github.buerlino.apodroid 1`. Expect: the skeleton with no "Daily job: <set>" line (APOD is
   today's, fetched since D1: `Refresh: APOD <date> same post`, nothing downloaded; NASA fetched,
-  Friday's again, `Refresh: NASA <Friday> same post` (the line comes for any fetched post with the
-  stored date), nothing downloaded; both records due nothing); second arming by the clock (B1). Phone: yes, the baseline (P2).
+  Friday's again, `Refresh: NASA <Friday> stored, nothing newer` (LG: `same post` only for today's
+  stored post), nothing downloaded; both records due nothing); second arming by the clock (B1). Phone: yes, the baseline (P2).
 - **D3 A failed fetch (offline).** Pre: airplane mode, USB adb. Steps: force job 1. Expect:
   `Daily job failed: java.net.UnknownHostException…` (or similar), NASA's problem stored (APOD,
   today's, only logged since D1: `Refresh: APOD <date> stored, check failed: …`, E3b), both alarm lines at start + 15 min. The page's box (open it): "NASA Image of
@@ -171,7 +171,7 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
   A pull gets it too; a page open doesn't (its `isCurrent` skip). Phone: no (never seen in the
   real feeds). Unit: SIM's `secondsStored`.
 - **E2 Not today's (NASA on a weekend).** Fetch the feed, the same post stored again (no
-  listener fires: same values), no download; `Refresh: NASA <its date> same post` (the job's, a
+  listener fires: same values), no download; `Refresh: NASA <its date> stored, nothing newer` (LG; the job's, a
   pull's, and a page open's after the hour). Phone: yes in D2.
 - **E3 Network failure.** `<source>.problem = network`; the job's failure; page box "NASA Image
   of the Day: no connection." (" since <day>" only when `checkedAt` > 1 day old). Phone: yes (P3).
@@ -315,7 +315,7 @@ or days of time.
   `LiveTest.sizeOfReadsTheStoredNameAndAnUpdatesFillAsAuto`. Phone (the emulator): a picture with
   `importance_pull` ≥ 0.75 or ≤ 0.25 and one at 0.55–0.65 faked, `run -f 1`: the first `, auto` at
   its subject (the crop in `dumpsys wallpaper`, or `debug-set.png` when darkened or sideways),
-  the second `, auto 0.50`; `autoFallback=false` by `run-as`, the record forgotten, `run -f 1`:
+  the second no `, auto` (LG: the fallback's middle isn't noted); `autoFallback=false` by `run-as`, the record forgotten, `run -f 1`:
   the second moves.
 
 ## G. Live (`Store.setDue` Live part `Store.kt:1247-1407`, `Live.kt`, `LiveWallpaper.kt`)
@@ -408,10 +408,10 @@ or days of time.
   box; else `Detector: nothing missed`. Phone: P17 gives "nothing missed" (the Fill's stamps are
   today's 06:00, before the last run). Unit: `DetectorTest`.
 - **J5 The box's texts, "Keep running" / "App info", Dismiss.** Phone: no (needs a real miss).
-- **J6 SUSPECT: the daily switch turned on in a fresh process notes "alarms found gone".** See
-  SUSPECTs; phone P1.
-- **J7 The daily switch, either way, drops the note.** `switchDaily` → `removeLost`. (J6 is
-  where it doesn't hold.)
+- **J6 The daily switch turned on in a fresh process doesn't log "alarms found gone".** Fixed by
+  LG (`DailyJob.switchedOn`: its own arming explains it); phone P1.
+- **J7 The daily switch, either way, drops the note.** `switchDaily` → `removeLost`. (J6's log line
+  went with LG.)
 
 ## K. Save every picture (`Store.saveInUse`, after each job run)
 
@@ -484,7 +484,7 @@ or days of time.
   `dueWallpapers` on `lost.forgetting(records)` with `stored.picture(owner) == null` returns a plan
   without that screen.
 
-### SUSPECT J6 (low, log only): the daily switch on in a fresh process notes "alarms found gone"
+### J6, fixed by LG (`DailyJob.switchedOn`; was a low, log-only SUSPECT): the daily switch on in a fresh process notes "alarms found gone"
 
 - **Where:** `MainActivity.kt:1029` → `Store.switchDaily(true)` removes the detector's note
   (`Store.kt:484-491`, `removeLost`) and writes `lastRunAt` = now; then the switch-on run sets and
@@ -540,15 +540,13 @@ and id, lock id), `dumpsys activity services` (Keep running on?), Setup's summar
 as it's out"?), Advanced (Save every picture, Keep running), the page's status lines. These are
 "as found".
 
-1. **P1, SUSPECT J6 + L1/L2 + I3 + G10.** Page open → daily switch off. Check: no APODroid alarm,
+1. **P1, J6 + L1/L2 + I3 + G10.** Page open → daily switch off. Check: no APODroid alarm,
    no job, no KeepRunning service. Kill the process once (rules above); wait 1 min; `dumpsys
    wallpaper` still Live on home. `adb logcat -c`. Open the page (daily off: no `alarms for`
    line). Turn the switch on. Expect: `Live: the engine is on HOME, not noted live`, `Switch on:
    wallpaper set: Of(source=APOD, date=2026-11-15…) on LOCK; wallpaper shown live: Of(source=NASA,
    date=2026-11-13…) on HOME`, toast "Wallpaper set", `Daily job: alarms for <tomorrow 05:0x Z>`,
-   job 1 runs at once (skeleton, nothing set), Keep running back if it was on. **SUSPECT check:**
-   whether `Detector: the alarms found gone, after the run of …` appears after the switch-on (code:
-   yes; CLAUDE.md: the switch drops the note), and then `Detector: nothing missed` at job 1's run.
+   job 1 runs at once (skeleton, nothing set), Keep running back if it was on. **J6 check (fixed by LG):** no `Detector: the alarms found gone` after the switch-on; `Detector: nothing missed` at job 1's run.
    No detector box on the page either way. Restores itself (both screens set again with the same
    pictures; the status lines' times move).
 2. **P2, baseline good run (D2, A3, A4, B1, E1, E2, I4).** `cmd jobscheduler run -f
@@ -633,7 +631,7 @@ as it's out"?), Advanced (Save every picture, Keep running), the page's status l
     `Subject:` line; Set then `, auto <p>` when the subject moves 0.2 or more.
 21. **P21, Auto's frame (F16).** Size Auto stored, a picture with `p` ≥ 0.2 off the middle, the
     record forgotten (`wallpaperDate` removed), `run -f 1`: `Daily job: wallpaper set: … , auto
-    0.xx`; `autoFallback=false` and a picture with `p` 0.55–0.65: `, auto 0.6x`; on again: `, auto 0.50`.
+    0.xx`; `autoFallback=false` and a picture with `p` 0.55–0.65: `, auto 0.6x`; on again: no `, auto` (LG).
 22. **P22, sideways by the job (F14, F15).** Size Auto stored, APOD 3000×1000 faked as a new post
     with the galaxy text (setup.md X), `run -f 1`: `… , sideways, auto turn`; the horizon text:
     upright; a ⛶ part noted off: upright; Size Centre: upright.

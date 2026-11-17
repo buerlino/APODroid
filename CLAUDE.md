@@ -1491,7 +1491,7 @@ times (a new post outside the window waits for the next change time; no setting,
 JSON of every source in use also while today's post is stored (not `force`, which is also
 `setDue`'s pull and would put the newest on at once), so it arrives at the next run; the picture
 is downloaded only for a new post (another date or picture URL). Logged `Refresh: APOD
-2026-11-16 same post` or `… new picture`. **A failed check of a stored day** (night default; the
+2026-11-16 same post` (only for today's stored post, else `… stored, nothing newer`, LG) or `… new picture`. **A failed check of a stored day** (night default; the
 alternative: a problem as any other check): with today's post stored and complete, a failed fetch
 (the network, an HTTP error, `SiteChanged`, a failed download of the second picture) is only
 logged, `Refresh: APOD 2026-11-16 stored, check failed: …`: no `<source>.problem`, no failed

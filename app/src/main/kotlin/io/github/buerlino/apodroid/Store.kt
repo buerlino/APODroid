@@ -977,7 +977,9 @@ class Store(private val context: Context) {
             // EF1f1: the real picture replaces a stored thumbnail; the screens showing it and its subject note go.
             val replaced = source == Source.EARTH && thumbReplaced(prefs.getString("earth.thumbFallback", null), url, thumbnail)
             if (replaced) synchronized(wallpaperLock) {
-                val forgotten = forgetShowing(records(), latest.picture())
+                // Only while the daily switch is on: setDue doesn't run otherwise, so a forgotten record would name nothing
+                // while the thumbnail stays; Set and the switch's start forget the records then.
+                val forgotten = if (daily) forgetShowing(records(), latest.picture()) else emptyMap()
                 prefs.edit {
                     forgotten.forEach { (screen, record) -> putRecord(screen, record) }
                     remove(source.key("subjectDate"))

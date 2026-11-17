@@ -292,7 +292,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   When the real file replaces a stored thumbnail (EF1f1: the note was for this URL, the download
   isn't one) the screens showing the post and its subject note are forgotten (`:core`'s
   `forgetShowing`, as Set forgets a record: the picture dropped, owner and stamp kept), so the next
-  run sets the real picture at its own subject; logged `Refresh: EARTH <date> real picture instead of
+  run sets the real picture at its own subject (the records only while the daily switch is on, else
+  nothing would set it; Set and the switch's start forget them then); logged `Refresh: EARTH <date> real picture instead of
   the thumbnail`.
   `imageUrl` stays the key (parts, ★, the subject) whichever file came. The update from 0.8.0
   changes a stored thumbnail's `imageUrl` once: one re-download, the log's "new picture", ★ and

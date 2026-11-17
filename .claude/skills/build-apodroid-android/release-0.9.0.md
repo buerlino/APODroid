@@ -13,6 +13,7 @@ did. No queue rows are in `night.md` yet: they go in when the user says start.
 | S, EF1 | Sharp pictures: a limit on Fill's enlargement; Earth's picture link | `sharp-0.9.0.md` | planned 2026-11-16; its questions open there |
 | E, ER | Android 10–14 on the emulators | `emulator.md` | **moved to 0.10.0** (user, 2026-11-17) |
 | TP1 | The detector's sign on Android 11–14 | `release-0.8.0.md`, TP1 | the idea approved (user, 2026-11-17: "everything except the emulation step"); built (merged with tablet SKIP), its Android 14 check in T4, 11–13 with E in 0.10.0 |
+| SZ1 | An ⓘ for Size (Auto's turn on the page) | this file | approved with its text (user, 2026-11-17) |
 | EF1f1, UI1f1 | Earth's swap from a thumbnail; the detector's Keep running behind the Set bar | `sharp-0.9.0.md`, this file | from Opus pass 50 (2026-11-17) |
 | LG | The three log lines of Open question 4 | this file | ready |
 | R4, T4 | The release's texts; the final pass on the combined tree | this file | after the rest |
@@ -89,6 +90,27 @@ the records. `CLAUDE.md`'s "Android 10–14's gap" says what's fixed and that 11
 force-stop`, a change time faked past, then a page open, ten times: the box each time
 (`Detector: the alarms found gone` in the log).
 
+### [ ] SZ1. An ⓘ for Size (Sonnet, medium)
+
+(User, 2026-11-17, after a Sonnet review of the Size modes: Centre, Auto and Live each have their
+reason, but Auto's turn shows nowhere on the page, so one APOD turned and a similar one upright, or
+NASA's never turned, looks like a bug.) A small ⓘ after the heading "Size", as "Change every"'s
+(`ChangeEveryHeading`: the heading, the highlight unchanged, then "ⓘ" in `onSurfaceVariant`, its
+screen-reader name "About Size", `openInfo`, so a rotation keeps the dialog), with an `AlertDialog`
+and OK. Its text, **approved by the user (2026-11-17), word for word**, one line each:
+
+```
+Centre: the picture's middle.
+Auto: the frame on the subject; a wide APOD goes on sideways unless its text says it has a top.
+Live: a wide picture moves across the home screen over the day.
+⛶ changes one picture.
+```
+
+Nothing else changes. `CLAUDE.md` (The app, Settings: Size; the list of ⓘs under "No help texts"),
+the map (`interactions/setup.md`: the ⓘ opens, closes, survives a rotation). Device (emulator):
+Setup open, tap the ⓘ beside Size: the dialog with the four lines; rotate: it stays; OK closes it;
+TalkBack names it "About Size".
+
 ### [ ] R4. The release's texts (Sonnet, medium)
 
 versionCode 13, versionName 0.9.0, `changelogs/13.txt` (Keep pictures sharp, Auto turning sky
@@ -96,7 +118,9 @@ pictures by NASA's text, "Wide pictures sideways" gone into Auto, the original d
 smaller than the screen, Earth's link, the detector on 11–14) and the store description where a
 feature changed it. `CLAUDE.md`: E (Android 10–14 on the emulators) moves to 0.10.0 (user,
 2026-11-17) wherever it says 0.9.0 (Setup and distribution, Next features). All texts for the
-user's approval.
+user's approval. **Approved** (user, 2026-11-17): `changelogs/13.txt` and the store description as
+written (c997e5b); the line "The stopped-app note now works on Android 11–14 too" stays if T4's
+check of TP1 passes, else it becomes "should now notice" before the tag.
 
 ### [ ] T4. The final pass on the combined tree (rosie; Opus, high)
 
@@ -107,4 +131,4 @@ Also the device bullets of LG, EF1f1, UI1f1 and TP1 (Opus pass 52: the night mer
 tablet SKIP, none run on a device): LG's three `logcat` lines, EF1f1's faked `earth.thumbFallback`
 swap (the screens set again with the real picture, at its subject), UI1f1's Keep running above the
 Set bar in one column and two panes, TP1's ten force stops with the process alive (the exit-record
-line each time; a Recents swipe and `am kill` none).
+line each time; a Recents swipe and `am kill` none); SZ1's ⓘ (the four lines, a rotation, TalkBack).

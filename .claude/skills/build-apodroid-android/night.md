@@ -174,7 +174,8 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 71 | UI1f1 | The detector's Keep running button lands behind the Set bar | winston | sonnet, medium | yes | — | release-0.9.0.md UI1f1 |
 | 72 | TP1 | The detector's sign on Android 11–14 (process exit records) | winston | opus, medium | yes | — | release-0.9.0.md TP1 |
 | 73 | R4 | The release's texts: versionCode 13, the changelog; E to 0.10.0 | winston | sonnet, medium | no | LG, EF1f1, UI1f1, TP1, SH4 | release-0.9.0.md R4 |
-| 74 | T4 | Final pass on the combined tree (emulator, R8, the update from 0.8.0) | rosie | opus, high | no | R4 | release-0.9.0.md T4 |
+| 74 | T4 | Final pass on the combined tree (emulator, R8, the update from 0.8.0) | rosie | opus, high | no | R4, SZ1 | release-0.9.0.md T4 |
+| 75 | SZ1 | An ⓘ for Size: Centre, Auto (and its turn), Live (text approved) | winston | sonnet, medium | yes | R4 | release-0.9.0.md SZ1 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

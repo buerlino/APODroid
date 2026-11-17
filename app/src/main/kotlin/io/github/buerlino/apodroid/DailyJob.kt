@@ -1,6 +1,8 @@
 package io.github.buerlino.apodroid
 
+import android.app.ActivityManager
 import android.app.AlarmManager
+import android.app.ApplicationExitInfo
 import android.app.PendingIntent
 import android.app.job.JobInfo
 import android.app.job.JobParameters
@@ -12,6 +14,8 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import io.github.buerlino.apodroid.core.JobRuns
+import io.github.buerlino.apodroid.core.UserExit
+import io.github.buerlino.apodroid.core.stoppedSinceArmed
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -196,6 +200,20 @@ class DailyJob : JobService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+        /**
+         * This app's process exits the user asked for (`REASON_USER_REQUESTED`: a force stop, `pm
+         * clear`, a Recents swipe), from Android's records (API 30+; none below, or on a failure).
+         */
+        private fun userExits(context: Context): List<UserExit> {
+            if (Build.VERSION.SDK_INT < 30) return emptyList()
+            return runCatching {
+                context.getSystemService(ActivityManager::class.java)
+                    .getHistoricalProcessExitReasons(context.packageName, 0, 16)
+                    .filter { it.reason == ApplicationExitInfo.REASON_USER_REQUESTED }
+                    .map { UserExit(Instant.ofEpochMilli(it.timestamp), it.description) }
+            }.onFailure { Log.w("APODroid", "Detector: couldn't read the exit records: $it") }.getOrDefault(emptyList())
+        }
+
         private fun alarmIntent(context: Context) = Intent(context, AlarmReceiver::class.java).setAction(AlarmReceiver.ACTION_RUN)
 
         /**
@@ -204,14 +222,19 @@ class DailyJob : JobService() {
          * `PendingIntent`s are gone. A force stop deletes them (`am force-stop`, O7; ZUI's cleaner,
          * O8, which leaves no other sign on the tablet), a process's death doesn't; a boot, an
          * update and a pending run explain it ([Store.noteAlarmsGone]). Within a process that armed
-         * or cancelled them they're known, so it asks only once.
+         * or cancelled them they're known, so it asks only once. On 11–14 (TP1) a force stop leaves
+         * the `PendingIntent`s until system_server's GC, so an exit the user asked for after the
+         * last arming counts too ([stoppedSinceArmed], [userExits]).
          */
         private fun checkAlarms(context: Context) {
             if (armedHere) return
             val gone = listOf(WINDOW_ALARM, IDLE_ALARM).all { code ->
                 PendingIntent.getBroadcast(context, code, alarmIntent(context), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE) == null
             }
-            if (!gone) return
+            if (!gone) {
+                if (!stoppedSinceArmed(Build.VERSION.SDK_INT, userExits(context), Store(context).armedAt)) return
+                Log.i("APODroid", "Detector: stopped by the user since the arming (exit record)")
+            }
             Store(context).noteAlarmsGone(runPending = scheduler(context).getPendingJob(RUN) != null)
         }
 

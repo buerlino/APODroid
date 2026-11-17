@@ -1462,8 +1462,9 @@ with `REASON_USER_REQUESTED` and a force stop's description ("stop <package> due
 user-requested record counts (TP1's fix round 1): a Recents swipe's ("remove task") and
 `killBackgroundProcesses`' ("kill background", "kill all background": `am kill`, task killers,
 makers' cleaners) leave the alarms, and `pm clear` wipes `armedAt`. 35+
-and 29 as before. A force stop with no process alive leaves no record (accepted). Checked on the
-Android 14 emulator only; 11–13 wait for E (0.10.0). So the first arming in a process (`DailyJob.ensure`'s
+and 29 as before. A force stop with no process alive leaves no record (accepted). Not yet
+checked on a device (the night ran it without one, Opus pass 52): T4 on the Android 14 emulator;
+11–13 wait for E (0.10.0). So the first arming in a process (`DailyJob.ensure`'s
 `checkAlarms`, from the page's `onResume` or a receiver; not again in a process that armed or
 cancelled them) asks for the pair's `PendingIntent`s with `FLAG_NO_CREATE`; both missing while
 `daily` is on is noted (`alarmsLost`: `alarmsLostAt` and `lostAfterRun`, the last run's start)

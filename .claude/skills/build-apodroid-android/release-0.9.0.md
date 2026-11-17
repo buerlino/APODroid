@@ -12,7 +12,7 @@ did. No queue rows are in `night.md` yet: they go in when the user says start.
 |---|---|---|---|
 | S, EF1 | Sharp pictures: a limit on Fill's enlargement; Earth's picture link | `sharp-0.9.0.md` | planned 2026-11-16; its questions open there |
 | E, ER | Android 10–14 on the emulators | `emulator.md` | **moved to 0.10.0** (user, 2026-11-17) |
-| TP1 | The detector's sign on Android 11–14 | `release-0.8.0.md`, TP1 | the idea approved (user, 2026-11-17: "everything except the emulation step"); checked on the Android 14 emulator, 11–13 with E in 0.10.0 |
+| TP1 | The detector's sign on Android 11–14 | `release-0.8.0.md`, TP1 | the idea approved (user, 2026-11-17: "everything except the emulation step"); built (merged with tablet SKIP), its Android 14 check in T4, 11–13 with E in 0.10.0 |
 | EF1f1, UI1f1 | Earth's swap from a thumbnail; the detector's Keep running behind the Set bar | `sharp-0.9.0.md`, this file | from Opus pass 50 (2026-11-17) |
 | LG | The three log lines of Open question 4 | this file | ready |
 | R4, T4 | The release's texts; the final pass on the combined tree | this file | after the rest |
@@ -103,3 +103,8 @@ user's approval.
 As 0.8.0's T3, on `emulator-5564` (Android 14; the tablet when attached): the maps' cases touched
 since 0.8.0, an R8 build installed over v0.8.0's (the update keeps the setup; a stored Earth
 thumbnail and an APOD rendition handled as `sharp-0.9.0.md` says), the smoke list.
+Also the device bullets of LG, EF1f1, UI1f1 and TP1 (Opus pass 52: the night merged them with
+tablet SKIP, none run on a device): LG's three `logcat` lines, EF1f1's faked `earth.thumbFallback`
+swap (the screens set again with the real picture, at its subject), UI1f1's Keep running above the
+Set bar in one column and two panes, TP1's ten force stops with the process alive (the exit-record
+line each time; a Recents swipe and `am kill` none).

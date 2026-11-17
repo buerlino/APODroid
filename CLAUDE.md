@@ -703,7 +703,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   post, or a page open or Set skipping the check (T3f1's hooks), once per post (`sizeChecked`
   committed first), the probe; a smaller original replaces the stored file (the same post and key,
   no set: the screens keep the rendition until their next set), the subject noted again; a failure
-  never fails the refresh. Not while `earth.thumbFallback` is noted. Logged `Refresh: APOD
+  never fails the refresh; one offline or failed uses the check up, so that post keeps the
+  rendition until the next post (accepted, user, 2026-11-17: at most a day's picture). Not while
+  `earth.thumbFallback` is noted. Logged `Refresh: APOD
   2026-11-07 original 1500×1022 (smaller than the screen)`, `… rendition (original 4000×3000)`, `…
   probe failed: …`, `… stored picture replaced by the original`.
   It goes to the source's file, `files/apod.jpg`, `nasa.jpg` or `earth.jpg` (whatever its

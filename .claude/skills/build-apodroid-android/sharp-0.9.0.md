@@ -183,7 +183,9 @@ so a later change of Size or of NASA's text can't move the noted position to the
   (the hooks T3f1 gave `noteSubject`), once per post (`<source>.sizeChecked` = the picture URL,
   committed first), the probe; when the original is smaller than the screen, it is downloaded
   and replaces the stored file (same post, same key; the subject noted again, since it was noted
-  from the old file). A failure never fails the refresh.
+  from the old file). A failure never fails the refresh. **Accepted** (user, 2026-11-17, from
+  Opus pass 51): a page opened offline, or a failed probe, uses up that one check, so the post
+  keeps the enlarged rendition until the next post (at most a day's picture).
 - Logged: `Refresh: APOD 2026-11-07 original 1500×1022 (smaller than the screen)` or `…
   rendition (original 4000×3000)` or `… probe failed: …`.
 - Traffic (CLAUDE.md, Traffic): one request of at most 64 KB (rarely 512 KB) per new picture per

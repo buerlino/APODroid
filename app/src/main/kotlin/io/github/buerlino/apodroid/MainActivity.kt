@@ -358,6 +358,8 @@ class MainActivity : ComponentActivity() {
 
     /** The detector's box asked for "Keep running": Advanced opens and its switch scrolls into view once. */
     private var showKeepRunning by mutableStateOf(false)
+    // UI1f1: the pinned Set bar's height in px while it shows (0 closed), so the detector's scroll clears it.
+    private var setBarPx by mutableIntStateOf(0)
 
     /** The detector (O14): the last miss's change time, whether "Keep running" was on then, the one dismissed. */
     private var missedAt by mutableStateOf<Instant?>(null)
@@ -1619,7 +1621,7 @@ class MainActivity : ComponentActivity() {
                             if (setupOpen) Spacer(Modifier.height(barSpace))
                         }
                     }
-                    if (setupOpen) SetBar(Modifier.align(Alignment.BottomCenter).onSizeChanged { barHeight = it.height })
+                    if (setupOpen) SetBar(Modifier.align(Alignment.BottomCenter).onSizeChanged { barHeight = it.height; setBarPx = it.height })
                 }
             } else {
                 Row {
@@ -1634,7 +1636,7 @@ class MainActivity : ComponentActivity() {
                             Settings()
                             if (setupOpen) Spacer(Modifier.height(barSpace))
                         }
-                        if (setupOpen) SetBar(Modifier.align(Alignment.BottomCenter).onSizeChanged { barHeight = it.height })
+                        if (setupOpen) SetBar(Modifier.align(Alignment.BottomCenter).onSizeChanged { barHeight = it.height; setBarPx = it.height })
                     }
                 }
             }
@@ -2301,8 +2303,9 @@ class MainActivity : ComponentActivity() {
                 if (advancedOpen) {
                     SaveEverySwitch()
                     val keepRow = remember { BringIntoViewRequester() }
+                    var keepSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
                     // At once, not the draft: the stored state is the shown one, so never highlighted.
-                    Box(Modifier.bringIntoViewRequester(keepRow)) {
+                    Box(Modifier.onSizeChanged { keepSize = androidx.compose.ui.geometry.Size(it.width.toFloat(), it.height.toFloat()) }.bringIntoViewRequester(keepRow)) {
                         DraftSwitch(
                             "Keep running", keepRunning, keepRunning, about = "About keeping running",
                             info = "Keeps APODroid running, so the phone can't stop it between changes. It shows as an active app.",
@@ -2312,7 +2315,9 @@ class MainActivity : ComponentActivity() {
                     // The detector's "Keep running" (O14): once laid out, the switch scrolled into view.
                     if (showKeepRunning) LaunchedEffect(Unit) {
                         withFrameNanos { }
-                        keepRow.bringIntoView()
+                        // Setup open: the viewport's bottom edge is under the Set bar, so ask for the bar's height more.
+                        val extra = if (setupOpen) setBarPx.toFloat() else 0f
+                        keepRow.bringIntoView(androidx.compose.ui.geometry.Rect(0f, 0f, keepSize.width, keepSize.height + extra))
                         showKeepRunning = false
                     }
                 }

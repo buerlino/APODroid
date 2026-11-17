@@ -1455,10 +1455,13 @@ until system_server's GC and `FLAG_NO_CREATE` finds them; 15 and 16 cancel them 
 `stay_stopped` flag, on in AOSP's builds; a maker could turn it off, unchecked). **The second
 sign on 11–14** (TP1, 2026-11-17; `release-0.8.0.md` TP1, the idea the user's, 2026-11-16 and 17):
 with the `PendingIntent`s there, on API 30–34 an exit record (`getHistoricalProcessExitReasons`)
-with `REASON_USER_REQUESTED` newer than the last arming (`armedAt`, noted by each arming with
+with `REASON_USER_REQUESTED` and a force stop's description ("stop <package> due to …", AOSP's
+`forceStopPackageLocked`) newer than the last arming (`armedAt`, noted by each arming with
 `armedBoot`) counts as the alarms gone (`:core`'s `stoppedSinceArmed`, `UserExit`; logged
-`Detector: stopped by the user since the arming (exit record)` before the usual line); a Recents
-swipe's record (description "remove task", night default) doesn't count: it leaves the alarms. 35+
+`Detector: stopped by the user since the arming (exit record)` before the usual line); no other
+user-requested record counts (TP1's fix round 1): a Recents swipe's ("remove task") and
+`killBackgroundProcesses`' ("kill background", "kill all background": `am kill`, task killers,
+makers' cleaners) leave the alarms, and `pm clear` wipes `armedAt`. 35+
 and 29 as before. A force stop with no process alive leaves no record (accepted). Checked on the
 Android 14 emulator only; 11–13 wait for E (0.10.0). So the first arming in a process (`DailyJob.ensure`'s
 `checkAlarms`, from the page's `onResume` or a receiver; not again in a process that armed or

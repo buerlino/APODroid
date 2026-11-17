@@ -62,11 +62,13 @@ data class UserExit(val at: Instant, val description: String?)
  * The second sign of a force stop (TP1, `release-0.8.0.md`), on Android 11–14 (API 30–34) only: there
  * a force stop deletes the alarms but leaves their `PendingIntent`s until system_server's GC (AOSP's
  * `forceStopPackageLocked` cancels them only on uninstall), so the `FLAG_NO_CREATE` check mostly
- * finds them. An exit the user asked for ([exits]: a force stop's, also `pm clear`'s) after the last
- * arming ([armedAt]) counts as the alarms gone. A Recents swipe's ("remove task") deletes no alarm, so
- * it doesn't count. 15+ cancel the `PendingIntent`s themselves, and 29 has no exit records: false, as
+ * finds them. A force stop's exit record ([exits]: AOSP's `forceStopPackageLocked` describes it
+ * "stop <package> due to …") after the last arming ([armedAt]) counts as the alarms gone. No other
+ * user-requested exit counts: a Recents swipe's ("remove task") and `killBackgroundProcesses`' ("kill
+ * background", "kill all background": `am kill`, task killers, makers' cleaners) delete no alarm, and
+ * `pm clear` wipes [armedAt] anyway. 15+ cancel the `PendingIntent`s themselves, and 29 has no exit records: false, as
  * is no arming noted yet. A force stop with no process alive leaves no record (accepted).
  */
 fun stoppedSinceArmed(sdk: Int, exits: Collection<UserExit>, armedAt: Instant?): Boolean =
     sdk in 30..34 && armedAt != null &&
-        exits.any { it.at > armedAt && it.description?.contains("remove task", ignoreCase = true) != true }
+        exits.any { it.at > armedAt && it.description?.startsWith("stop ") == true }

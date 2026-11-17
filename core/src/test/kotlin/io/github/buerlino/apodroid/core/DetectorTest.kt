@@ -138,7 +138,7 @@ class DetectorTest {
     @Test
     fun aStopBeforeTheArmingIsNone() {
         // The force stop's record is older than the arming after it (a page open armed again).
-        val stop = listOf(UserExit(at("2026-11-16T09:30"), null))
+        val stop = listOf(UserExit(at("2026-11-16T09:30"), "stop io.github.buerlino.apodroid due to from pid 1234"))
         assertEquals(false, stoppedSinceArmed(34, stop, at("2026-11-16T09:31")))
         assertEquals(false, stoppedSinceArmed(34, stop, at("2026-11-16T09:30")))
         assertEquals(false, stoppedSinceArmed(34, emptyList(), at("2026-11-16T06:00")))
@@ -154,6 +154,16 @@ class DetectorTest {
         // A swipe from Recents kills the process as the user's ("remove task") but leaves the alarms.
         val armed = at("2026-11-16T06:04")
         assertEquals(false, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T09:30"), "remove task")), armed))
-        assertEquals(true, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T09:30"), "remove task"), UserExit(at("2026-11-16T10:00"), null)), armed))
+        assertEquals(true, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T09:30"), "remove task"), UserExit(at("2026-11-16T10:00"), "stop io.github.buerlino.apodroid due to from pid 1234")), armed))
+    }
+
+    @Test
+    fun aBackgroundKillIsNone() {
+        // TP1 fix round 1: `am kill`, task killers and cleaners call killBackgroundProcesses, recorded as
+        // REASON_USER_REQUESTED on 30-34, but the alarms stay. Only a force stop's "stop …" counts.
+        val armed = at("2026-11-16T06:04")
+        for (d in listOf("kill background", "kill all background", null, "")) {
+            assertEquals(false, stoppedSinceArmed(34, listOf(UserExit(at("2026-11-16T09:30"), d)), armed))
+        }
     }
 }

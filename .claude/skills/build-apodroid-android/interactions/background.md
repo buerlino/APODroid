@@ -410,9 +410,11 @@ or days of time.
   <lastRunAt>`. Phone: only P17.
 - **J2a The PendingIntents there, an exit record** (API 30–34 only, TP1: a force stop there
   leaves the `PendingIntent`s until system_server's GC). A `REASON_USER_REQUESTED` exit after the
-  last arming (`armedAt`), not a Recents swipe's ("remove task"): `Detector: stopped by the user
-  since the arming (exit record)`, then J2's or J3's line. A record older than the arming, a
-  swipe, 29 and 35+: no `Detector:` line (J1). Phone: the Android 14 emulator, `am force-stop`
+  last arming (`armedAt`) whose description is a force stop's ("stop <package> due to …"):
+  `Detector: stopped by the user since the arming (exit record)`, then J2's or J3's line. A record
+  older than the arming, a Recents swipe ("remove task"), `am kill` or a cleaner's
+  `killBackgroundProcesses` ("kill background", "kill all background"), 29 and 35+: no
+  `Detector:` line (J1). Phone: the Android 14 emulator, `am force-stop`
   with the process alive, a change time faked past, a page open, ten times: the line each time.
   Unit: `DetectorTest`.
 - **J3 Gone, explained** (boot, update, job 2 pending, no run yet). `Detector: the alarms found gone

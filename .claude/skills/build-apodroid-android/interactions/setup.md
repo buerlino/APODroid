@@ -55,9 +55,9 @@ Leaf format: **id**: pre → steps → screen / log / adb. "Set" = tap "Set as w
 ### A. The Setup row and its summary
 - **A1** closed at a fresh start (Recents-swipe, open): row "Setup", summary under it = stored setup, "▾". B0: "Home: NASA · Lock: APOD · 06:00 · Live". Tap → opens ("▴", summary hidden). Tap again → closes.
 - **A2** auto-open: any draft change that makes the draft differ opens it (LaunchedEffect, MainActivity.kt:2164); closing it by hand is allowed while highlighted; a rotation reopens it (the effect runs again on recreation).
-- **A3** highlight: title "Setup" in tertiary while anything shown in Setup differs (MainActivity.kt:2397-2401): mode switch, shown mode's Where (APOD mode) or list rows / order (list mode), Size, New picture at, As soon as it's out, Change every, If APOD is a video, Darken, Centre when unsure (UI1) ("Wide pictures sideways" gone since 0.9.0, SH2a: X). Not the daily switch, not Advanced. Changing a value and back = no highlight.
+- **A3** highlight: title "Setup" in tertiary while anything shown in Setup differs (MainActivity.kt:2397-2401): mode switch, shown mode's Where (APOD mode) or list rows / order (list mode), Size, New picture at, As soon as it's out, Change every, If APOD is a video, Darken, Keep pictures sharp (SH2c, Y), Centre when unsure (UI1) ("Wide pictures sideways" gone since 0.9.0, SH2a: X). Not the daily switch, not Advanced. Changing a value and back = no highlight.
 - **A4** after a Set that saved and didn't fail: Setup closes (also after `NTS`) (MainActivity.kt:1217); summary shows the new stored setup.
-- **A5** summary forms (MainActivity.kt:2428-2448): "X · both screens" when both columns have the same sources; "X · home screen"/"X · lock screen" when one is empty; else "Home: X · Lock: Y"; names in the stored order; then " · every 24 h from 06:00" when a column has ≥2 (daily on), " · 06:00" otherwise, nothing with daily off; " · Live" with Size Live. "As soon as it's out", Darken and Centre when unsure never appear.
+- **A5** summary forms (MainActivity.kt:2428-2448): "X · both screens" when both columns have the same sources; "X · home screen"/"X · lock screen" when one is empty; else "Home: X · Lock: Y"; names in the stored order; then " · every 24 h from 06:00" when a column has ≥2 (daily on), " · 06:00" otherwise, nothing with daily off; " · Live" with Size Live. "As soon as it's out", Darken, Keep pictures sharp and Centre when unsure never appear.
 - **A6** summary is the stored setup: while the draft differs and Setup is closed, the summary still shows the stored one.
 
 ### B. "More NASA pictures" (mode switch, draft)
@@ -164,6 +164,32 @@ same picture as NASA's for the NASA case.
 - **X6** a saved state from 0.8.0 (a `wideSideways` line in the bundle) reads, the line ignored; a
   rotation keeps the draft as before.
 
+### Y. Keep pictures sharp (0.9.0, SH2c; `sharp-0.9.0.md`, Decided 2, Terms, The rules: Size)
+- **Y1** the row: a switch "Keep pictures sharp" with ⓘ right after "Darken bright pictures" (before
+  "Centre when unsure"), **shown while the draft's Size is Centre or Auto** (also with the daily
+  switch off), default off (the pref `sharp`). ⓘ "About Keep pictures sharp" → dialog "A small
+  picture is enlarged at most 2×; the rest of the screen shows it blurred." → OK. The summary never
+  names it.
+- **Y2** draft: toggle → label and switch tertiary, "On, not set yet", Setup's title tertiary; back →
+  untinted. A rotation keeps it (the saved state's `sharp`). Set → `Wset`, `sharp=true` in the prefs,
+  each screen set afresh (Y4); not "the order alone".
+- **Y3** hidden under Live: toggled, not Set, then Size Live → the row gone, the draft back to the
+  stored value (Setup's title untinted when nothing else differs); back to Centre or Auto → the
+  stored value. Stored Size Live with `sharp=true`: no screen is limited (Live's still screens too).
+- **Y4** what a Set does with it on (the stored `sharp`, Size Centre or Auto): a picture whose Fill
+  would enlarge it over 2.06× (`:core`'s `limitBites`; e.g. 7 Nov's 1500×1022 upright on a 2484 px
+  tall screen, ×2.43) goes on at 2×: the frame shorter along its moving axis (558 of 1500 px wide
+  on the FP6), the picture whole and centred along the other, the rest of the screen the whole
+  picture's background (black for black edges, else blurred and darkened); `setBitmap`, the log
+  `Set: wallpaper set: Of(…) on …[, auto 0.xx][, sideways[, auto turn]], sharp ×2.00 (Fill ×2.43)[,
+  darker …]`, `files/debug-set.png` (debug build) with the bands. A picture within 2.06× (a large
+  original, a screen-tall rendition): exactly as with it off (`setStream`, no ", sharp", no
+  `debug-set.png` unless darkened or sideways). "My picture": limited by its own file, never turned.
+  With ⛶'s "Whole picture": enlarged at most 2× (`limitedFit`), `, sharp ×2.00 (whole ×n.nn)`.
+  Sideways (⛶'s pill or Auto's turn) is decided first, then the limit for that orientation (a
+  turned 3:2 picture is often within it).
+- **Y5** off again + Set: every screen as 0.8.0's Fill (no ", sharp").
+
 ### J. Size Centre and Auto (Live itself out of scope; [Centre | Auto | Live] since 0.8.0, SA3a, 0.7.0's [Fill | Live]; texts the user's)
 - **J0** the row: three segments "Centre", "Auto", "Live" in that order (`Size`'s enum order), each label on one line in portrait and in the landscape pane; screen readers "Centre", "Auto", "Live" with "Selected"/"Selected, not set yet". Default Auto (a fresh install). An update over 0.7.0 with `size=FILL` stored: Auto selected, not highlighted (`sizeOf`: FILL reads as Auto), nothing set by the update; the first Set writes `AUTO`.
 - **J1** from B0 (Live on home): Size "Auto" (or "Centre") → segment tertiary, Setup highlighted → Set → no picker dialog (opensPicker false for Centre and Auto) → `Wset`; `Set: wallpaper set: N13 on HOME, A15 on LOCK`; dumpsys: home ImageWallpaper (APODroid's LiveWallpaper gone; maybe `Live: engine … destroyed`); summary "Home: NASA · Lock: APOD · 06:00" (no " · Live"); no "Live isn't on" line.
@@ -267,6 +293,8 @@ Each step starts where the previous ended. Before every Set: `adb logcat -c`; af
 | P34a | X2, X5 | (the update) 0.8.0's build with "Wide pictures sideways" on and Size Centre, a 3:2 APOD on → install this build → open the page → Set. Then Size Live → Set ("Home screen"). | The update sets nothing; `wideSideways=true` still in the prefs; the Set: upright (no ", sideways"). Live: `live.sideways=false`, the hand-over without ", sideways". |
 | P34b | J6 | (UI1) Size Auto: "Centre when unsure" after "Darken bright pictures" → ⓘ → OK → toggle off → screenshot → rotate → Set. Then toggle on → Size Centre → Size Live → Size Auto. | Dialog text as J6; label and switch tertiary, Setup's title tertiary, kept after the rotation; Set: `Wset`, `autoFallback=false`, Setup closes. Under Centre and Live the row gone and Setup's title untinted; back on Auto the row off (stored), untinted. Advanced: two switches. Restore: on + Set. |
 | P34c | M9 | (UI1) Setup open → scroll to the end; portrait, the landscape two-pane layout, font scale 2.0; Setup closed. | Open: the bar at the bottom (screen or settings pane), the last row fully visible above it at the end of the scroll, the bar above the navigation bar; closed: the button after the Setup row, no bar. Screenshots. |
+| P34d | Y1–Y3 | (SH2c) Setup ▾ under Centre, Auto, Live (not Set) → screenshot each → "Keep pictures sharp" ⓘ → OK → on → rotate → Size Live → Size Auto. | The row after "Darken bright pictures" under Centre and Auto, gone under Live; dialog as Y1; on: tertiary, "On, not set yet", kept after the rotation; under Live gone and back to off (stored), Setup's title untinted. |
+| P34e | Y4, Y5 | (the emulator; APOD 1500×1022 faked, the horizon text, Size Auto) "Keep pictures sharp" on → Set; Size Centre → Set; off → Set. | On: `Wset`, `, sharp ×2.00 (Fill ×2.4x)`, `debug-set.png` with blurred bands top and bottom, the grid's period 2× the file's; Centre: the same without `, auto`; off: `setStream`, no ", sharp", no `debug-set.png`. |
 | P35 | J0 | (SA3a; the emulator) Setup ▾ → screenshot of Size in portrait, then in the landscape pane. | Three segments "Centre", "Auto", "Live", none wrapping alone; the stored one selected. |
 | P36 | J3, J4 | (the emulator; a picture whose subject is ≥ 0.2 off the middle on a screen, background.md E8) Size "Auto" → Set; then "Centre" → Set; then "Auto" → Set. | Auto: `Set: wallpaper set: … , auto 0.8x` (the noted position), `dumpsys wallpaper`'s crop off the middle; Centre: no `, auto`, the crop the middle; Auto again as the first. |
 

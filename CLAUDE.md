@@ -335,7 +335,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   (Setup is the draft, Advanced acts at once), then in APOD mode **Where**, with the switch on
   **Pictures from** (the list); then, always, **Size**; while the daily switch is on **New picture at**, "As soon as
   it's out" under it, then, while a column takes turns, "Change every", and "If APOD is a video";
-  then, always, "Darken bright pictures", then "Centre when unsure" (only while the draft's Size
+  then, always, "Darken bright pictures", then "Keep pictures sharp" (only while the draft's
+  Size is Centre or Auto; SH2c), then "Centre when unsure" (only while the draft's Size
   is Auto; UI1). Closed at a fresh start; it
   opens by itself while the draft differs from the store in it, when "More NASA pictures" is
   turned (the area swaps), and closes after a Set that saved (also "Setup saved. Nothing to set
@@ -348,6 +349,16 @@ set it as wallpaper, and on video days kept the old wallpaper.
   two). **Advanced settings**, the same kind of
   row (no summary), closed by default, only while the daily switch is on (empty otherwise):
   "Save every picture" with "Largest original" under it while on, then "Keep running" (O11).
+  - **Keep pictures sharp** (0.9.0, SH2c; `sharp-0.9.0.md`, Decided 2: the label and the ⓘ
+    approved, 2026-11-16): a switch in Setup after "Darken bright pictures" with a small ⓘ ("About
+    Keep pictures sharp"; its dialog "A small picture is enlarged at most 2×; the rest of the
+    screen shows it blurred."), the pref `sharp` (`Setup.sharp`, `Store.sharp`), default off.
+    **Shown only while the draft's Size is Centre or Auto** (hidden under Live, it goes back to the
+    stored value; Live never limits), with the daily switch off too. Part of the draft as "Darken
+    bright pictures" (`saveSetup`, the saved state, the highlight, "On, not set yet"; a change
+    isn't "the order alone"); Set sets each screen afresh. On: with the stored Size Centre or Auto
+    every still set enlarges Fill at most 2× (Wallpaper: Keep pictures sharp). Setup's summary
+    doesn't name it.
   - **Centre when unsure** (UI1, user, 2026-11-16, from the FP6: into Setup, the label without
     "Auto:", a placeholder until the user's look; SA3b, 2026-11-15, built it as "Auto: centre
     when unsure" in Advanced, acting at once; Next features, 0.8.0: Fill's frame on the
@@ -421,7 +432,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "Setup" row's title while anything in it differs (the shown mode's "Where" or list and its
     order, the
     mode switch, Size, "New picture at", "As soon as it's out", "Change every", "If APOD is a
-    video", "Darken bright pictures", "Centre when unsure"; not ⛶). Not the daily
+    video", "Darken bright pictures", "Keep pictures sharp", "Centre when unsure"; not ⛶). Not the daily
     switch, nor Advanced (they act at once). Screen readers: a highlighted control's state adds
     "not set yet" ("Selected, not set yet", "Checked, not set yet", "On, not set yet"; the rows
     "collapsed, not set yet").
@@ -429,13 +440,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks, dropdowns and
     order), Size,
     "New picture at", "As soon as it's out", "Change every", "If APOD is a video", "Darken
-    bright pictures", "Centre when unsure", a newly picked "my picture" and the switch "More NASA pictures" change only the page
+    bright pictures", "Keep pictures sharp", "Centre when unsure", a newly picked "my picture" and the switch "More NASA pictures" change only the page
     (`MainActivity`'s draft state; no pref is written, no set, no scheduling). **A hidden
     setting goes back to the stored one** (user, 2026-10-22: else Set saved a hidden "Change
     every", and "Setup" stayed highlighted with nothing in it highlighted): "Change every" while
     it's hidden (no column with two or more, or the daily switch off), "New picture at", "As
     soon as it's out", "If APOD is a video" and a newly picked "my picture" while the daily switch is off,
-    "Centre when unsure" while the draft's Size isn't Auto (UI1); so Set
+    "Centre when unsure" while the draft's Size isn't Auto (UI1), "Keep pictures sharp" while it's
+    Live (SH2c); so Set
     saves, and "Setup" highlights, only what the page shows. Likewise the mode the page doesn't
     show (FP6 tests, 2026-11-15, P4 and P17: saved unmarked, and a hidden "Where" spoiled "the
     order alone"): Set saves the stored "Where" while the list shows and the stored list in
@@ -630,7 +642,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Centre when unsure, UI1; Keep running, Background update).
+    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; As soon as it's out, SO2; Darken bright pictures, BR2; Keep pictures sharp, SH2c; Centre when unsure, UI1; Keep running, Background update).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. **The still behind ▶**
   (VS1, 2026-11-15; `video-0.8.0.md`; Open question 2): when the video is NASA's own mp4
@@ -898,7 +910,28 @@ set it as wallpaper, and on video days kept the old wallpaper.
   pill) turned it (the job's, the page's, Set's; ⛶'s ✓ with an untouched pill too). An update
   from 0.8.0 with "Wide pictures sideways" on: Centre's pictures upright again, Auto's by their
   text (for 0.9.0's changelog).
-  **Keep pictures sharp** (0.9.0, `sharp-0.9.0.md`; SH1 `:core`, the app in SH2c): `Limit.kt`'s `limitedLayout` (Fill's frame and its place on the screen at an enlargement of at most `SHARP_LIMIT` 2×, plain Fill up to × `SHARP_TOLERANCE` 1.03, a smaller axis whole and centred) and `limitedFit` (the whole picture likewise).
+  **Keep pictures sharp** (0.9.0, `sharp-0.9.0.md`; SH1 `:core`, the app SH2c): `Limit.kt`'s `limitedLayout` (Fill's frame and its place on the screen at an enlargement of at most `SHARP_LIMIT` 2×, plain Fill up to × `SHARP_TOLERANCE` 1.03, a smaller axis whole and centred) and `limitedFit` (the whole picture likewise); `fillScale`, `limitBites` (whether it changes a set), `limitedShape`.
+  **The limited set** (SH2c): while the stored `sharp` is on and the stored Size is Centre or Auto
+  (`Store.limit`; never under Live, nor Live's hand-over, its copy or B27's keep), each still set
+  (the job's, the page's, Set's, ⛶'s ✓; "my picture" too, by its own file, never turned) decides
+  the orientation, then the position, then the size (decided 5). When `limitBites` for the file's
+  upright size (`uprightSize`) in the orientation used, `Drawing.kt`'s `limitedPicture`: a bitmap of
+  the screen's portrait size, the whole picture's background (`drawBackground`: black when
+  `edgesBlack`, else `blurred`, the picture's middle in the screen's shape, as `drawWhole`), the
+  `limitedLayout`'s frame decoded alone, upright, straight to its dest size (`setTargetSize` then
+  the decoder's crop) and drawn into the dest, turned through `drawTurned` when sideways; measured
+  as drawn (`topThirdGrey`, as the whole picture) and darkened (`darkened`); `setBitmap`, the hint
+  all of it. The whole picture by `limitedFit` (`wholePicture`'s `limit`). When it doesn't bite
+  every path is as before, byte for byte. The log's set line adds ", sharp ×2.00 (Fill ×2.43)"
+  (the scale, then Fill's enlargement without the limit; ", sharp ×2.00 (whole ×3.10)" for the
+  whole picture) after ", sideways" and before ", darker …". **Auto's position for it:**
+  `noteSubject` also notes the positions for the limited frame's length where the limit would bite
+  for the file, whatever the switch says (`:core`'s `limitedSubjectPosition`: `subjectPosition`, or
+  `sidewaysSubjectPosition`, with `limitedShape` as its "screen"; 0.5 when no axis moves) as
+  `<source>.subjectPositionSharp`, `subjectSidewaysSharp`, with `<source>.subjectSharp` (a post
+  noted by 0.8.0, without it, is noted again once; the log's `Subject:` line adds " (sharp 0.81,
+  sideways 0.50)"). A biting set takes those (none: the middle) through `framePosition`; ⛶'s
+  dragged position applies as it is.
   **The darkening** (BR2, 2026-11-14; GitHub issue #2; the figures in Next features, 0.7.0:
   bright pictures darker): while "Darken bright pictures" is on (the stored `darken`), each set
   (the job's, the page's, Set's, ⛶'s ✓; the user's own picture too) first measures what the
@@ -1091,7 +1124,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
   null, read only when there; the saved state's line writes and reads "null", `Part.toText`,
   `partOf`; a part from 0.7.0 keeps its number). So a part ✓'d only for "Whole picture" or the
   "Sideways" pill keeps following Size (Centre ↔ Auto) and "Centre when unsure" (one ✓'d only
-  for "Whole picture" keeps Auto's turn too). **A drag belongs to the orientation it was made in** (FP1, 2026-11-16,
+  for "Whole picture" keeps Auto's turn too). **Keep pictures sharp** (SH2c): while the **stored**
+  `sharp` is on, the stored Size Centre or Auto and `limitBites` for the file (`uprightSizes`) in the
+  orientation used, ⛶'s frame is the limited layout's (`cropRect`: `limitedLayout`, scaled from the
+  file to the page's picture), at Auto's limited subject (`subjectPositionSharp`,
+  `subjectSidewaysSharp`) while undragged; along an axis that doesn't move, no drag (a picture whole
+  both ways can't be dragged); the "Whole picture" preview by `limitedFit`. **A drag belongs to the orientation it was made in** (FP1, 2026-11-16,
   the user's FP6 test: a band dragged sideways, the pill turned off and ✓ noted the band's
   position as the upright frame's, so Auto's subject was lost): toggling the pill drops this
   crop mode's drag (`cropMoved` cleared) and moves the frame to where ✓ would then put it, the
@@ -1867,7 +1905,8 @@ cautious threshold: 0 of 86 the user wanted upright turned under leave-one-out);
 never turn by it, ⛶'s pill still decides one picture. **"Wide pictures sideways" removed**
 (Auto's turn replaces it, one mode). ✓ notes the orientation with a dragged position.
 **Built** (SH1 `:core`, SH2a the app, 2026-11-17): The app, Settings (Wide pictures sideways
-removed); Wallpaper: Auto's turn; Choosing the part, Sideways' three values.
+removed); Wallpaper: Auto's turn; Choosing the part, Sideways' three values. (SH2c, 2026-11-17)
+Settings: Keep pictures sharp; Wallpaper: the limited set; Choosing the part (⛶'s limited frame).
 
 **0.8.0's release** (user, 2026-11-16; `release-0.8.0.md`): the night of 15 Nov built and merged
 every package (SW, SA, VS1, D1, R3, the fixes SW3f1, SA3c, D1f1, T3f1); the night's test pass on

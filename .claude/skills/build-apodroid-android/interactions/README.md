@@ -44,6 +44,8 @@ same day (113 cases). `CLAUDE.md` wins where a map disagrees.
   numbers not moved.
 - 2026-11-17, SH2b (0.9.0, the original when smaller than the screen; the check of 0.8.0's
   post): background E9 (E9a–E9d) and P23–P25. Line numbers not moved.
+- 2026-11-17, SH2c (0.9.0, Keep pictures sharp): setup A3, A5, Y (Y1–Y5), P34d–P34e; page K34
+  (K34a–d), §4 36; background E8b, F17, P26. Line numbers not moved.
 
 ## The SUSPECTs and FAILs of 15 Nov and what became of them
 

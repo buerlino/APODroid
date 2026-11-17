@@ -341,6 +341,20 @@ the frame is dragged. Set up: a picture whose noted subject moves the frame 0.2 
   crop mode open (K21) stores the undragged part with the setup: `cropPosition` absent.
 - **K33 A dragged part, then Size Centre ↔ Auto and Set:** the part's position stays (the drag wins);
   an undragged one (K30) follows Size.
+- **K34 Keep pictures sharp** (0.9.0, SH2c; setup.md Y; `cropRect`, `storedLimit`, `sharpBites`): while
+  the **stored** "Keep pictures sharp" is on, the stored Size Centre or Auto and the limit bites for
+  the file in the orientation used (`uprightSizes`, `:core`'s `limitBites`), the frame shown is the
+  limited layout's (`limitedLayout`, scaled from the file to the page's picture): on 7 Nov's
+  1500×1022 (Auto's turn not turning it) a frame 558/1500 of the width, not Fill's 459/1500. The
+  draft's switch doesn't change ⛶ until Set.
+  - **K34a An axis that doesn't move** (a small picture, e.g. 300×200: whole both ways at 2×): the
+    frame is the whole picture, no drag (the page scrolls); ✓ without a change sets nothing.
+  - **K34b Undragged:** ⛶ opens at Auto's subject for the limited frame (`<source>.subjectPositionSharp`,
+    `subjectSidewaysSharp` sideways; background.md E8b), the middle with Centre; ✓ untouched: nothing.
+    Dragged, ✓: `Part: wallpaper set: …, sharp ×2.00 (Fill ×2.43)`, `cropPosition` noted.
+  - **K34c "Whole picture" on:** the preview enlarged at most 2× (`limitedFit`): a small picture
+    smaller in the middle of its background than with the switch off.
+  - **K34d The stored Size Live:** no limit (Live's frame, K22).
 - **Checked** (SW2T, rosie, 2026-11-15, the Android 14 emulator `emulator-5564`, 1080×2400, the debug build of dev b5857b9; 9 Nov's APOD at `?h=2400`, 3618×2400, and 31 Jan 2026's bright one faked into `files/apod.jpg`, today's 1920×2400 for the portrait case; evidence in `.coord/runs/126-sw2t/tablet/`): K16, K16a–c, K17, K17a, K17b, K18, K20,
   K21, K22, K23 PASS (K19's no-change half not run). On AOSP 14 `dumpsys wallpaper` always lists a
   "Lock wallpaper state" (id 1, `mWhich=1`, an empty crop, there since boot): a set with both flags
@@ -623,3 +637,6 @@ settings). Deletions and restores are part of the list.
     a picture with `p=0.55`–`0.65` `, auto 0.6x`; on again + Set.
 35. **K30, K33**: an undragged Whole part, Size Centre ↔ Auto and Set: the undragged frame follows
     Size, a dragged one stays.
+36. **K34, K34a–d** (SH2c; 0.9.0): APOD 1500×1022 faked (the horizon text), "Keep pictures sharp" on
+    and Set: ⛶'s frame wider than with it off (screenshot both), at `subjectPositionSharp`; drag, ✓:
+    `, sharp ×2.00`; a 300×200 picture: no drag; "Whole picture": the preview at 2×.

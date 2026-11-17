@@ -345,3 +345,21 @@ fun framePosition(size: Size, partPosition: Float?, subjectRaw: Float?, fallback
     size == Size.AUTO && subjectRaw != null -> autoPosition(subjectRaw, fallback)
     else -> 0.5f
 }
+
+/**
+ * Auto's position for "Keep pictures sharp"'s limited frame (SH2c): [subjectPosition] (or, [sideways],
+ * [sidewaysSubjectPosition]) of the same decoded [pixels] ([dw]×[dh] of a [w]×[h] picture) with the
+ * limited frame's shape ([limitedShape]) as its "screen", so the window is the limited frame's length.
+ * Null when the limit doesn't bite; 0.5 when no axis moves (the picture whole both ways).
+ */
+fun limitedSubjectPosition(
+    pixels: IntArray, dw: Int, dh: Int, w: Int, h: Int, screenW: Int, screenH: Int, sideways: Boolean,
+    limit: Double = SHARP_LIMIT,
+): Float? {
+    val (fw, fh) = limitedShape(w, h, screenW, screenH, sideways, limit) ?: return null
+    val (bigW, bigH) = if (sideways) h to w else w to h
+    if (fw >= bigW && fh >= bigH) return 0.5f
+    if (sideways) return sidewaysSubjectPosition(pixels, dw, dh, w, h, fw, fh)
+    val (cw, ch) = subjectCopySize(w, h, fw, fh)
+    return subjectPosition(boxResize(pixels, dw, dh, cw, ch), cw, ch, w, h, fw, fh)
+}

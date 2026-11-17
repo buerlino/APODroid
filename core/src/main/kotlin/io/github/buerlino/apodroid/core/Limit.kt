@@ -79,3 +79,30 @@ fun limitedFit(width: Int, height: Int, screenWidth: Int, screenHeight: Int, lim
     val top = (screenHeight - h) / 2
     return Frame(left, top, left + w, top + h)
 }
+
+/** Fill's enlargement e of an upright [width]×[height] picture on the screen, turned clockwise when [sideways]: `max(sw ÷ W, sh ÷ H)`. */
+fun fillScale(width: Int, height: Int, screenWidth: Int, screenHeight: Int, sideways: Boolean): Double {
+    val bigW = if (sideways) height else width
+    val bigH = if (sideways) width else height
+    return max(screenWidth.toDouble() / bigW, screenHeight.toDouble() / bigH)
+}
+
+/**
+ * Whether "Keep pictures sharp" changes the picture's set (SH2c): a [limit] and Fill's enlargement
+ * ([fillScale]) over it × [SHARP_TOLERANCE]. False: [limitedLayout] is exactly Fill, every set path
+ * as 0.8.0's.
+ */
+fun limitBites(width: Int, height: Int, screenWidth: Int, screenHeight: Int, sideways: Boolean, limit: Double?): Boolean =
+    limit != null && fillScale(width, height, screenWidth, screenHeight, sideways) > limit * SHARP_TOLERANCE
+
+/**
+ * The limited frame's shape as the picture goes on (W×H, turned when [sideways]), the "screen" Auto's
+ * subject is found for (SH2c, [limitedSubjectPosition]): along the moving axis the visible length, along
+ * the other the whole picture. Null when the limit doesn't bite ([limitBites]).
+ */
+fun limitedShape(width: Int, height: Int, screenWidth: Int, screenHeight: Int, sideways: Boolean, limit: Double?): Pair<Int, Int>? {
+    if (!limitBites(width, height, screenWidth, screenHeight, sideways, limit)) return null
+    val f = limitedLayout(width, height, screenWidth, screenHeight, sideways, 0.5f, limit).frame
+    val (fw, fh) = (f.right - f.left) to (f.bottom - f.top)
+    return if (sideways) fh to fw else fw to fh
+}

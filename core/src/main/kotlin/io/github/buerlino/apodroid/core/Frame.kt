@@ -61,20 +61,41 @@ fun sidewaysFrame(width: Int, height: Int, screenWidth: Int, screenHeight: Int, 
 fun sidewaysHelps(width: Int, height: Int): Boolean = width > height
 
 /**
+ * Whether a picture goes on sideways (0.9.0, sharp-0.9.0.md, The rules, Orientation; replaces SW3's
+ * "Wide pictures sideways"): its part's [noted] value when there is one (⛶'s pill, true or false,
+ * under every Size); else Auto's turn: sideways when the stored [size] is [Size.AUTO], the [source] is
+ * APOD, the picture is landscape by its upright size ([picture], W > H, [sidewaysHelps]) and NASA's
+ * text doesn't say it has an up ([hasUp], `:core`'s word table); else upright. Centre and Live never
+ * turn by the rule, nor NASA's and Earth's pictures. [source] null is "my picture": never sideways
+ * (it has no part). [picture] and [hasUp] are read only when the rule needs them (a size null:
+ * unknown, upright). The app wires it in SH2a.
+ */
+fun sidewaysOf(
+    noted: Boolean?, size: Size, source: Source?,
+    picture: () -> Pair<Int, Int>?, hasUp: () -> Boolean,
+): Boolean = when {
+    source == null -> false
+    noted != null -> noted
+    size != Size.AUTO || source != Source.APOD -> false
+    else -> picture()?.let { (w, h) -> sidewaysHelps(w, h) } == true && !hasUp()
+}
+
+/**
  * Whether "Wide pictures sideways" (SW3) turns a [width]×[height] picture (upright, EXIF applied)
  * by default: 3:2 or wider (width ≥ 1.5 × height; night default, the alternative 1.4:1).
+ * 0.8.0's rule, read only by [wideSidewaysOf] (SH2a removes both).
  */
 fun sidewaysByDefault(width: Int, height: Int): Boolean = height > 0 && width.toLong() * 2 >= height.toLong() * 3
 
 /**
- * Whether a picture goes on sideways (SW3): its part's [noted] value when there is one (⛶'s
- * pill, true or false, under every Size), else [sidewaysByDefault] of its upright [picture] size
- * while [wideSideways] ("Wide pictures sideways", the stored switch) is on and the stored [size]
- * isn't [Size.LIVE] (SW3f1: the switch is Centre's and Auto's; with Live home's hand-over and the
- * lock screen's still stay upright), else upright. [picture] is read only then (null: unknown,
- * upright).
+ * 0.8.0's orientation rule (SW3), kept so the app sets as 0.8.0 did until SH2a wires [sidewaysOf]
+ * (and removes this, `sidewaysByDefault` and the pref `wideSideways`): its part's [noted] value
+ * when there is one (⛶'s pill, true or false, under every Size), else [sidewaysByDefault] of its
+ * upright [picture] size while [wideSideways] ("Wide pictures sideways", the stored switch) is on
+ * and the stored [size] isn't [Size.LIVE] (SW3f1), else upright. [picture] is read only then
+ * (null: unknown, upright).
  */
-fun sidewaysOf(noted: Boolean?, wideSideways: Boolean, size: Size, picture: () -> Pair<Int, Int>?): Boolean =
+fun wideSidewaysOf(noted: Boolean?, wideSideways: Boolean, size: Size, picture: () -> Pair<Int, Int>?): Boolean =
     noted ?: (wideSideways && size != Size.LIVE && picture()?.let { (w, h) -> sidewaysByDefault(w, h) } == true)
 
 /**

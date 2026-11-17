@@ -67,7 +67,7 @@ import io.github.buerlino.apodroid.core.lockFollowsHome
 import io.github.buerlino.apodroid.core.lostLive
 import io.github.buerlino.apodroid.core.opensPicker
 import io.github.buerlino.apodroid.core.sharedLockFollows
-import io.github.buerlino.apodroid.core.sidewaysOf
+import io.github.buerlino.apodroid.core.wideSidewaysOf
 import io.github.buerlino.apodroid.core.stillOrLive
 import io.github.buerlino.apodroid.core.unnotedLive
 import io.github.buerlino.apodroid.core.uprightOf
@@ -577,11 +577,11 @@ class Store(private val context: Context) {
 
     /**
      * Whether [source]'s stored picture goes on sideways with its post's [part] (SW3, `:core`'s
-     * [sidewaysOf]): the part's noted value, else, while the stored [wideSideways] is on,
+     * [wideSidewaysOf]): the part's noted value, else, while the stored [wideSideways] is on,
      * whether it's 3:2 or wider ([uprightSize]) and the stored [size] isn't Live (SW3f1). The one reading for [set], [copyForLive] and ⛶.
      */
     fun turnsSideways(source: Source, part: Part?): Boolean =
-        sidewaysOf(part?.sideways, wideSideways, size) { uprightSize(imageFile(source))?.let { it.width to it.height } }
+        wideSidewaysOf(part?.sideways, wideSideways, size) { uprightSize(imageFile(source))?.let { it.width to it.height } }
 
     /**
      * This device's offset after the clock's checks ([randomOffset], 0–10 min), drawn once and

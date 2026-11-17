@@ -5,7 +5,8 @@ dpi; the tablet is pascaline's until 17 Nov. dev's debug build 78568cd, 0.9.0. T
 JSON lines and the logs are in `.coord/runs/154-sh4/tablet/`, not committed.)
 
 **Result: 151 of 151 pixel cases PASS, 4 of 4 download cases PASS, the update from 0.8.0 PASS; no
-FAIL, so no SH4f package. One DIFFERENT: no real host answers the probe with 200.** No crash
+FAIL, so no SH4f package. One DIFFERENT: no real host answers the probe with 200.** Fix round 1
+(the audit): the grid scanned through a cell's middle, every case judged again, all PASS (How). No crash
 (`logcat -b crash` empty, `exit-info` no CRASH).
 
 ## How (the scripts, Python 3 stdlib only)
@@ -17,14 +18,27 @@ FAIL, so no SH4f package. One DIFFERENT: no real host answers the probe with 200
   background).
 - `scripts/sh4_check.py`: reads a PNG (its own decoder, all five filters) and checks a set's
   `debug-set.png` against the layout written from sharp-0.9.0.md's Terms alone (not from `:core`):
-  along the middle row and column the source position from R and B, a straight line fitted to it
-  (the scale ±1.5%, the frame at the dest's edges within the gradient's resolution), the direction
-  (the turn: which corner is where), the grid's period (= s × 16 ± 1 px) and phase (each line within
-  1.5 px of where the expected frame puts it: the position to the pixel), the dest's edges (where
-  the pixels stop matching the expected mapping, ± 2 px), the bands (blurred, not black). Grid
-  checks only at s ≥ 1: shrunk, a 1 px line falls across two pixels below the threshold (seen at
-  0.667, every other line missed: a checker artifact, first reported as 2 FAILs, then fixed; the
-  gradient still measures the scale there). A wrong position by 0.05 FAILs (checked by hand).
+  along a row and a column near the dest's middle, each through the middle of a grid cell (source
+  ≡ 8 mod 16, so the scan crosses the grid lines), the source position from R and B, a straight
+  line fitted to it (the scale ±1.5%, the frame at the dest's edges within the gradient's
+  resolution, about 4 px at s 2), the direction (the turn: which corner is where), the grid's
+  period (= s × 16 ± 1 px) and phase (each line within 1.5 px of where the expected frame puts it:
+  the position to the pixel), the dest's edges (where the pixels stop matching the expected
+  mapping, ± 2 px), the bands (blurred, not black). Grid checks only at s ≥ 1: shrunk, a 1 px line
+  falls across two pixels below the threshold (seen at 0.667, every other line missed: a checker
+  artifact, first reported as 2 FAILs, then fixed; the gradient still measures the scale there).
+  At s ≥ 1 no grid found is a FAIL. A wrong position by 0.05 FAILs (checked by hand); a frame 2 px
+  off FAILs by the grid alone (`scripts/sh4_check_test.py`, stdlib unittest: the exact layout, 2 px
+  off, no grid).
+- **Fix round 1** (the audit): the first pass scanned the dest's middle row and column, which for
+  some layouts lie on a grid line (tiny 640×480 at s 2: screen y 1200 is source y 240 = 15 × 16,
+  x 540 source x 320), so G was 255 the whole way, no peak showed and the grid check was skipped
+  without a word: those cases (the tiny ones with the limit or Whole, `sq_1150` y,
+  `w4_2400x600_CENTRE_sharp1` y; `grid -/-` or `-/32.0` at s ≥ 1) were checked by the R/B fit
+  alone. Now every one of the 151 cases is judged again from its pulled PNG (`--recheck`): all
+  PASS, and every bitmap case at s ≥ 1 has the grid on both axes (phase 0.0–1.2 px, median 0.0;
+  the 1.2 at `w105_630x600_AUTO_sharp0_whole0` x, s 3.81). A `grid -/-` below is a case at s < 1,
+  checked by the R/B fit and the dest's edges only.
 - `scripts/sh4_run.py`: per case, after `run-as kill -9`, writes APOD's post into the prefs
   (date 2026-11-18, a day ahead, so the job's fetch of the real post finds it older and keeps the
   fake; `sizeChecked` = its URL, so no probe; `darken` off, so the darkening doesn't move a plain Fill
@@ -98,13 +112,13 @@ grid's period and phase), the set's log note.
 - PASS `sq_1150_CENTRE_sharp1_whole1_BOTH_job`: sideways False, position 0.50, e 2.087; s 0.9392/0.9392 (want 0.9391), dest [0, 1080]x[660, 1740], grid -/- phase -/- px; log `HOME+LOCK`
 - PASS `sq_1150_AUTO_sharp0_whole0_BOTH_job`: sideways False, position 1.00, e 2.087; setStream, crop [633, 0, 1150, 1150]; log `HOME+LOCK, auto 1.00`
 - PASS `sq_1150_AUTO_sharp0_whole1_BOTH_job`: sideways False, position 1.00, e 2.087; s 0.9392/0.9392 (want 0.9391), dest [0, 1080]x[660, 1740], grid -/- phase -/- px; log `HOME+LOCK`
-- PASS `sq_1150_AUTO_sharp1_whole0_BOTH_job`: sideways False, position 1.00, e 2.087; s 2.0/2.0001 (want 2.0), dest [0, 1080]x[50, 2350], grid 32.0/- phase 0.0/- px; log `HOME+LOCK, auto 1.00, sharp ×2.00 (Fill ×2.09)`
+- PASS `sq_1150_AUTO_sharp1_whole0_BOTH_job`: sideways False, position 1.00, e 2.087; s 2.0/2.0001 (want 2.0), dest [0, 1080]x[50, 2350], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, auto 1.00, sharp ×2.00 (Fill ×2.09)`
 - PASS `sq_1150_AUTO_sharp1_whole1_BOTH_job`: sideways False, position 1.00, e 2.087; s 0.9392/0.9392 (want 0.9391), dest [0, 1080]x[660, 1740], grid -/- phase -/- px; log `HOME+LOCK`
 - PASS `w105_630x600_CENTRE_sharp0_whole0_BOTH_job`: sideways False, position 0.50, e 4.0; setStream, crop [180, 0, 450, 600]; log `HOME+LOCK`
 - PASS `w105_630x600_CENTRE_sharp0_whole1_BOTH_job`: sideways False, position 0.50, e 4.0; s 1.7143/1.7132 (want 1.7143), dest [0, 1080]x[686, 1714], grid 27.5/27.5 phase 0.14/0.14 px; log `HOME+LOCK`
 - PASS `w105_630x600_CENTRE_sharp1_whole0_BOTH_job`: sideways False, position 0.50, e 4.0; s 2.0/2.0 (want 2.0), dest [0, 1080]x[600, 1800], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sharp ×2.00 (Fill ×4.00)`
 - PASS `w105_630x600_CENTRE_sharp1_whole1_BOTH_job`: sideways False, position 0.50, e 4.0; s 1.7143/1.7132 (want 1.7143), dest [0, 1080]x[686, 1714], grid 27.5/27.5 phase 0.14/0.14 px; log `HOME+LOCK`
-- PASS `w105_630x600_AUTO_sharp0_whole0_BOTH_job`: sideways True, position 0.16, e 3.8095; s 3.8164/3.8096 (want 3.8095), dest [0, 1080]x[0, 2400], grid 61.0/61.0 phase 1.2/0.29 px; log `HOME+LOCK, auto 0.16, sideways, auto turn`
+- PASS `w105_630x600_AUTO_sharp0_whole0_BOTH_job`: sideways True, position 0.16, e 3.8095; s 3.8164/3.8096 (want 3.8095), dest [0, 1080]x[0, 2400], grid 61.0/61.0 phase 1.2/0.26 px; log `HOME+LOCK, auto 0.16, sideways, auto turn`
 - PASS `w105_630x600_AUTO_sharp0_whole1_BOTH_job`: sideways True, position 0.16, e 3.8095; s 1.8/1.8 (want 1.8), dest [0, 1080]x[633, 1767], grid 29.0/29.0 phase 0.2/0.2 px; log `HOME+LOCK, sideways, auto turn`
 - PASS `w105_630x600_AUTO_sharp1_whole0_BOTH_job`: sideways True, position 0.50, e 3.8095; s 2.0/2.0 (want 2.0), dest [0, 1080]x[570, 1830], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (Fill ×3.81)`
 - PASS `w105_630x600_AUTO_sharp1_whole1_BOTH_job`: sideways True, position 0.16, e 3.8095; s 1.8/1.8 (want 1.8), dest [0, 1080]x[633, 1767], grid 29.0/29.0 phase 0.2/0.2 px; log `HOME+LOCK, sideways, auto turn`
@@ -142,28 +156,28 @@ grid's period and phase), the set's log note.
 - PASS `w32_3600x2400_AUTO_sharp1_whole1_BOTH_job`: sideways True, position 0.50, e 0.6667; s 0.45/0.45 (want 0.45), dest [0, 1080]x[390, 2010], grid -/- phase -/- px; log `HOME+LOCK, sideways, auto turn`
 - PASS `w4_2400x600_CENTRE_sharp0_whole0_BOTH_job`: sideways False, position 0.50, e 4.0; setStream, crop [1065, 0, 1335, 600]; log `HOME+LOCK`
 - PASS `w4_2400x600_CENTRE_sharp0_whole1_BOTH_job`: sideways False, position 0.50, e 4.0; s 0.45/0.4499 (want 0.45), dest [0, 1080]x[1065, 1335], grid -/- phase -/- px; log `HOME+LOCK`
-- PASS `w4_2400x600_CENTRE_sharp1_whole0_BOTH_job`: sideways False, position 0.50, e 4.0; s 1.9996/2.0 (want 2.0), dest [0, 1080]x[600, 1800], grid 32.0/- phase 0.0/- px; log `HOME+LOCK, sharp ×2.00 (Fill ×4.00)`
+- PASS `w4_2400x600_CENTRE_sharp1_whole0_BOTH_job`: sideways False, position 0.50, e 4.0; s 1.9996/2.0 (want 2.0), dest [0, 1080]x[600, 1800], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sharp ×2.00 (Fill ×4.00)`
 - PASS `w4_2400x600_CENTRE_sharp1_whole1_BOTH_job`: sideways False, position 0.50, e 4.0; s 0.45/0.4499 (want 0.45), dest [0, 1080]x[1065, 1335], grid -/- phase -/- px; log `HOME+LOCK`
 - PASS `w4_2400x600_AUTO_sharp0_whole0_BOTH_job`: sideways True, position 1.00, e 1.8; s 1.8/1.8005 (want 1.8), dest [0, 1080]x[0, 2400], grid 29.0/29.0 phase 0.1/0.3 px; log `HOME+LOCK, auto 1.00, sideways, auto turn`
-- PASS `w4_2400x600_AUTO_sharp0_whole1_BOTH_job`: sideways True, position 1.00, e 1.8; s 1.0/1.0 (want 1.0), dest [240, 840]x[0, 2400], grid -/16.0 phase -/0.0 px; log `HOME+LOCK, sideways, auto turn`
+- PASS `w4_2400x600_AUTO_sharp0_whole1_BOTH_job`: sideways True, position 1.00, e 1.8; s 1.0/1.0 (want 1.0), dest [240, 840]x[0, 2400], grid 16.0/16.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn`
 - PASS `w4_2400x600_AUTO_sharp1_whole0_BOTH_job`: sideways True, position 1.00, e 1.8; s 1.8/1.8005 (want 1.8), dest [0, 1080]x[0, 2400], grid 29.0/29.0 phase 0.1/0.3 px; log `HOME+LOCK, auto 1.00, sideways, auto turn`
-- PASS `w4_2400x600_AUTO_sharp1_whole1_BOTH_job`: sideways True, position 1.00, e 1.8; s 1.0/1.0 (want 1.0), dest [240, 840]x[0, 2400], grid -/16.0 phase -/0.0 px; log `HOME+LOCK, sideways, auto turn`
+- PASS `w4_2400x600_AUTO_sharp1_whole1_BOTH_job`: sideways True, position 1.00, e 1.8; s 1.0/1.0 (want 1.0), dest [240, 840]x[0, 2400], grid 16.0/16.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn`
 - PASS `w4_1200x300_CENTRE_sharp0_whole0_BOTH_job`: sideways False, position 0.50, e 8.0; setStream, crop [533, 0, 668, 300]; log `HOME+LOCK`
 - PASS `w4_1200x300_CENTRE_sharp0_whole1_BOTH_job`: sideways False, position 0.50, e 8.0; s 0.9/0.8998 (want 0.9), dest [0, 1080]x[1065, 1335], grid -/- phase -/- px; log `HOME+LOCK`
 - PASS `w4_1200x300_CENTRE_sharp1_whole0_BOTH_job`: sideways False, position 0.50, e 8.0; s 2.0002/1.9999 (want 2.0), dest [0, 1080]x[900, 1500], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sharp ×2.00 (Fill ×8.00)`
 - PASS `w4_1200x300_CENTRE_sharp1_whole1_BOTH_job`: sideways False, position 0.50, e 8.0; s 0.9/0.8998 (want 0.9), dest [0, 1080]x[1065, 1335], grid -/- phase -/- px; log `HOME+LOCK`
-- PASS `w4_1200x300_AUTO_sharp0_whole0_BOTH_job`: sideways True, position 0.85, e 3.6; s 3.5998/3.6037 (want 3.6), dest [0, 1080]x[0, 2400], grid 58.0/58.0 phase 0.3/0.68 px; log `HOME+LOCK, auto 0.85, sideways, auto turn`
+- PASS `w4_1200x300_AUTO_sharp0_whole0_BOTH_job`: sideways True, position 0.85, e 3.6; s 3.5998/3.6037 (want 3.6), dest [0, 1080]x[0, 2400], grid 58.0/58.0 phase 0.3/0.62 px; log `HOME+LOCK, auto 0.85, sideways, auto turn`
 - PASS `w4_1200x300_AUTO_sharp0_whole1_BOTH_job`: sideways True, position 0.85, e 3.6; s 1.9999/2.0 (want 2.0), dest [240, 840]x[0, 2400], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn`
 - PASS `w4_1200x300_AUTO_sharp1_whole0_BOTH_job`: sideways True, position 0.50, e 3.6; s 1.9999/2.0 (want 2.0), dest [240, 840]x[0, 2400], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (Fill ×3.60)`
 - PASS `w4_1200x300_AUTO_sharp1_whole1_BOTH_job`: sideways True, position 0.85, e 3.6; s 1.9999/2.0 (want 2.0), dest [240, 840]x[0, 2400], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn`
 - PASS `tiny_640x480_CENTRE_sharp0_whole0_BOTH_job`: sideways False, position 0.50, e 5.0; setStream, crop [212, 0, 428, 480]; log `HOME+LOCK`
-- PASS `tiny_640x480_CENTRE_sharp0_whole1_BOTH_job`: sideways False, position 0.50, e 5.0; s 1.6877/1.6877 (want 1.6875), dest [0, 1080]x[795, 1605], grid -/- phase -/- px; log `HOME+LOCK`
-- PASS `tiny_640x480_CENTRE_sharp1_whole0_BOTH_job`: sideways False, position 0.50, e 5.0; s 2.0002/2.0002 (want 2.0), dest [0, 1080]x[720, 1680], grid -/- phase -/- px; log `HOME+LOCK, sharp ×2.00 (Fill ×5.00)`
-- PASS `tiny_640x480_CENTRE_sharp1_whole1_BOTH_job`: sideways False, position 0.50, e 5.0; s 1.6877/1.6877 (want 1.6875), dest [0, 1080]x[795, 1605], grid -/- phase -/- px; log `HOME+LOCK`
-- PASS `tiny_640x480_AUTO_sharp0_whole0_BOTH_job`: sideways True, position 0.00, e 3.75; s 3.7505/3.7504 (want 3.75), dest [0, 1080]x[0, 2400], grid -/59.5 phase -/0.37 px; log `HOME+LOCK, auto 0.00, sideways, auto turn`
-- PASS `tiny_640x480_AUTO_sharp0_whole1_BOTH_job`: sideways True, position 0.00, e 3.75; s 2.2502/2.2503 (want 2.25), dest [0, 1080]x[480, 1920], grid -/36.5 phase -/0.37 px; log `HOME+LOCK, sideways, auto turn`
-- PASS `tiny_640x480_AUTO_sharp1_whole0_BOTH_job`: sideways True, position 0.50, e 3.75; s 2.0002/2.0003 (want 2.0), dest [60, 1020]x[560, 1840], grid -/32.0 phase -/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (Fill ×3.75)`
-- PASS `tiny_640x480_AUTO_sharp1_whole1_BOTH_job`: sideways True, position 0.00, e 3.75; s 2.0002/2.0003 (want 2.0), dest [60, 1020]x[560, 1840], grid -/32.0 phase -/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (whole ×2.25)`
+- PASS `tiny_640x480_CENTRE_sharp0_whole1_BOTH_job`: sideways False, position 0.50, e 5.0; s 1.6877/1.6877 (want 1.6875), dest [0, 1080]x[795, 1605], grid 27.0/27.0 phase 0.16/0.16 px; log `HOME+LOCK`
+- PASS `tiny_640x480_CENTRE_sharp1_whole0_BOTH_job`: sideways False, position 0.50, e 5.0; s 2.0002/2.0002 (want 2.0), dest [0, 1080]x[720, 1680], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sharp ×2.00 (Fill ×5.00)`
+- PASS `tiny_640x480_CENTRE_sharp1_whole1_BOTH_job`: sideways False, position 0.50, e 5.0; s 1.6877/1.6877 (want 1.6875), dest [0, 1080]x[795, 1605], grid 27.0/27.0 phase 0.16/0.16 px; log `HOME+LOCK`
+- PASS `tiny_640x480_AUTO_sharp0_whole0_BOTH_job`: sideways True, position 0.00, e 3.75; s 3.7505/3.7504 (want 3.75), dest [0, 1080]x[0, 2400], grid 60.5/60.5 phase 0.37/0.13 px; log `HOME+LOCK, auto 0.00, sideways, auto turn`
+- PASS `tiny_640x480_AUTO_sharp0_whole1_BOTH_job`: sideways True, position 0.00, e 3.75; s 2.2502/2.2503 (want 2.25), dest [0, 1080]x[480, 1920], grid 36.0/36.0 phase 0.12/0.12 px; log `HOME+LOCK, sideways, auto turn`
+- PASS `tiny_640x480_AUTO_sharp1_whole0_BOTH_job`: sideways True, position 0.50, e 3.75; s 2.0002/2.0003 (want 2.0), dest [60, 1020]x[560, 1840], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (Fill ×3.75)`
+- PASS `tiny_640x480_AUTO_sharp1_whole1_BOTH_job`: sideways True, position 0.00, e 3.75; s 2.0002/2.0003 (want 2.0), dest [60, 1020]x[560, 1840], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (whole ×2.25)`
 - PASS `huge_8000x6000_CENTRE_sharp0_whole0_BOTH_job`: sideways False, position 0.50, e 0.4; setStream, crop [2650, 0, 5350, 6000]; log `HOME+LOCK`
 - PASS `huge_8000x6000_CENTRE_sharp0_whole1_BOTH_job`: sideways False, position 0.50, e 0.4; s 0.1351/0.135 (want 0.135), dest [0, 1080]x[795, 1605], grid -/- phase -/- px; log `HOME+LOCK`
 - PASS `huge_8000x6000_CENTRE_sharp1_whole0_BOTH_job`: sideways False, position 0.50, e 0.4; setStream, crop [2650, 0, 5350, 6000]; log `HOME+LOCK`
@@ -175,22 +189,22 @@ grid's period and phase), the set's log note.
 
 ### Screens, Set, the change time, parts, the pill, the up text
 
-- PASS `sq_1150_AUTO_sharp1_whole0_HOME_job`: sideways False, position 1.00, e 2.087; s 2.0/2.0001 (want 2.0), dest [0, 1080]x[50, 2350], grid 32.0/- phase 0.0/- px; log `HOME, auto 1.00, sharp ×2.00 (Fill ×2.09)`
-- PASS `sq_1150_AUTO_sharp1_whole0_LOCK_job`: sideways False, position 1.00, e 2.087; s 2.0/2.0001 (want 2.0), dest [0, 1080]x[50, 2350], grid 32.0/- phase 0.0/- px; log `LOCK, auto 1.00, sharp ×2.00 (Fill ×2.09)`
+- PASS `sq_1150_AUTO_sharp1_whole0_HOME_job`: sideways False, position 1.00, e 2.087; s 2.0/2.0001 (want 2.0), dest [0, 1080]x[50, 2350], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME, auto 1.00, sharp ×2.00 (Fill ×2.09)`
+- PASS `sq_1150_AUTO_sharp1_whole0_LOCK_job`: sideways False, position 1.00, e 2.087; s 2.0/2.0001 (want 2.0), dest [0, 1080]x[50, 2350], grid 32.0/32.0 phase 0.0/0.0 px; log `LOCK, auto 1.00, sharp ×2.00 (Fill ×2.09)`
 - PASS `w32_1500x1022_AUTO_sharp1_whole0_HOME_job`: sideways True, position 0.00, e 1.6; s 1.5984/1.6001 (want 1.6), dest [0, 1080]x[0, 2400], grid 25.5/25.5 phase 0.1/0.1 px; log `HOME, auto 0.00, sideways, auto turn`
 - PASS `w32_1500x1022_AUTO_sharp1_whole0_LOCK_job`: sideways True, position 0.00, e 1.6; s 1.5984/1.6001 (want 1.6), dest [0, 1080]x[0, 2400], grid 25.5/25.5 phase 0.1/0.1 px; log `LOCK, auto 0.00, sideways, auto turn`
 - PASS `w32_1500x1022_CENTRE_sharp1_whole0_LOCK_job`: sideways False, position 0.50, e 2.3483; s 2.0005/1.998 (want 2.0), dest [0, 1080]x[178, 2222], grid 32.0/32.0 phase 0.0/0.0 px; log `LOCK, sharp ×2.00 (Fill ×2.35)`
 - PASS `w4_1200x300_AUTO_sharp1_whole0_HOME_job`: sideways True, position 0.50, e 3.6; s 1.9999/2.0 (want 2.0), dest [240, 840]x[0, 2400], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME, sideways, auto turn, sharp ×2.00 (Fill ×3.60)`
 - PASS `w4_1200x300_AUTO_sharp1_whole0_LOCK_job`: sideways True, position 0.50, e 3.6; s 1.9999/2.0 (want 2.0), dest [240, 840]x[0, 2400], grid 32.0/32.0 phase 0.0/0.0 px; log `LOCK, sideways, auto turn, sharp ×2.00 (Fill ×3.60)`
-- PASS `tiny_640x480_CENTRE_sharp1_whole1_LOCK_job`: sideways False, position 0.50, e 5.0; s 1.6877/1.6877 (want 1.6875), dest [0, 1080]x[795, 1605], grid -/- phase -/- px; log `LOCK`
-- PASS `tiny_640x480_AUTO_sharp1_whole0_HOME_job`: sideways True, position 0.50, e 3.75; s 2.0002/2.0003 (want 2.0), dest [60, 1020]x[560, 1840], grid -/32.0 phase -/0.0 px; log `HOME, sideways, auto turn, sharp ×2.00 (Fill ×3.75)`
+- PASS `tiny_640x480_CENTRE_sharp1_whole1_LOCK_job`: sideways False, position 0.50, e 5.0; s 1.6877/1.6877 (want 1.6875), dest [0, 1080]x[795, 1605], grid 27.0/27.0 phase 0.16/0.16 px; log `LOCK`
+- PASS `tiny_640x480_AUTO_sharp1_whole0_HOME_job`: sideways True, position 0.50, e 3.75; s 2.0002/2.0003 (want 2.0), dest [60, 1020]x[560, 1840], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME, sideways, auto turn, sharp ×2.00 (Fill ×3.75)`
 - PASS `w32_3600x2400_CENTRE_sharp0_whole0_HOME_job`: sideways False, position 0.50, e 1.0; setStream, crop [1260, 0, 2340, 2400]; log `HOME`
 - PASS `w32_3600x2400_CENTRE_sharp0_whole0_LOCK_job`: sideways False, position 0.50, e 1.0; setStream, crop [1260, 0, 2340, 2400]; log `LOCK`
 - PASS `huge_8000x6000_AUTO_sharp1_whole1_LOCK_job`: sideways True, position 0.50, e 0.3; s 0.18/0.18 (want 0.18), dest [0, 1080]x[480, 1920], grid -/- phase -/- px; log `LOCK, sideways, auto turn`
 - PASS `w32_1500x1022_CENTRE_sharp1_whole0_BOTH_set`: sideways False, position 0.50, e 2.3483; s 2.0005/1.998 (want 2.0), dest [0, 1080]x[178, 2222], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sharp ×2.00 (Fill ×2.35)`
 - PASS `w32_1500x1022_CENTRE_sharp0_whole0_BOTH_set`: sideways False, position 0.50, e 2.3483; setStream, crop [521, 0, 980, 1022]; log `HOME+LOCK`
-- PASS `sq_1150_AUTO_sharp1_whole0_BOTH_set`: sideways False, position 1.00, e 2.087; s 2.0/2.0001 (want 2.0), dest [0, 1080]x[50, 2350], grid 32.0/- phase 0.0/- px; log `HOME+LOCK, auto 1.00, sharp ×2.00 (Fill ×2.09)`
-- PASS `tiny_640x480_AUTO_sharp1_whole1_BOTH_set`: sideways True, position 0.00, e 3.75; s 2.0002/2.0003 (want 2.0), dest [60, 1020]x[560, 1840], grid -/32.0 phase -/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (whole ×2.25)`
+- PASS `sq_1150_AUTO_sharp1_whole0_BOTH_set`: sideways False, position 1.00, e 2.087; s 2.0/2.0001 (want 2.0), dest [0, 1080]x[50, 2350], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, auto 1.00, sharp ×2.00 (Fill ×2.09)`
+- PASS `tiny_640x480_AUTO_sharp1_whole1_BOTH_set`: sideways True, position 0.00, e 3.75; s 2.0002/2.0003 (want 2.0), dest [60, 1020]x[560, 1840], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (whole ×2.25)`
 - PASS `w4_1200x300_AUTO_sharp1_whole0_BOTH_set`: sideways True, position 0.50, e 3.6; s 1.9999/2.0 (want 2.0), dest [240, 840]x[0, 2400], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (Fill ×3.60)`
 - PASS `huge_8000x6000_CENTRE_sharp0_whole0_BOTH_set`: sideways False, position 0.50, e 0.4; setStream, crop [2650, 0, 5350, 6000]; log `HOME+LOCK`
 - PASS `p920_2160x4800_CENTRE_sharp1_whole0_BOTH_set`: sideways False, position 0.50, e 0.5; setStream, crop [0, 0, 2160, 4800]; log `HOME+LOCK`
@@ -206,12 +220,12 @@ grid's period and phase), the set's log note.
 - PASS `w32_900x600_CENTRE_sharp1_whole0_BOTH_job_gal_p1.0_pill1`: sideways True, position 1.00, e 2.6667; s 2.0/2.0 (want 2.0), dest [0, 1080]x[300, 2100], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, sharp ×2.00 (Fill ×2.67)`
 - PASS `w32_900x600_AUTO_sharp1_whole0_BOTH_job_gal_p0.0_pill-`: sideways True, position 0.00, e 2.6667; s 2.0/2.0 (want 2.0), dest [0, 1080]x[300, 2100], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (Fill ×2.67)`
 - PASS `w32_900x600_AUTO_sharp1_whole0_BOTH_job_gal_p1.0_pill-`: sideways True, position 1.00, e 2.6667; s 2.0/2.0 (want 2.0), dest [0, 1080]x[300, 2100], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (Fill ×2.67)`
-- PASS `tiny_640x480_AUTO_sharp1_whole0_BOTH_job_gal_p0.0_pill-`: sideways True, position 0.00, e 3.75; s 2.0002/2.0003 (want 2.0), dest [60, 1020]x[560, 1840], grid -/32.0 phase -/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (Fill ×3.75)`
-- PASS `sq_1150_CENTRE_sharp1_whole0_BOTH_job_gal_p1.0_pill-`: sideways False, position 1.00, e 2.087; s 2.0/2.0001 (want 2.0), dest [0, 1080]x[50, 2350], grid 32.0/- phase 0.0/- px; log `HOME+LOCK, sharp ×2.00 (Fill ×2.09)`
+- PASS `tiny_640x480_AUTO_sharp1_whole0_BOTH_job_gal_p0.0_pill-`: sideways True, position 0.00, e 3.75; s 2.0002/2.0003 (want 2.0), dest [60, 1020]x[560, 1840], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, auto turn, sharp ×2.00 (Fill ×3.75)`
+- PASS `sq_1150_CENTRE_sharp1_whole0_BOTH_job_gal_p1.0_pill-`: sideways False, position 1.00, e 2.087; s 2.0/2.0001 (want 2.0), dest [0, 1080]x[50, 2350], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sharp ×2.00 (Fill ×2.09)`
 - PASS `w4_1200x300_CENTRE_sharp1_whole0_BOTH_job_gal_p0.0_pill1`: sideways True, position 0.00, e 3.6; s 1.9999/2.0 (want 2.0), dest [240, 840]x[0, 2400], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME+LOCK, sideways, sharp ×2.00 (Fill ×3.60)`
 - PASS `w32_1500x1022_AUTO_sharp0_whole0_BOTH_job_gal_p0.0_pill-`: sideways True, position 0.00, e 1.6; s 1.5984/1.6001 (want 1.6), dest [0, 1080]x[0, 2400], grid 25.5/25.5 phase 0.1/0.1 px; log `HOME+LOCK, sideways, auto turn`
 - PASS `w32_1500x1022_AUTO_sharp1_whole0_BOTH_turn`: sideways True, position 0.00, e 1.6; s 1.5984/1.6001 (want 1.6), dest [0, 1080]x[0, 2400], grid 25.5/25.5 phase 0.1/0.1 px; log `HOME+LOCK, auto 0.00, sideways, auto turn`
-- PASS `tiny_640x480_CENTRE_sharp1_whole1_LOCK_turn`: sideways False, position 0.50, e 5.0; s 1.6877/1.6877 (want 1.6875), dest [0, 1080]x[795, 1605], grid -/- phase -/- px; log `LOCK`
+- PASS `tiny_640x480_CENTRE_sharp1_whole1_LOCK_turn`: sideways False, position 0.50, e 5.0; s 1.6877/1.6877 (want 1.6875), dest [0, 1080]x[795, 1605], grid 27.0/27.0 phase 0.16/0.16 px; log `LOCK`
 - PASS `w32_3600x2400_CENTRE_sharp0_whole0_BOTH_turn`: sideways False, position 0.50, e 1.0; setStream, crop [1260, 0, 2340, 2400]; log `HOME+LOCK`
 - PASS `w4_1200x300_AUTO_sharp1_whole0_HOME_turn`: sideways True, position 0.50, e 3.6; s 1.9999/2.0 (want 2.0), dest [240, 840]x[0, 2400], grid 32.0/32.0 phase 0.0/0.0 px; log `HOME, sideways, auto turn, sharp ×2.00 (Fill ×3.60)`
 

@@ -415,7 +415,8 @@ packages unattended): `night.md`.
     and B say where each pixel came from; `scripts/sh4_run.py <pictures> <out> <case>…` fakes APOD's
     post (dated a day ahead, `sizeChecked` set, `darken` off), sets it by the job, a faked change
     time or Set and checks `files/debug-set.png` with `scripts/sh4_check.py` (`SH4_DEFER=1` and
-    `--recheck` move the slow pure-Python check off the device's time). In a wait loop, `pgrep -f`
+    `--recheck` move the slow pure-Python check off the device's time). Its own test:
+    `python3 scripts/sh4_check_test.py`. In a wait loop, `pgrep -f`
     on a pattern in the loop's own command line matches its own shell: it never ends.
   - Real split screen needs a second app picked in Recents (another app's screen): use `wm size
     600x1340` and back instead (V9).

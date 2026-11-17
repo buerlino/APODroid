@@ -10,7 +10,8 @@ written here from sharp-0.9.0.md's Terms alone (not from `:core`):
   per axis: longer than the screen at s → the visible length screen / s slides by the position
   (0 the left or top of the oriented picture) and the dest spans the screen; else the whole
   length, centred, the rest the background (blurred for these pictures, whose edges aren't black).
-Measured: along the middle row and the middle column, the source position from R and B, a
+Measured: along a row and a column near the dest's middle, each through the middle of a grid cell
+(source ≡ 8 mod 16, so the scan crosses the grid lines instead of running along one), the source position from R and B, a
 straight line fitted to it (the scale, and where the frame stands at the dest's edges), the
 turn by the signs (which corner is where), the grid's period (= s × 16, ± 1 px), the dest's
 edges by the checkerboard's contrast (the bands), the bands' pixels (not the sharp picture).
@@ -29,7 +30,8 @@ CELL = 16
 
 
 def read_png(path):
-    data = open(path, "rb").read()
+    with open(path, "rb") as f:
+        data = f.read()
     assert data[:8] == b"\x89PNG\r\n\x1a\n", "not a PNG"
     pos, idat, w = 8, bytearray(), None
     while pos < len(data):
@@ -123,9 +125,26 @@ def check(path, w, h, sideways, whole, limit, position):
             return sx if axis == 0 else sy
         return (h - 1 - sy) if axis == 0 else sx
 
+    def upright_src(t, axis):
+        # The upright picture's coordinate (its grid lines at multiples of 16) under screen pixel t on axis.
+        a = exp["x" if axis == 0 else "y"]
+        src = a["off"] + (t + 0.5 - a["d0"]) / s - 0.5
+        return (h - 1 - src) if (sideways and axis == 0) else src
+
+    def scan_line(axis):
+        # The line across the other axis to scan along: near the dest's middle, through the middle of a
+        # cell (source ≡ 8 mod 16), not on a grid line, where G is 255 all the way and no peak shows.
+        oax = 1 - axis
+        other = exp["y" if axis == 0 else "x"]
+        centre = round((other["d0"] + other["d1"]) / 2)
+        reach = int(CELL * max(s, 1)) + 2
+        cands = [m for m in range(centre - reach, centre + reach + 1)
+                 if other["d0"] + 3 <= m <= other["d1"] - 4]
+        return min(cands or [centre], key=lambda m: (abs(upright_src(m, oax) % CELL - CELL / 2), abs(m - centre)))
+
     for axis, name in ((0, "x"), (1, "y")):
-        ax, other = exp[name], exp["y" if axis == 0 else "x"]
-        mid = round((other["d0"] + other["d1"]) / 2)
+        ax = exp[name]
+        mid = scan_line(axis)
         lo, hi = int(ax["d0"]) + 3, int(ax["d1"]) - 4
         pts = []
         for t in range(lo, hi + 1):
@@ -151,7 +170,7 @@ def check(path, w, h, sideways, whole, limit, position):
             want = ax["off"] + (t - ax["d0"]) / s
             got = a * t + c
             worst = max(worst, abs(got - want) * s)
-        res[name] = {"s": round(s_meas, 4), "edge_err_px": round(worst, 2), "tol_px": round(tol, 2),
+        res[name] = {"line": mid, "s": round(s_meas, 4), "edge_err_px": round(worst, 2), "tol_px": round(tol, 2),
                      "start": round(a * ax["d0"] + c, 1), "start_want": round(ax["off"], 1)}
         if abs(s_meas / s - 1) > 0.015:
             res["problems"].append(f"{name}: scale {s_meas:.4f}, want {s:.4f}")
@@ -187,6 +206,9 @@ def check(path, w, h, sideways, whole, limit, position):
                 res[name]["grid_phase_px"] = round(phase[len(phase) // 2], 2)
                 if phase[len(phase) // 2] > 1.5:
                     res["problems"].append(f"{name}: grid lines {phase[len(phase) // 2]:.1f} px off the expected frame")
+            else:
+                # At 1:1 or larger the grid must show: without it the position rests on R and B alone.
+                res["problems"].append(f"{name}: no grid found along the line at {mid} ({len(peaks)} peaks)")
         # The dest's edges: from the middle outwards while the pixels match the expected mapping
         # (a band's blurred background doesn't); the expected dest ± 2 px.
         n = SW if axis == 0 else SH

@@ -398,7 +398,10 @@ text); a layout without a limit took 0.8.0's `setStream` each time. Testing 3: t
 real originals (7 Nov and a `%20` name: the original; the TIFF and a 4000×4000: the rendition),
 the update from 0.8.0 (Earth's thumbnail: one re-download, part and ★ reset; APOD's rendition:
 checked once, the original then) PASS; DIFFERENT: no real host answers the probe with 200 (only
-`ProbeTest` covers it). No FAIL, no SH4f.
+`ProbeTest` covers it). No FAIL, no SH4f. Fix round 1 (the audit): the grid check skipped some cases
+without a word (its scan ran along a grid line); it now scans through a cell's middle and FAILs
+without a grid at s ≥ 1 (`scripts/sh4_check_test.py`); all 151 judged again, PASS, the grid on
+every bitmap case at s ≥ 1.
 
 ## Open
 

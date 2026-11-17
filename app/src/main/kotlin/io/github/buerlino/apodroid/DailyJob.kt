@@ -13,6 +13,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import io.github.buerlino.apodroid.core.JobRuns
 import io.github.buerlino.apodroid.core.UserExit
 import io.github.buerlino.apodroid.core.isForceStopSummary
@@ -209,7 +210,13 @@ class DailyJob : JobService() {
          * whose summary names the force stop's subreason.
          */
         private fun userExits(context: Context, armedAt: Instant?): List<UserExit> {
-            if (!readsExitRecords(Build.VERSION.SDK_INT)) return emptyList()
+            // The explicit R check for lint (it can't read :core's readsExitRecords).
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || !readsExitRecords(Build.VERSION.SDK_INT)) return emptyList()
+            return readExitRecords(context, armedAt)
+        }
+
+        @RequiresApi(Build.VERSION_CODES.R)
+        private fun readExitRecords(context: Context, armedAt: Instant?): List<UserExit> {
             return runCatching {
                 // All of them (0: no cap), TP1f1: 16 dropped none on T4's emulator, but costs nothing.
                 val records = context.getSystemService(ActivityManager::class.java)

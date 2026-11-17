@@ -101,6 +101,8 @@ import io.github.buerlino.apodroid.core.toSave
 import io.github.buerlino.apodroid.core.usEastern
 import io.github.buerlino.apodroid.core.videoDayKept
 import io.github.buerlino.apodroid.core.renditionUrl
+import io.github.buerlino.apodroid.core.originalSize
+import io.github.buerlino.apodroid.core.takesOriginal
 import java.io.File
 import java.io.IOException
 import java.io.InterruptedIOException
@@ -922,8 +924,9 @@ class Store(private val context: Context) {
         if (stored != null && latest.date < stored.date && isComplete(stored)) return
         val url = latest.imageUrl
         val file = imageFile(source)
-        if (url != null && (latest.date != stored?.date || url != stored.imageUrl || !file.exists() ||
-                (source == Source.EARTH && prefs.getString("earth.thumbFallback", null) == url))) {
+        val downloads = url != null && (latest.date != stored?.date || url != stored.imageUrl || !file.exists() ||
+            (source == Source.EARTH && prefs.getString("earth.thumbFallback", null) == url))
+        if (url != null && downloads) {
             // Else every page open, job run and retry would download it again (13 MB, say).
             if (url == prefs.getString(source.key("badUrl"), null)) throw SiteChanged("Not an image, not downloaded again: $url")
             val part = File(context.filesDir, "${source.name.lowercase()}.part")
@@ -942,12 +945,17 @@ class Store(private val context: Context) {
             }
             prefs.edit {
                 remove(source.key("badUrl"))
+                // SH2b: the download probed the original, so the check of a post stored by 0.8.0 isn't owed.
+                putString(source.key("sizeChecked"), url)
                 // EF1: noted only once the thumbnail is stored, cleared by a real download.
                 if (source == Source.EARTH) {
                     val note = thumbFallbackNote(thumbnail, url)
                     if (note != null) putString("earth.thumbFallback", note) else remove("earth.thumbFallback")
                 }
             }
+        } else if (url != null) {
+            // SH2b: the same post with its picture; one stored by 0.8.0 (the rendition) is checked once.
+            checkSize(source)
         }
         // A new post (another date or picture) is marked as its check says; the same post keeps its mark.
         store(latest, gap.takeIf { stored == null || latest.date != stored.date || latest.imageUrl != stored.imageUrl })
@@ -960,6 +968,92 @@ class Store(private val context: Context) {
         // VS1: a new post or an image day lets the video's still go.
         if (latest.source == Source.APOD) dropVideoStill(keep = latest)
         noteSubject(source)
+    }
+
+    /**
+     * What a page open or Set that skips [source]'s check owes its stored post (T3f1's hooks):
+     * the check of its size ([checkSize], SH2b), then its subject ([noteSubject]).
+     */
+    private fun noteStored(source: Source) {
+        checkSize(source)
+        noteSubject(source)
+    }
+
+    /**
+     * Blocking (the network: a 64 KB request, then maybe the original). SH2b: [source]'s stored
+     * post, stored by 0.8.0 as the screen-tall rendition, gets the probe its download would have
+     * had now, once per post (`<source>.sizeChecked`, the picture URL, committed first, so a
+     * failure, a kill or a stop doesn't repeat it): when the original wouldn't cover the screen,
+     * it is downloaded (via `.part`, decodable) and replaces the stored file, the same post and
+     * key, its subject noted again ([noteSubject]: it was noted from the rendition). Not while
+     * Earth's thumbnail is noted (each refresh tries the real picture anyway, EF1). A failure is
+     * logged and never fails the refresh; a stop is thrown. Under [refreshLock].
+     */
+    private fun checkSize(source: Source): Unit = synchronized(refreshLock) {
+        val post = post(source) ?: return
+        val url = post.imageUrl ?: return
+        val file = imageFile(source)
+        if (post.isVideo || !file.exists() || prefs.getString(source.key("sizeChecked"), null) == url) return
+        if (source == Source.EARTH && prefs.getString("earth.thumbFallback", null) == url) return
+        prefs.edit(commit = true) { putString(source.key("sizeChecked"), url) }
+        val part = File(context.filesDir, "${source.name.lowercase()}.part")
+        try {
+            if (!downloadOriginal(post, part)) return
+            if (!part.renameTo(file)) throw StorageFailed(IOException("Couldn't rename ${part.name}"))
+            // The subject was noted from the rendition: noted again from the original.
+            prefs.edit {
+                remove(source.key("subjectDate"))
+                remove(source.key("subjectUrl"))
+            }
+            Log.i("APODroid", "Refresh: ${source.name} ${post.date} stored picture replaced by the original")
+        } catch (e: IOException) {
+            part.delete()
+            if (e.isStop()) throw e
+            Log.w("APODroid", "Refresh: ${source.name} ${post.date} couldn't store the original: $e")
+        }
+    }
+
+    /**
+     * SH2b: probes [post]'s original ([originalSize], its first 64 KB) and, when it wouldn't cover
+     * the screen at 1:1 ([takesOriginal]), downloads it to [part] (a complete, decodable image);
+     * true then. False (nothing in [part]) when the original covers the screen (the screen-tall
+     * rendition is the one), the probe failed or found no size (logged: no limit can bite on a
+     * rendition), the original's download failed (logged), or the host doesn't scale (the
+     * rendition is the original itself: no probe). Throws a stop and [StorageFailed].
+     */
+    private fun downloadOriginal(post: Post, part: File): Boolean {
+        val url = post.imageUrl ?: return false
+        val original = originalUrl(post) ?: return false
+        val screen = screen
+        if (original == renditionUrl(url, screen.height)) return false
+        val what = "Refresh: ${post.source.name} ${post.date}"
+        val size = try {
+            originalSize(original, userAgent)
+        } catch (e: IOException) {
+            if (e.isStop()) throw e
+            Log.i("APODroid", "$what probe failed: $e")
+            return false
+        }
+        if (size == null) {
+            Log.i("APODroid", "$what probe failed: no size in the original's first bytes")
+            return false
+        }
+        val (w, h) = size
+        if (!takesOriginal(w, h, screen.width, screen.height)) {
+            Log.i("APODroid", "$what rendition (original ${w}×$h)")
+            return false
+        }
+        try {
+            download(original, part, userAgent)
+            if (!isImage(part)) throw SiteChanged("Not an image: $original")
+        } catch (e: IOException) {
+            part.delete()
+            if (e is StorageFailed || e.isStop()) throw e
+            Log.w("APODroid", "$what original ${w}×$h failed, the rendition instead: $e")
+            return false
+        }
+        Log.i("APODroid", "$what original ${w}×$h (smaller than the screen)")
+        return true
     }
 
     /**
@@ -1106,11 +1200,14 @@ class Store(private val context: Context) {
     }
 
     /**
-     * [url] scaled by the host to the screen's height, which fills the screen without the
-     * original's size (NASA's go up to 97 MB). If that fails, APOD and Earth Observatory fall
-     * back to [url] as is (1280 px for APOD); NASA's is the original, so it fails.
+     * The original when it's smaller than the screen ([downloadOriginal], SH2b: the rendition
+     * would be it enlarged by the server), else [url] scaled by the host to the screen's height,
+     * which fills the screen without the original's size (NASA's go up to 97 MB). If that fails,
+     * APOD and Earth Observatory fall back to [url] as is (1280 px for APOD); NASA's is the
+     * original, so it fails. True when Earth's thumbnail came (EF1).
      */
     private fun downloadPicture(post: Post, url: String, part: File): Boolean {
+        if (downloadOriginal(post, part)) return false
         try {
             downloadRendition(post, url, part)
             return false
@@ -1169,7 +1266,7 @@ class Store(private val context: Context) {
             try {
                 // T3f1: a page open or Set within the hour of the last check still notes the subject
                 // (an update from 0.7.0), else Set's still went on at the middle with Size Auto.
-                if (force || !page || !checkedRecently(source)) checkSite(source, force, page) else noteSubject(source)
+                if (force || !page || !checkedRecently(source)) checkSite(source, force, page) else noteStored(source)
             } catch (e: Exception) {
                 if (e.isStop()) throw e
                 failure = failure ?: e
@@ -1488,7 +1585,7 @@ class Store(private val context: Context) {
         val current = isCurrent(source)
         try {
             // SA3a: a page open that skips today's stored post still notes its subject (an update from 0.7.0), for Set.
-            if (force || !page || !current) refresh(source) else noteSubject(source)
+            if (force || !page || !current) refresh(source) else noteStored(source)
         } catch (e: Exception) {
             if (e.isStop()) throw e // not the site's fault
             if (current && !force) {

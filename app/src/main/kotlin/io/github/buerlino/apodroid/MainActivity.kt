@@ -162,10 +162,12 @@ import io.github.buerlino.apodroid.core.equalColumns
 import io.github.buerlino.apodroid.core.firstStarted
 import io.github.buerlino.apodroid.core.forPost
 import io.github.buerlino.apodroid.core.framePosition
+import io.github.buerlino.apodroid.core.hasUp
 import io.github.buerlino.apodroid.core.livePosition
 import io.github.buerlino.apodroid.core.maker
 import io.github.buerlino.apodroid.core.missedWhen
 import io.github.buerlino.apodroid.core.notedPosition
+import io.github.buerlino.apodroid.core.notedSideways
 import io.github.buerlino.apodroid.core.orderOf
 import io.github.buerlino.apodroid.core.partOf
 import io.github.buerlino.apodroid.core.pictureAtOrDefault
@@ -173,7 +175,7 @@ import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.sidewaysHelps
-import io.github.buerlino.apodroid.core.wideSidewaysOf
+import io.github.buerlino.apodroid.core.sidewaysOf
 import io.github.buerlino.apodroid.core.sizeOf
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
@@ -304,9 +306,6 @@ class MainActivity : ComponentActivity() {
     /** "Darken bright pictures" ([Store.darken], BR2): each set darkens a bright picture a little. */
     private var darken by mutableStateOf(true)
 
-    /** "Wide pictures sideways" ([Store.wideSideways], SW3): a picture 3:2 or wider goes on sideways unless ⛶ noted otherwise. */
-    private var wideSideways by mutableStateOf(false)
-
     /** "Centre when unsure" ([Store.autoFallback], UI1; SA3b's Advanced switch before): Auto keeps the middle for a small move. */
     private var autoFallback by mutableStateOf(true)
 
@@ -387,13 +386,14 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Crop mode's "Sideways" toggle (SW2, issue #4): the picture turned 90° clockwise; ✓ saves and
-     * sets it, Back drops it. It opens on the effective value ([turnsSideways], SW3).
+     * sets it, Back drops it. It opens on the value used ([turnsSideways]: the pill's, else Auto's turn).
      */
     private var cropSideways by mutableStateOf(false)
 
     /**
-     * Whether the pill was touched since ⛶ opened (SW3): ✓ then notes its value; untouched, ✓ keeps
-     * the part's previous one (null stays the switch's default, so a later switch change applies).
+     * Whether the pill was touched since ⛶ opened (SW3): ✓ then notes its value; untouched (and the
+     * frame not dragged), ✓ keeps the part's previous one (null stays Auto's turn, so a later change
+     * of Size or of NASA's text applies).
      */
     private var cropSidewaysTouched by mutableStateOf(false)
 
@@ -591,7 +591,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, wideSideways, autoFallback)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, autoFallback)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -603,7 +603,6 @@ class MainActivity : ComponentActivity() {
         pictureAt = setup.pictureAt
         soon = setup.soon
         darken = setup.darken
-        wideSideways = setup.wideSideways
         autoFallback = setup.autoFallback
         order = setup.order
         size = setup.size
@@ -1441,13 +1440,14 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Crop mode closes; the frame's place and the "Whole picture" and "Sideways" toggles are
-     * [post]'s part in the draft. An untouched "Sideways" keeps the part's previous value (SW3:
-     * null, the switch's default, stays null), and so does an undragged frame (SA3b: null, the
-     * stored Size's frame, stays null).
+     * [post]'s part in the draft. An untouched "Sideways" keeps the part's previous value (null,
+     * Auto's turn, stays null) unless the frame was dragged (0.9.0: the drag notes its orientation,
+     * `:core`'s [notedSideways]), and an undragged frame keeps its position (SA3b: null, the stored
+     * Size's frame, stays null).
      */
     private fun keepPart(post: Post) {
         val previous = parts.forPost(post)
-        val sideways = if (cropSidewaysTouched) cropSideways else previous?.sideways
+        val sideways = notedSideways(cropSidewaysTouched, cropMoved, cropSideways, previous?.sideways)
         val position = notedPosition(cropMoved, cropPosition, previous?.position)
         parts = parts + (post.source to Part(post.date, post.imageUrl, position, cropWhole, sideways))
         cropping = false
@@ -1465,14 +1465,16 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Whether [source]'s picture goes on sideways with a part noting [sideways] (SW3, `:core`'s
-     * [wideSidewaysOf], as [Store.turnsSideways]): that value, else the rule by its [uprightSizes]
-     * while the **stored** "Wide pictures sideways" is on and the stored Size isn't Live (SW3f1: under
-     * Live ⛶'s pill opens on the part's explicit value, else upright). Stored, not the draft's: ✓ sets at once
-     * by the stored setup (as ⛶ with Live, T04).
+     * Whether [post]'s picture goes on sideways with a part noting [sideways] (0.9.0, SH2a, `:core`'s
+     * [sidewaysOf], as [Store.turnsSideways]): that value (⛶'s pill), else Auto's turn while the
+     * **stored** Size is Auto, an APOD landscape picture by its [uprightSizes] whose text has no up
+     * ([hasUp]), else upright. Stored, not the draft's: ✓ sets at once by the stored setup (as ⛶
+     * with Live, T04).
      */
-    private fun turnsSideways(source: Source, sideways: Boolean?): Boolean =
-        wideSidewaysOf(sideways, stored.wideSideways, stored.size) { uprightSizes[source]?.let { it.width to it.height } }
+    private fun turnsSideways(post: Post, sideways: Boolean?): Boolean =
+        sidewaysOf(sideways, stored.size, post.source, { uprightSizes[post.source]?.let { it.width to it.height } }) {
+            hasUp(post.title, post.alt, post.explanation)
+        }
 
     /**
      * ✓ (U0, 2026-11-02: users expected ✓ to set it): [keepPart], then, when the part differs from
@@ -1487,8 +1489,8 @@ class MainActivity : ComponentActivity() {
         keepPart(post)
         val part = parts.getValue(post.source)
         val saved = stored.parts.forPost(post)
-        val turned = turnsSideways(post.source, part.sideways)
-        val savedTurned = turnsSideways(post.source, saved?.sideways)
+        val turned = turnsSideways(post, part.sideways)
+        val savedTurned = turnsSideways(post, saved?.sideways)
         // SA3b: the frames compared where they stand (an undragged one by Size and the subject).
         if (frameOf(post, part, turned) == frameOf(post, saved, savedTurned) && part.whole == (saved?.whole == true) &&
             turned == savedTurned && part != failedPart
@@ -1531,7 +1533,7 @@ class MainActivity : ComponentActivity() {
     private fun startCrop(post: Post) {
         val part = parts.forPost(post)
         cropWhole = part?.whole == true
-        cropSideways = turnsSideways(post.source, part?.sideways)
+        cropSideways = turnsSideways(post, part?.sideways)
         cropSidewaysTouched = false
         cropPosition = frameOf(post, part, cropSideways)
         cropMoved = false
@@ -1779,7 +1781,7 @@ class MainActivity : ComponentActivity() {
             // (by its file's upright size, SW3, the page's decoded picture as a fallback).
             val upright = uprightSizes[source] ?: IntSize(picture.width, picture.height)
             if (crop && sidewaysHelps(upright.width, upright.height)) {
-                val sidewaysChanged = cropSideways != turnsSideways(source, stored.parts.forPost(post)?.sideways)
+                val sidewaysChanged = cropSideways != turnsSideways(post, stored.parts.forPost(post)?.sideways)
                 Text(
                     (if (cropSideways) "✓ " else "") + "Sideways",
                     Modifier
@@ -2172,8 +2174,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(daily, videoDays, draftFallback, stored.videoDays) { if (!daily) dropVideoDays() }
         LaunchedEffect(daily, pictureAt, stored.pictureAt) { if (!daily) pictureAt = stored.pictureAt }
         LaunchedEffect(daily, soon, stored.soon) { if (!daily) soon = stored.soon }
-        // UI1: "Wide pictures sideways" hidden under the draft's Live, "Centre when unsure" shown only with Auto.
-        LaunchedEffect(size, wideSideways, stored.wideSideways) { if (size == Sizing.LIVE) wideSideways = stored.wideSideways }
+        // UI1: "Centre when unsure" shown only with Auto.
         LaunchedEffect(size, autoFallback, stored.autoFallback) { if (size != Sizing.AUTO) autoFallback = stored.autoFallback }
         val setupChanged = setupChanged()
         // Opens by itself while the draft differs (a rotation, the system killing the app).
@@ -2228,13 +2229,6 @@ class MainActivity : ComponentActivity() {
                     "Darken bright pictures", darken, stored.darken, about = "About Darken bright pictures",
                     info = "Darkens a bright picture a little, so the clock and widgets stay readable.",
                 ) { darken = it }
-                // SW3, UI1: Centre's and Auto's, so hidden while the draft's Size is Live (put back to the stored value).
-                if (size != Sizing.LIVE) {
-                    DraftSwitch(
-                        "Wide pictures sideways", wideSideways, stored.wideSideways, about = "About Wide pictures sideways",
-                        info = "Turns a wide picture a quarter turn, so more of it fills the screen. ⛶ › Sideways changes one picture.",
-                    ) { wideSideways = it }
-                }
                 // UI1 (was SA3b's Advanced switch): Auto's, part of the draft, shown only with Size Auto.
                 if (size == Sizing.AUTO) {
                     DraftSwitch(
@@ -2427,7 +2421,7 @@ class MainActivity : ComponentActivity() {
         allSources != stored.allSources ||
             (if (allSources) Source.entries.any(::rowChanged) || order != stored.order else where != stored.where) ||
             interval != stored.interval || pictureAt != stored.pictureAt || soon != stored.soon ||
-            darken != stored.darken || wideSideways != stored.wideSideways || size != stored.size ||
+            darken != stored.darken || size != stored.size ||
             autoFallback != stored.autoFallback || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
@@ -3030,7 +3024,6 @@ private fun Setup.toBundle() = Bundle().apply {
     putInt("pictureAt", pictureAt)
     putBoolean("soon", soon)
     putBoolean("darken", darken)
-    putBoolean("wideSideways", wideSideways)
     putBoolean("autoFallback", autoFallback)
     putString("size", size.name)
     putString("order", order.joinToString(",") { it.name })
@@ -3052,7 +3045,6 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         pictureAt = pictureAtOrDefault(bundle.getInt("pictureAt", DEFAULT_PICTURE_AT)),
         soon = bundle.getBoolean("soon"),
         darken = bundle.getBoolean("darken", true),
-        wideSideways = bundle.getBoolean("wideSideways", false),
         autoFallback = bundle.getBoolean("autoFallback", true),
         size = sizeOf(bundle.getString("size")),
         order = orderOf(bundle.getString("order")),

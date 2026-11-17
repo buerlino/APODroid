@@ -43,6 +43,22 @@ class PartTest {
     }
 
     @Test
+    fun checkNotesTheOrientationWithADrag() {
+        // 0.9.0 (sharp-0.9.0.md, The rules): untouched and undragged, the previous value, null
+        // (Auto's turn) staying null.
+        for (previous in listOf(null, true, false)) {
+            for (shown in listOf(true, false)) assertEquals(previous, notedSideways(touched = false, moved = false, shown = shown, previous = previous))
+        }
+        // A touched pill notes its value, as SW3 did.
+        assertEquals(true, notedSideways(touched = true, moved = false, shown = true, previous = null))
+        assertEquals(false, notedSideways(touched = true, moved = false, shown = false, previous = true))
+        // A drag notes the orientation it was made in, also Auto's turn's (shown sideways, previous null).
+        assertEquals(true, notedSideways(touched = false, moved = true, shown = true, previous = null))
+        assertEquals(false, notedSideways(touched = false, moved = true, shown = false, previous = null))
+        assertEquals(false, notedSideways(touched = true, moved = true, shown = false, previous = true))
+    }
+
+    @Test
     fun anUndraggedPartFollowsSizeAndTheFallback() {
         // A part ✓'d only for "Whole picture" or the pill: Centre the middle, Auto the subject.
         val part = Part(date, url, null, true, null)

@@ -41,6 +41,9 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - 0.8.0, Sideways (issue #4: a wide picture turned 90° clockwise, a toggle per picture in ⛶ mode, later a Setup switch; planned 2026-11-15): [.claude/skills/build-apodroid-android/sideways-0.8.0.md](.claude/skills/build-apodroid-android/sideways-0.8.0.md).
 - 0.9.0's release plan (user, 2026-11-16 and 17: LG, TP1, EF1f1, UI1f1, SZ1, R4, T4, T5; E and ER moved to 0.10.0): [.claude/skills/build-apodroid-android/release-0.9.0.md](.claude/skills/build-apodroid-android/release-0.9.0.md).
 - 0.9.0, sharp pictures and Auto's turn (Keep pictures sharp, Size Auto turning an APOD by its text, the original when smaller than the screen, Earth's picture link; planned 2026-11-16): [.claude/skills/build-apodroid-android/sharp-0.9.0.md](.claude/skills/build-apodroid-android/sharp-0.9.0.md).
+- 0.10.0, the hardening, then 1.0.0 (user, 2026-11-22: emulators 10, 12, 13, 14, 17, a code review, SIM 20k, the
+  updates from old versions, a real week on three devices with the app's log file; a feature freeze until 1.0.0):
+  [.claude/skills/build-apodroid-android/release-0.10.0.md](.claude/skills/build-apodroid-android/release-0.10.0.md).
 - A clearer Setup and leaner texts (planned for 0.7.0, 2026-10-29; MK and UI1–UI3 built in 0.6.0 as U0, 2026-11-02, with ⛶'s ✓ setting again; what's left for 0.7.0 is there): [.claude/skills/build-apodroid-android/lean-ui-0.7.0.md](.claude/skills/build-apodroid-android/lean-ui-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).

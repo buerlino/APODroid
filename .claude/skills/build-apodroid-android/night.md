@@ -97,7 +97,7 @@ out once it's done. Since 2026-11-14 (user: everything queued) no row waits for 
 run as rosie's rows, L6 builds on L1 (L2 on the FP6 checks it later), O12 decides from O7's report;
 left by hand: O9, L2, O16, O17, L9's two days, L10, E, the FP6's week, the tag. The regression after the last row reruns dev's debug build; let it run. Only APODroid's nights
 use the tablet (pascaline's leave HA24BZ2Y alone). Done rows stay in the table: `scripts/pipeline.test.sh` resolves
-every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-android/night.md`, before 2026-11-13).
+every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the hardening; the emulator rounds' rows go in after ER, one level per night). 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-android/night.md`, before 2026-11-13).
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -178,6 +178,11 @@ every row. 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-an
 | 75 | SZ1 | An ⓘ for Size: Centre, Auto (and its turn), Live (text approved) | winston | sonnet, medium | yes | R4 | release-0.9.0.md SZ1 |
 | 76 | TP1f1 | The detector's exit record isn't seen on Android 14 (debug on the emulator, then fix) | winston | opus, medium | yes | TP1, T4 | release-0.9.0.md TP1f1 |
 | 77 | T5 | A second emulator round on the final tree (T4 again, the gaps, 0.8.0's paths, screenshots) | rosie | opus, high | no | TP1f1 | release-0.9.0.md T5 |
+| 78 | LOG | The week's log file: Download/APODroid/log.txt, turned on by adb only | winston | opus, medium | yes | — | release-0.10.0.md LOG |
+| 79 | A17 | Android 17's rules by reading, against the code; a table in emulator.md | winston | opus, high | no | — | release-0.10.0.md A17 |
+| 80 | ER | emulator.md for today's app; apodroid-37 set up; E17–E13 and UP written into release-0.10.0.md | winston | sonnet, medium | no | A17 | release-0.10.0.md ER |
+| 81 | SIM | RulesSimulationTest over 20,000 seeds; each failing seed a BUG: line | winston | sonnet, low | no | — | release-0.10.0.md SIM |
+| 82 | CR | A code review of the whole app by reading, correctness only, each finding verified | winston | opus, high | no | LOG | release-0.10.0.md CR |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

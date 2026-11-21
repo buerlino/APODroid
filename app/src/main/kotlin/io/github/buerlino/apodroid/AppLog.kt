@@ -14,6 +14,9 @@ import android.os.Process
 import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.edit
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.nio.ByteBuffer
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
@@ -91,15 +94,33 @@ object AppLog {
                 },
             ) ?: return
             uri = file
-            val size = resolver.openFileDescriptor(file, "r")?.use { it.statSize } ?: 0L
-            if (size >= LIMIT) {
-                val text = resolver.openInputStream(file)?.use { it.readBytes() } ?: ByteArray(0)
-                // The newer half, from a line's start.
-                var from = text.size / 2
-                while (from < text.size && text[from - 1] != '\n'.code.toByte()) from++
-                resolver.openOutputStream(file, "wt")?.use { it.write(text, from, text.size - from) }
+            // One "rw" descriptor for the size, the trim and the append: a row MediaStore has just
+            // made has no file on disk yet, and only an open for writing makes it (a first open
+            // for reading failed with ENOENT, fix round 2). Appended by the channel's position,
+            // not by "wa", which not every Android's MediaStore honours.
+            resolver.openFileDescriptor(file, "rw")?.use { pfd ->
+                FileOutputStream(pfd.fileDescriptor).channel.use { out ->
+                    var size = out.size()
+                    if (size >= LIMIT) {
+                        val text = ByteArray(size.toInt())
+                        val buffer = ByteBuffer.wrap(text)
+                        FileInputStream(pfd.fileDescriptor).channel.let { input ->
+                            input.position(0)
+                            while (buffer.hasRemaining() && input.read(buffer) >= 0) Unit
+                        }
+                        // The newer half, from a line's start.
+                        var from = text.size / 2
+                        while (from < text.size && text[from - 1] != '\n'.code.toByte()) from++
+                        out.truncate(0)
+                        out.position(0)
+                        out.write(ByteBuffer.wrap(text, from, text.size - from))
+                        size = out.size()
+                    }
+                    out.position(size)
+                    val bytes = ByteBuffer.wrap(line.toByteArray())
+                    while (bytes.hasRemaining()) out.write(bytes)
+                }
             }
-            resolver.openOutputStream(file, "wa")?.use { it.write(line.toByteArray()) }
         } catch (e: Exception) {
             // Gone (deleted in a file manager): made again at the next line.
             uri = null

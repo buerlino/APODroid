@@ -1750,6 +1750,21 @@ saying what will happen ("the user has all power"); the pref `pauseHintHidden` k
 for good, also when the switch is turned on again (user: it's the user's choice; only clearing
 storage brings it back). No battery-optimisation permission.
 
+**The week's log** (LOG, 2026-11-22; `plan-0.7.0.md`, for 0.10.0's real week on three devices):
+every app log line goes through `AppLog` (logcat, tag `APODroid`) and, only after
+`adb shell am start -n io.github.buerlino.apodroid/.MainActivity --ez weekLog true` (the launcher
+activity is exported, so a release build takes it; `false` turns it off), also to
+`Download/APODroid/log.txt` through `MediaStore.Downloads` (no permission on 10+; `adb pull
+/sdcard/Download/APODroid/log.txt`, or a file manager): the local time, the process id, I/W/E, the
+line (a throwable's stack under it); one daemon writer thread, the calls' order; at about 1 MB the
+older half dropped; a write error is dropped (logcat only), never failing a run. The pref `weekLog`,
+default off; no UI, no text, no permission; never turned on, no file. Each process start (`App`, the
+manifest's `Application`) adds `Process start: APODroid <version>, Android <release> (API <n>),
+<maker> <model>, bucket <name>, battery optimisation on|off, Keep running on|off, setup: …` (the
+stored setup in one line), and turning it on writes `Week log: on` and that line, off `Week log:
+off` last. After a reinstall or "Clear storage" the old file isn't the app's (MediaStore's owner),
+so a new one is `log (1).txt` (night default).
+
 Permissions (user approved, 2026-10-01), all granted at install with no prompt: `INTERNET`,
 `SET_WALLPAPER`, `RECEIVE_BOOT_COMPLETED` (for `setPersisted` and the alarms' boot receiver), `ACCESS_NETWORK_STATE` (Android
 14+ throws on `schedule()` for a job with a network constraint without it; no constraint would

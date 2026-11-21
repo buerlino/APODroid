@@ -12,7 +12,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.service.wallpaper.WallpaperService
-import android.util.Log
 import android.util.Size
 import android.view.SurfaceHolder
 import androidx.core.graphics.scale
@@ -96,7 +95,7 @@ class LiveWallpaper : WallpaperService() {
             safely("start") {
                 setOffsetNotificationsEnabled(false)
                 val store = Store(applicationContext).also { store = it }
-                Log.i(TAG, "Live: engine ${label()} created")
+                AppLog.i("Live: engine ${label()} created")
                 // Home's id says whether home is live: below 14 the system can't say without QUERY_ALL_PACKAGES,
                 // and on 14+ a rebind after a process death may not say it for minutes (noted only while it does).
                 if (!isPreview) store.noteHomeId()
@@ -118,7 +117,7 @@ class LiveWallpaper : WallpaperService() {
                 decoder.shutdownNow()
                 picture?.recycle()
                 picture = null
-                Log.i(TAG, "Live: engine ${label()} destroyed")
+                AppLog.i("Live: engine ${label()} destroyed")
             }
             super.onDestroy()
         }
@@ -156,7 +155,7 @@ class LiveWallpaper : WallpaperService() {
         }
 
         override fun onWallpaperFlagsChanged(which: Int) {
-            Log.i(TAG, "Live: engine flags $which")
+            AppLog.i("Live: engine flags $which")
             draw()
         }
 
@@ -170,7 +169,7 @@ class LiveWallpaper : WallpaperService() {
         override fun onCommand(action: String?, x: Int, y: Int, z: Int, extras: Bundle?, resultRequested: Boolean): Bundle? {
             if (action == COMMAND_REAPPLY && !isPreview && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 safely("note the re-apply") {
-                    Log.i(TAG, "Live: engine re-applied")
+                    AppLog.i("Live: engine re-applied")
                     store?.noteHomeId()
                 }
                 reload()
@@ -190,7 +189,7 @@ class LiveWallpaper : WallpaperService() {
         private fun checkStray() {
             if (isPreview || Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
             val now = safely("check home") { store?.let { liveStray(it.liveOn(Screen.HOME), it.liveSettling) } } == true
-            if (now && !stray) Log.i(TAG, "Live: home isn't live (stray on the lock screen)")
+            if (now && !stray) AppLog.i("Live: home isn't live (stray on the lock screen)")
             stray = now
         }
 
@@ -205,7 +204,7 @@ class LiveWallpaper : WallpaperService() {
             safely("check the run") {
                 val store = store ?: return@safely
                 if (store.screenOnRunOwed(stray)) {
-                    Log.i(TAG, "Live: screen on, run owed")
+                    AppLog.i("Live: screen on, run owed")
                     DailyJob.runNow(applicationContext)
                 }
             }
@@ -249,7 +248,7 @@ class LiveWallpaper : WallpaperService() {
                 decoder.execute {
                     val start = SystemClock.uptimeMillis()
                     val bitmap = decode(file, wantWhole, wantSideways, screen)
-                    if (bitmap != null) Log.i(TAG, "Live: decoded ${bitmap.width}×${bitmap.height} in ${SystemClock.uptimeMillis() - start} ms")
+                    if (bitmap != null) AppLog.i("Live: decoded ${bitmap.width}×${bitmap.height} in ${SystemClock.uptimeMillis() - start} ms")
                     // L9a: the small copy first, while the bitmap is still this thread's (show may
                     // recycle it), then the picture shown at once; the colours (WallpaperColors.fromBitmap,
                     // most of a second on the tablet) after it, so a new engine's first frame isn't black.
@@ -294,7 +293,7 @@ class LiveWallpaper : WallpaperService() {
                 return try {
                     wholePicture(file, screen, sideways)
                 } catch (e: Throwable) {
-                    Log.w(TAG, "Live: couldn't decode ${file.name} whole: $e")
+                    AppLog.w("Live: couldn't decode ${file.name} whole: $e")
                     null
                 }
             }
@@ -308,10 +307,10 @@ class LiveWallpaper : WallpaperService() {
                         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
                     }.let { if (sideways) turned(it) else it }
                 } catch (e: OutOfMemoryError) {
-                    Log.w(TAG, "Live: couldn't decode ${file.name} within $budget bytes: $e")
+                    AppLog.w("Live: couldn't decode ${file.name} within $budget bytes: $e")
                     budget /= 4
                 } catch (e: Throwable) {
-                    Log.w(TAG, "Live: couldn't decode ${file.name}: $e")
+                    AppLog.w("Live: couldn't decode ${file.name}: $e")
                     return null
                 }
             }
@@ -331,7 +330,7 @@ class LiveWallpaper : WallpaperService() {
             }
             if (factor < 1f) darkened(scaled, factor) else scaled
         } catch (e: Throwable) {
-            Log.w(TAG, "Live: couldn't compute the colours: $e")
+            AppLog.w("Live: couldn't compute the colours: $e")
             null
         }
 
@@ -339,7 +338,7 @@ class LiveWallpaper : WallpaperService() {
         private fun colorsOf(small: Bitmap): WallpaperColors? = try {
             WallpaperColors.fromBitmap(small)
         } catch (e: Throwable) {
-            Log.w(TAG, "Live: couldn't compute the colours: $e")
+            AppLog.w("Live: couldn't compute the colours: $e")
             null
         } finally {
             small.recycle()
@@ -363,11 +362,11 @@ class LiveWallpaper : WallpaperService() {
                 val canvas = try {
                     surfaceHolder.lockCanvas()
                 } catch (e: Throwable) {
-                    Log.w(TAG, "Live: couldn't draw: $e")
+                    AppLog.w("Live: couldn't draw: $e")
                     null
                 }
                 if (canvas == null) {
-                    Log.w(TAG, "Live: couldn't draw: no canvas")
+                    AppLog.w("Live: couldn't draw: no canvas")
                     return@safely
                 }
                 try {
@@ -378,7 +377,7 @@ class LiveWallpaper : WallpaperService() {
                     surfaceHolder.unlockCanvasAndPost(canvas)
                 }
                 val darker = if (bitmap != null && factor < 1f) String.format(Locale.ROOT, " ×%.2f", factor) else ""
-                Log.i(TAG, String.format(Locale.ROOT, "Live: drew %s p=%.2f%s in %d ms", if (bitmap == null) "black ($name)" else name, position, darker, SystemClock.uptimeMillis() - start))
+                AppLog.i(String.format(Locale.ROOT, "Live: drew %s p=%.2f%s in %d ms", if (bitmap == null) "black ($name)" else name, position, darker, SystemClock.uptimeMillis() - start))
             }
         }
 
@@ -386,14 +385,12 @@ class LiveWallpaper : WallpaperService() {
         private inline fun <T> safely(what: String, action: () -> T): T? = try {
             action()
         } catch (e: Throwable) {
-            Log.w(TAG, "Live: couldn't $what: $e")
+            AppLog.w("Live: couldn't $what: $e")
             null
         }
     }
 
     private companion object {
-        const val TAG = "APODroid"
-
         /** `WallpaperManager.COMMAND_REAPPLY`, hidden in the SDK (AOSP's value since Android 11). */
         const val COMMAND_REAPPLY = "android.wallpaper.reapply"
 

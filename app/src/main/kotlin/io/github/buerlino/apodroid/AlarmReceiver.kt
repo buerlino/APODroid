@@ -3,7 +3,6 @@ package io.github.buerlino.apodroid
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 
 /**
  * The alarms' receiver (0.6.0, J2; [DailyJob]): an alarm of the pair ([ACTION_RUN]) starts the
@@ -21,8 +20,8 @@ class AlarmReceiver : BroadcastReceiver() {
             ACTION_RUN -> DailyJob.runNow(context)
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_TIME_CHANGED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 if (!Store(context).daily) return
-                Log.i("APODroid", "Daily job: ${intent.action}, arming again")
-                if (!DailyJob.ensure(context)) Log.w("APODroid", "Daily job: couldn't schedule the fallback")
+                AppLog.i("Daily job: ${intent.action}, arming again")
+                if (!DailyJob.ensure(context)) AppLog.w("Daily job: couldn't schedule the fallback")
                 // Keep running (O11): a boot and an update may start a foreground service from the background.
                 if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) KeepRunning.ensure(context)
             }

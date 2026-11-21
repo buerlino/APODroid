@@ -21,7 +21,6 @@ import android.os.Process
 import android.os.SystemClock
 import android.provider.MediaStore
 import android.provider.Settings
-import android.util.Log
 import android.util.Size
 import android.view.Display
 import androidx.core.content.edit
@@ -276,7 +275,7 @@ class Store(private val context: Context) {
                 }
             }
         }
-        Log.i("APODroid", "Migrated from 0.5.0: $migration")
+        AppLog.i("Migrated from 0.5.0: $migration")
     }
 
     /**
@@ -294,7 +293,7 @@ class Store(private val context: Context) {
             remove("runGoing")
             remove("failedAt")
         }
-        Log.i("APODroid", "Migrated 0.6.0's run notes${if (killed) ": a killed run counted as failed" else ""}")
+        AppLog.i("Migrated 0.6.0's run notes${if (killed) ": a killed run counted as failed" else ""}")
     }
 
     /** [source]'s picture: `apod.jpg`, `nasa.jpg`, `earth.jpg` (whatever the format). */
@@ -391,7 +390,7 @@ class Store(private val context: Context) {
      * the daily switch off the top goes on.
      */
     fun saveSetup(setup: Setup, pick: Boolean): Boolean = synchronized(wallpaperLock) {
-        if (pick && draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) Log.w("APODroid", "Couldn't rename ${draftFallbackFile.name}")
+        if (pick && draftFallbackFile.exists() && !draftFallbackFile.renameTo(fallbackFile)) AppLog.w("Couldn't rename ${draftFallbackFile.name}")
         val now = Instant.now()
         val zone = ZoneId.systemDefault()
         val was = this.setup
@@ -428,7 +427,7 @@ class Store(private val context: Context) {
             putRestart(restart)
             commit()
         }
-        if (!saved) Log.w("APODroid", "Couldn't save the setup")
+        if (!saved) AppLog.w("Couldn't save the setup")
         setsSinceSetup = mutableMapOf()
         saved
     }
@@ -473,12 +472,12 @@ class Store(private val context: Context) {
         val split = stillOrLive(size, live.home, live.shared, columns, record(Screen.HOME)?.picture, listOf(picture to showing.keys))
         for ((still, screens) in split.still) {
             val darker = set(still, screens, stored)
-            Log.i("APODroid", "Part: wallpaper set: $still on ${screens.joinToString("+")}$darker")
+            AppLog.i("Part: wallpaper set: $still on ${screens.joinToString("+")}$darker")
             prefs.edit(commit = true) { screens.forEach { putSetAt(it); remove(it.key("wallpaperLive")) } }
         }
         split.engine?.let { (shown, screens) ->
             val copy = copyForLive(shown, stored)
-            Log.i("APODroid", "Part: wallpaper shown live: $shown on ${screens.joinToString("+")}${liveNote(copy)}")
+            AppLog.i("Part: wallpaper shown live: $shown on ${screens.joinToString("+")}${liveNote(copy)}")
             prefs.edit(commit = true) {
                 putLive(shown, copy)
                 screens.forEach { putSetAt(it); putBoolean(it.key("wallpaperLive"), true) }
@@ -737,7 +736,7 @@ class Store(private val context: Context) {
         }
         val updated = !prefs.contains("armedUpdate") || prefs.getLong("armedUpdate", 0) != updateTime()
         val lost = alarmsLost(gone = true, booted, updated, runPending, instant("lastRunAt"), Instant.now())
-        Log.i("APODroid", "Detector: the alarms found gone${if (lost == null) " (booted $booted, updated $updated, run pending $runPending)" else ", after the run of ${lost.lastRun}"}")
+        AppLog.i("Detector: the alarms found gone${if (lost == null) " (booted $booted, updated $updated, run pending $runPending)" else ", after the run of ${lost.lastRun}"}")
         if (lost != null) prefs.edit(commit = true) {
             putLong("alarmsLostAt", lost.at.toEpochMilli())
             putLong("lostAfterRun", lost.lastRun.toEpochMilli())
@@ -986,7 +985,7 @@ class Store(private val context: Context) {
                     val forgotten = if (daily) forgetShowing(records(), latest.picture(), used) else emptyMap()
                     prefs.edit { forgotten.forEach { (screen, record) -> putRecord(screen, record) } }
                 }
-                Log.i("APODroid", "Refresh: EARTH ${latest.date} real picture instead of the thumbnail")
+                AppLog.i("Refresh: EARTH ${latest.date} real picture instead of the thumbnail")
             }
             prefs.edit {
                 remove(source.key("badUrl"))
@@ -1012,7 +1011,7 @@ class Store(private val context: Context) {
                 latest.date == LocalDate.now(usEastern) -> "same post"
                 else -> "stored, nothing newer"
             }
-            Log.i("APODroid", "Refresh: ${source.name} ${latest.date} $note")
+            AppLog.i("Refresh: ${source.name} ${latest.date} $note")
         }
         // After storing: a page drawing meanwhile shows the video entry, never the old picture under it.
         if (url == null) file.delete()
@@ -1056,11 +1055,11 @@ class Store(private val context: Context) {
                 remove(source.key("subjectDate"))
                 remove(source.key("subjectUrl"))
             }
-            Log.i("APODroid", "Refresh: ${source.name} ${post.date} stored picture replaced by the original")
+            AppLog.i("Refresh: ${source.name} ${post.date} stored picture replaced by the original")
         } catch (e: IOException) {
             part.delete()
             if (e.isStop()) throw e
-            Log.w("APODroid", "Refresh: ${source.name} ${post.date} couldn't store the original: $e")
+            AppLog.w("Refresh: ${source.name} ${post.date} couldn't store the original: $e")
         }
     }
 
@@ -1082,16 +1081,16 @@ class Store(private val context: Context) {
             originalSize(original, userAgent)
         } catch (e: IOException) {
             if (e.isStop()) throw e
-            Log.i("APODroid", "$what probe failed: $e")
+            AppLog.i("$what probe failed: $e")
             return false
         }
         if (size == null) {
-            Log.i("APODroid", "$what probe failed: no size in the original's first bytes")
+            AppLog.i("$what probe failed: no size in the original's first bytes")
             return false
         }
         val (w, h) = size
         if (!takesOriginal(w, h, screen.width, screen.height)) {
-            Log.i("APODroid", "$what rendition (original ${w}×$h)")
+            AppLog.i("$what rendition (original ${w}×$h)")
             return false
         }
         try {
@@ -1100,10 +1099,10 @@ class Store(private val context: Context) {
         } catch (e: IOException) {
             part.delete()
             if (e is StorageFailed || e.isStop()) throw e
-            Log.w("APODroid", "$what original ${w}×$h failed, the rendition instead: $e")
+            AppLog.w("$what original ${w}×$h failed, the rendition instead: $e")
             return false
         }
-        Log.i("APODroid", "$what original ${w}×$h (smaller than the screen)")
+        AppLog.i("$what original ${w}×$h (smaller than the screen)")
         return true
     }
 
@@ -1168,7 +1167,7 @@ class Store(private val context: Context) {
         }
         val ms = SystemClock.elapsedRealtime() - started
         val subject = found.getOrElse { e ->
-            Log.w("APODroid", "Subject: ${source.name} ${post.date} couldn't: $e")
+            AppLog.w("Subject: ${source.name} ${post.date} couldn't: $e")
             Subject(null, null)
         }
         prefs.edit {
@@ -1187,7 +1186,7 @@ class Store(private val context: Context) {
                 subject.positionSharp?.let { String.format(Locale.ROOT, "%.2f", it) },
                 subject.sidewaysSharp?.let { String.format(Locale.ROOT, "sideways %.2f", it) },
             ).takeIf { it.isNotEmpty() }?.joinToString(prefix = " (sharp ", postfix = ")").orEmpty()
-            Log.i("APODroid", String.format(Locale.ROOT, "Subject: %s %s p=%.2f%s%s in %d ms", source.name, post.date, subject.position, sideways, sharp, ms))
+            AppLog.i(String.format(Locale.ROOT, "Subject: %s %s p=%.2f%s%s in %d ms", source.name, post.date, subject.position, sideways, sharp, ms))
         }
     }
 
@@ -1248,20 +1247,20 @@ class Store(private val context: Context) {
                         putString("videoStill.url", url)
                     }
                 }
-                Log.i("APODroid", "Video still: ${SystemClock.elapsedRealtime() - started} ms, ${frame.width}×${frame.height}")
+                AppLog.i("Video still: ${SystemClock.elapsedRealtime() - started} ms, ${frame.width}×${frame.height}")
                 true
             } finally {
                 frame.recycle()
             }
         } catch (e: Exception) {
             part.delete()
-            Log.w("APODroid", "Video still: couldn't make one of $url: $e")
+            AppLog.w("Video still: couldn't make one of $url: $e")
             false
         } finally {
             try {
                 retriever.release()
             } catch (e: Exception) {
-                Log.w("APODroid", "Video still: couldn't release the retriever: $e")
+                AppLog.w("Video still: couldn't release the retriever: $e")
             }
         }
     }
@@ -1282,7 +1281,7 @@ class Store(private val context: Context) {
             // EF1: Earth's picture missing (404, 410 or not an image), never the network or a timeout:
             // else a slow connection would store the thumbnail under the picture's key for good.
             if (post.source != Source.EARTH || !earthPictureMissing(e)) throw e
-            Log.w("APODroid", "Earth: picture missing, the thumbnail instead: $e")
+            AppLog.w("Earth: picture missing, the thumbnail instead: $e")
             downloadRendition(post, earthThumbnail(url), part)
             return true
         }
@@ -1297,7 +1296,7 @@ class Store(private val context: Context) {
         } catch (e: IOException) {
             // A stopped job's interrupted download ends the run, not falls back (the interrupt flag is cleared by then).
             if (e is StorageFailed || e.isStop() || post.source == Source.NASA || rendition == url) throw e
-            Log.w("APODroid", "Rendition failed, plain picture instead: $e")
+            AppLog.w("Rendition failed, plain picture instead: $e")
         }
         download(url, part, userAgent)
         if (!isImage(part)) throw SiteChanged("Not an image: $url")
@@ -1342,7 +1341,7 @@ class Store(private val context: Context) {
         if (isStopped(stopped)) throw InterruptedException()
         if (!daily && !set) return Updated(null, false, failure, wentToSet = false)
         val (done, setFailure, gaveUp) = setDue(pull = force, setAsked = set, stopped)
-        if (failure != null && done != null) Log.i("APODroid", "Despite the failure: $done")
+        if (failure != null && done != null) AppLog.i("Despite the failure: $done")
         return Updated(done, setFailure != null, failure ?: setFailure, wentToSet = !gaveUp)
     }
 
@@ -1390,7 +1389,7 @@ class Store(private val context: Context) {
                 save(post, original, limit = saveLimit * 1_000_000L).also { prefs.edit { remove(post.source.key("saveTried")) } }
             } catch (e: Exception) {
                 if (e.isStop()) throw e
-                Log.w("APODroid", "Couldn't save ${post.source} ${post.date}: $e")
+                AppLog.w("Couldn't save ${post.source} ${post.date}: $e")
                 continue
             }
             done += "${post.source} ${post.date} ${result.name.lowercase()}"
@@ -1453,7 +1452,7 @@ class Store(private val context: Context) {
         // L8f1: in a process Android just started to rebind the engine (a process death with Live
         // on) a screen that only looks not live isn't lost: nothing set, the run failed, retried.
         if (liveHolds(liveSettling, lost)) {
-            Log.i("APODroid", "Live: ${lost.forget.joinToString("+")} not live yet, the engine's process ${processAge.seconds} s old: nothing set")
+            AppLog.i("Live: ${lost.forget.joinToString("+")} not live yet, the engine's process ${processAge.seconds} s old: nothing set")
             return Triple(null, LiveSettling(), false)
         }
         if (lost.forget.isNotEmpty()) {
@@ -1462,7 +1461,7 @@ class Store(private val context: Context) {
                 onLock -> "the engine is on the lock screen alone"
                 else -> "the lock screen isn't live"
             }
-            Log.i("APODroid", "Live: $why, Fill on ${lost.forget.joinToString("+")}${if (lost.lockTakesHome) ", the lock screen takes home's" else ""}")
+            AppLog.i("Live: $why, Fill on ${lost.forget.joinToString("+")}${if (lost.lockTakesHome) ", the lock screen takes home's" else ""}")
         }
         // L6: a screen the engine is on whose record isn't noted live (just picked in Set's picker,
         // or Android's by hand) is forgotten too, so this run hands it over (`:core`'s unnotedLive).
@@ -1472,7 +1471,7 @@ class Store(private val context: Context) {
             lockNoted = prefs.getBoolean(Screen.LOCK.key("wallpaperLive"), false),
             columns = columns,
         )
-        if (unnotedLive.isNotEmpty()) Log.i("APODroid", "Live: the engine is on ${unnotedLive.joinToString("+")}, not noted live")
+        if (unnotedLive.isNotEmpty()) AppLog.i("Live: the engine is on ${unnotedLive.joinToString("+")}, not noted live")
         var records = lost.forgetting(records()).mapValues { (screen, record) -> if (screen in unnotedLive) record.forget() else record }
         // A shared engine's lock screen without a column takes home's still set along (`:core`'s sharedLockFollows).
         fun plan(records: Map<Screen, Record>) = sharedLockFollows(
@@ -1496,10 +1495,10 @@ class Store(private val context: Context) {
             val drawn = liveFile.takeIf { it.exists() } ?: liveFallback()
             val why = if (equalColumns(columns)) "home's new picture would show on the lock screen" else "the engine covers the lock screen, whose column differs from home's"
             if (drawn != null && lockFollowsHome(split(again), live.shared, columns)) {
-                Log.i("APODroid", "Live: $why, which has nothing of its own: it keeps ${if (drawn == liveFile) livePicture else drawn.name}")
+                AppLog.i("Live: $why, which has nothing of its own: it keeps ${if (drawn == liveFile) livePicture else drawn.name}")
                 keep = drawn
             } else {
-                Log.i("APODroid", "Live: $why, its own again")
+                AppLog.i("Live: $why, its own again")
                 records = forgotten
                 plan = again
             }
@@ -1539,12 +1538,12 @@ class Store(private val context: Context) {
                     factor = if (copy) liveDarken else 1f,
                 )
             } catch (e: Exception) {
-                Log.w("APODroid", "Live: the lock screen's still set of what the engine draws failed: $e")
+                AppLog.w("Live: the lock screen's still set of what the engine draws failed: $e")
                 failure = e
                 failedStill += setOf(Screen.LOCK)
                 return@let
             }
-            Log.i("APODroid", "Live: the lock screen keeps ${if (copy) livePicture else file.name}, still")
+            AppLog.i("Live: the lock screen keeps ${if (copy) livePicture else file.name}, still")
             commitBeforeStop(stopped) { remove(Screen.LOCK.key("wallpaperLive")) }
         }
         for ((index, step) in steps.withIndex()) {
@@ -1552,14 +1551,14 @@ class Store(private val context: Context) {
             val (picture, screens) = entry
             if (isStopped(stopped)) throw InterruptedException()
             if (index > 0 && !setAsked && !daily) {
-                Log.i("APODroid", "Switched off after: ${said() ?: "nothing"}")
+                AppLog.i("Switched off after: ${said() ?: "nothing"}")
                 return@synchronized Triple(said(), failure, true)
             }
             // The lock screen's still set failed while the engine covers it: home's hand-over
             // would show home's new picture there too (Decision 10). A failed set, so the
             // alarms' retry plans both again (`:core`'s handOverWaits).
             if (toEngine && handOverWaits(live.shared, failedStill)) {
-                Log.i("APODroid", "Live: the lock screen's set failed, home's hand-over waits")
+                AppLog.i("Live: the lock screen's set failed, home's hand-over waits")
                 failure = failure ?: IllegalStateException("the lock screen's set failed, home's hand-over waits")
                 screens.forEach { setsSinceSetup[it] = false }
                 continue
@@ -1591,7 +1590,7 @@ class Store(private val context: Context) {
                     }
                 }
             } catch (e: InterruptedException) {
-                Log.i("APODroid", "Stopped after: ${said()}")
+                AppLog.i("Stopped after: ${said()}")
                 throw e
             }
         }
@@ -1619,7 +1618,7 @@ class Store(private val context: Context) {
                 putBoolean("missedKeep", keep)
             }
         }
-        Log.i("APODroid", "Detector: ${if (missed != null) "missed the change of $missed (Keep running ${if (keep) "on" else "off"})" else "nothing missed"}")
+        AppLog.i("Detector: ${if (missed != null) "missed the change of $missed (Keep running ${if (keep) "on" else "off"})" else "nothing missed"}")
     }
 
     private fun SharedPreferences.Editor.putSetAt(screen: Screen) = putLong(screen.key("wallpaperSetAt"), System.currentTimeMillis())
@@ -1656,7 +1655,7 @@ class Store(private val context: Context) {
         } catch (e: Exception) {
             if (e.isStop()) throw e // not the site's fault
             if (current && !force) {
-                Log.i("APODroid", "Refresh: ${source.name} ${post(source)?.date} stored, check failed: $e")
+                AppLog.i("Refresh: ${source.name} ${post(source)?.date} stored, check failed: $e")
                 return
             }
             val problem = Problem.of(e)
@@ -1731,7 +1730,7 @@ class Store(private val context: Context) {
         val changed = wallpaperIds() != before
         val until = SystemClock.elapsedRealtime() + 3000
         while (changed && !liveOn(Screen.HOME) && SystemClock.elapsedRealtime() < until) Thread.sleep(100)
-        Log.i("APODroid", "Live: back from the picker, ${if (changed) "a wallpaper changed" else "nothing changed"}, home ${if (liveOn(Screen.HOME)) "live" else "not live"}${if (liveShared) ", shared" else ""}")
+        AppLog.i("Live: back from the picker, ${if (changed) "a wallpaper changed" else "nothing changed"}, home ${if (liveOn(Screen.HOME)) "live" else "not live"}${if (liveShared) ", shared" else ""}")
         return changed
     }
 
@@ -1799,7 +1798,7 @@ class Store(private val context: Context) {
         val whole = noted?.whole == true
         val sideways = picture is Picture.Of && turnsSideways(picture.source, noted, post)
         val grey = if (!darken) null else runCatching { if (whole) wholeGrey(liveFile, screen, sideways) else pictureGrey(liveFile, sideways) }
-            .onFailure { Log.w("APODroid", "Live: couldn't measure the brightness: $it") }.getOrNull()
+            .onFailure { AppLog.w("Live: couldn't measure the brightness: $it") }.getOrNull()
         return LiveCopy(whole, sideways, grey?.let(::darkening) ?: 1f, grey)
     }
 
@@ -2035,7 +2034,7 @@ class Store(private val context: Context) {
         }
         // A failed measure leaves the picture as it is: the set matters more than the darkening.
         val grey = if (!darken) null else runCatching { frameGrey(file, screen, position, sideways) }
-            .onFailure { Log.w("APODroid", "Couldn't measure the brightness: $it") }.getOrNull()
+            .onFailure { AppLog.w("Couldn't measure the brightness: $it") }.getOrNull()
         val factor = fixed ?: grey?.let(::darkening) ?: 1f
         if (factor < 1f || sideways) {
             // Only the frame is decoded, at the screen's size, upright (an EXIF photo too); a
@@ -2099,7 +2098,7 @@ class Store(private val context: Context) {
         if (!debuggable) return
         runCatching {
             File(context.filesDir, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        }.onFailure { Log.w("APODroid", "Debug dump failed", it) }
+        }.onFailure { AppLog.w("Debug dump failed", it) }
     }
 
     /** True when [source]'s stored picture is in the gallery (saved and not deleted since). */
@@ -2136,12 +2135,12 @@ class Store(private val context: Context) {
                 download(url, original, userAgent, limit)
                 isImage(original)
             } catch (e: TooLarge) {
-                Log.i("APODroid", "Original over the limit, saving the stored picture: $e")
+                AppLog.i("Original over the limit, saving the stored picture: $e")
                 false
             } catch (e: IOException) {
                 // A stopped job's save ends, not falls back ([saveInUse]).
                 if (e.isStop()) throw e
-                Log.w("APODroid", "Original failed, saving the stored picture: $e")
+                AppLog.w("Original failed, saving the stored picture: $e")
                 false
             }
             return copyToGallery(post, if (loaded) original!! else imageFile(post.source), loaded)

@@ -19,7 +19,6 @@ import android.os.PowerManager
 import android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
 import android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
 import android.text.format.DateFormat
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -496,7 +495,7 @@ class MainActivity : ComponentActivity() {
         // Any refusal (no activity, a maker's picker not exported or behind a permission) tries the next.
         val started = firstStarted(
             listOf(direct, Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER)),
-            { intent, e -> Log.i("APODroid", "Set: couldn't start ${intent.action}: $e") },
+            { intent, e -> AppLog.i("Set: couldn't start ${intent.action}: $e") },
         ) { livePicker.launch(it) }
         if (started != null) return true
         toast("This phone can't show live wallpapers.")
@@ -528,6 +527,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) weekLog(intent)
         store = Store(this)
         id = savedInstanceState?.getString("pageId") ?: UUID.randomUUID().toString()
         live[id] = this
@@ -617,6 +617,23 @@ class MainActivity : ComponentActivity() {
     private val columns
         get() = draft().columns
 
+    // singleTop: a start while the page is on top comes here.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        weekLog(intent)
+    }
+
+    /**
+     * The week's log (LOG), turned on or off only by adb: `am start -n …/.MainActivity --ez weekLog true` (or `false`).
+     * A relaunch from Recents carries the task's base intent, maybe an old `weekLog=true` turned off since: never the
+     * adb switch, so it's ignored (fix round 1).
+     */
+    private fun weekLog(intent: Intent?) {
+        if (intent == null || !intent.hasExtra("weekLog")) return
+        if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return
+        AppLog.turn(this, intent.getBooleanExtra("weekLog", false))
+    }
+
     override fun onResume() {
         super.onResume()
         // Back from Set's picker without its result (started from a page in the background, L6).
@@ -624,7 +641,7 @@ class MainActivity : ComponentActivity() {
         // The picker's dialog of a page that's gone: Cancel, so Set ends.
         pickerAsk?.takeIf { it.page !in live }?.answer?.complete(PickerAnswer.CANCEL)
         // Hibernation or a force stop deleted the job (scheduling runs it at once) and the alarms.
-        if (store.daily && !DailyJob.ensure(this)) Log.w("APODroid", "Couldn't schedule the daily job again")
+        if (store.daily && !DailyJob.ensure(this)) AppLog.w("Couldn't schedule the daily job again")
         // Keep running (O11) back after Task Manager's Stop, a force stop or a refused start: the
         // page in the foreground may start it.
         KeepRunning.ensure(this)
@@ -761,8 +778,8 @@ class MainActivity : ComponentActivity() {
             readStatus()
             if (isStale()) show()
             val failure = result.exceptionOrNull() ?: result.getOrNull()?.failure
-            result.getOrNull()?.done?.let { Log.i("APODroid", "Page: $it") }
-            failure?.let { Log.w("APODroid", "Update failed: $it", it) }
+            result.getOrNull()?.done?.let { AppLog.i("Page: $it") }
+            failure?.let { AppLog.w("Update failed: $it", it) }
             failed = failure != null
             readSaved()
             loading = false
@@ -1066,9 +1083,9 @@ class MainActivity : ComponentActivity() {
             // Switched off again meanwhile: off is off.
             if (store.daily) scheduleJob(app)
             KeepRunning.ensure(app)
-            result.exceptionOrNull()?.let { Log.w("APODroid", "Switch on failed: $it", it) }
-            updated?.done?.let { Log.i("APODroid", "Switch on: $it") }
-            updated?.failure?.let { Log.w("APODroid", "Switch on: $it", it) }
+            result.exceptionOrNull()?.let { AppLog.w("Switch on failed: $it", it) }
+            updated?.done?.let { AppLog.i("Switch on: $it") }
+            updated?.failure?.let { AppLog.w("Switch on: $it", it) }
             live[page]?.redrawAfterRun(failed = updated?.failure != null || result.isFailure)
             switching = false
             when {
@@ -1180,15 +1197,15 @@ class MainActivity : ComponentActivity() {
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    Log.w("APODroid", "Set: the picker failed, Fill: $e", e)
+                    AppLog.w("Set: the picker failed, Fill: $e", e)
                     Pick.GO
                 }
                 if (answer != Pick.GO) {
-                    Log.i("APODroid", "Set: no pick, nothing saved")
+                    AppLog.i("Set: no pick, nothing saved")
                     if (answer == Pick.LOCK_ONLY) {
                         val repaired = withContext(Dispatchers.IO) { runCatching { store.update(force = false, page = true, show = offered, set = true) } }
-                        repaired.exceptionOrNull()?.let { Log.w("APODroid", "Set: the lock screen's repair failed: $it", it) }
-                        repaired.getOrNull()?.done?.let { Log.i("APODroid", "Set: the lock screen put back: $it") }
+                        repaired.exceptionOrNull()?.let { AppLog.w("Set: the lock screen's repair failed: $it", it) }
+                        repaired.getOrNull()?.done?.let { AppLog.i("Set: the lock screen put back: $it") }
                         live[page]?.run { redrawAfterRun(failed = repaired.getOrNull()?.failure != null || repaired.isFailure) }
                         toast(app, "Live goes on the home screen. Setup not saved.")
                     }
@@ -1210,9 +1227,9 @@ class MainActivity : ComponentActivity() {
             // Also what a load or the job set of this setup before Set's own update got there (CR 5).
             val (wasSet, setFailed) = result.getOrNull()?.second ?: (false to true)
             val saved = result.getOrNull()?.third ?: true
-            result.exceptionOrNull()?.let { Log.w("APODroid", "Set failed: $it", it) }
-            updated?.done?.let { Log.i("APODroid", "Set: $it") }
-            updated?.failure?.let { Log.w("APODroid", "Set: $it", it) }
+            result.exceptionOrNull()?.let { AppLog.w("Set failed: $it", it) }
+            updated?.done?.let { AppLog.i("Set: $it") }
+            updated?.failure?.let { AppLog.w("Set: $it", it) }
             live[page]?.run {
                 if (pick) draftFallback = store.draftFallbackFile.exists()
                 if (derivedList && !store.hasList && list == setup.list) list = store.list
@@ -1261,11 +1278,11 @@ class MainActivity : ComponentActivity() {
                 pickerAsk = null
             }
             if (answer == PickerAnswer.NOT_NOW) {
-                Log.i("APODroid", "Set: Live on the lock screen not now")
+                AppLog.i("Set: Live on the lock screen not now")
                 return Pick.GO
             }
             if (answer != PickerAnswer.OK) {
-                Log.i("APODroid", "Set: the picker's dialog cancelled")
+                AppLog.i("Set: the picker's dialog cancelled")
                 return Pick.NONE
             }
             val ids = withContext(Dispatchers.IO) { store.wallpaperIds() }
@@ -1274,7 +1291,7 @@ class MainActivity : ComponentActivity() {
             pickerBack = back
             // Only from a page in the foreground: a start from the background is blocked without a word.
             val opened = live[page]?.takeIf { it.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }?.openLivePicker() == true
-            Log.i("APODroid", if (opened) "Set: Android's live wallpaper picker" else "Set: no picker opened, Fill")
+            AppLog.i(if (opened) "Set: Android's live wallpaper picker" else "Set: no picker opened, Fill")
             if (!opened) return Pick.GO
             back.await()
             val lockOnly = withContext(Dispatchers.IO) {
@@ -1282,7 +1299,7 @@ class MainActivity : ComponentActivity() {
                 now[0] == ids[0] && now[1] != ids[1] && store.lockEngine()
             }
             if (lockOnly) {
-                Log.i("APODroid", "Live: back from the picker, the lock screen alone")
+                AppLog.i("Live: back from the picker, the lock screen alone")
                 return Pick.LOCK_ONLY
             }
             val changed = withContext(Dispatchers.IO) { store.awaitLive(ids) }
@@ -1391,7 +1408,7 @@ class MainActivity : ComponentActivity() {
             val result = withContext(Dispatchers.IO) { runCatching { store.save(post) } }
             saving = false
             live[page]?.saving = false
-            result.onFailure { Log.w("APODroid", "Save failed: $it", it) }
+            result.onFailure { AppLog.w("Save failed: $it", it) }
             if (result.getOrNull() == Saved.BUSY) {
                 toast(app, "Still saving")
                 return@launch
@@ -1551,8 +1568,8 @@ class MainActivity : ComponentActivity() {
             val result = withContext(Dispatchers.IO) { runCatching { store.setPart(post) } }
             // A failed set: the same part again sets it once more.
             failedPart = if (result.isFailure) part else null
-            result.exceptionOrNull()?.let { Log.w("APODroid", "Part: set failed: $it", it) }
-            result.getOrNull()?.takeIf { it.isNotEmpty() }?.let { Log.i("APODroid", "Part: ${post.source} ${post.date} set on ${it.joinToString("+")}") }
+            result.exceptionOrNull()?.let { AppLog.w("Part: set failed: $it", it) }
+            result.getOrNull()?.takeIf { it.isNotEmpty() }?.let { AppLog.i("Part: ${post.source} ${post.date} set on ${it.joinToString("+")}") }
             live[page]?.run {
                 readStatus()
                 if (isStale()) show()
@@ -2119,7 +2136,7 @@ class MainActivity : ComponentActivity() {
                     val factor = if (darken) darkening(topThirdGrey(whole)) else 1f
                     if (factor < 1f) darkened(whole, factor) else whole
                 }
-                    .onFailure { Log.w("APODroid", "Part: couldn't draw the whole picture's preview: $it", it) }
+                    .onFailure { AppLog.w("Part: couldn't draw the whole picture's preview: $it", it) }
                     .getOrNull()
             }
             value = drawn?.asImageBitmap()

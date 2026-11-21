@@ -12,7 +12,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import io.github.buerlino.apodroid.core.JobRuns
 import io.github.buerlino.apodroid.core.UserExit
@@ -66,7 +65,7 @@ class DailyJob : JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
         if (params.jobId == RUN) runScheduled = false
         val generation = runs.start() ?: run {
-            Log.i("APODroid", "Daily job: job ${params.jobId} ends at once, a run goes")
+            AppLog.i("Daily job: job ${params.jobId} ends at once, a run goes")
             return false
         }
         stoppedBySystem = false
@@ -75,7 +74,7 @@ class DailyJob : JobService() {
         val kind = if (Build.VERSION.SDK_INT >= 31) {
             if (params.isExpeditedJob) ", expedited" else ", not expedited"
         } else ""
-        Log.i("APODroid", "Daily job: job ${params.jobId} starts$kind")
+        AppLog.i("Daily job: job ${params.jobId} starts$kind")
         worker = thread {
             val store = Store(this)
             started(this, store, generation)
@@ -86,17 +85,17 @@ class DailyJob : JobService() {
             // The stop flag besides the interrupt: an interrupted thread's commit() clears it (CR2's finding 2).
             val result = runCatching { store.update(force = false, stopped = { stoppedBySystem }) }
             val failure = result.exceptionOrNull() ?: result.getOrNull()?.failure
-            result.getOrNull()?.done?.let { Log.i("APODroid", "Daily job: $it") }
+            result.getOrNull()?.done?.let { AppLog.i("Daily job: $it") }
             // The switch off (a run from before it, B19): not a failure, it isn't counted or retried.
-            if (!runs.counts(generation)) Log.i("APODroid", "Daily job: stopped (the switch off)")
-            else if (failure != null) Log.w("APODroid", "Daily job failed: $failure", failure)
+            if (!runs.counts(generation)) AppLog.i("Daily job: stopped (the switch off)")
+            else if (failure != null) AppLog.w("Daily job failed: $failure", failure)
             // Save every picture: also after a failed run (a failing source mustn't stop the others'
             // saves), not after a stop. A failed save doesn't retry the job; the next run tries again.
             val stopped = stoppedBySystem || result.exceptionOrNull().let { it is InterruptedException || it?.isStop() == true }
             if (!stopped) {
                 runCatching { store.saveInUse(stopped = { stoppedBySystem }) }
-                    .onSuccess { if (it != null) Log.i("APODroid", "Daily job: $it") }
-                    .onFailure { Log.w("APODroid", "Daily job's saves ended: $it") }
+                    .onSuccess { if (it != null) AppLog.i("Daily job: $it") }
+                    .onFailure { AppLog.w("Daily job's saves ended: $it") }
             }
             // A stop leaves the thread interrupted (Store.update), and an interrupted thread's
             // commit() skips the prefs listeners (B16): the page wouldn't see ranWell's note.
@@ -106,7 +105,7 @@ class DailyJob : JobService() {
             noted(this, generation, failed = failure != null || stoppedBySystem)
             // The alarms retry, not Android (it would hold a retry back in Doze).
             jobFinished(params, false)
-            Log.i("APODroid", "Daily job: jobFinished (job ${params.jobId})")
+            AppLog.i("Daily job: jobFinished (job ${params.jobId})")
             ended(this, generation)
         }
         return true
@@ -193,7 +192,7 @@ class DailyJob : JobService() {
             alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, alarm(context, IDLE_ALARM))
             armedHere = true
             Store(context).noteArmed()
-            Log.i("APODroid", "Daily job: alarms for ${Instant.ofEpochMilli(at)}")
+            AppLog.i("Daily job: alarms for ${Instant.ofEpochMilli(at)}")
         }
 
         private fun alarm(context: Context, code: Int): PendingIntent = PendingIntent.getBroadcast(
@@ -222,12 +221,12 @@ class DailyJob : JobService() {
                 val records = context.getSystemService(ActivityManager::class.java)
                     .getHistoricalProcessExitReasons(context.packageName, 0, 0)
                 // TP1f1: what Android returns, for the check on a device (T4 saw no `Detector:` line).
-                Log.i("APODroid", "Detector: ${records.size} exit records, armed $armedAt" + records.sortedByDescending { it.timestamp }.take(3)
+                AppLog.i("Detector: ${records.size} exit records, armed $armedAt" + records.sortedByDescending { it.timestamp }.take(3)
                     .joinToString("") { "; ${Instant.ofEpochMilli(it.timestamp)} reason ${it.reason} ${it.description}${if (isForceStopSummary(it.toString())) " (force stop)" else ""}" })
                 records
                     .filter { it.reason == ApplicationExitInfo.REASON_USER_REQUESTED }
                     .map { UserExit(Instant.ofEpochMilli(it.timestamp), it.description, isForceStopSummary(it.toString())) }
-            }.onFailure { Log.w("APODroid", "Detector: couldn't read the exit records: $it") }.getOrDefault(emptyList())
+            }.onFailure { AppLog.w("Detector: couldn't read the exit records: $it") }.getOrDefault(emptyList())
         }
 
         private fun alarmIntent(context: Context) = Intent(context, AlarmReceiver::class.java).setAction(AlarmReceiver.ACTION_RUN)
@@ -250,7 +249,7 @@ class DailyJob : JobService() {
             if (!gone) {
                 val armedAt = Store(context).armedAt
                 if (!stoppedSinceArmed(Build.VERSION.SDK_INT, userExits(context, armedAt), armedAt, Instant.now())) return
-                Log.i("APODroid", "Detector: stopped by the user since the arming (exit record)")
+                AppLog.i("Detector: stopped by the user since the arming (exit record)")
             }
             Store(context).noteAlarmsGone(runPending = scheduler(context).getPendingJob(RUN) != null)
         }
@@ -275,11 +274,11 @@ class DailyJob : JobService() {
                     val store = Store(context)
                     if (runs.going && store.daily) armRetry(context, store)
                 }
-                Log.i("APODroid", "Daily job: alarm, a run is going")
+                AppLog.i("Daily job: alarm, a run is going")
                 return
             }
             if (runScheduled && scheduler(context).getPendingJob(RUN) != null) {
-                Log.i("APODroid", "Daily job: alarm, a run is pending")
+                AppLog.i("Daily job: alarm, a run is pending")
                 return
             }
             runScheduled = true
@@ -289,20 +288,20 @@ class DailyJob : JobService() {
             if (Build.VERSION.SDK_INT >= 31) {
                 val expedited = runCatching { scheduler(context).schedule(runJob(context, expedited = true)) }
                 if (expedited.getOrNull() == JobScheduler.RESULT_SUCCESS) {
-                    Log.i("APODroid", "Daily job: alarm, run scheduled")
+                    AppLog.i("Daily job: alarm, run scheduled")
                     return
                 }
-                Log.i("APODroid", "Daily job: alarm, not expedited: ${expedited.exceptionOrNull() ?: "RESULT_FAILURE"}")
+                AppLog.i("Daily job: alarm, not expedited: ${expedited.exceptionOrNull() ?: "RESULT_FAILURE"}")
             }
             val result = runCatching { scheduler(context).schedule(runJob(context, expedited = false)) }
             if (result.getOrNull() == JobScheduler.RESULT_SUCCESS) {
-                Log.i("APODroid", if (Build.VERSION.SDK_INT >= 31) "Daily job: alarm, run scheduled, not expedited" else "Daily job: alarm, run scheduled")
+                AppLog.i(if (Build.VERSION.SDK_INT >= 31) "Daily job: alarm, run scheduled, not expedited" else "Daily job: alarm, run scheduled")
                 return
             }
             // No run and the alarm used up (O4a): the pair Store.runRetry ahead, else nothing would
             // start a run until a page open, a boot or the fallback.
             runScheduled = false
-            Log.w("APODroid", "Daily job: alarm, couldn't schedule the run: ${result.exceptionOrNull() ?: "RESULT_FAILURE"}")
+            AppLog.w("Daily job: alarm, couldn't schedule the run: ${result.exceptionOrNull() ?: "RESULT_FAILURE"}")
             synchronized(lock) {
                 val store = Store(context)
                 if (store.daily) armRetry(context, store)
@@ -388,7 +387,7 @@ class DailyJob : JobService() {
         private fun ended(context: Context, generation: Int): Unit = synchronized(lock) {
             if (!runs.finished(generation)) return
             if (!Store(context).daily) return
-            if (!ensure(context)) Log.w("APODroid", "Daily job: couldn't schedule the fallback after the run")
+            if (!ensure(context)) AppLog.w("Daily job: couldn't schedule the fallback after the run")
         }
 
         private fun scheduler(context: Context) = context.getSystemService(JobScheduler::class.java)

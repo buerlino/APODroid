@@ -479,6 +479,36 @@ or days of time.
 
 - **N1 SUSPECT: `ensure` from the main thread isn't under `DailyJob.lock`.** See SUSPECTs.
 
+## O. The week's log (LOG; `AppLog.kt`, `MainActivity.weekLog`)
+
+Not a user path: turned on and off only by adb, no UI, no text.
+- **O1 Never turned on.** Every line to logcat only (tag `APODroid`, as before); no
+  `Download/APODroid/log.txt` exists. Phone: P27.
+- **O2 On** (`am start -n io.github.buerlino.apodroid/.MainActivity --ez weekLog true`; a start
+  while the page is on top goes to `onNewIntent`, singleTop): the pref `weekLog` on, then
+  `Week log: on` and the process-start line (`Process start: APODroid <version>, Android <release>
+  (API <n>), <maker> <model>, bucket <ACTIVE|…>, battery optimisation on|off, Keep running on|off,
+  setup: daily on|off, list|APOD mode, home … lock …, every <n> h from <hh>:00, as soon as it's out
+  …, size …, video …, darken …, sharp …, order …, parts <n>`), both in logcat and in the file. From
+  then every line also goes to the file, `yyyy-MM-dd HH:mm:ss.SSS <pid> <I|W|E> <message>` (a
+  throwable's stack under it), in the calls' order (one writer thread). A rotation doesn't turn it
+  again (only a start without saved state). Phone: P27.
+- **O3 Each process start** while on (`App.onCreate`: the page, a job run, an alarm, a boot, the
+  engine, Keep running's restart): the process-start line, with the new pid. Phone: P27.
+- **O4 At about 1 MB** the older half is dropped (from a line's start) before the next line. Unit:
+  none (app code). Phone: no (a week's file is far smaller).
+- **O5 A write fails** (the file deleted in a file manager, storage full): logcat `Week log:
+  couldn't write: …`, the line dropped, the run unaffected; the next line makes the file again.
+  Phone: no.
+- **O6 Off** (`--ez weekLog false`): `Week log: off` is the file's last line; nothing more written,
+  the file kept. Phone: P27.
+  - **O6a Off, then Back and the page reopened from Recents** (on was the start that made the task,
+    so its base intent still holds `weekLog=true`): the relaunch has
+    `FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY` and is ignored, the log stays off; no new line in the
+    file. Phone: P27.
+- **O7 Reinstall or "Clear storage":** the file isn't the app's any more (MediaStore's owner), so
+  the next line on makes `log (1).txt` beside it. Phone: no.
+
 ---
 
 ## SUSPECTs (from reading)
@@ -538,7 +568,7 @@ or days of time.
 
 ---
 
-## Phone test list (prioritized, 26 cases)
+## Phone test list (prioritized, 27 cases)
 
 On the Android 14 emulator (tester-rules-emulator.md): `run-as` reads the prefs, `adb root` kills,
 the clock may be stepped and set back; P16 (a real morning) SKIPPED, real timing; P14's buckets read
@@ -672,6 +702,16 @@ as it's out"?), Advanced (Save every picture, Keep running), the page's status l
     `Subject: APOD … p=… (sharp 0.xx)`; a second open nothing. `sharp=true`, Size Auto, the record
     forgotten, `run -f 1`: `Daily job: wallpaper set: … , sharp ×2.00 (Fill ×2.43)`, `debug-set.png`
     with the bands; `sharp=false`: no ", sharp".
+
+27. **P27, O1–O3, O6 (LOG).** Fresh install: `adb shell ls /sdcard/Download/APODroid/` has no
+    `log.txt`. `am start -n io.github.buerlino.apodroid/.MainActivity --ez weekLog true`, then a
+    `run -f 1`, a Set, `am kill` (the page in the background) and a page open, a reboot:
+    `adb pull /sdcard/Download/APODroid/log.txt`: `Week log: on`, a `Process start: …` line at
+    each new pid, the run's, Set's and the boot's lines in order, the same as logcat's. `--ez
+    weekLog false`, a run: the file ends with `Week log: off`. Then (O6a) with on as the task's first
+    start (`am force-stop`, then the `--ez weekLog true` start, then `false` while the page is on
+    top): Back, reopen APODroid from Recents, a `run -f 1`: the file still ends with `Week log:
+    off` (logcat has the run's lines, the file none).
 
 End state check (after the last case): `dumpsys alarm` has the pair at the clock's next check,
 job 1 periodic, `dumpsys wallpaper` home = APODroid's engine and lock its own still, Keep running

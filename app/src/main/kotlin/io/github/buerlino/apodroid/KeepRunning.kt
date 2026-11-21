@@ -10,7 +10,6 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import androidx.core.app.ServiceCompat
 import io.github.buerlino.apodroid.core.PendingStarts
 
@@ -41,7 +40,7 @@ class KeepRunning : Service() {
             )
             true
         } catch (e: Exception) {
-            Log.w("APODroid", "Keep running: refused: $e")
+            AppLog.w("Keep running: refused: $e")
             false
         } finally {
             pending.delivered(fromStart = intent != null)
@@ -80,7 +79,7 @@ class KeepRunning : Service() {
                     context.startForegroundService(Intent(context, KeepRunning::class.java))
                 }
             } catch (e: Exception) {
-                Log.w("APODroid", "Keep running: couldn't start: $e")
+                AppLog.w("Keep running: couldn't start: $e")
                 return
             }
             if (!started) stop(context)

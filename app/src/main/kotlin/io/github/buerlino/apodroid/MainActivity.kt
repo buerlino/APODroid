@@ -623,9 +623,15 @@ class MainActivity : ComponentActivity() {
         weekLog(intent)
     }
 
-    /** The week's log (LOG), turned on or off only by adb: `am start -n …/.MainActivity --ez weekLog true` (or `false`). */
+    /**
+     * The week's log (LOG), turned on or off only by adb: `am start -n …/.MainActivity --ez weekLog true` (or `false`).
+     * A relaunch from Recents carries the task's base intent, maybe an old `weekLog=true` turned off since: never the
+     * adb switch, so it's ignored (fix round 1).
+     */
     private fun weekLog(intent: Intent?) {
-        if (intent?.hasExtra("weekLog") == true) AppLog.turn(this, intent.getBooleanExtra("weekLog", false))
+        if (intent == null || !intent.hasExtra("weekLog")) return
+        if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return
+        AppLog.turn(this, intent.getBooleanExtra("weekLog", false))
     }
 
     override fun onResume() {

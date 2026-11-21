@@ -1753,7 +1753,8 @@ storage brings it back). No battery-optimisation permission.
 **The week's log** (LOG, 2026-11-22; `plan-0.7.0.md`, for 0.10.0's real week on three devices):
 every app log line goes through `AppLog` (logcat, tag `APODroid`) and, only after
 `adb shell am start -n io.github.buerlino.apodroid/.MainActivity --ez weekLog true` (the launcher
-activity is exported, so a release build takes it; `false` turns it off), also to
+activity is exported, so a release build takes it; `false` turns it off; a relaunch from Recents,
+`FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`, is ignored: it replays the task's first intent), also to
 `Download/APODroid/log.txt` through `MediaStore.Downloads` (no permission on 10+; `adb pull
 /sdcard/Download/APODroid/log.txt`, or a file manager): the local time, the process id, I/W/E, the
 line (a throwable's stack under it); one daemon writer thread, the calls' order; at about 1 MB the

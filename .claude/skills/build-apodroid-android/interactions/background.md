@@ -502,6 +502,10 @@ Not a user path: turned on and off only by adb, no UI, no text.
   Phone: no.
 - **O6 Off** (`--ez weekLog false`): `Week log: off` is the file's last line; nothing more written,
   the file kept. Phone: P27.
+  - **O6a Off, then Back and the page reopened from Recents** (on was the start that made the task,
+    so its base intent still holds `weekLog=true`): the relaunch has
+    `FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY` and is ignored, the log stays off; no new line in the
+    file. Phone: P27.
 - **O7 Reinstall or "Clear storage":** the file isn't the app's any more (MediaStore's owner), so
   the next line on makes `log (1).txt` beside it. Phone: no.
 
@@ -704,7 +708,10 @@ as it's out"?), Advanced (Save every picture, Keep running), the page's status l
     `run -f 1`, a Set, `am kill` (the page in the background) and a page open, a reboot:
     `adb pull /sdcard/Download/APODroid/log.txt`: `Week log: on`, a `Process start: …` line at
     each new pid, the run's, Set's and the boot's lines in order, the same as logcat's. `--ez
-    weekLog false`, a run: the file ends with `Week log: off`.
+    weekLog false`, a run: the file ends with `Week log: off`. Then (O6a) with on as the task's first
+    start (`am force-stop`, then the `--ez weekLog true` start, then `false` while the page is on
+    top): Back, reopen APODroid from Recents, a `run -f 1`: the file still ends with `Week log:
+    off` (logcat has the run's lines, the file none).
 
 End state check (after the last case): `dumpsys alarm` has the pair at the clock's next check,
 job 1 periodic, `dumpsys wallpaper` home = APODroid's engine and lock its own still, Keep running

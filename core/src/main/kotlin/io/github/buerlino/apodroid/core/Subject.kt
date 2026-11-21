@@ -17,15 +17,6 @@ import kotlin.math.round
 /** The copy's side across the frame's moving direction, in pixels (compute.py's `WORK_H`). */
 const val SUBJECT_COPY_SIDE = 128
 
-/**
- * How far from the middle the subject's position must be for Auto to use it (0.2 of the travel);
- * nearer, the middle. Why (SA0, the user's picks, 2026-11-15): round 1 (123 pictures) auto 23 :
- * middle 31 where it moved the frame less than 0.2, 17 : 9 where 0.2 or more; round 2 (92 fresh
- * pictures, the split fixed before) 23 : 20 below, 18 : 6 at or above (p 0.02). Over both rounds
- * small moves auto 46 : middle 51, clear ones auto 35 : middle 15.
- */
-const val SUBJECT_MIN_MOVE = 0.2f
-
 /** An edge frame must hold this much more of the map than the middle one (compute.py's `PULL`). */
 private const val SUBJECT_PULL = 0.10
 
@@ -328,21 +319,16 @@ fun sidewaysSubjectPosition(pixels: IntArray, dw: Int, dh: Int, w: Int, h: Int, 
 }
 
 /**
- * The position Auto uses: the subject's [raw] position, or with [fallback] (Advanced's switch
- * off) the middle when it would move the frame less than [SUBJECT_MIN_MOVE] from it.
- */
-fun autoPosition(raw: Float, fallback: Boolean): Float =
-    if (fallback && kotlin.math.abs(raw - 0.5f) < SUBJECT_MIN_MOVE) 0.5f else raw
-
-/**
  * Where a still set's frame stands (SA3a): the part's [partPosition] when ⛶ noted one; else with
- * [Size.AUTO] [autoPosition] of the subject's [subjectRaw] position (the one for the picture's
- * orientation, upright or sideways; none noted or none found: the middle); else (Centre, and the
- * screens Live leaves still) the middle.
+ * [Size.AUTO] the subject's [subjectRaw] position (the one for the picture's orientation, upright or
+ * sideways; none noted or none found: the middle); else (Centre, and the screens Live leaves still)
+ * the middle. 0.9.1: Auto uses the subject's position however little it moves the frame ("Centre
+ * when unsure", the middle for a move under 0.2, removed: the user's picks on fresh pictures were
+ * auto 23 : middle 20 there, and Size Centre keeps the middle).
  */
-fun framePosition(size: Size, partPosition: Float?, subjectRaw: Float?, fallback: Boolean): Float = when {
+fun framePosition(size: Size, partPosition: Float?, subjectRaw: Float?): Float = when {
     partPosition != null -> partPosition
-    size == Size.AUTO && subjectRaw != null -> autoPosition(subjectRaw, fallback)
+    size == Size.AUTO && subjectRaw != null -> subjectRaw
     else -> 0.5f
 }
 

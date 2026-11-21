@@ -249,7 +249,7 @@ class DailyJob : JobService() {
             }
             if (!gone) {
                 val armedAt = Store(context).armedAt
-                if (!stoppedSinceArmed(Build.VERSION.SDK_INT, userExits(context, armedAt), armedAt)) return
+                if (!stoppedSinceArmed(Build.VERSION.SDK_INT, userExits(context, armedAt), armedAt, Instant.now())) return
                 Log.i("APODroid", "Detector: stopped by the user since the arming (exit record)")
             }
             Store(context).noteAlarmsGone(runPending = scheduler(context).getPendingJob(RUN) != null)

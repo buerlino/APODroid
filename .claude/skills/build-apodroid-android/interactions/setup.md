@@ -55,9 +55,9 @@ Leaf format: **id**: pre → steps → screen / log / adb. "Set" = tap "Set as w
 ### A. The Setup row and its summary
 - **A1** closed at a fresh start (Recents-swipe, open): row "Setup", summary under it = stored setup, "▾". B0: "Home: NASA · Lock: APOD · 06:00 · Live". Tap → opens ("▴", summary hidden). Tap again → closes.
 - **A2** auto-open: any draft change that makes the draft differ opens it (LaunchedEffect, MainActivity.kt:2164); closing it by hand is allowed while highlighted; a rotation reopens it (the effect runs again on recreation).
-- **A3** highlight: title "Setup" in tertiary while anything shown in Setup differs (MainActivity.kt:2397-2401): mode switch, shown mode's Where (APOD mode) or list rows / order (list mode), Size, New picture at, As soon as it's out, Change every, If APOD is a video, Darken, Keep pictures sharp (SH2c, Y), Centre when unsure (UI1) ("Wide pictures sideways" gone since 0.9.0, SH2a: X). Not the daily switch, not Advanced. Changing a value and back = no highlight.
+- **A3** highlight: title "Setup" in tertiary while anything shown in Setup differs (MainActivity.kt:2397-2401): mode switch, shown mode's Where (APOD mode) or list rows / order (list mode), Size, New picture at, As soon as it's out, Change every, If APOD is a video, Darken, Keep pictures sharp (SH2c, Y) ("Wide pictures sideways" gone since 0.9.0, SH2a: X). Not the daily switch, not Advanced. Changing a value and back = no highlight.
 - **A4** after a Set that saved and didn't fail: Setup closes (also after `NTS`) (MainActivity.kt:1217); summary shows the new stored setup.
-- **A5** summary forms (MainActivity.kt:2428-2448): "X · both screens" when both columns have the same sources; "X · home screen"/"X · lock screen" when one is empty; else "Home: X · Lock: Y"; names in the stored order; then " · every 24 h from 06:00" when a column has ≥2 (daily on), " · 06:00" otherwise, nothing with daily off; " · Live" with Size Live. "As soon as it's out", Darken, Keep pictures sharp and Centre when unsure never appear.
+- **A5** summary forms (MainActivity.kt:2428-2448): "X · both screens" when both columns have the same sources; "X · home screen"/"X · lock screen" when one is empty; else "Home: X · Lock: Y"; names in the stored order; then " · every 24 h from 06:00" when a column has ≥2 (daily on), " · 06:00" otherwise, nothing with daily off; " · Live" with Size Live. "As soon as it's out", Darken and Keep pictures sharp never appear.
 - **A6** summary is the stored setup: while the draft differs and Setup is closed, the summary still shows the stored one.
 
 ### B. "More NASA pictures" (mode switch, draft)
@@ -145,7 +145,7 @@ say) with prefs `title`/`alt`/`explanation` set to a galaxy text ("A spiral gala
 field of stars": no up) or a horizon text ("Trees and a lake below the horizon at sunset": up), and the
 same picture as NASA's for the NASA case.
 - **X1** the row gone: Setup shows no "Wide pictures sideways" (no label, no ⓘ, no switch; screen readers
-  don't find it) under any Size; after "Darken bright pictures" comes "Centre when unsure" (Size Auto) or
+  don't find it) under any Size; after "Darken bright pictures" comes "Keep pictures sharp" (Centre or Auto) or
   nothing. Nothing in Setup highlights for it; the summary unchanged.
 - **X2** the update from 0.8.0 with `wideSideways=true` stored: the update sets nothing; the pref stays in
   the prefs (no migration) and nothing reads it; at the next set Centre's wide pictures go upright (no
@@ -165,8 +165,7 @@ same picture as NASA's for the NASA case.
   rotation keeps the draft as before.
 
 ### Y. Keep pictures sharp (0.9.0, SH2c; `sharp-0.9.0.md`, Decided 2, Terms, The rules: Size)
-- **Y1** the row: a switch "Keep pictures sharp" with ⓘ right after "Darken bright pictures" (before
-  "Centre when unsure"), **shown while the draft's Size is Centre or Auto** (also with the daily
+- **Y1** the row: a switch "Keep pictures sharp" with ⓘ right after "Darken bright pictures", **shown while the draft's Size is Centre or Auto** (also with the daily
   switch off), default off (the pref `sharp`). ⓘ "About Keep pictures sharp" → dialog "A small
   picture is enlarged at most 2×; the rest of the screen shows it blurred." → OK. The summary never
   names it.
@@ -195,18 +194,10 @@ same picture as NASA's for the NASA case.
 - **J0a** ⓘ beside "Size" (SZ1; screen readers "About Size") → dialog, one line each: "Centre: the picture's middle." / "Auto: the frame on the subject; a wide APOD goes on sideways unless its text says it has a top." / "Live: a wide picture moves across the home screen over the day." / "⛶ changes one picture."; OK closes; survives rotation (`openInfo`).
 - **J1** from B0 (Live on home): Size "Auto" (or "Centre") → segment tertiary, Setup highlighted → Set → no picker dialog (opensPicker false for Centre and Auto) → `Wset`; `Set: wallpaper set: N13 on HOME, A15 on LOCK`; dumpsys: home ImageWallpaper (APODroid's LiveWallpaper gone; maybe `Live: engine … destroyed`); summary "Home: NASA · Lock: APOD · 06:00" (no " · Live"); no "Live isn't on" line.
 - **J2** with Centre or Auto and a column on home emptied later, the home wallpaper is just left alone.
-- **J3** Auto: each still set's frame (a post without a ⛶ part) stands at the subject noted for the post (`<source>.subjectPosition`, `subjectSideways` for a sideways set; background.md E8), through `autoPosition`: the middle for a move under 0.2 while the pref `autoFallback` is on (default; its switch is SA3b's), else the subject. The set's log line notes `, auto 0.78` (the position used, `0.50` when it fell back). No subject noted or none found: the middle, no note. A ⛶ part wins (no note). **T3f1 (fixed at 28b46c7):** a page open or Set within the hour of the source's last check (`checkedRecently`) skips `checkSite` but notes a missing subject (the update from 0.7.0) all the same (`Subject: …`), so that Set's frame stands at the subject.
+- **J3** Auto: each still set's frame (a post without a ⛶ part) stands at the subject noted for the post (`<source>.subjectPosition`, `subjectSideways` for a sideways set; background.md E8), through `framePosition`: the subject's position as noted, however small the move (0.9.1: "Centre when unsure" and its 0.2 fallback gone). The set's log line notes `, auto 0.78` (the position used; not when it is 0.50). No subject noted or none found: the middle, no note. A ⛶ part wins (no note). **T3f1 (fixed at 28b46c7):** a page open or Set within the hour of the source's last check (`checkedRecently`) skips `checkSite` but notes a missing subject (the update from 0.7.0) all the same (`Subject: …`), so that Set's frame stands at the subject.
 - **J4** Centre: every still set at the middle (or the ⛶ part), no `, auto` note. Auto ↔ Centre is a Setup change (highlight, Set sets each screen afresh).
-- **J6** "Centre when unsure" (UI1; was SA3b's Advanced switch "Auto: centre when unsure"; label a
-  placeholder): a switch with ⓘ after "Darken bright pictures", **only while the draft's Size is Auto**
-  (also with the daily switch off). ⓘ "About Centre when unsure" → dialog "With Size Auto, a picture
-  whose subject is only slightly off the middle stays centred. Off: Auto places every frame." → OK.
-  Toggle off → label and switch tertiary, "Off, not set yet", Setup's title tertiary; the summary
-  unchanged. Set → `Wset`, each screen set afresh, `autoFallback=false` in the prefs; a picture whose
-  subject moves the frame less than 0.2 now `, auto 0.6x` (was `, auto 0.50`). Not "the order alone".
-  Toggled, not Set, then Size Centre or Live → the row gone, the draft back to the stored value (Setup's
-  title not highlighted when nothing else differs); back to Auto → the stored value. A rotation keeps
-  the draft and its highlight. An update from 0.8.0 keeps the stored pref (same key, default on).
+- **J6** removed (0.9.1: "Centre when unsure" gone; Auto always places the frame on the subject). The pref `autoFallback` stays in old prefs, nothing reads it.
+- **J7** the update from 0.9.0 (0.9.1): a phone with Size Auto and today's picture set at the middle (a small subject move, 0.9.0's fallback): after the update nothing is set; at the next change time or any Set the set's log line has `, auto 0.xx` with 0.xx between 0.30 and 0.70; Setup has no "Centre when unsure" row (any Size); Setup's title isn't highlighted after the update; ⛶ already opens on the subject frame and ✓ without a drag sets nothing. No migration.
 - **J5** Live: the screens left still (a lock screen with its own column, home after a lost Live) at the middle (or the ⛶ part), as 0.7.0 (night default); Live's pan unchanged.
 
 ### K. The daily switch ("Change automatically", acts at once)
@@ -236,7 +227,7 @@ same picture as NASA's for the NASA case.
 - **M9** (UI1) the button's place: Setup closed → after the Setup row, in the scroll (no bar). Setup
   open → in a bar pinned at the bottom of the screen (one column) or of the settings pane (two panes),
   the theme's surface behind it and a line above, above the navigation bar; the content scrolls under
-  it and its last row ("Centre when unsure" or "Darken bright pictures", or Advanced's last row while
+  it and its last row ("Keep pictures sharp" or "Darken bright pictures", or Advanced's last row while
   open) scrolls clear above it; also at font scale 2.0 (the bar taller, the space with it). One button
   (TalkBack finds "Set as wallpaper" once). After a Set that saved, Setup closes and the button is back
   in its place.
@@ -287,12 +278,12 @@ Each step starts where the previous ended. Before every Set: `adb logcat -c`; af
 | P28 | K5 | "Change automatically": off, on, off, on in quick taps. | Ends on; one `Switch on: wallpaper set:` (an extra one accepted if the taps straddle the redraw); alarms armed. |
 | P29 | **H8 S3** (the emulator; on the FP6 only with the user's OK) | If APOD is a video "Use my picture" → pick a photo → "Skip it" → Set → then "Use my picture" again → "Skip it". | No highlight before Set, `Wset`; `fallback.jpg` unchanged (`run-as … ls -l files/`: same size and time; S3 fixed); "Use my picture" again: no picker, the draft's pick (highlighted); "Skip it". |
 | P30 | restore | Setup ▾ → mode off → Where W0 → mode on → If APOD is a video "Skip it" → Size "Live" → Set → dialog "Next, in Android's preview: Set wallpaper › Home screen" (no "Back there" line since 7299474) → OK → Android's preview "Set wallpaper" → "Home screen". | `Wset`; log `Set: Android's live wallpaper picker`, `Live: back from the picker, a wallpaper changed, home live`, `Live: the engine is on HOME, not noted live`, `Daily job: alarms for 2026-11-16T05:0…Z`, `Set: wallpaper set: A15 on LOCK; wallpaper shown live: N13 on HOME`; summary "Home: NASA · Lock: APOD · 06:00 · Live"; home LiveWallpaper, lock ImageWallpaper. Then Setup ▾: mode off shows Where W0 (P4 doesn't save a hidden Where since S1's fix), Earth's greyed dropdown E0, order APOD, NASA, Earth, nothing highlighted. |
-| P31 | X1, X6 | (SH2a) Setup ▾ under each Size (Centre, Auto, Live; not Set) → screenshot each → rotate. | No "Wide pictures sideways" row under any; "Centre when unsure" only under Auto, right after "Darken bright pictures"; nothing highlighted but Size. Size back to the stored one. |
+| P31 | X1, X6 | (SH2a) Setup ▾ under each Size (Centre, Auto, Live; not Set) → screenshot each → rotate. | No "Wide pictures sideways" row under any; no "Centre when unsure" row under any Size (gone in 0.9.1); nothing highlighted but Size. Size back to the stored one. |
 | P32 | X3 | (the emulator; APOD 3000×1000 faked, the galaxy text) Size Auto → Set. Then the horizon text (prefs `title`, `alt`, `explanation`) → Set. | Galaxy: `Wset`, `Set: wallpaper set: A… on …, sideways, auto turn`, `debug-set.png` turned (top at the right). Horizon: no ", sideways", `debug-set.png` gone (`setStream`). |
 | P33 | X3, X4 | The galaxy text: Size Centre → Set; Size Auto → Set; ⛶ → "✓ Sideways" shown (Auto's turn) → tap it off → ✓; Size Centre → Set; ⛶ → "Sideways" on → ✓. | Centre: upright; Auto: `, sideways, auto turn`; after ✓ off `Part: wallpaper set: …` without ", sideways", `apod.sideways=false`; Centre with the pill on: `, sideways` without `auto turn`. Restore: a new post drops the part. |
 | P34 | X3 | The galaxy text on NASA's post (`files/nasa.jpg` 3000×1000, NASA ticked on a screen), Size Auto → Set. | NASA's set upright (no ", sideways"). |
 | P34a | X2, X5 | (the update) 0.8.0's build with "Wide pictures sideways" on and Size Centre, a 3:2 APOD on → install this build → open the page → Set. Then Size Live → Set ("Home screen"). | The update sets nothing; `wideSideways=true` still in the prefs; the Set: upright (no ", sideways"). Live: `live.sideways=false`, the hand-over without ", sideways". |
-| P34b | J6 | (UI1) Size Auto: "Centre when unsure" after "Darken bright pictures" → ⓘ → OK → toggle off → screenshot → rotate → Set. Then toggle on → Size Centre → Size Live → Size Auto. | Dialog text as J6; label and switch tertiary, Setup's title tertiary, kept after the rotation; Set: `Wset`, `autoFallback=false`, Setup closes. Under Centre and Live the row gone and Setup's title untinted; back on Auto the row off (stored), untinted. Advanced: two switches. Restore: on + Set. |
+| P34b | J6 | removed (0.9.1: "Centre when unsure" gone). | Setup shows no such row under any Size. |
 | P34c | M9 | (UI1) Setup open → scroll to the end; portrait, the landscape two-pane layout, font scale 2.0; Setup closed. | Open: the bar at the bottom (screen or settings pane), the last row fully visible above it at the end of the scroll, the bar above the navigation bar; closed: the button after the Setup row, no bar. Screenshots. |
 | P34d | Y1–Y3 | (SH2c) Setup ▾ under Centre, Auto, Live (not Set) → screenshot each → "Keep pictures sharp" ⓘ → OK → on → rotate → Size Live → Size Auto. | The row after "Darken bright pictures" under Centre and Auto, gone under Live; dialog as Y1; on: tertiary, "On, not set yet", kept after the rotation; under Live gone and back to off (stored), Setup's title untinted. |
 | P34e | Y4, Y5 | (the emulator; APOD 1500×1022 faked, the horizon text, Size Auto) "Keep pictures sharp" on → Set; Size Centre → Set; off → Set. | On: `Wset`, `, sharp ×2.00 (Fill ×2.4x)`, `debug-set.png` with blurred bands top and bottom, the grid's period 2× the file's; Centre: the same without `, auto`; off: `setStream`, no ", sharp", no `debug-set.png`. |

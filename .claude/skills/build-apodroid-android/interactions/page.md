@@ -312,8 +312,8 @@ faked with the galaxy text (setup.md X), the stored Size Auto.
   migration). A part dragged since SH2a notes its orientation (K24a), so it can't.
 With Size Auto (SA3b, 0.8.0; `startCrop`, `frameOf`, `cropMoved`, `:core`'s `framePosition`,
 `notedPosition`, `Part.kt`): ⛶ opens where the screen has the frame, by the **stored** Size, the
-sideways value used and the stored "Centre when unsure" (setup.md J6; Advanced's A7 before UI1); `Part.position` stays null until
-the frame is dragged. Set up: a picture whose noted subject moves the frame 0.2 or more
+sideways value used (0.9.1: "Centre when unsure" gone, setup.md J6); `Part.position` stays null until
+the frame is dragged. Set up: a picture whose noted subject moves the frame off the middle
 (`<source>.subjectPosition` in the prefs, the `Subject:` line), the stored Size Auto.
 - **K27 ⛶ on the subject picture, no stored part.** The frame at the subject (the `Subject:` line's
   `p=`), not the middle; on a picture whose subject moves less than 0.2, the middle (A7 off: at it).
@@ -500,8 +500,7 @@ Under "Change automatically" while it's on, from the stored records.
 
 Shown only while the daily switch is on; closed by default; act at once (no highlight).
 - **A1 Tap "Advanced settings".** NOW. Opens ("▴"): "Save every picture" + ⓘ + switch, then (if on)
-  "Largest original 20 MB ▾", then "Keep running" + ⓘ + switch (two switches: "Centre when unsure"
-  moved to Setup, UI1, setup.md J6). Tap again: closes.
+  "Largest original 20 MB ▾", then "Keep running" + ⓘ + switch (two switches). Tap again: closes.
 - **A2 ⓘ of "Save every picture".** NOW. Dialog "Saves each new picture to Pictures/APODroid: full
   size up to the limit, else screen size. A few hundred MB a month or more." OK, Back or a tap outside
   closes; the switch doesn't toggle.
@@ -519,7 +518,7 @@ Shown only while the daily switch is on; closed by default; act at once (no high
   (`Keep running: couldn't start: …` / `refused: …` on a refusal). **Don't tap "Stop" there.**
   - **A5a Off.** The service stops (no `ServiceRecord`), Active apps no longer lists it. Leave as found.
 - **A6 Rotate with Advanced open:** stays open (saved state).
-- **A7, A8** gone with UI1: "Centre when unsure" is Setup's, part of the draft (setup.md J6).
+- **A7, A8** gone (UI1 moved "Centre when unsure" to Setup; 0.9.1 removed it, setup.md J6).
 
 ### D. "Change automatically" (MA:1015-1077, 2167-2173; ST:484-490; DJ:295-308)
 
@@ -633,8 +632,7 @@ settings). Deletions and restores are part of the list.
     Size Auto stored: ⛶ opens at it; ✓ untouched: nothing; drag ✓: `cropPosition`, no `, auto`; the
     pill on an undragged frame jumps to `subjectSideways`. **K31a** (FP1): drag sideways, pill off,
     ✓: no `cropPosition`, the next Set `, auto <p>`.
-34. **setup.md J6** (UI1; was A7, A8): Setup's "Centre when unsure" off + Set: `autoFallback=false`,
-    a picture with `p=0.55`–`0.65` `, auto 0.6x`; on again + Set.
+34. **setup.md J6** removed (0.9.1: "Centre when unsure" gone; Auto always places the frame on the subject).
 35. **K30, K33**: an undragged Whole part, Size Centre ↔ Auto and Set: the undragged frame follows
     Size, a dragged one stays.
 36. **K34, K34a–d** (SH2c; 0.9.0): APOD 1500×1022 faked (the horizon text), "Keep pictures sharp" on

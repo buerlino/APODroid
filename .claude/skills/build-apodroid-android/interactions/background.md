@@ -206,10 +206,10 @@ set>`] → [`Daily job failed: …`] → [`Daily job: saved: …`] → `Daily jo
   `<source>.subject*` keys removed, `run -f 1`: the line; a broken picture: `couldn't`. SA3c: a
   landscape picture's sideways position is its turned picture's own (`sidewaysSubjectPosition`);
   with Size Auto and the picture turned (⛶'s pill, or Auto's turn since 0.9.0, F15), the next set's band (`files/debug-set.png`) and
-  ⛶'s frame stand at the line's "(sideways …)" (through `autoPosition`).
+  ⛶'s frame stand at the line's "(sideways …)" (through `framePosition`).
   - **E8a (T3f1, fixed at 28b46c7):** the update from 0.7.0 (no `subject*` keys), a page open within the hour of the last
   check (no fetch): the `Subject:` line all the same; Set then logs `, auto <p>` when the subject
-  moves the frame 0.2 or more (before, Set went on at the middle until a pull or the next post).
+  moves the frame off the middle (before, Set went on at the middle until a pull or the next post).
   Phone (the emulator): v0.7.0's R8, a Set, `install -r` of the fix, open the page within the hour.
 - **E9 The original's size (SH2b, 0.9.0).** Every download of a new picture in `refresh` (another
   date or picture URL, a missing file, Earth's thumbnail retried) first probes the original
@@ -313,17 +313,15 @@ or days of time.
   the record forgotten: the same line from `Daily job:`.
 - **F16 Auto's frame (SA3a, 0.8.0).** Each still set (the job's, the page's, Set's, ✓'s) places
   the frame by `:core`'s `framePosition`: the post's ⛶ part, else with Size Auto (the default; a
-  stored 0.7.0 `FILL` reads as Auto) `autoPosition` of the noted subject for the set's
-  orientation (E8; sideways the `subjectSideways`): the middle for a move under 0.2 while
-  `autoFallback` is on (default), else the subject; else (Centre, and under Live the screens left
+  stored 0.7.0 `FILL` reads as Auto) the noted subject for the set's
+  orientation (E8; sideways the `subjectSideways`) as it is, however small the move (0.9.1: no fallback); else (Centre, and under Live the screens left
   still) the middle. The measure (darkening) uses the same frame. The log line notes it: `Daily
   job: wallpaper set: Of(…) on <screens>, auto 0.78[, sideways][, darker …]`. Live's hand-over and
   pan unchanged. Unit: `SubjectTest.framePositionTakesThePartThenAutoThenTheMiddle`,
   `LiveTest.sizeOfReadsTheStoredNameAndAnUpdatesFillAsAuto`. Phone (the emulator): a picture with
-  `importance_pull` ≥ 0.75 or ≤ 0.25 and one at 0.55–0.65 faked, `run -f 1`: the first `, auto` at
+  `importance_pull` ≥ 0.75 or ≤ 0.25 and one at 0.55–0.65 faked (both `, auto` since 0.9.1), `run -f 1`: the first `, auto` at
   its subject (the crop in `dumpsys wallpaper`, or `debug-set.png` when darkened or sideways),
-  the second no `, auto` (LG: the fallback's middle isn't noted); `autoFallback=false` by `run-as`, the record forgotten, `run -f 1`:
-  the second moves.
+  the second `, auto 0.5x–0.6x` (0.9.1: no fallback to the middle; no `, auto` only when the position is 0.50).
 
 ## G. Live (`Store.setDue` Live part `Store.kt:1247-1407`, `Live.kt`, `LiveWallpaper.kt`)
 - **G1 Is home live (`liveState`, `Store.kt:1676-1686`).** 14+: `getWallpaperInfo(FLAG_SYSTEM)`
@@ -649,10 +647,10 @@ as it's out"?), Advanced (Save every picture, Keep running), the page's status l
     `files/apod.jpg` (a few bytes) with the keys removed: `Subject: APOD <date> couldn't: …`, keys
     noted without positions. Restore with a pull.
 20. **P20, E8a (T3f1, fixed).** Keys removed, page open within the hour of the last check: the
-    `Subject:` line; Set then `, auto <p>` when the subject moves 0.2 or more.
-21. **P21, Auto's frame (F16).** Size Auto stored, a picture with `p` ≥ 0.2 off the middle, the
+    `Subject:` line; Set then `, auto <p>` when the subject isn't at 0.50.
+21. **P21, Auto's frame (F16).** Size Auto stored, a picture with `p` off the middle, the
     record forgotten (`wallpaperDate` removed), `run -f 1`: `Daily job: wallpaper set: … , auto
-    0.xx`; `autoFallback=false` and a picture with `p` 0.55–0.65: `, auto 0.6x`; on again: no `, auto` (LG).
+    0.xx`; a picture with `p` 0.55–0.65: `, auto 0.6x` (0.9.1: no fallback).
 22. **P22, sideways by the job (F14, F15).** Size Auto stored, APOD 3000×1000 faked as a new post
     with the galaxy text (setup.md X), `run -f 1`: `… , sideways, auto turn`; the horizon text:
     upright; a ⛶ part noted off: upright; Size Centre: upright.

@@ -59,14 +59,13 @@ class PartTest {
     }
 
     @Test
-    fun anUndraggedPartFollowsSizeAndTheFallback() {
+    fun anUndraggedPartFollowsSize() {
         // A part ✓'d only for "Whole picture" or the pill: Centre the middle, Auto the subject.
         val part = Part(date, url, null, true, null)
-        assertEquals(0.5f, framePosition(Size.CENTRE, part.position, 0.62f, fallback = true))
-        assertEquals(0.5f, framePosition(Size.AUTO, part.position, 0.62f, fallback = true))
-        assertEquals(0.62f, framePosition(Size.AUTO, part.position, 0.62f, fallback = false))
+        assertEquals(0.5f, framePosition(Size.CENTRE, part.position, 0.62f))
+        assertEquals(0.62f, framePosition(Size.AUTO, part.position, 0.62f))
         // A dragged one wins over Auto.
-        assertEquals(0.3f, framePosition(Size.AUTO, 0.3f, 0.9f, fallback = false))
+        assertEquals(0.3f, framePosition(Size.AUTO, 0.3f, 0.9f))
     }
 
     @Test

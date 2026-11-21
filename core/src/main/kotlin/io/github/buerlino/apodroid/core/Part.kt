@@ -12,8 +12,7 @@ import java.time.LocalDate
  * since 0.9.0, [notedSideways]), null for Auto's turn ([sidewaysOf]). [position] (SA3b): the
  * frame's place when ⛶'s frame was dragged, null when it wasn't, so the stored Size decides
  * ([framePosition]: Auto's subject, else the middle); a part ✓'d only for "Whole picture" or the
- * pill keeps following Centre or Auto and "Centre when unsure"; one ✓'d only for "Whole picture"
- * keeps Auto's turn too.
+ * pill keeps following Centre or Auto; one ✓'d only for "Whole picture" keeps Auto's turn too.
  */
 data class Part(val date: LocalDate, val url: String?, val position: Float?, val whole: Boolean, val sideways: Boolean? = null) {
     /** The part as one line for the page's saved state ([partOf] reads it): "date|position|whole|sideways|url", "null" for a value not noted. */

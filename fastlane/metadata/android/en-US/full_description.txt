@@ -9,7 +9,6 @@ The app is one page: today's picture with its title and date, and the settings b
 <li><b>New picture at:</b> the hour the wallpaper changes, 06:00 by default. A picture that comes out in the 3 hours after it still goes on, or turn on <b>As soon as it's out</b> to get each new picture within the hour.</li>
 <li><b>Size:</b> Centre, Auto (the frame on the picture's subject; a wide APOD goes on sideways unless NASA's text says it has an up) or Live: a wide picture moves across the home screen over the day (a live wallpaper, picked once in Android's picker).</li>
 <li><b>Keep pictures sharp:</b> enlarges a small picture at most 2×; the rest of the screen shows it blurred.</li>
-<li><b>Centre when unsure:</b> with Auto, a subject only slightly off the middle stays centred.</li>
 <li><b>Darken bright pictures:</b> on by default, so the clock and widgets stay readable.</li>
 <li><b>If APOD is a video:</b> skip it, use NASA's or Earth Observatory's picture, or a picture of your own. The page shows a ▶ tile (with a still from NASA's own videos) that opens the video on NASA's website.</li>
 <li><b>Set as wallpaper:</b> saves the setup and sets the wallpaper.</li>

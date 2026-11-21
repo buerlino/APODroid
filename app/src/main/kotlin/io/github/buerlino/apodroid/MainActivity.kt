@@ -309,9 +309,6 @@ class MainActivity : ComponentActivity() {
     /** "Darken bright pictures" ([Store.darken], BR2): each set darkens a bright picture a little. */
     private var darken by mutableStateOf(true)
 
-    /** "Centre when unsure" ([Store.autoFallback], UI1; SA3b's Advanced switch before): Auto keeps the middle for a small move. */
-    private var autoFallback by mutableStateOf(true)
-
     /** "Keep pictures sharp" ([Store.sharp], SH2c): with Size Centre or Auto, Fill enlarged at most 2×. */
     private var sharp by mutableStateOf(false)
 
@@ -599,7 +596,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The draft as a [Setup], for Set and the saved state. */
-    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, autoFallback, sharp)
+    private fun draft() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, sharp)
 
     private fun useDraft(setup: Setup) {
         allSources = setup.allSources
@@ -611,7 +608,6 @@ class MainActivity : ComponentActivity() {
         pictureAt = setup.pictureAt
         soon = setup.soon
         darken = setup.darken
-        autoFallback = setup.autoFallback
         sharp = setup.sharp
         order = setup.order
         size = setup.size
@@ -1466,7 +1462,7 @@ class MainActivity : ComponentActivity() {
     /**
      * Where [post]'s frame stands with [part] and [sideways] (SA3b, `:core`'s [framePosition], as
      * [Store.set]): the part's dragged position, else with the **stored** Size Auto its subject
-     * for that orientation ([Store.subject], [Store.autoFallback]), else the middle. Stored, not
+     * for that orientation ([Store.subject]), else the middle. Stored, not
      * the draft's: ✓ sets at once by the stored setup.
      */
     private fun frameOf(post: Post, part: Part?, sideways: Boolean): Float {
@@ -1478,7 +1474,7 @@ class MainActivity : ComponentActivity() {
             sideways -> subject?.sideways
             else -> subject?.position
         }
-        return framePosition(stored.size, part?.position, raw, store.autoFallback)
+        return framePosition(stored.size, part?.position, raw)
     }
 
     /**
@@ -2200,8 +2196,7 @@ class MainActivity : ComponentActivity() {
      * what is stored): the switch "More NASA pictures" at its top (J3), then in APOD mode
      * "Where", with the switch on the list ("Pictures from"), then Size [Centre | Auto | Live] (L6, SA3a); while the daily switch is on "New
      * picture at", then, while a column takes turns, "Change every", and "If APOD is a video";
-     * "Darken bright pictures", "Keep pictures sharp" (not with Live; SH2c) and "Centre when unsure"
-     * (Auto only; UI1). The set button, always: here while Setup is closed, else pinned at the
+     * "Darken bright pictures" and "Keep pictures sharp" (not with Live; SH2c). The set button, always: here while Setup is closed, else pinned at the
      * bottom ([SetBar], UI1). Then, while the daily switch is on, "Advanced settings", closed by
      * default: "Save every picture" and "Keep running" (they act at once). A setting the draft
      * changed and Set hasn't saved shows in `tertiary` ([highlight]).
@@ -2220,8 +2215,6 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(daily, videoDays, draftFallback, stored.videoDays) { if (!daily) dropVideoDays() }
         LaunchedEffect(daily, pictureAt, stored.pictureAt) { if (!daily) pictureAt = stored.pictureAt }
         LaunchedEffect(daily, soon, stored.soon) { if (!daily) soon = stored.soon }
-        // UI1: "Centre when unsure" shown only with Auto.
-        LaunchedEffect(size, autoFallback, stored.autoFallback) { if (size != Sizing.AUTO) autoFallback = stored.autoFallback }
         // SH2c: "Keep pictures sharp" hidden with Size Live (Live never limits).
         LaunchedEffect(size, sharp, stored.sharp) { if (size == Sizing.LIVE) sharp = stored.sharp }
         val setupChanged = setupChanged()
@@ -2283,14 +2276,6 @@ class MainActivity : ComponentActivity() {
                         "Keep pictures sharp", sharp, stored.sharp, about = "About Keep pictures sharp",
                         info = "A small picture is enlarged at most 2×; the rest of the screen shows it blurred.",
                     ) { sharp = it }
-                }
-                // UI1 (was SA3b's Advanced switch): Auto's, part of the draft, shown only with Size Auto.
-                if (size == Sizing.AUTO) {
-                    DraftSwitch(
-                        "Centre when unsure", autoFallback, stored.autoFallback, about = "About Centre when unsure",
-                        info = "With Size Auto, a picture whose subject is only slightly off the middle stays centred. " +
-                            "Off: Auto places every frame.",
-                    ) { autoFallback = it }
                 }
             }
             // One button, both modes, the daily switch on or off: it applies the whole draft. While Setup is
@@ -2510,7 +2495,7 @@ class MainActivity : ComponentActivity() {
             (if (allSources) Source.entries.any(::rowChanged) || order != stored.order else where != stored.where) ||
             interval != stored.interval || pictureAt != stored.pictureAt || soon != stored.soon ||
             darken != stored.darken || size != stored.size ||
-            autoFallback != stored.autoFallback || sharp != stored.sharp || videoDaysChanged()
+            sharp != stored.sharp || videoDaysChanged()
 
     /** The list's row for [source] puts it on other screens than the stored list. */
     private fun rowChanged(source: Source) = list.screensOf(source) != stored.list.screensOf(source)
@@ -3112,7 +3097,6 @@ private fun Setup.toBundle() = Bundle().apply {
     putInt("pictureAt", pictureAt)
     putBoolean("soon", soon)
     putBoolean("darken", darken)
-    putBoolean("autoFallback", autoFallback)
     putBoolean("sharp", sharp)
     putString("size", size.name)
     putString("order", order.joinToString(",") { it.name })
@@ -3134,7 +3118,6 @@ private fun readDraft(bundle: Bundle): Setup? = runCatching {
         pictureAt = pictureAtOrDefault(bundle.getInt("pictureAt", DEFAULT_PICTURE_AT)),
         soon = bundle.getBoolean("soon"),
         darken = bundle.getBoolean("darken", true),
-        autoFallback = bundle.getBoolean("autoFallback", true),
         sharp = bundle.getBoolean("sharp", false),
         size = sizeOf(bundle.getString("size")),
         order = orderOf(bundle.getString("order")),

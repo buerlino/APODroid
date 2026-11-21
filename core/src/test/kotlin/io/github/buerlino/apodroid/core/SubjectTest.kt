@@ -64,16 +64,16 @@ class SubjectTest {
     @Test
     fun framePositionTakesThePartThenAutoThenTheMiddle() {
         // ⛶'s part wins with every Size.
-        for (size in Size.entries) assertEquals(0.3f, framePosition(size, 0.3f, 0.9f, true))
-        // Auto: the subject, through autoPosition's fallback.
-        assertEquals(0.9f, framePosition(Size.AUTO, null, 0.9f, true))
-        assertEquals(0.5f, framePosition(Size.AUTO, null, 0.62f, true))
-        assertEquals(0.62f, framePosition(Size.AUTO, null, 0.62f, false))
+        for (size in Size.entries) assertEquals(0.3f, framePosition(size, 0.3f, 0.9f))
+        // Auto: the subject, also a small move (0.9.1: no fallback to the middle).
+        assertEquals(0.9f, framePosition(Size.AUTO, null, 0.9f))
+        assertEquals(0.62f, framePosition(Size.AUTO, null, 0.62f))
+        assertEquals(0.53f, framePosition(Size.AUTO, null, 0.53f))
         // Auto without a subject (none noted, or a failed one): the middle.
-        assertEquals(0.5f, framePosition(Size.AUTO, null, null, false))
+        assertEquals(0.5f, framePosition(Size.AUTO, null, null))
         // Centre, and the screens Live leaves still: the middle.
-        assertEquals(0.5f, framePosition(Size.CENTRE, null, 0.9f, false))
-        assertEquals(0.5f, framePosition(Size.LIVE, null, 0.9f, false))
+        assertEquals(0.5f, framePosition(Size.CENTRE, null, 0.9f))
+        assertEquals(0.5f, framePosition(Size.LIVE, null, 0.9f))
     }
 
     @Test
@@ -186,16 +186,6 @@ class SubjectTest {
         val m = doubleArrayOf(0.0, 1.0, 0.0, 0.0, 1.5)
         assertEquals(1.0, mapPosition(m, 5, 1, horizontal = true, frac = 0.2), 0.0)
         assertEquals(0.5, mapPosition(DoubleArray(5), 5, 1, horizontal = true, frac = 0.2), 0.0)
-    }
-
-    @Test
-    fun autoFallsBackToTheMiddleForSmallMoves() {
-        assertEquals(0.5f, autoPosition(0.65f, true))
-        assertEquals(0.75f, autoPosition(0.75f, true))
-        assertEquals(0.65f, autoPosition(0.65f, false))
-        assertEquals(0.5f, autoPosition(0.35f, true))
-        assertEquals(0.25f, autoPosition(0.25f, true))
-        assertEquals(0.0f, autoPosition(0.0f, true))
     }
 
     /** Whether [f] holds the point ([x], [y]) of the picture. */

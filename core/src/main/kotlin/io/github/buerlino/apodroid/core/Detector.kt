@@ -81,8 +81,10 @@ fun readsExitRecords(sdk: Int): Boolean = sdk in 30..34
  * user-requested exit counts: a Recents swipe's ("remove task") and `killBackgroundProcesses`' ("kill
  * background", "kill all background": `am kill`, task killers, makers' cleaners) delete no alarm, and
  * `pm clear` wipes [armedAt] anyway. 15+ cancel the `PendingIntent`s themselves, and 29 has no exit records: false, as
- * is no arming noted yet. A force stop with no process alive leaves no record (accepted).
+ * is no arming noted yet. A force stop with no process alive leaves no record (accepted). A record stamped after
+ * [now] doesn't count (0.9.1, Open question 5: after the clock was set back past a force stop, its old record
+ * was newer than every arming again and noted the alarms gone; a real force stop then is missed, accepted).
  */
-fun stoppedSinceArmed(sdk: Int, exits: Collection<UserExit>, armedAt: Instant?): Boolean =
+fun stoppedSinceArmed(sdk: Int, exits: Collection<UserExit>, armedAt: Instant?, now: Instant): Boolean =
     readsExitRecords(sdk) && armedAt != null &&
-        exits.any { it.at > armedAt && (it.forceStop || it.description?.startsWith("stop ") == true) }
+        exits.any { it.at > armedAt && it.at <= now && (it.forceStop || it.description?.startsWith("stop ") == true) }

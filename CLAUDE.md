@@ -171,6 +171,14 @@ What each brought: the tags and `changelogs/<versionCode>.txt`.
 - 0.9.0 (13): 2026-11-17, after SH4, T4 and T5 on the Android 14 emulator (no FAIL, no crash) and
   the user's release-signed build; the user's FP6 test follows the tag (user, 2026-11-17: "lets
   release now, i can test the release if we need to fix we do it after 0.9.1"), a fix ships as 0.9.1.
+- 0.9.1 (14): a hotfix, not tagged yet (user, 2026-11-21): "Centre when unsure" removed (The app,
+  Settings), Open question 5 closed; changelog `14.txt` approved by the user. **The FP6**
+  (2026-11-22, 00:15, the user's release-signed build over 0.9.0, USB): 0.9.0 had set 21 Nov's APOD
+  at 06:19 by itself (Setup APOD, Both, Auto, 06:00, As soon as it's out: the hourly alarms; its
+  "Centre when unsure" was off); the update kept the setup, `MY_PACKAGE_REPLACED` armed the
+  alarms, nothing set, no crash; Setup without the row, nothing highlighted; ⛶ opened at the
+  subject, ✓ without a drag set nothing; a Set `auto 0.45`, the same crop. Not run: the Android 14
+  emulator, the detector's fix on a device (11–14 only).
 
 ## Data source (checked 2026-10-01)
 
@@ -347,8 +355,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   **Pictures from** (the list); then, always, **Size**; while the daily switch is on **New picture at**, "As soon as
   it's out" under it, then, while a column takes turns, "Change every", and "If APOD is a video";
   then, always, "Darken bright pictures", then "Keep pictures sharp" (only while the draft's
-  Size is Centre or Auto; SH2c), then "Centre when unsure" (only while the draft's Size
-  is Auto; UI1). Closed at a fresh start; it
+  Size is Centre or Auto; SH2c). Closed at a fresh start; it
   opens by itself while the draft differs from the store in it, when "More NASA pictures" is
   turned (the area swaps), and closes after a Set that saved (also "Setup saved. Nothing to set
   yet."; a failed set leaves it open). Its state and Advanced's survive a rotation (the saved
@@ -370,19 +377,18 @@ set it as wallpaper, and on video days kept the old wallpaper.
     isn't "the order alone"); Set sets each screen afresh. On: with the stored Size Centre or Auto
     every still set enlarges Fill at most 2× (Wallpaper: the limited set). Setup's summary
     doesn't name it.
-  - **Centre when unsure** (UI1, user, 2026-11-16, from the FP6: into Setup, the label without
-    "Auto:", a placeholder until the user's look; SA3b, 2026-11-15, built it as "Auto: centre
-    when unsure" in Advanced, acting at once; Next features, 0.8.0: Fill's frame on the
-    subject): a switch in Setup after "Darken bright pictures", **shown only while the draft's
-    Size is Auto** (hidden, it goes back to the stored value), with a small ⓘ ("About Centre
-    when unsure"; its dialog "With Size Auto, a picture whose subject is only slightly off the
-    middle stays centred. Off: Auto places every frame.", unchanged), the pref `autoFallback`
-    (`Setup.autoFallback`, `Store.autoFallback`; the same key, default on, no migration). Part
-    of the draft as "Darken bright pictures" (`saveSetup`, the saved state, the highlight, "On,
-    not set yet", Setup's title; a change isn't "the order alone"); shown with the daily switch
-    off too. Set sets each screen afresh, so a change shows at once. On: Auto keeps the middle
-    for a subject that moves the frame less than 0.2 of its travel (Wallpaper: Auto, the
-    subject); off: Auto places every frame on its subject. Setup's summary doesn't name it.
+  - **Centre when unsure** (SA3b's Advanced switch in 0.8.0, Setup's since UI1 in 0.9.0, default
+    on: Auto kept the middle for a subject that moved the frame less than 0.2) **removed** (0.9.1,
+    user, 2026-11-21: "the center is a 50/50 … the people who like center always can use center";
+    SA0's round 2, the pictures the threshold wasn't tuned on, had small moves auto 23 : middle 20,
+    p 0.76, and the switch put the middle back on more than half of Auto's frames): no row, no ⓘ,
+    no `Setup.autoFallback`, no draft, highlight or saved-state line; Auto places every frame on
+    its subject (Wallpaper: Auto, the subject). The pref `autoFallback` is left in the prefs and
+    nothing reads it (as `wideSideways`). **The update** (the user's choice, 2026-11-21: no
+    migration code): a screen Auto set at the middle keeps it until its next set (the next change
+    time, or any Set), which places the frame on the subject; meanwhile ⛶ already opens on the
+    subject's frame, and ✓ without a drag sets nothing (its no-change check compares frames by
+    the same rule). Setup and ⛶'s parts are kept.
   - **New picture at** (the label and the times approved by the user, 2026-10-24): a dropdown
     as "Largest original", the button "06:00 ▾" (12/24 h as the system says: "6:00 AM ▾"), a
     menu of 00:00 … 23:00 with ✓ before the chosen one, screen readers "New picture at: 06:00".
@@ -443,7 +449,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "Setup" row's title while anything in it differs (the shown mode's "Where" or list and its
     order, the
     mode switch, Size, "New picture at", "As soon as it's out", "Change every", "If APOD is a
-    video", "Darken bright pictures", "Keep pictures sharp", "Centre when unsure"; not ⛶). Not the daily
+    video", "Darken bright pictures", "Keep pictures sharp"; not ⛶). Not the daily
     switch, nor Advanced (they act at once). Screen readers: a highlighted control's state adds
     "not set yet" ("Selected, not set yet", "Checked, not set yet", "On, not set yet"; the rows
     "collapsed, not set yet").
@@ -451,14 +457,13 @@ set it as wallpaper, and on video days kept the old wallpaper.
     "but maybe I'm not done"). **A draft until Set:** "Where", the list (ticks, dropdowns and
     order), Size,
     "New picture at", "As soon as it's out", "Change every", "If APOD is a video", "Darken
-    bright pictures", "Keep pictures sharp", "Centre when unsure", a newly picked "my picture" and the switch "More NASA pictures" change only the page
+    bright pictures", "Keep pictures sharp", a newly picked "my picture" and the switch "More NASA pictures" change only the page
     (`MainActivity`'s draft state; no pref is written, no set, no scheduling). **A hidden
     setting goes back to the stored one** (user, 2026-10-22: else Set saved a hidden "Change
     every", and "Setup" stayed highlighted with nothing in it highlighted): "Change every" while
     it's hidden (no column with two or more, or the daily switch off), "New picture at", "As
     soon as it's out", "If APOD is a video" and a newly picked "my picture" while the daily switch is off,
-    "Centre when unsure" while the draft's Size isn't Auto (UI1), "Keep pictures sharp" while it's
-    Live (SH2c); so Set
+    "Keep pictures sharp" while it's Live (SH2c); so Set
     saves, and "Setup" highlights, only what the page shows. Likewise the mode the page doesn't
     show (FP6 tests, 2026-11-15, P4 and P17: saved unmarked, and a hidden "Where" spoiled "the
     order alone"): Set saves the stored "Where" while the list shows and the stored list in
@@ -653,7 +658,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     picture" beside the dropdown ("Pick picture" for 0.5.0's choice without a picture, which
     keeps).
   - No help texts (user: the labels explain themselves), except the pause hint (Background
-    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; Size, SZ1; As soon as it's out, SO2; Darken bright pictures, BR2; Keep pictures sharp, SH2c; Centre when unsure, UI1; Keep running, Background update).
+    update), the video-day notice, the detector's box (Background update, O14) and the ⓘs (Save every picture, Save; Change every, RO2; Size, SZ1; As soon as it's out, SO2; Darken bright pictures, BR2; Keep pictures sharp, SH2c; Keep running, Background update).
 - **Video days on the page (user, 2026-10-16):** a black 3:2 tile with ▶ instead of the picture;
   tapping opens the APOD page in the browser (no player). No ⛶, no ★. **The still behind ▶**
   (VS1, 2026-11-15; `video-0.8.0.md`; Open question 2): when the video is NASA's own mp4
@@ -897,13 +902,12 @@ set it as wallpaper, and on video days kept the old wallpaper.
   memory too) is noted without positions (not tried again for that post) and never fails the
   refresh. Logged `Subject: APOD 2026-11-16 p=0.78 (sideways 0.50) in <n> ms` or `Subject:
   APOD 2026-11-16 couldn't: …`. Each still set's position is `:core`'s `framePosition`: ⛶'s
-  dragged part when there is one (SA3b: `Part.position` null while ⛶'s frame wasn't dragged), else with Size Auto `autoPosition` of the noted position for the
+  dragged part when there is one (SA3b: `Part.position` null while ⛶'s frame wasn't dragged), else with Size Auto the noted position for the
   picture's orientation (the sideways one while it goes on sideways; none noted or found: the
   middle), else the middle (Centre; under Size Live the screens that stay still, a lock screen
   with its own column, home after a lost Live: night default, the alternative Auto); the measure
-  follows the same frame. `autoPosition` keeps the middle for a move under 0.2 while the pref
-  `autoFallback` is on (default; `Store.autoFallback`, Setup's "Centre when unsure", UI1). The
-  set's log line notes ", auto 0.78" (the position used) while Auto placed it by a subject.
+  follows the same frame. However little it moves the frame (0.9.1: "Centre when unsure", the
+  middle for a move under 0.2, removed; Settings). The set's log line notes ", auto 0.78" (the position used) while Auto placed it by a subject.
   "My picture" has none (centred); Live's pan and its copy unchanged.
   **Auto's turn** (0.9.0, SH1 `:core`, SH2a the app; `sharp-0.9.0.md`, S1 and The rules; replaces
   0.8.0's "Wide pictures sideways", whose `wideSidewaysOf` and `sidewaysByDefault` went): the
@@ -1129,14 +1133,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
   **⛶ from the subject, an undragged part** (SA3b, 2026-11-15; Next features, 0.8.0: Fill's
   frame on the subject): ⛶ opens where the screen has the frame, `:core`'s `framePosition` for
   the **stored** Size and the sideways value used (the dragged part's position, else with Auto
-  the subject's, `Store.subject`, by the stored `autoFallback`, else the middle; stored, not the
+  the subject's, `Store.subject`, else the middle; stored, not the
   draft's, as ⛶ with Live: ✓ sets by the stored setup). `Part.position` is null until the frame
   is dragged (`:core`'s `Part`, `Part.kt`, as `Part.sideways`: a `cropMoved` flag set by the
   drag, cleared when ⛶ opens; ✓ notes the position only after a drag, else keeps the part's
   previous one, `notedPosition`, null staying null; the pref `<source>.cropPosition` removed for
   null, read only when there; the saved state's line writes and reads "null", `Part.toText`,
   `partOf`; a part from 0.7.0 keeps its number). So a part ✓'d only for "Whole picture" or the
-  "Sideways" pill keeps following Size (Centre ↔ Auto) and "Centre when unsure" (one ✓'d only
+  "Sideways" pill keeps following Size (Centre ↔ Auto) (one ✓'d only
   for "Whole picture" keeps Auto's turn too). **Keep pictures sharp** (SH2c): while the **stored**
   `sharp` is on, the stored Size Centre or Auto and `limitBites` for the file (`uprightSizes`) in the
   orientation used, ⛶'s frame is the limited layout's (`cropRect`: `limitedLayout`, scaled from the
@@ -1466,7 +1470,8 @@ with `REASON_USER_REQUESTED` and a force stop's description ("stop <package> due
 `subreason=21 (FORCE STOP)` (TP1f1: T4 on the Android 14 emulator saw no line after 11 force stops
 with such a record in `dumpsys activity exit-info`; the cause not found by reading, so on 30–34 every record is read, the newest three logged, and only
 the user-requested ones count (none read elsewhere, `readsExitRecords`), `Detector: <n> exit records, armed …`, for the device's check) (`:core`'s
-`stoppedSinceArmed`, `UserExit`, `isForceStopSummary`; logged
+`stoppedSinceArmed`, `UserExit`, `isForceStopSummary`; a record stamped later than now never
+counts, 0.9.1, Open question 5; logged
 `Detector: stopped by the user since the arming (exit record)` before the usual line); no other
 user-requested record counts (TP1's fix round 1): a Recents swipe's ("remove task") and
 `killBackgroundProcesses`' ("kill background", "kill all background": `am kill`, task killers,
@@ -2200,7 +2205,8 @@ above (p 0.02). Over both rounds small moves auto 46 : middle 51, clear ones 35 
 **Decided** (user, 2026-11-15 evening): build it; Size becomes [Centre | Auto | Live], Auto the
 default (an update's `FILL` reads as Auto); Auto uses the subject's position when it moves the
 frame by `SUBJECT_MIN_MOVE` = 0.2 of the travel or more, else the middle; a switch in Advanced
-settings turns that fallback off; ⛶ overrides it (SA3a, SA3b). **The method** (SA2,
+settings turns that fallback off; ⛶ overrides it (SA3a, SA3b). (0.9.1: the fallback and its
+switch removed, Auto always the subject's position; The app, Settings: Centre when unsure.) **The method** (SA2,
 2026-11-15; `:core`'s `Subject.kt`, `SubjectTest`), an exact port of
 `private/sa0/compute.py`, not retuned: a copy 128 px across the frame's moving direction
 (`subjectCopySize`, Python's round half to even), made by `boxResize`, Pillow's BOX byte for
@@ -2236,7 +2242,7 @@ the map agrees to 1e-15 and the positions exactly (10 pictures, by hand). **Buil
 2026-11-15): Size [Centre | Auto | Live] (The app, Settings: Size), the subject noted per post
 and Auto in each still set (Wallpaper: Auto, the subject); (SA3b, 2026-11-15) ⛶ from the
 subject, an undragged part (The app, Choosing the part) and Advanced's "Auto: centre when
-unsure", since UI1 Setup's "Centre when unsure" (The app, Settings).
+unsure", since UI1 Setup's "Centre when unsure" (The app, Settings; removed in 0.9.1).
 
 **0.6.0: APOD first** (user, 2026-10-19; built 2026-10-20 to 24; the how in `plan-0.6.0.md`).
 Why: the app is APODroid, so the plain APOD app stays the default; 0.5.0 couldn't put different
@@ -2301,10 +2307,7 @@ press on the title block copies the link).
 3. Closed (D1, 2026-11-15): a second picture on the same date arrives at the job's next run
    (Background update, A second post on the same date).
 4. Closed (LG, 2026-11-17): three log lines: ", auto <p>" only for a Fill frame Auto placed by a subject (not a whole picture, not the fallback's middle); `Refresh: … same post` only for today's stored post, else `stored, nothing newer`; the daily switch on doesn't log `Detector: the alarms found gone` (its own arming explains it, `DailyJob.switchedOn`).
-5. For 0.9.1 (user, 2026-11-17, from T5 and Opus pass 56): the detector's exit-record sign
-   (TP1, `:core`'s `stoppedSinceArmed`) takes any force stop's record newer than `armedAt`, so after
-   the clock is set back past a force stop an old record counts again: `Detector: stopped by the user
-   since the arming (exit record)`, the alarms noted gone, and a later miss could show the box for a
-   change that wasn't late. Seen once on the emulator (the clock back from a faked 28 Nov to 17 Nov,
-   then `am kill` and a page open; no box then). Fix: also ignore records stamped later than now (or
-   than the arming's boot), with a `DetectorTest` case.
+5. Closed (0.9.1, 2026-11-21): the detector's exit-record sign (`stoppedSinceArmed`) ignores a
+   record stamped later than now, so after the clock is set back past a force stop its old record
+   no longer counts (`DetectorTest.aRecordFromAfterNowIsNone`; seen once on the emulator in T5). A
+   real force stop at a clock that was ahead and then set back is missed (accepted).

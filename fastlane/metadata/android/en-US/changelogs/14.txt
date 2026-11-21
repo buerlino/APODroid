@@ -1,0 +1,2 @@
+- Size Auto places every picture on its subject; "Centre when unsure" is gone (Size Centre keeps the middle)
+- The stopped-app note no longer shows after the clock was set back

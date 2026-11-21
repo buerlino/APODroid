@@ -148,8 +148,8 @@ enum class Where(val screens: Set<Screen>) {
  * the list shows); [size] Size (L6, SA3a: Centre, a still set at the middle as 0.6.0; Auto, a
  * still set on the subject, [Store.subject]; or Live, home's picture drawn by APODroid's live
  * wallpaper while Android's picker put it on home; with Auto an APOD landscape picture goes on
- * sideways by its text, [Store.turnsSideways]); [autoFallback] "Centre when unsure" (UI1, was SA3b's Advanced switch: with
- * Size Auto a subject only slightly off the middle stays centred, [Store.autoFallback]); [sharp] "Keep
+ * sideways by its text, [Store.turnsSideways]; 0.9.1: "Centre when unsure" removed, Auto places every frame on its
+ * subject; its pref `autoFallback` is left, nothing reads it); [sharp] "Keep
  * pictures sharp" (SH2c: with Size Centre or Auto, Fill enlarged at most 2×, [Store.sharp]). Not the
  * daily switch: it acts at once ([Store.switchDaily]).
  */
@@ -173,7 +173,6 @@ data class Setup(
     val darken: Boolean = true,
     val order: List<Source> = Source.entries,
     val size: Sizing = Sizing.AUTO,
-    val autoFallback: Boolean = true,
     val sharp: Boolean = false,
 ) {
     /** The columns this setup puts on the screens: APOD mode's from [where], else [list]. */
@@ -349,7 +348,7 @@ class Store(private val context: Context) {
 
     /** The setup last set ("Set as wallpaper"), which the job follows. */
     val setup: Setup
-        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, autoFallback, sharp)
+        get() = Setup(allSources, where, list, interval, videoDays, parts, pictureAt, soon, darken, order, size, sharp)
 
     /**
      * The list's order (OR2, the pref `order`, a comma list of all three; read tolerantly by
@@ -420,7 +419,6 @@ class Store(private val context: Context) {
             putInt("pictureAt", setup.pictureAt)
             putBoolean("soon", setup.soon)
             putBoolean("darken", setup.darken)
-            putBoolean("autoFallback", setup.autoFallback)
             putBoolean("sharp", setup.sharp)
             putString("size", setup.size.name)
             if (setup.allSources) putString("order", order.joinToString(",") { it.name })
@@ -674,16 +672,6 @@ class Store(private val context: Context) {
     var keepRunning: Boolean
         get() = prefs.getBoolean("keepRunning", false)
         set(value) = prefs.edit { putBoolean("keepRunning", value) }
-
-    /**
-     * Auto's fallback (SA3a; Setup's switch "Centre when unsure", part of the [setup] since UI1,
-     * saved by [saveSetup]; was SA3b's "Auto: centre when unsure" in Advanced, at once): on, Auto keeps the middle
-     * for a picture whose subject would move the frame less than `:core`'s SUBJECT_MIN_MOVE;
-     * off, Auto places every frame on its subject. The pref `autoFallback`, default on; read by
-     * each [set].
-     */
-    val autoFallback: Boolean
-        get() = prefs.getBoolean("autoFallback", true)
 
     /**
      * "Keep pictures sharp" (SH2c, `sharp-0.9.0.md`; Setup's switch, part of the [setup], saved by
@@ -1995,8 +1983,8 @@ class Store(private val context: Context) {
             sideways -> subject?.sideways
             else -> subject?.position
         }
-        val position = framePosition(size, part?.position, raw, autoFallback)
-        // The log's note while Auto placed the frame by the subject (the middle when it fell back).
+        val position = framePosition(size, part?.position, raw)
+        // The log's note while Auto placed the frame by the subject (not a subject found at the middle).
         val auto = if (size == Sizing.AUTO && part?.whole != true && part?.position == null && raw != null && position != 0.5f) String.format(Locale.ROOT, ", auto %.2f", position) else ""
         return auto + setFile(file, screens, position, part?.whole == true, sideways, factor = null, autoTurn = autoTurn, limit = limit)
     }

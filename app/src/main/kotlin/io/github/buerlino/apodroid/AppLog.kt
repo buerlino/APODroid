@@ -128,14 +128,18 @@ object AppLog {
         }
     }
 
-    /** The app's own `log.txt` in the folder, if there is one (an app sees only its own files). */
+    /**
+     * The app's own log in the folder, if there is one (an app sees only its own files): `log.txt`
+     * or the renamed `log (1).txt` a reinstall leaves, the newest first.
+     */
     private fun find(resolver: ContentResolver): Uri? =
         resolver.query(
             MediaStore.Downloads.EXTERNAL_CONTENT_URI,
             arrayOf(MediaStore.MediaColumns._ID),
-            "${MediaStore.MediaColumns.RELATIVE_PATH} = ? AND ${MediaStore.MediaColumns.DISPLAY_NAME} = ?",
+            "${MediaStore.MediaColumns.RELATIVE_PATH} = ? AND (${MediaStore.MediaColumns.DISPLAY_NAME} = ? OR " +
+                "(${MediaStore.MediaColumns.DISPLAY_NAME} LIKE 'log (%' AND ${MediaStore.MediaColumns.DISPLAY_NAME} LIKE '%.txt'))",
             arrayOf(FOLDER, NAME),
-            null,
+            "${MediaStore.MediaColumns.DATE_ADDED} DESC",
         )?.use { if (it.moveToFirst()) ContentUris.withAppendedId(MediaStore.Downloads.EXTERNAL_CONTENT_URI, it.getLong(0)) else null }
 
     /** One line, so a week's file reads without `dumpsys`. */

@@ -1766,7 +1766,7 @@ manifest's `Application`) adds `Process start: APODroid <version>, Android <rele
 <maker> <model>, bucket <name>, battery optimisation on|off, Keep running on|off, setup: …` (the
 stored setup in one line), and turning it on writes `Week log: on` and that line, off `Week log:
 off` last. After a reinstall or "Clear storage" the old file isn't the app's (MediaStore's owner),
-so a new one is `log (1).txt` (night default).
+so a new one is `log (1).txt` (night default), and that file is used from then on (LOGf1: the lookup takes `log.txt` or `log (N).txt`, newest first, so a start finds it instead of making `log (2).txt`).
 
 Permissions (user approved, 2026-10-01), all granted at install with no prompt: `INTERNET`,
 `SET_WALLPAPER`, `RECEIVE_BOOT_COMPLETED` (for `setPersisted` and the alarms' boot receiver), `ACCESS_NETWORK_STATE` (Android

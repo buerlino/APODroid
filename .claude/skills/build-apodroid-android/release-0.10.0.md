@@ -570,13 +570,57 @@ background`, no "MemoryLimiter", `am memory-limiter status` "disabled").
 All four maps in full (0.8.0's T3 and 0.9.0's T4 and T5 ran subsets), E4's cases, the levels' row for
 14: the first 14 build's lock-screen live wallpaper off, `WallpaperCropper`, TP1's ten force stops.
 
-### [ ] E14a. Android 14, the setup map (Sonnet, medium)
+### [x] E14a. Android 14, the setup map (Sonnet, medium)
 
 `interactions/setup.md`, section 2, the phone test list in full, in its order. Device `emulator-5564` (`apodroid-34`, Android 14), dev's debug build, at most 50 min. The rules:
 `interactions/tester-rules-emulator.md` with the serial `emulator-5564` instead of 5564; the cases of the E14 packages before it ran
 aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
+
+**Checked** (rosie, pipeline run 173, 2026-11-22, `emulator-5564`, Android 14 (`apodroid-34`), dev's debug build
+at 8b05841; evidence in `.coord/runs/173-e14a/tablet/`; the app was not installed at the start, a fresh install, so
+the map's baseline B0 (daily on, More NASA pictures on, home NASA / lock APOD, Size Live by Android's picker, 6:00,
+Skip it, Darken on) was built first from the page, which also ran P30's picker path once). The dates are 22 Nov
+(APOD 22 Nov, NASA and Earth 20 Nov), the clock 12 h ("6:00 AM"). **No crash** (`logcat -b crash` empty, no
+`E AndroidRuntime`; `exit-info`: force stops and kills only, by my force stops). **No FAIL, no `BUG:`.**
+Toasts were never read (they aren't in the log; the `Set:` lines, the status lines and the ids stand for them).
+- **PASS:** P0 (baseline, Earth's dropdown E0 "Both", W0 "Both", no "my picture": the picker opened empty, Cancel
+  kept "Skip it"), P1 (`Set: … NASA … on HOME, auto 0.69 …, APOD … on LOCK, auto 0.35`, home ImageWallpaper, no
+  " · Live"), P2, P3 (`NTS`, no `Set:` line, ids unchanged, Setup closed), P4 (`NTS`; after the Set, mode off showed
+  Where "Home screen" highlighted with the mode switch and the Setup title tinted: a stray tap of mine spoiled the first read, so the
+  Where draft was set again and read again), P5 (dialog survived a rotation, "Every 24 h from 6:00 AM, each screen
+  switches to its next source in the list; a new order starts with the top one at 6:00 AM."), P6, P7 (`NASA on
+  HOME, APOD on LOCK`, summary "Home: NASA, Earth · Lock: APOD, Earth · every 24 h from 6:00 AM"), P8 (the alarms
+  `alarm_cancelled`, no job, the rows gone, Setup title not tinted), P9 (`EARTH … on HOME+LOCK, auto 0.25, darker
+  ×0.70`, chip "On wallpaper"), P10 (`Daily job: alarms for 2026-11-23T05:04:12Z`, `Switch on: …`, "Changed 22 Nov,
+  4:55 PM · Earth", New picture at 6:00 AM; Set greyed during the run not seen: the run took under a second), P11,
+  P12, P13 (`APOD on LOCK` only, "Lock: 22 Nov, 4:57 PM"), P14, P15, P16 (lock has an id of its own), P17 (NASA's
+  "Both" highlighted after mode on), P18 (retaken: my first pick of "Home screen" missed and a Set saved "Both";
+  the second `NASA on HOME, APOD on LOCK`), P19, P20 (one `MainActivity` record), P22 (the draft was probably Darken
+  off before the Recents swipe: not confirmed), P23, P24 (rotation at once; Setup closed on the rotated page, no
+  `darker`), P25, P26 (alarm `16:19:12Z` = 17:19 local), P27, P28 (done in the landscape two-pane layout: in portrait the pause
+  hint above the switch moves it between 1660 and 2283, the lower under the navigation bar; four taps: on, one
+  `Switch on:` set, alarms and job 1 there), P29 (no picker the second time, `fallback-draft.jpg` kept, no
+  `fallback.jpg` ever written), P30 (the log lines of the map, home LiveWallpaper, lock ImageWallpaper; but the
+  stored Where was "Home screen" since P15/P16 saved it with the mode off, so mode off shows W0 "Both" highlighted),
+  P31 (no "Wide pictures sideways", no "Centre when unsure" under any Size, "Keep pictures sharp" under Centre and
+  Auto only), P32 and P34e and P33's logs (by `scripts/sh4_run.py`, `sh4/`, `sh4b/`: 4:1 galaxy Auto `, auto 1.00,
+  sideways, auto turn`; horizon no `sideways`; 1500×1022 `, sharp ×2.00 (Fill ×2.35)`, Centre without `auto`, off
+  without `sharp`; Centre with the pill on `, sideways` without `auto turn`; pill off upright; the pixel checks PASS), P34c
+  (portrait, font scale 2.0 and landscape: the bar pinned above the navigation bar or inside the right pane, the last row
+  above it), P34d (dialog "A small picture is enlarged at most 2×; the rest of the screen shows it blurred.", on
+  survives a rotation, gone under Live, off again under Auto), P35, P36 (Centre no `auto`, Auto `auto 0.69` / `0.35`,
+  `debug-set.png` differs).
+- **DIFFERENT:** P21 (Back, then the launcher icon: the draft was dropped, Setup closed and Darken on again; the map
+  expects Android 16's kept draft and says to record it).
+- **SKIPPED / not run:** P34a (the update from 0.8.0's build: no such build here), P33's ⛶ steps ("✓ Sideways" shown, the pill
+  off, ✓, `Part:` line: the pill's states ran by prefs only), P34 (NASA's 3000×1000 picture: no such post; NASA's real sets
+  were upright), P34b (removed in 0.9.1), P2's and P10's toasts, real timing.
+- **State at the end:** `pm clear` (the app was not installed at the start, so a fresh install is the found state),
+  test photo and its MediaStore row deleted, `accelerometer_rotation` 1, `user_rotation` 0, `font_scale` null (deleted),
+  `auto_time` 1, network on, no job or alarm of the app. The system wallpaper is ImageWallpaper (the last stills of the
+  run were not restored byte for byte).
 
 ### [ ] E14b. Android 14, the page map (Sonnet, medium)
 

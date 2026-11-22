@@ -183,7 +183,10 @@ The four maps in full did **not** run (the 50 min slot): see Not run.
 - **The rest seen**: the page in APOD mode and with "More NASA pictures"; the daily switch on (`Switch
   on: … on HOME+LOCK, auto 0.35, darker ×0.80`, the pair: request codes 1 and 2, 10 min and 1 h
   windows); each Set's still through `setBitmap` (`mCropHint` 0,0–1080,2400; `mCropHints={}`); the
-  pause hint (screenshot `02-pause-hint.png`, its texts not read); the weekday dialog; **LOG**: on by
+  pause hint (screenshot `02-pause-hint.png`, read in fix round 1: "Android pauses apps you don't open.",
+  `App info › App battery usage › "Allow background usage": on › Unrestricted (on Optimized, a new picture
+  can come hours late)`, `App info › Unused app settings › "Manage app if unused": off`, buttons "App info",
+  "Battery optimisation", "Don't show again": the 35+ texts of A17's row, word for word); the weekday dialog; **LOG**: on by
   `--ez weekLog true`, `Download/APODroid/log.txt` 269 lines, 8 `Process start` lines (one per process,
   the reboot's included), in order, off at the end. The fresh install logs `Migrated from 0.5.0:
   Migration(write={allSources=false}, …)` (M2's write at a fresh install, as `CLAUDE.md` says); the
@@ -192,7 +195,10 @@ The four maps in full did **not** run (the 50 min slot): see Not run.
   T10, T13–T14, T16–T30, T32, T35, T37–T39); `am kill`'s no-box case; the WORKING-bucket quota (the
   image); the large-picture case; SH4's pixel checks (`sh4_check.py`) of Centre, Auto, Whole, Sideways
   and the limited set; M0's home/lock sequence; edge-to-edge and landscape screenshots; setup S3 (the
-  photo picker); the time zone and `TIME_SET` broadcasts beyond the clock steps; freeform windows; the R8
+  photo picker); the time zone and `TIME_SET` broadcasts beyond the clock steps; `install -r` with Keep
+  running on (`MY_PACKAGE_REPLACED`'s arming, the service back in the foreground; A17's Keep running and
+  broadcasts rows); the pause hint's texts against 17's App info (A17's row: App info's two rows not
+  captured, so 17's own labels weren't compared on the device); freeform windows; the R8
   build. The emulator is left running for the pipeline (stop: `emu kill`), the app uninstalled.
 
 ### [ ] E14. Android 14, every map (`apodroid-34`, `emulator-5564`; Sonnet, medium)

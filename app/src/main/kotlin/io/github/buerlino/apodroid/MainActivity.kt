@@ -458,6 +458,9 @@ class MainActivity : ComponentActivity() {
         /** Completed by the picker's return ([livePicker]'s result, or a page's [onResume] as a fallback). */
         var pickerBack: CompletableDeferred<Unit>? = null
 
+        /** The page key that started Set's picker; only that page (or one a rotation made of it) ends the wait in [onResume] (B36). */
+        var pickerPage: String? = null
+
         /**
          * The dialog before Set's picker (2026-11-15, [PickerDialog]): which of Android's answers to
          * tap. Process-wide, so the page a rotation makes of [PickerAsk.page] shows it again.
@@ -651,7 +654,9 @@ class MainActivity : ComponentActivity() {
         stopped = false
         if (restore) stopGen++ // B30: after a stop ⛶'s whole preview draws again
         // Back from Set's picker without its result (started from a page in the background, L6).
-        pickerBack?.complete(Unit)
+        // Only the page that started Set, or one a rotation made of it: a stacked page (the launcher icon
+        // while the picker is open) doesn't end the wait (B36).
+        if (pickerPage == id) pickerBack?.complete(Unit)
         // The picker's dialog of a page that's gone: Cancel, so Set ends.
         pickerAsk?.takeIf { it.page !in live }?.answer?.complete(PickerAnswer.CANCEL)
         // Hibernation or a force stop deleted the job (scheduling runs it at once) and the alarms.
@@ -1310,6 +1315,7 @@ class MainActivity : ComponentActivity() {
             // Only after OK: a page's onResume while the dialog shows would complete it early.
             val back = CompletableDeferred<Unit>()
             pickerBack = back
+            pickerPage = page
             // Only from a page in the foreground: a start from the background is blocked without a word.
             val opened = live[page]?.takeIf { it.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }?.openLivePicker() == true
             AppLog.i(if (opened) "Set: Android's live wallpaper picker" else "Set: no picker opened, Fill")
@@ -1327,6 +1333,7 @@ class MainActivity : ComponentActivity() {
             return if (changed) Pick.GO else Pick.NONE
         } finally {
             pickerBack = null
+            pickerPage = null
             picking = false
         }
     }

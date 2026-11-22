@@ -7,6 +7,7 @@ import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.content.SharedPreferences
+import android.database.sqlite.SQLiteConstraintException
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
@@ -14,6 +15,7 @@ import android.os.Process
 import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.edit
+import io.github.buerlino.apodroid.core.WeekLogNames
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
@@ -27,12 +29,12 @@ import java.util.concurrent.Executors
  * true`, off with `false`), also to `Download/APODroid/log.txt` through `MediaStore.Downloads`
  * (no permission on 10+), each line with the local time and the process id. Written on one
  * background thread in the calls' order; a write error is dropped (logcat only), so the log
- * never fails a run. At about [LIMIT] bytes the older half is dropped.
+ * never fails a run. At about [LIMIT] bytes the older half is dropped. A name a stale row holds
+ * (after `pm clear` or a reinstall) is skipped for the next, `log (1).txt` and so on (B31).
  */
 object AppLog {
     private const val TAG = "APODroid"
     private const val FOLDER = "Download/APODroid/"
-    private const val NAME = "log.txt"
     private const val LIMIT = 1_000_000L
     private val stamp = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
     private val writer = Executors.newSingleThreadExecutor { Thread(it, "AppLog").apply { isDaemon = true } }
@@ -41,6 +43,8 @@ object AppLog {
     @Volatile private var resolver: ContentResolver? = null
     /** The file's URI, found or made once per process (on [writer] only). */
     private var uri: Uri? = null
+    /** The first name not found taken in this process ([WeekLogNames], B31; on [writer] only). */
+    private var nextName = 0
 
     fun i(message: String) { Log.i(TAG, message); toFile('I', message, null) }
     fun w(message: String, error: Throwable? = null) { Log.w(TAG, message, error); toFile('W', message, error) }
@@ -85,14 +89,7 @@ object AppLog {
 
     private fun write(resolver: ContentResolver, line: String) {
         try {
-            val file = uri ?: find(resolver) ?: resolver.insert(
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, NAME)
-                    put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, FOLDER)
-                },
-            ) ?: return
+            val file = uri ?: find(resolver) ?: make(resolver) ?: return
             uri = file
             // One "rw" descriptor for the size, the trim and the append: a row MediaStore has just
             // made has no file on disk yet, and only an open for writing makes it (a first open
@@ -129,6 +126,40 @@ object AppLog {
     }
 
     /**
+     * A new log in the folder (B31): `log.txt`, else the next name when a row the app can't see
+     * holds it (`pm clear`, "Clear storage" or a reinstall left it; MediaStore renames an insert
+     * only when the file is on disk, so a row without one fails it with `UNIQUE constraint failed:
+     * files._data`, on every line). Null when it couldn't (written to logcat once).
+     */
+    private fun make(resolver: ContentResolver): Uri? {
+        if (nextName >= WeekLogNames.TRIES) return null
+        val from = nextName
+        var tried = ""
+        val made = WeekLogNames.make(from, { name ->
+            tried = name
+            resolver.insert(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, FOLDER)
+                },
+            )
+        }) { it is SQLiteConstraintException || it.message?.contains("UNIQUE constraint failed") == true }
+        if (made == null) {
+            if (tried == WeekLogNames.name(WeekLogNames.TRIES - 1)) {
+                // Every name taken (or the last one's insert gave null): no more tries in this process.
+                nextName = WeekLogNames.TRIES
+                Log.w(TAG, "Week log: couldn't write: ${WeekLogNames.TRIES} names taken")
+            }
+            return null
+        }
+        nextName = made.index
+        if (made.index > from) i("Week log: ${WeekLogNames.name(from)} held by an old row, writing ${WeekLogNames.name(made.index)}")
+        return made.value
+    }
+
+    /**
      * The app's own log in the folder, if there is one (an app sees only its own files): `log.txt`
      * or the renamed `log (1).txt` a reinstall leaves, the newest first.
      */
@@ -138,7 +169,7 @@ object AppLog {
             arrayOf(MediaStore.MediaColumns._ID),
             "${MediaStore.MediaColumns.RELATIVE_PATH} = ? AND (${MediaStore.MediaColumns.DISPLAY_NAME} = ? OR " +
                 "(${MediaStore.MediaColumns.DISPLAY_NAME} LIKE 'log (%' AND ${MediaStore.MediaColumns.DISPLAY_NAME} LIKE '%.txt'))",
-            arrayOf(FOLDER, NAME),
+            arrayOf(FOLDER, WeekLogNames.name(0)),
             "${MediaStore.MediaColumns.DATE_ADDED} DESC",
         )?.use { if (it.moveToFirst()) ContentUris.withAppendedId(MediaStore.Downloads.EXTERNAL_CONTENT_URI, it.getLong(0)) else null }
 

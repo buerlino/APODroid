@@ -232,6 +232,14 @@ class MainActivity : ComponentActivity() {
     /** [onStop] let the pictures go: the next [load] shows them again, also while one runs. */
     private var restore = false
 
+    /**
+     * B30: the screen-sized bitmap of ⛶'s "Whole picture" preview ([WholePreview]), so [onStop] can
+     * recycle it (the composition doesn't recompose while stopped); [stopGen] makes the preview
+     * draw again once the page resumes.
+     */
+    private var wholeHeld: Bitmap? = null
+    private var stopGen by mutableIntStateOf(0)
+
     /** The shown source's post: the boxes and the caption below the pager, ⛶'s part, Set's crop. */
     private val post
         get() = posts[shown]
@@ -636,6 +644,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        stopGen++ // B30: ⛶'s whole preview draws again
         // Back from Set's picker without its result (started from a page in the background, L6).
         pickerBack?.complete(Unit)
         // The picker's dialog of a page that's gone: Cancel, so Set ends.
@@ -673,6 +682,7 @@ class MainActivity : ComponentActivity() {
         // must not draw into the stopped page (its pictures would stay for days).
         showing++
         restore = true
+        wholeHeld?.let { wholeHeld = null; it.recycle() }
         val still = videoStill?.picture
         if (pictures.isEmpty() && still == null) return
         val dropped = pictures.values + listOfNotNull(still)
@@ -2129,7 +2139,8 @@ class MainActivity : ComponentActivity() {
         val darken = darken
         // SH2c: enlarged at most to the stored limit (`:core`'s limitedFit), as ✓ sets it.
         val limit = storedLimit
-        val preview by produceState<ImageBitmap?>(null, picture, darken, sideways, limit) {
+        val gen = stopGen
+        val preview by produceState<ImageBitmap?>(null, picture, darken, sideways, limit, gen) {
             val drawn = withContext(Dispatchers.IO) {
                 runCatching {
                     val whole = wholePicture(file, screen, sideways, limit)
@@ -2139,9 +2150,11 @@ class MainActivity : ComponentActivity() {
                     .onFailure { AppLog.w("Part: couldn't draw the whole picture's preview: $it", it) }
                     .getOrNull()
             }
+            wholeHeld = drawn
             value = drawn?.asImageBitmap()
             awaitDispose {
                 value = null
+                if (wholeHeld === drawn) wholeHeld = null
                 drawn?.recycle()
             }
         }

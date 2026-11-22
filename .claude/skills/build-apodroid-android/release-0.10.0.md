@@ -201,6 +201,52 @@ The four maps in full did **not** run (the 50 min slot): see Not run.
   captured, so 17's own labels weren't compared on the device); freeform windows; the R8
   build. The emulator is left running for the pipeline (stop: `emu kill`), the app uninstalled.
 
+### [ ] E17a. Android 17, the setup map (Sonnet, medium)
+
+`interactions/setup.md`, section 2, the phone test list in full, in its order. Device `emulator-5566` (`apodroid-37`, Android 17), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5566` instead of 5564; the cases E17
+ran (its Checked above) aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E17b. Android 17, the page map (Sonnet, medium)
+
+`interactions/page.md`, sections 3 (the prioritized list) and 4 (0.8.0's emulator cases). Device `emulator-5566` (`apodroid-37`, Android 17), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5566` instead of 5564; the cases E17
+ran (its Checked above) aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E17c. Android 17, the background map (Sonnet, medium)
+
+`interactions/background.md`, "Phone test list" (27 cases) with a stepped clock; real timing (Doze, buckets)
+SKIPPED. Also `am kill` with Keep running off: no detector box (E17's Not run). Device `emulator-5566` (`apodroid-37`, Android 17), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5566` instead of 5564; the cases E17
+ran (its Checked above) aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E17d. Android 17, the rest of the live map (Opus, medium)
+
+`interactions/live.md`, section 5, the cases E17 didn't run: T02–T04, T10, T13–T14, T16–T30, T32, T35,
+T37–T39. Device `emulator-5566` (`apodroid-37`, Android 17), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5566` instead of 5564; the cases E17
+ran (its Checked above) aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E17e. Android 17, the pixels and the rest (Sonnet, medium)
+
+SH4's pixel checks (`sharp-0.9.0-sh4.md`, Testing 2; `scripts/sh4_check.py`, 1 px of tolerance at the
+frame's edges, emulator.md's 17 row) on Centre, Auto, Whole, Sideways and the limited set, both screens;
+the large picture (a faked post of a 37 MB PNG, `emulator.md`); `install -r` with Keep running on
+(`MY_PACKAGE_REPLACED` arms, the service foreground again); setup S3 (the photo picker); M0's home/lock
+sequence; edge-to-edge and landscape screenshots of the page with Setup open. Device `emulator-5566` (`apodroid-37`, Android 17), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5566` instead of 5564; the cases E17
+ran (its Checked above) aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
 ### [ ] E14. Android 14, every map (`apodroid-34`, `emulator-5564`; Sonnet, medium)
 
 All four maps in full (0.8.0's T3 and 0.9.0's T4 and T5 ran subsets), E4's cases, the levels' row for
@@ -286,3 +332,9 @@ week's count starts again only when the fix touches the job or the rules.
    runs LOG, A17, ER, SIM and CR (`emulator-5564` for LOG's check); ER writes E17, E14, E10, E12, E13
    and UP as `### [ ]` sections here, with each one's serial, and their queue rows go in after ER's
    merge, one emulator level per night (`APODROID_TABLET=emulator-<port>`), 17 first.
+
+5. **One package per map** (2026-11-22, user: "split and run now"): E17 ran a third of the maps (the
+   rows "For E17, first"), since one device run has 50 min (night.md, rosie's rules) and "every map" is
+   well over 100 cases. The rest as E17a–e (setup, page, background, the live map's rest, the pixels
+   and the rest). E14 and E10 are split the same way (a–e) when their nights come; E12 and E13 stay
+   one package each (a smoke and the version rows).

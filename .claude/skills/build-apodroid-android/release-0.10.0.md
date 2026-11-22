@@ -283,6 +283,53 @@ ran (its Checked above) aren't run again. Results under its own "Checked" here, 
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
 
+**Checked** (rosie, pipeline run 168, 2026-11-22, `emulator-5566`, Android 17, dev's debug build 0.9.2, evidence in
+`.coord/runs/168-e17c/tablet/`; ~35 min, the clock stepped forward only, set back to real time at the end):
+**no crash** (`logcat -b crash` empty). Per case of `interactions/background.md`'s Phone test list:
+- **PASS:** P1 (daily off: no alarm, job or service; `kill -9` once: Live kept; switch on: `the engine is on HOME, not
+  noted live`, `Switch on: … on LOCK … shown live … on HOME`, job 1 at once, no `Detector: found gone`; no `nothing
+  missed` line at job 1's run: that is logged only when a loss note is used up, so the map's wording is
+  stale), P2, P3 (offline: `Daily job failed`, alarms +15 min, the box "NASA Image of the Day: no connection.",
+  clock +15 min: `alarm, run scheduled`, job 2 pending, no APODroid alarm, Home/sleep-wake `Live: screen on, run
+  owed`, airplane off: `job 2 starts, expedited`, alarms by the clock), P4 (second failure: start₂ + 1 h at start
+  and end), P5 (kill: retry kept, no `Detector:` line; good run clears it), P6 (kill, `run -f 1` at 3 s and 33 s:
+  `engine 1 created`, no `not live yet`/`Fill on`/`stray`, wallpaper id and component unchanged), P7, P8 (`p=0.33` at
+  11:57), P9 (within 15 min, and after a 16 min step with nothing owed: no `run owed`), P10 (Keep running on:
+  foreground, specialUse; `run -f 1` no `couldn't start`; off: service gone; off again at the end), P11, P12
+  (periodic 6 h/6 h, persisted, CONNECTIVITY, no job 2 outside P3), P14 (the 35+ hint: battery line and "Unused app
+  settings › "Manage app if unused": off", the app isn't in the idle whitelist), P15 (each `TIME_SET`/`BOOT_COMPLETED`
+  re-armed at once for the same T), P17 (`force-stop`: `BOOT_COMPLETED, arming again` at the next start, `Detector:
+  the alarms found gone`, job 1, `Live: home isn't live, Fill on HOME+LOCK`, `Detector: nothing missed`, no box),
+  P18 (APOD mode, offline: `stored, check failed`, no `Daily job failed`, alarms the clock's next check), P19 (keys
+  removed: `Subject: APOD … p=0.35 (sideways 0.21)`, once; a 4-byte `apod.jpg`: `couldn't: … Failed to create image
+  decoder`, keys noted without positions), P20 (page open: the `Subject:` line), P21 (Auto: `auto 0.35`, Earth
+  `auto 0.25`; the 0.55–0.65 leg not run), P22 (3000×1000 faked, galaxy text: `auto 0.58, sideways, auto turn`, the
+  pixels turned, top at the right; horizon text: upright; Centre: upright), P26 (Earth 1440×960 on the lock screen:
+  `auto 0.28, sharp ×2.00 (Fill ×2.50)`; `sharp` off: no ", sharp"), P27 (below), and `am kill` with Keep running
+  off: the alarms survive, the clock stepped past 06:12: `job 2 … expedited`, no `Detector:` line, no box.
+- **DIFFERENT:** P1's `Detector: nothing missed` (above); P24 (the page-open hook ran on APOD's 3709×2772 original:
+  `rendition (original 3709×2772)`, `Subject:` after; the smaller-original replacement leg not run).
+- **BUG:** the week's log writes nothing while a stale MediaStore row `Download/APODroid/log.txt` exists whose file is
+  gone and which the app doesn't own (`_id=20`, size 27529, here left by an earlier install; `/sdcard/Download/APODroid/`
+  empty): `find` doesn't see it, `insert` fails on every line with `SQLiteConstraintException: UNIQUE constraint
+  failed: files._data` (`Week log: couldn't write`, 19 lines in 10 s, logcat only). Not the `log (1).txt` the plan
+  expects. After the row was deleted (as shell) the file was made and filled. Likely `AppLog.kt`'s insert (line 88);
+  rare (the row without its file), an insert that falls back to another name would cover it.
+- **P27** (on this install, after the row's removal): `Week log: on`, a `Process start:` line at each new pid, the run's
+  lines in order (the `Detector:` line before `Week log: on` is logcat's only); `--ez weekLog false`, a run: the file
+  ends `Week log: off`; O6a (force-stop, `true`, `false`, Back, reopen from Recents, `run -f 1`): the file still ends
+  `Week log: off`, logcat has the run. A fresh install and the reboot leg not run (E17 did: 8 `Process start` lines).
+- **SKIPPED:** P16 (a real morning, real timing); the buckets (P14 read only).
+- **Not run:** P13 (Save every picture is off here; it writes to the gallery); P23 and P25 (a made-up feed or a faked
+  small original needs a debug build with another host; E17 saw the probe on all three hosts); P24's replacement leg;
+  P26's second page-open check; P21's 0.55–0.65 leg; P22's ⛶-pill leg (the page map's).
+- **Tester notes:** `run-as` edits made while the job's process is alive are written back over: `am kill` first. A
+  faked title is replaced by the job's fetch (the job stores the real text): P22 runs offline. `adb root` makes the
+  shell UID 0, which `content delete` refuses (`adb unroot` first).
+- **Left as found:** the prefs file as at the start (`prefs-before.xml`), `apod.jpg` as at the start, Live off
+  (the system's image wallpaper on both screens, as found), Keep running off, `weekLog` off, `auto_time` 1 and the
+  clock real, airplane mode off, the stale log row removed.
+
 ### [ ] E17d. Android 17, the rest of the live map (Opus, medium)
 
 `interactions/live.md`, section 5, the cases E17 didn't run: T02–T04, T10, T13–T14, T16–T30, T32, T35,

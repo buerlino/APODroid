@@ -130,6 +130,71 @@ Transparency (every source's `Refresh:` line, the probe, ★'s original, the vid
 after a force stop (a Recents swipe and `am kill`: no box), LOG's file. The first boot ran in ER
 (2026-11-22: 24 s, no app on it).
 
+**Checked** (rosie, pipeline run 164, 2026-11-22, `emulator-5566`, Android 17 CE2A.260420.051.A3, dev's
+debug build 0.9.2 at 79982b5, targetSdk 37; evidence in `.coord/runs/164-e17/tablet/`): the rows "For
+E17, first" and the A17 rows below; **no FAIL, no crash** (`logcat -b crash` empty, no `E AndroidRuntime`).
+The four maps in full did **not** run (the 50 min slot): see Not run.
+- **Live, the picker's forced rebind** (live T01, T05–T09, T11, T12, T15, T31, T33's OK leg, T34, T36):
+  PASS. AOSP 17's picker offers "Home screen", "Lock screen" and "Home screen and lock screen".
+  Every pick of APODroid over a live home ("Home screen and lock screen", T11 and T33) logged
+  `Live: engine 1 destroyed` then `Live: engine 3 created` (17's forced rebind, as A17 read it), a
+  new wallpaper id, `back from the picker, a wallpaper changed, home live, shared` and `shown live: …
+  on HOME+LOCK`. **DIFFERENT** (A17's predicted risk, accepted kind): the new engine drew black three
+  times for ~200 ms before its first picture (`drew black (nothing)` 47.687–47.743, the picture
+  47.845); the page was on top then. T05/T06 (Back, a tap outside) and T08 (OK › Back from the preview):
+  `Set: no pick, nothing saved`, ids unchanged; T07 the question survived rotation, Home and the
+  launcher; T09 "Not now" twice: each asked, `Set: Live on the lock screen not now`, lock its own still,
+  one status line, summary "NASA · both screens · 6:00 AM · Live". T36 ("Lock screen" alone, runnable
+  here): `Live: back from the picker, the lock screen alone`, `Set: no pick, nothing saved`, `Live: the
+  engine is on the lock screen alone, Fill on LOCK`, `Set: the lock screen put back: …`, home's engine
+  and id 7 kept. S7/T31: summary "APOD · lock screen · 6:00 AM" without " · Live", no dialog. S5/T34:
+  one set `on HOME+LOCK, auto 0.35`, one shared still, the engine destroyed. T15: `Live: engine flags 1`.
+- **Expedited quota, "As soon as it's out"**: the WORKING bucket SKIPPED: this image has app standby
+  off (`mAppIdleEnabled=false`; every app EXEMPTED; `am set-standby-bucket … working_set` ignored, also
+  unplugged with `app_standby_enabled`/`adaptive_battery_management_enabled` 1, put back). Seen: the
+  hourly alarm (clock stepped to 10:21:50) → `job 2 starts, expedited`, the pair's second `a run is
+  going`; `qc_ej_limit_working_ms=900000` (15 min, as A17 read), active 30, exempted 60, frequent and
+  rare 10 min.
+- **Memory limiter**: `am memory-limiter status` = `disabled` on this image, so no MemoryLimiter record
+  can appear (none in `exit-info`: 3 × USER REQUESTED/FORCE STOP, 3 × SIGNALED 9 from the kills).
+  Live's decodes 3213×2400 in 37–528 ms, Keep running on through the force stops and the reboot. The
+  large-picture case (a 37 MB PNG) not run.
+- **Certificate Transparency** (target 37): PASS. `Refresh: APOD … rendition (original 3709×2772)`,
+  `Refresh: NASA 2026-11-20 rendition (original 4200×3150)`, `Refresh: EARTH 2026-11-20 original
+  1440×960 (smaller than the screen)` (the probe on all three hosts), ★ saved the original (1,972,191
+  bytes, `Pictures/APODroid/`, not the toast's smaller copy), the video still (a faked video day with a
+  real APOD mp4) `Video still: 776 ms, 864×1080`; no `SSLHandshake` or CT line. The first try of the
+  still failed once, `couldn't make one … no frame` after `MediaHTTPConnection: readAt 855754 / 32768 =>
+  java.net.ProtocolException` mid-stream (the server answers that Range with 206 from the desktop): a
+  transient read error, logged, tile black, as designed; the retry (after removing `videoStillTried`)
+  made it. `images-assets.nasa.gov` not fetched (no such post today).
+- **The detector**: PASS. A Recents swipe, then a missed change (clock to 23 Nov 06:45): the alarms
+  fired, `job 2 … expedited`, no box. `am force-stop` with the process alive, then a missed change:
+  `Detector: the alarms found gone, after the run of …`; with nothing due (no newer post) `Detector:
+  nothing missed`, no box (the rules); with the record faked a day back, `Detector: missed the change of
+  2026-11-25T05:00:00Z (Keep running on)` and the box "Your phone still stops APODroid: the 6:00 AM
+  change came late." with "A force stop ends the changes until APODroid opens." and "App info". A
+  reboot: `found gone (booted true …)`, nothing noted. `am kill` not run (Keep running on keeps the
+  process). 17's `BOOT_COMPLETED` on leaving the stopped state: seen after each force stop's next start
+  (an extra arming, harmless), and once also at a start after a `kill -9` (09:38:25; not after the
+  previous one), harmless.
+- **Keep running**: PASS. `isForeground=true`, `types=0x40000000` (specialUse), Quick Settings "1 app
+  is active"; after `adb reboot` `BOOT_COMPLETED, arming again`, the pair armed, foreground again.
+- **The rest seen**: the page in APOD mode and with "More NASA pictures"; the daily switch on (`Switch
+  on: … on HOME+LOCK, auto 0.35, darker ×0.80`, the pair: request codes 1 and 2, 10 min and 1 h
+  windows); each Set's still through `setBitmap` (`mCropHint` 0,0–1080,2400; `mCropHints={}`); the
+  pause hint (screenshot `02-pause-hint.png`, its texts not read); the weekday dialog; **LOG**: on by
+  `--ez weekLog true`, `Download/APODroid/log.txt` 269 lines, 8 `Process start` lines (one per process,
+  the reboot's included), in order, off at the end. The fresh install logs `Migrated from 0.5.0:
+  Migration(write={allSources=false}, …)` (M2's write at a fresh install, as `CLAUDE.md` says); the
+  maker reads "unknown" on this image (stock texts).
+- **Not run**: the four maps in full (setup, page and background beyond the items above; live T02–T04,
+  T10, T13–T14, T16–T30, T32, T35, T37–T39); `am kill`'s no-box case; the WORKING-bucket quota (the
+  image); the large-picture case; SH4's pixel checks (`sh4_check.py`) of Centre, Auto, Whole, Sideways
+  and the limited set; M0's home/lock sequence; edge-to-edge and landscape screenshots; setup S3 (the
+  photo picker); the time zone and `TIME_SET` broadcasts beyond the clock steps; freeform windows; the R8
+  build. The emulator is left running for the pipeline (stop: `emu kill`), the app uninstalled.
+
 ### [ ] E14. Android 14, every map (`apodroid-34`, `emulator-5564`; Sonnet, medium)
 
 All four maps in full (0.8.0's T3 and 0.9.0's T4 and T5 ran subsets), E4's cases, the levels' row for

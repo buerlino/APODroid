@@ -98,6 +98,13 @@ wallpaper and Live (`Store.set`, `Drawing.kt`, `LiveWallpaper`, the picker trip)
 (`MainActivity`, the draft, the saved state, ⛶). Each finding verified by a second agent before it
 becomes a `BUG:`. Correctness only, no style.
 
+Checked (pipeline run 163, 2026-11-22, on dev c6faa2c; `review-0.10.0-cr.md`): one reviewer for
+all three areas, each finding verified in a second pass (the multi-agent workflow was refused that
+night). Two `BUG:` lines: **Android 10–12 never stores a new picture since 0.9.0** (high; SH2b's
+probe calls `InputStream.readNBytes`, API 33, in `:core`, which lint doesn't check; seen in the
+dex), and ⛶'s "Whole picture" preview held while the page is stopped (low, O12). One plausible
+(the page ignores a source picture's EXIF orientation; no real post seen with one).
+
 ### Rules for the E packages and UP (ER, 2026-11-22)
 
 Each is rosie's, on the emulator the section names, one level per night:

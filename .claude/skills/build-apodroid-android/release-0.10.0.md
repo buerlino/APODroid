@@ -739,7 +739,7 @@ aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
 
-### [ ] E14f. Android 14, the pixels and the rest (Sonnet, medium)
+### [x] E14f. Android 14, the pixels and the rest (Sonnet, medium)
 
 SH4's pixel checks (`sharp-0.9.0-sh4.md`, Testing 2; `scripts/sh4_check.py` and `sh4_run.py` after B34) on Centre,
 Auto, Whole, Sideways and the limited set, both screens; `WallpaperCropper`; TP1's ten force stops with the process
@@ -749,6 +749,44 @@ alive (the detector each time); the large picture (a faked 37 MB PNG); `install 
 aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
+
+**Checked** (rosie, pipeline run 179, 2026-11-22, `emulator-5564`, Android 14 (`apodroid-34`), dev's debug build 0.9.2 (the APK of
+the run, `install -r` once); evidence in `.coord/runs/179-e14f/tablet/`: `sh4a/`, `sh4b/`, `big/` (results, PNGs), `tp1.log`,
+`install-log.txt`, `alarm-after-install.txt`, `svc-*.txt`, `s3-*.png`, `m0b-*`, `portrait-setup-open.png`,
+`landscape-setup-open.png`, `backup/`). **No crash** (`logcat -b crash` empty, `exit-info` no CRASH). **One FAIL-by-script, judged
+by hand PASS** (the large picture, below). No `BUG:`.
+- **SH4's pixels** PASS, 151 of 151 (`scripts/sh4_run.py`, `sh4_check.py` as in the repo, 1 px tolerance; Matrix A in full: 14 pictures ×
+  Centre/Auto × switch off/on × Whole off/on, Both, the job, 112; then the 39 more: Home and Lock alone, Set's path, the faked change
+  time, dragged parts at 0 and 1, the pill both ways, the "up" text). Sideways, limited (`sharp ×2.00`), Whole and Centre/Auto
+  sets all matched the expected layout and the set's log note. **`WallpaperCropper`:** the `setStream` cases' crop hints equal Fill's
+  frame, the bitmap cases (no upscale of a small crop) read back by the grid at the expected scale; no deviation seen.
+- **TP1's ten force stops** PASS (process alive, page open, Home, `am force-stop`, page open, no clock step): 10 of 10
+  `Detector: stopped by the user since the arming (exit record)` and `Detector: the alarms found gone`, each with `reason 10 [FORCE STOP]`
+  in the exit records (`subreason=21 (FORCE STOP)` in `exit-info`), then `alarms for 2026-11-23T05:05:26Z` and `nothing missed` (no
+  change was due, so no box; the box after a missed change was not run again: E14-before/T4 ran it).
+- **The large picture** PASS: a made-up 45.6 MB PNG, 4455×5592 (gradient + 4 bits of noise; the 2 Oct case's shape), APOD's stored picture:
+  Centre job, Centre + Keep sharp job (both PASS by the script), Auto Whole + Keep sharp by the job and by Set (the script's
+  checker FAILed these two: my noise against a gradient of 0.057 level per px, as in E17e; read by hand: R 7→247 across x, B 5→250
+  over y 522–1878, blurred bands above and below, `debug-set.png` 1080×2400). Each `Set: wallpaper set … HOME+LOCK`, no crash.
+- **`install -r` with Keep running on** PASS (the pref set by sed after a force stop: the page start made `KeepRunning` foreground,
+  `types=40000000`): `install -r` → `MY_PACKAGE_REPLACED, arming again`, `alarms for 2026-11-23T05:05:26Z`, the pair of `RTC_WAKEUP` alarms
+  (window +10 m and the `setAndAllowWhileIdle` one) in `dumpsys alarm`, a new process (20848) with `KeepRunning` `isForeground=true`
+  again, nothing set.
+- **Setup S3 (the photo picker)** PASS: "If APOD is a video" › "Use my picture" opened AOSP's PhotoPickerActivity; the pick copied
+  `files/fallback-draft.jpg` (157,321 bytes = the test photo); "Skip it" and Set: `Set: wallpaper set … HOME+LOCK`, no `fallback.jpg`;
+  "Use my picture" again: no picker, "Change picture" shown; back to "Skip it".
+- **M0's home/lock sequence** PASS (`m0b-*.txt`): from one shared wallpaper, Home alone: system id 326 `mWhich=1`, lock id 325 `mWhich=2`
+  (the old shared one moved to the lock screen); Lock alone: lock id 327 new, system 326 kept; Both: one id 328 `mWhich=3`, "Lock
+  wallpaper state" empty. Set lines `on HOME`, `on LOCK`, `on HOME+LOCK`. (A first round's taps missed the Where segment and set Both
+  three times; `m0-*`, not counted.)
+- **Edge-to-edge and landscape with Setup open** PASS: portrait `portrait-setup-open.png` (status and navigation bars drawn, the pinned bar
+  above the navigation bar); landscape (`user_rotation 1`, 2400×1080) two panes, the picture left, the settings right, the Set bar pinned
+  inside the right pane clear of the navigation bar on the right edge (looked at).
+- **Not run:** the box after a missed change (stepped clock; ran in T4/TP1f1), the toasts, real timing.
+- **State at the end:** the prefs and `apod.jpg`, `nasa.jpg`, `live.jpg` put back from the start's copy (`size` LIVE, `allSources`,
+  home NASA, lock APOD, `daily`, `keepRunning` off); the test photo, `fallback-draft.jpg` and `debug-*.png` removed; rotation, `auto_time`
+  as found; the app force-stopped (its alarms arm at the next start). **Not restored: Live on home** (it needs Android's picker; home and lock
+  are one ImageWallpaper, id 328, the setup says Size Live, so the page shows "Live isn't on" until a Set picks it).
 
 ### [ ] E10. Android 10, every map (`apodroid-29`, `emulator-5554`; Sonnet, medium)
 

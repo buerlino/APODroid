@@ -791,12 +791,15 @@ class MainActivity : ComponentActivity() {
             readStatus()
             if (isStale()) show()
             val offered = sources
-            val result = withContext(Dispatchers.IO) { runCatching { store.update(force, page = true, show = offered) } }
+            val result = withContext(Dispatchers.IO) {
+                // Logged here: the page's scope may be cancelled (a system relaunch) once update returns (B33).
+                runCatching { store.update(force, page = true, show = offered) }
+                    .also { r -> r.getOrNull()?.done?.let { AppLog.i("Page: $it") } }
+            }
             // Also when this update found nothing new: another one (the job's) may have.
             readStatus()
             if (isStale()) show()
             val failure = result.exceptionOrNull() ?: result.getOrNull()?.failure
-            result.getOrNull()?.done?.let { AppLog.i("Page: $it") }
             failure?.let { AppLog.w("Update failed: $it", it) }
             failed = failure != null
             readSaved()

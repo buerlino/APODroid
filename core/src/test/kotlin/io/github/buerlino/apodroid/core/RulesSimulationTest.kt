@@ -93,6 +93,7 @@ class RulesSimulationTest {
 
     private companion object {
         /** 240 as 0.6.0's SIM; `SIM_SEEDS=2000 ./gradlew :core:test --rerun --tests '*RulesSimulationTest*'` runs more. */
+        // 20,000 seeds (SIM, 2026-11-22): no failure; in chunks, `SIM_ONLY=$(seq -s, 2001 6000)`, as one run takes about 20 min.
         val SEEDS = System.getenv("SIM_SEEDS")?.toIntOrNull() ?: 240
 
         /** The seeds run: 1 to [SEEDS], or those listed in `SIM_ONLY` (`SIM_ONLY=235,370`, to look at one). */

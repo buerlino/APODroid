@@ -50,7 +50,9 @@ FAIL, so no SH4f package. One DIFFERENT: no real host answers the probe with 200
   line, `dumpsys wallpaper`'s crop hints, the subject notes and `debug-set.png`. The expectation:
   the orientation by the rule (the pill, else Auto + APOD + landscape + `hasUp` false), the
   position (the part's, else Auto's `framePosition` of the noted subject for that orientation and,
-  where the limit bites, the limited frame's, with the 0.2 fallback, else 0.5), the limit (2.0 ×
+  where the limit bites, the limited frame's, else 0.5; the script's judge still applies 0.9.0's 0.2
+  fallback, which 0.9.1 removed from the app, and its `DATE` is 18 Nov: E17e ran a copy with `position = raw`
+  and the dates 5 days on), the limit (2.0 ×
   1.03). A layout the limit doesn't bite, upright, not whole: no `debug-set.png` (0.8.0's
   `setStream`) and the crop hint = Fill's frame ± 1.5 px. Also the log: the screens, ", sideways",
   ", sharp ×…", ", auto p". `--recheck <dir>` judges again in parallel, `--report` writes the lines.

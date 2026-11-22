@@ -578,7 +578,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
     never crashes on its way (L6 fix round 1); only from a page
     in the foreground (a start from the background is blocked silently), with
     `registerForActivityResult`, so a page a rotation made gets the return too (a page's
-    `onResume` ends the wait as a fallback). On the return, when an id changed, up to 3 s for
+    `onResume` ends the wait as a fallback, only in the page that started Set or one a rotation made of it, B36: a second page stacked over the picker, e.g. by the launcher icon, doesn't; Set keeps waiting until the picker returns). On the return, when an id changed, up to 3 s for
     `liveOn(HOME)` (`Store.awaitLive`; below 14 the engine notes its id asynchronously), then
     `saveSetup` and Set's update: home live, its picture to the engine and the lock screen's
     still Fill when its picture differs (Decision 10); below 14 a home not live in time, Fill.

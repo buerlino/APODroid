@@ -274,6 +274,77 @@ ran (its Checked above) aren't run again. Results under its own "Checked" here, 
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
 
+**Checked** (rosie, pipeline run 167, 2026-11-22, `emulator-5566`, Android 17, dev's debug build 0.9.2 (the run's
+`app-debug.apk`), fresh `pm clear`; evidence in `.coord/runs/167-e17b/tablet/`: screenshots, prefs before/after,
+`wp-*.txt`). S0 on the emulator: daily on, More NASA on, home NASA, lock APOD, Size Auto (the state after the first
+Set; no Live, as the emulator was found). **No crash, two BUG lines (a), (b)** (`logcat -b crash` empty, no `E AndroidRuntime`;
+`exit-info` only my `kill -9`s and `kill background`s). Section 3 (30 steps), section 4 (31–36) as below; per case:
+- **PASS:** P-baseline; T1, L1, H1 (APOD "On lock screen", NASA "On home screen", Earth none: not ticked), W1–W3 (the
+  ends stop); T2/T2a/T2c (order APOD, NASA, Earth, ✓, Back dismisses, Earth chosen); C1–C3, C5; C6, C7 (the system's
+  clipboard preview, no app toast; the credit's long press not run on its own); C8 (expanded, landscape and back, still
+  848 px high); O1 (two panes in landscape), O2/R5 (the pull on the picture pane), A1, A2, O3 (Advanced open, the ⓘ
+  dialog survived both rotations); P1 (browser, Back: APOD); S1a (one row, `EO_2026-11-20_…`), S1b ("Already saved");
+  O4 (after the row's deletion Home + reopen: ☆); K1, K1a (Earth: drag, Back, ⛶ again opens at Auto's subject, not
+  the dragged place); K10, K11; K1c (`earth.cropPosition` 0.62 saved, no toast, no `Part:` line); K2 (Whole
+  on, ✓: `Part: wallpaper set … on LOCK`, lock id 95 → 96, L2 "Lock: 11:15 AM"); K3; K6 (with Live: the frame at p 0.29 = `Live: drew … p=0.29`, no drag, ✓ unchanged: no line), K7
+  (`Part: wallpaper shown live … on HOME`, `p=0.50`, ids unchanged), K13 (Home: crop mode still open; Back closes), K8
+  (`p=0.29 ×0.83` again); S3 (airplane on: "Saved a smaller copy: the original didn't load", `Original failed, saving the
+  stored picture`), R2/R2a ("Earth Observatory: no connection.", NASA's and APOD's own, `Update failed`), BP1/BP2, R3
+  (airplane off, ping works, Home + reopen: no problem box); BH0–BH3 (App info and Battery optimisation open and Back
+  returns; Don't show again › Cancel: `pauseHintHidden` not written), **BH4**: 17's App info has "App battery usage" with
+  "Allow background usage" (a switch) and "Unused app settings" › "Manage app if unused", the hint's words word for word
+  (`bh-appinfo.txt`, `bh-battery.png`); A3, A3a, A3b (Save every, 50 MB, back to 20 MB, off), A4, A5, A5a (Keep running's
+  ⓘ; on: `isForeground=true types=0x40000000`, off: service gone); D1 (lines, hint box and Advanced gone, alarms
+  `alarm_cancelled`, job 1 and the service gone, summary without the time), D1a (a pull sets nothing, ids unchanged); D2
+  (`Switch on: wallpaper set …`, `job 1 starts, not expedited`, `jobFinished`, alarms for 23 Nov 05:01Z, "Last successful
+  run"), L3; the Live trip on the way (dialog "Home screen", AOSP's picker, "Home screen": `back from the picker, a
+  wallpaper changed, home live`, id 98 `SET_LIVE`, lock its own still) and out of it (Size Auto and Set: the engine
+  destroyed, both still); section 4: P3a (`Video still: 720 ms, 1080×608` with `eso2612b.mp4`; after a `kill -9` and
+  reopen no line), P3c (airplane on: `Video still: couldn't make one of …: setDataSource failed`, after about 35 s, black
+  tile; next open no line), P3d (`videoUrl` removed: black, no line); K16, K16b, K17 (`on LOCK, sideways, darker ×0.70`),
+  K24, K24a–c (APOD faked "A Spiral Galaxy in Space", the text without an up word: Set
+  `on LOCK, auto 0.21, sideways, auto turn`; ⛶'s pill opens on; ✓ untouched: no `Part:` line; pill off ✓: upright, `auto
+  0.35`); K27 (⛶ opens at 0.35 = `subjectPosition`, 208/596 px), K28 (✓ untouched: nothing), K29 (drag ✓: `cropPosition`
+  0.73, no `, auto`), K31 (undragged, pill on: the band at 0.21 = `subjectSideways`); K30/K33 (an undragged part, Size Centre then Auto and Set: Centre
+  `on LOCK` without `auto`, Auto `auto 0.35`; the other half, a dragged part staying at the next Set, is under SKIPPED); K34, K34a–d (APOD faked
+  1500×1022: sharp on and Set `sharp ×2.00 (Fill ×2.35)`; ⛶'s frame 36% of the picture's width, 2×, against 30.7% by
+  arithmetic with it off, and by eye in the round-1 fix: `k34-on.png`'s frame 36% of the width (325 of 900 px), `k34-off.png`'s 31%
+  (277 of 900), both opened and compared; drag ✓ `sharp ×2.00 (Fill ×2.35), darker ×0.98`; a 300×200
+  picture: ⛶'s screenshot identical after a drag (no drag), "Whole picture" the picture 2× on the blurred strip).
+  34 (setup J6) is removed by the map.
+- **FAIL:** K18 and K31a (BUG (b): the same-session steps gave the expected `sideways=false`, no `, sideways`, `auto 0.35`, but a sideways-dragged position applies to the upright frame once ⛶ is reopened).
+- **BUG:** (a) **The week log is lost after `pm clear`** (round 1: a FAIL-grade defect for 0.10.0's real-week log, not a DIFFERENT). Repro: run the app with the week log on so that `Download/APODroid/log.txt` has a MediaStore row, `pm clear` the app (the row stays, now owned by nobody the app can see), turn the log on again (`--ez weekLog true`): every write fails with `SQLiteConstraintException: UNIQUE constraint failed: files._data` (14 in 30 s), `log.txt` is never created, `log (1).txt` neither. LOGf1's lookup runs only for a file the app can see, so the insert collides. Details under DIFFERENT (1).
+  (b) **A sideways-dragged position applies to the upright frame** (round 1: FP1's failure kind, `notedSideways` was to prevent it; by design only if the user says so). Repro: crop mode on a landscape APOD with the pill on, drag the band, ✓ (cropPosition 0.893, sideways true); open ⛶ again, turn the pill off, ✓: the upright frame is set at 0.893 (`on LOCK`, no `, auto`). Details under DIFFERENT (2).
+- **DIFFERENT:** K1b and K12 (3), R1 and R2/R2a (4), P3a with larger mp4s (5), the picker's black frames (6), and:
+  (1) **The week log after `pm clear`** (the app was cleared by E17a before): `Week log: on` then every
+  write `Week log: couldn't write: SQLiteConstraintException: UNIQUE constraint failed: files._data` (14 times in 30 s),
+  `Download/APODroid/` empty; the MediaStore row of E17a's `log.txt` is still there and the insert of `log.txt` collides
+  with it instead of becoming `log (1).txt` (LOGf1's lookup runs only for a file the app can see). Off again at once. Not a
+  page case; for the week-log package. (2) **K18/K31a's kind:** a position dragged sideways (cropPosition 0.893 with
+  `sideways` true) stays when ⛶ is opened again and the pill turned off, and ✓ then sets the upright frame at 0.893
+  (`on LOCK`, no `, auto`); the FP1 rule drops only the drag of that crop mode. A stored number "keeps it" per
+  `CLAUDE.md`, so maybe as designed; a drag made sideways applying to the other axis later is what `notedSideways` was to
+  prevent. (3) **K1b/K12 text:** ⛶ on Earth reopens at the subject (Auto's frame, `Subject: EARTH p=0.25`), not "the
+  middle" (the map's 0.8.0 wording). (4) **R1/R2:** a pull always logs the three `Refresh: … same post / stored, nothing
+  newer` lines (the map says no log; LG made them). (5) **P3a with a larger mp4:** `NoctilucentNeowise_Girotti.mp4`
+  (4.8 MB) and `xz_and.mp4` (49 MB): `no frame` after `MediaHTTPConnection: readAt … => ProtocolException` (the server
+  answers a Range request with 200 and the whole file, from the desktop too; E17 saw the same once); the 2.3 MB
+  `eso2612b.mp4` made the still. As designed (tile black, logged). (6) The 17 picker's new engine drew black four times
+  (~100 ms) after each `kill -9` rebind and after the picker (E17's DIFFERENT), seen again.
+- **SKIPPED:** **S4/S4a** (a several-MB original saved and rotated "at once"): the original arrives in under a second on
+  this host, ★ was filled before the new page came up; `Saved`, one row, no crash. **S2a's toast** not read (the star
+  stayed `Saved` with the row deleted, as the map's SUSPECT; the next reopen shows ☆, so "Already saved" or a silent
+  no-op not told apart). **K24's 3000×1000 galaxy file** (a faked text on the real 3709×2772 Jupiter instead). **R5 in
+  landscape** (the pull on the pane ran in portrait only; landscape was left for time, so R5 is not done there: still open).
+  **K30/K33's second half** (a dragged part staying at the next Set of Size Centre or Auto): not run, left for time, still open. **P3a's `am kill` of the second open** done as `kill -9`
+  (Live's engine rebinds); setup's J6 gone.
+- **End state:** as found: the app's own setup unchanged (daily on, More NASA on, home NASA, lock APOD, Size Auto, Keep
+  pictures sharp off, Keep running off, Save every off 20 MB), the real APOD picture put back (the faked ones replaced
+  by a download after removing `files/apod.jpg`), Earth's and APOD's parts removed, both gallery rows deleted (the media
+  query empty), airplane mode off (ping works), `accelerometer_rotation` 1, `user_rotation` 0, density 420, font scale
+  1.0, `auto_time` 1, the week log off, no crash. The wallpaper ids changed with every set (117/118 at the end), still
+  static (no Live, as found). The emulator stays running; the app stays installed.
+
 ### [ ] E17c. Android 17, the background map (Sonnet, medium)
 
 `interactions/background.md`, "Phone test list" (27 cases) with a stepped clock; real timing (Doze, buckets)

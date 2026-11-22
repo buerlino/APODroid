@@ -157,6 +157,8 @@ instead of re-deriving it; its CLAUDE.md explains each choice.
 - Android SDK in `~/Android/Sdk`. The user tests on real devices over adb; the emulator only for
   the Android versions no device has (10–14; user, 2026-10-29: E; postponed to 0.7.0, user,
   2026-11-02: release 0.6.0 as soon as possible; to 0.8.0, user, 2026-11-14; to 0.9.0, user, 2026-11-15; to 0.10.0, user, 2026-11-17), never for real timing (Doze, buckets, makers' cleaners).
+  The AVDs `apodroid-29/31/33/34/37` (Android 10, 12, 13, 14, 17; ports 5554, 5558, 5562, 5564, 5566; `apodroid-37` added 2026-11-22, the plain
+  `android-37.0` image, no Google): how, and the cases per level, in the skill's `emulator.md`; the packages in `release-0.10.0.md`.
 - Git branch `master`, remote `origin`. `dev` holds the night shift's merges until the user fast-forwards master.
 
 **Releases** (F-Droid builds only the newest tag: it ships 0.5.0, 0.3.1 and 0.3.0 and skipped

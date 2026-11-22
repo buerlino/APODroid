@@ -183,6 +183,12 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 80 | ER | emulator.md for today's app; apodroid-37 set up; E17–E13 and UP written into release-0.10.0.md | winston | sonnet, medium | no | A17 | release-0.10.0.md ER |
 | 81 | SIM | RulesSimulationTest over 20,000 seeds; each failing seed a BUG: line | winston | sonnet, low | no | — | release-0.10.0.md SIM |
 | 82 | CR | A code review of the whole app by reading, correctness only, each finding verified | winston | opus, high | no | LOG | release-0.10.0.md CR |
+| 83 | E17 | Android 17, every map (`APODROID_TABLET=emulator-5566`) | rosie | opus, medium | no | A17, ER | release-0.10.0.md E17 |
+| 84 | E14 | Android 14, every map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | ER | release-0.10.0.md E14 |
+| 85 | E10 | Android 10, every map (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | ER | release-0.10.0.md E10 |
+| 86 | E12 | Android 12 (`APODROID_TABLET=emulator-5558`) | rosie | sonnet, medium | no | ER | release-0.10.0.md E12 |
+| 87 | E13 | Android 13 (`APODROID_TABLET=emulator-5562`) | rosie | sonnet, medium | no | ER | release-0.10.0.md E13 |
+| 88 | UP | The update from 0.5.0, 0.7.0 and 0.9.1 (`APODROID_TABLET=emulator-5564`, then 5566) | rosie | sonnet, medium | no | E14 | release-0.10.0.md UP |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

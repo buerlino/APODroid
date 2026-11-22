@@ -19,15 +19,20 @@ import subprocess
 import sys
 import time
 import xml.etree.ElementTree as ET
+from datetime import datetime, time as dtime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sh4_check  # noqa: E402
 from sh4_pictures import PICTURES  # noqa: E402
 
 P = "io.github.buerlino.apodroid"
-DATE = "2026-11-18"          # a day ahead: the real post (today's) is older and ignored
-PUBLISHED = "1794978300000"  # 18 Nov 00:05 US Eastern
+# a day ahead: the real post (today's) is older and ignored; US Eastern's today, as the app counts
+_TODAY = datetime.now(ZoneInfo("America/New_York")).date()
+DATE = (_TODAY + timedelta(days=1)).isoformat()
+PUBLISHED = str(int(datetime.combine(_TODAY + timedelta(days=1), dtime(0, 5),
+                                     ZoneInfo("America/New_York")).timestamp() * 1000))
 TEXTS = {
     "gal": ("A spiral galaxy and its nebulae in a field of stars",
             "See Explanation. Clicking on the picture will download the highest resolution version available.",
@@ -136,7 +141,7 @@ def run_case(c, pictures, out):
         ("string", "explanation", expl), ("string", "imageUrl", url), ("string", "pageUrl", url),
         ("boolean", "isVideo", False), ("long", "published", PUBLISHED), ("string", "sizeChecked", url),
         ("boolean", "afterGap", False), ("string", "size", c["size"]), ("boolean", "sharp", c["sharp"]),
-        ("boolean", "darken", False), ("boolean", "autoFallback", True), ("string", "where", c["where"]),
+        ("boolean", "darken", False), ("string", "where", c["where"]),
         ("boolean", "daily", True), ("boolean", "allSources", False),
     ]:
         put(root, kind, k, v)
@@ -238,7 +243,7 @@ def judge(r, png):
     if r["pos"] is not None:
         position = r["pos"]
     elif r["size"] == "AUTO" and raw is not None:
-        position = 0.5 if abs(raw - 0.5) < 0.2 else raw
+        position = raw
     else:
         position = 0.5
     r["expect"] = {"sideways": sideways, "bites": bites, "e": round(e, 4), "position": position}

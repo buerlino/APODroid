@@ -474,5 +474,6 @@ An unmerged branch stays as `wp/<id>`, with its worktree, until the next run of 
 ## Tested
 
 In a scratch clone on 2026-10-19 (every agent on Haiku), then on real nights since: packages end to end, fix rounds,
-STOPs, device packages, Opus passes, regressions and reports, josh driving the loop. Never seen yet: a usage limit
-(night.sh's 30-minute waits) and a merge conflict inside the pipeline.
+STOPs, device packages, Opus passes, regressions and reports, josh driving the loop. A usage limit seen once
+(2026-11-22, 02:26: not recognised, the night stopped; since then the CLI's line is, and night.sh waits until
+the reset it names; the wait itself not yet seen on a night). Never seen yet: a merge conflict inside the pipeline.

@@ -622,13 +622,49 @@ Toasts were never read (they aren't in the log; the `Set:` lines, the status lin
   `auto_time` 1, network on, no job or alarm of the app. The system wallpaper is ImageWallpaper (the last stills of the
   run were not restored byte for byte).
 
-### [ ] E14b. Android 14, the page map (Sonnet, medium)
+### [x] E14b. Android 14, the page map (Sonnet, medium)
 
 `interactions/page.md`, sections 3 (the prioritized list) and 4 (0.8.0's emulator cases), with K31b (B32). Device `emulator-5564` (`apodroid-34`, Android 14), dev's debug build, at most 50 min. The rules:
 `interactions/tester-rules-emulator.md` with the serial `emulator-5564` instead of 5564; the cases of the E14 packages before it ran
 aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
+
+**Checked** (rosie, pipeline run 174, 2026-11-22, `emulator-5564`, Android 14 (`apodroid-34`), dev's debug build; evidence in
+`.coord/runs/174-e14b/tablet/`; the app was installed but empty (E14a's `pm clear`), so the map's S0 was built from the page
+first: daily on, More NASA pictures on, home NASA, lock APOD, Earth unticked, Size Live by Android's picker (AOSP's: "Home screen"
+shared one engine, lock an ImageWallpaper)). The dates: APOD 22 Nov, NASA and Earth 20 Nov, clock 12 h. **No crash**
+(`logcat -b crash` empty; `exit-info`: force stops and SIGKILLs from my `kill -9` only). **No FAIL, no `BUG:`.** Toasts were
+never read (the log, prefs and dumps stand for them).
+- **PASS:** P-baseline, T1, L1, H1, W1–W3 (end stops), T2/T2a/T2c, C1–C3, C5, C6/C7 (the long presses ran, the clipboard
+  wasn't read), C8 (explanation and credit stay open in landscape), O1 (two panes), A1, A2, O3 (the ⓘ dialog survived the
+  rotation), P1 (the WebView browser opened, Back: APOD), S1a (one `EO_` row), S1b (no second row), O4 (☆ after Home and reopen),
+  K1/K1a/K1b (the dragged frame was not compared to the reopened one by pixels: `cropPosition` absent after Back), K10, K11, K1c
+  (`earth.cropPosition` 0.138, no log), K2 (lock id 92→93, `Part:` lines), K12, K3, K6 (no `nasa.cropPosition`), K7 (`Part: wallpaper
+  shown live`, engine `p=0.50`, ids unchanged), K13, K8 (`p=0.65` again), R1, S3 (`Original failed, saving the stored picture:
+  UnknownHostException`, the row written), R2/R2a (`Update failed`, each page its own text), R3, BH0–BH3 (App info and
+  Battery optimisation open and Back; "Hide this hint?" Cancel keeps it), A3/A3a/A3b (`saveEvery`, `saveLimit` 50 then 20, off),
+  A4, A5 (`KeepRunning` foreground, then gone; Active apps not looked at), D1 (alarms and job 1 gone, rows gone), D1a (the pull
+  logged `Refresh:` only), D2 (`Switch on:`, job 1 ran, `alarms for 2026-11-23T05:05:26Z`), O5 (opens on NASA), P3a (`Video
+  still: 1859 ms, 1080×722` with `comet_plunge.mp4`, the dimmed still behind ▶; after a `kill -9` no second line), P3c (offline:
+  `Video still: couldn't make one of …: setDataSource failed`, after about 25 s; `videoStillTried` kept), P3d (black, no line),
+  K27 (⛶ at 0.35, left of the middle), K28 (✓ untouched: nothing), K29 (`cropPosition` 0.748, `Part: … on LOCK` without `, auto`,
+  `sideways=false` noted), K31 (the pill on an upright-stored part moved the frame), K31a (pill on, drag, pill off, ✓: no
+  `cropPosition`, `sideways=false`, no set; pill on drag ✓ `, sideways`, `cropPosition` 0.0; pill off drag ✓ noted, no `, auto`),
+  **K31b** (band ✓'d, ⛶ again, pill off, ✓: `Part: wallpaper set: … on LOCK, auto 0.35`, no `, sideways`, no `cropPosition`,
+  `sideways=false`), K30/K33 (Whole ✓ without a drag: no `cropPosition`; Whole off: `, auto 0.35`; Size Centre and Set:
+  no `auto`), K16/K17/K18 (the pill, the band and ✓ `, sideways` ran inside K31a/K31b on the real APOD 4:3 picture).
+- **DIFFERENT:** R1 (the pull logs `Refresh: … same post` / `stored, nothing newer`, the map says "no log": LG's lines, as in
+  E14a), S2a (the map's SUSPECT: after the row was deleted by adb ★ stayed filled, a tap saved nothing, Home and reopen: ☆),
+  BP2 (Dismiss on APOD, Earth, then NASA: APOD's page shows NASA's box, the next candidate not dismissed, as CLAUDE.md says; each
+  source's own Dismiss held).
+- **Not run:** S4/S4a (no original of several MB here), P2 (a browser exists), O2/R5 (a pull on each pane in landscape),
+  K24, K24a–c and K34, K34a–d (faked 3000×1000 and 1500×1022 pictures: E14a ran them with `sh4_run.py`, P32, P33, P34e), K16b,
+  K26 (a part from before 0.9.0), K27's "Centre keeps the middle" beyond K30's Set, real timing. P3e (the next post), P3b.
+- **State at the end:** same setup as built (home NASA, lock APOD, Live on home (id 90 shared engine), `size` LIVE, daily on, Keep
+  running off, Save every off, 20 MB), gallery row of S3 deleted, `accelerometer_rotation` 1, `user_rotation` 0, `auto_time` 1,
+  airplane mode off, Wi-Fi on. Not restored: the NASA and APOD parts (`apod.cropPosition` 0.729, `sideways` false).
+
 
 ### [ ] E14c. Android 14, the background map (Sonnet, medium)
 

@@ -268,7 +268,7 @@ Each step starts where the previous ended. Before every Set: `adb logcat -c`; af
 | P18 | B5 | NASA dropdown "Home screen" (mode is on) → Set. | `Wset`; `…N13 on HOME, A15 on LOCK`; summary "Home: NASA · Lock: APOD · 06:00"; pager 3 sources, title "NASA ▾", chips as N1. |
 | P19 | L4 | Setup ▾ → Darken off (tertiary) → Home button → `adb shell am kill io.github.buerlino.apodroid` → `pidof` empty → reopen from Recents. | Darken still off and tertiary, Setup open. (If pidof isn't empty, Keep running keeps the process: skip.) |
 | P20 | L5 | With that draft, `adb shell am start -n io.github.buerlino.apodroid/.MainActivity`. | Same page, draft kept; one MainActivity record. |
-| P21 | L2 NOTE | Back → launcher icon. | Expected (Android 16): draft still there. Record whether it's dropped. |
+| P21 | L2 NOTE | Back → launcher icon. | Expected: the draft dropped (CLAUDE.md: closing the app drops it; Android 14 and 17 drop it, E14a, E17a; user, 2026-11-22). The FP6 (16): record whether it's kept. |
 | P22 | L3 | Swipe APODroid from Recents → launcher icon. | Draft dropped: Darken on, no highlight, Setup closed, opens on NASA. |
 | P23 | L6 | Setup ▾ → Darken off → "If APOD is a video" → "Use my picture" (picker opens; only if P0 found none) → `am start -n …/.MainActivity` → second page: Setup closed, nothing highlighted → Back → picker → Back → first page. | Second page = stored setup; first page keeps Darken off highlighted, choice "Skip it". Skip the step if a my picture exists. |
 | P24 | I2, L7 | Set (Darken off) and rotate at once. | `Wset` toast shows; Setup closes on the rotated page; `Set:` entries without `, darker`. |

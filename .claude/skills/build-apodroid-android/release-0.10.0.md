@@ -978,6 +978,38 @@ drag: `auto 0.21, sideways`. No crash.
 - **Should happen:** the judge's Auto position is the noted subject as it is; DATE = today + 1.
 - **Done when:** a rerun on the emulator with no false FAIL. Before E14f.
 
+### [ ] B35. A force stop on Android 14 keeps home's wallpaper id, so `homeLive` still says Live is on (Opus, medium)
+
+- **Steps:** E14c's P17: Android 14 emulator, Size Live, home live, `am force-stop`, then a run (`run -f 1`) and the page.
+- **Happened:** home becomes the ImageWallpaper but keeps its id (109), so `homeLive`'s id rule (`Live.kt`, L8f1's fix
+  round 1) still says Live is on: no `Live: home isn't live, Fill on HOME+LOCK`, no "Live isn't on" line, the record stays
+  noted live, Set with Size Live opens no picker.
+- **Should happen:** the lost Live is found (Decision 12): both screens Fill, the status line, Set opens the picker.
+- **First, the evidence** (user, 2026-11-22): L8f1's kill in the split state redone on the tablet (Android 15, ZUI),
+  logging what `getWallpaperInfo(FLAG_SYSTEM)` returns while `dumpsys` shows `CONNECTION_TRY_TO_REBIND` (L8f1's
+  records show the component still APODroid's in `dumpsys` and the id kept, not what the app read), and whether the
+  new process creates a non-preview engine. Then the fix by it: **null** → trust the id only while `getWallpaperInfo`
+  names nothing (Opus pass 63); **another component** → trust the id only while a non-preview engine runs in this
+  process (a kill rebinds and starts one, a force stop doesn't), the grace as before. Either way L8f1's case stays live.
+- **Below 14** the id is the only sign: whether a force stop keeps the id there too, E10's P17 tells (a BUG line there
+  extends this package).
+- **Files:** `core/.../Live.kt` (`homeLive`), `Store.liveOn`/`liveState`, `LiveWallpaper.kt` if the engine rule, `LiveTest`.
+- **Done when:** a test that fails on the old code (the kept id with another component), the fix, the tablet's L8f1
+  kill still Live, P17 again on the Android 14 emulator.
+
+### [ ] B36. A second page stacked over the picker ends Set's wait (Sonnet, medium)
+
+- **Steps:** E14e's T21: Set with Size Live opens Android's picker; tap the launcher icon while it's open.
+- **Happened:** a second page stacks; its `onResume` completes `pickerBack` (`MainActivity.kt`), so Set ends "no pick,
+  nothing saved" while the picker is still open. A pick then is lost: the engine on home, Size AUTO still stored, the old
+  `live.jpg`, no toast.
+- **Should happen** (user, 2026-11-22): Set keeps waiting until the picker returns.
+- **Fix:** `onResume` ends the wait only in the page that started Set, or one a rotation made of it (the same page key in
+  `live`); a stacked page doesn't. `registerForActivityResult` brings the return to that page; the fallback stays for a
+  start from the background. CLAUDE.md (Set as wallpaper, The picker: "a page's `onResume` ends the wait as a fallback")
+  and `interactions/live.md`'s T21.
+- **Done when:** the fix and T21 again on the night's emulator (the code isn't version-specific).
+
 ### [ ] CR2. A second code review, during the real week (Opus, high)
 
 As CR (three reviewers by area, blind to each other, each finding verified by a second agent; correctness only),

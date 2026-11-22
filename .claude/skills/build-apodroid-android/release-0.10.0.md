@@ -354,6 +354,12 @@ From CR (`review-0.10.0-cr.md`, finding 2). (B29, the CR's finding 1, shipped as
 - **Should happen:** let go with the other pictures (O12, CLAUDE.md, The page); shown again at the resume.
 - **Done when:** the fix, and a device bullet with the memory after Home, before and after.
 
+**Checked** (rosie, pipeline run 165, fix round 1, 2026-11-22, `emulator-5566`, Android 17, debug; evidence in
+`.coord/runs/165-b30/tablet-1/`): ⛶ open, "Whole picture" on, Keep running on: the native heap 29,652 KB with
+the preview shown, 11,868 KB 45 s after Home (total PSS 101.6 → 80.0 MB, the page's other pictures let go too,
+O12), the service alive; the resume reopened ⛶ with "✓ Whole picture" drawn again (29,692 KB), no crash; ✓ and a
+Set afterwards set. Not run: a resume after the photo picker (no spinner flash), other levels.
+
 ### [ ] WK. The real week (the user; three devices, no connection to the PC)
 
 The candidate's release-signed build installed on each, LOG turned on, the setup below applied,

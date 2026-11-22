@@ -3,8 +3,9 @@
 (User, 2026-10-29: E before 0.6.0's tag, set up so 0.7.0's tracks can reuse it. No device runs
 Android 10–14: the tablet is 15, the FP6 16. `CLAUDE.md`: the emulator only for the versions no
 device has, never for real timing.) This file is E's how and its packages; `plan-0.6.0.md`'s E row
-points here. The decisions go into `CLAUDE.md` when E0 lands; a bug E finds becomes a `B<n>` in
-`plan-0.6.0.md` under the release gate (a fix to the job or the rules restarts W's count).
+points here. **Brought to today's tree on 2026-11-22 (ER, `release-0.10.0.md`):** Android 10, 12, 13,
+14 and 17 (`apodroid-37`, new); the packages are `release-0.10.0.md`'s E17, E14, E10, E12, E13 and UP,
+the cases per level below; a bug E finds becomes a `### [ ] B<n>` there.
 
 ## What can differ on Android 10–14 (investigated 2026-10-29)
 
@@ -28,7 +29,7 @@ the developer docs' behaviour-change pages; "seen" means on these emulators, 202
 | `registerReceiver(clockChanged, …)` without an export flag (`MainActivity.onResume`) | 14 requires `RECEIVER_EXPORTED`/`NOT_EXPORTED` for apps targeting 34+, except for system-only broadcasts (these two are) | Low | The page opens on 14 without a `SecurityException`; a time-zone change while it's open updates the status line | E4 |
 | `PickVisualMedia` (the photo picker for "my picture") | androidx: the system picker on 13+, on 11–12 only with the R extension ≥ 2 (MediaProvider's mainline update), else Play services' fallback picker (`ACTION_SYSTEM_FALLBACK_PICK_IMAGES`), else `ACTION_OPEN_DOCUMENT` with `image/*` (no GMS step in `createIntent`). Seen: 10 has no picker (DocumentsUI), the 12 image R extension 1 (DocumentsUI), 13 and 14 the system picker. A de-Googled 10–12 phone (LineageOS: F-Droid's users) gets DocumentsUI too | Medium (another screen; the copy from a document URI in `runs`) | Pick a pushed picture in DocumentsUI (10, 12) and the photo picker (13, 14): "my picture" set, `files/fallback.jpg` there | E1a, E2, E3, E4 |
 | Dynamic colour (`dynamicDarkColorScheme` on 31+, `darkColorScheme()` below) and **U1** | 10–11 the fixed palette. SystemUI's `ThemeOverlayController`: **12 accepts one colour event after any `ACTION_WALLPAPER_CHANGED`**, so every set of ours recolours the system and recreates open activities; **13+ only after a set by the foreground app** (`EXTRA_FROM_FOREGROUND_APP`): a job's set in the background waits until the screen goes to sleep (`onFinishedGoingToSleep` replays it). Never checked (U1: the tablet's ZUI and the FP6's LineageOS have wallpaper colours off) | Medium: the page recreated during or right after a Set (B13 keeps a run's end through a rotation, the same path) | `logcat -b events -d | grep am_create_activity` around a Set; Setup's state, the draft, the toast; the colours before and after (screenshots) | E2, E3, E4 |
-| The pause hint's checks and texts (`checkPausing`, `PauseHint`) | 31–32 show only the unused line, 33–34 both with the 33–34 battery text. **Seen, a bug:** 12's App info has "Unused apps" with the switch "Remove permissions and free up space", not "Unused app settings → Pause … if unused" (13 and 14 match the hint; 13 has "App battery usage", 12 "Battery") | **Seen (B25)** | A screenshot of the box and of App info | E2 (today's text; B25's own check has the new one), E3, E4 |
+| The pause hint's checks and texts (`checkPausing`, `PauseHint`) | 31–32 show only the unused line, 33–34 both with the 33–34 battery text. **Seen, a bug:** 12's App info has "Unused apps" with the switch "Remove permissions and free up space", not "Unused app settings → Pause … if unused" (13 and 14 match the hint; 13 has "App battery usage", 12 "Battery") | **Seen (B25)** | A screenshot of the box and of App info | E2 (B25 is built: the new text), E3, E4 |
 | Clipboard (`copy`) | Below 13 our toast "Copied", 13+ the system's own confirmation | Low | Screenshot after the long press | E1b, E3 |
 | `PullToRefreshBox`, overscroll | Compose's overscroll is a glow on 10–11, a stretch on 12+; the pull itself the same | Low | `input swipe 540 600 540 1500 600`: "Page: …" in the log | E1b |
 | `enableEdgeToEdge()`, the system bars | 15+ force edge-to-edge (already handled); on 10–14 `enableEdgeToEdge` asks for it, with a scrim behind 3-button navigation (these AVDs use 3 buttons, `navigation_mode` 0) | Low | Screenshots: nothing hidden under the status or navigation bar, in portrait and landscape (two panes) | All |
@@ -107,7 +108,13 @@ after a force stop; then every map as the plan says.
 4. **B25 before the tag** ("B25 before the tag (Recommended)"): the pause hint's unused line on
    Android 12 (the draft below). A page text, not the job or the rules: W's count stays.
 
-## The setup (done 2026-10-29)
+5. **0.10.0** (user, 2026-11-22, `release-0.10.0.md`): the levels **10, 12, 13, 14 and 17**; 17 and
+   14 and 10 every case, 12 and 13 the version table's rows and a smoke of each map; the update from
+   0.9.1, 0.7.0 and 0.5.0 (UP). One level per night, `APODROID_TABLET=emulator-<port>`, rosie's
+   checks by `interactions/tester-rules-emulator.md` (its serial per night). The old decision 3's
+   W's candidate (0.6.0) is history: the candidate is dev's build.
+
+## The setup (done 2026-10-29; `apodroid-37` added 2026-11-22)
 
 - **SDK packages:** `emulator` 37.2.13 and `system-images;android-{29,31,33,34};default;x86_64`
   (downloads: emulator 0.35 GB, images 0.66–0.72 GB each, 3.1 GB in all; installed in about 80 s
@@ -128,6 +135,15 @@ after a force stop; then every map as the plan says.
   | `apodroid-31` | 12 | `emulator-5558` | SE1A.220826.006.A1 |
   | `apodroid-33` | 13 | `emulator-5562` | TE1A.220922.034 |
   | `apodroid-34` | 14 | `emulator-5564` | UE1A.230829.036.A1 |
+  | `apodroid-37` | 17 | `emulator-5566` | CE2A.260420.051.A3 |
+
+  **`apodroid-37`** (ER, 2026-11-22): `system-images;android-37.0;default;x86_64` (the plain image,
+  no Google; revision 6, 2.5 GB installed), the same `avdmanager` line with `-n apodroid-37`
+  (pixel_6, 1080×2400 at 420 dpi, 2 GB RAM, 4 cores). Booted once, wiped, with the start line below
+  (`-port 5566`): `sys.boot_completed` after 24 s, the network 2 s later, `adb root` works (userdebug),
+  `ro.build.version.release` 17, SDK 37, `wm size` 1080×2400, `mWidth=4800 mHeight=2400`, `cmd alarm`
+  has `set-time`, `dumpsys activity exit-info` answers, Launcher3 the only launcher; the AVD's data 505 MB
+  after it; stopped with `emu kill` (the process gone). No app installed on it yet.
 
 - **Start** (one line; the shell must have the desktop's `DISPLAY`; `-wipe-data` gives a fresh
   phone, the packages' start):
@@ -216,87 +232,68 @@ row 66), committed 2026-10-29. Its check is by hand on `apodroid-31` (The setup'
 
 ## Packages
 
-E0 by day; then E1a–E4 one night, riskiest first. **Each package installs W's candidate on a
-wiped emulator** (How a check runs). A `BUG:` line becomes a `B<n>` in `plan-0.6.0.md` (a fix to
-the job or the rules restarts W's count); a STOP (Android does what nobody expected) goes to the
-user.
+**Where it stands (ER, 2026-11-22).** E0 as planned (`scripts/emulator.sh`, the `emulator` lock,
+an `emulator E<n>` spec) was **never built**: 0.8.0's night ran the pipeline on the Android 14
+emulator by `APODROID_TABLET=emulator-5564 scripts/night.sh` (`night.md`, For rosie), the emulator
+started by hand with The setup's line, and rosie follows `interactions/tester-rules-emulator.md`.
+That is the way for 0.10.0 too: one level per night, `APODROID_TABLET=emulator-<port>`, a row's
+Tablet column "no", rosie's rows named by `release-0.10.0.md`'s `### [ ]` sections (E17, E14, E10,
+E12, E13, UP). Not built, and not needed by them: the script, the lock (one night runs at a time),
+the per-row device. **To do by hand before each night:** start that night's emulator wiped (The
+setup's start line, `-wipe-data`), check `adb -s <serial> shell getprop ro.build.version.sdk`; the
+pipeline does not start or stop it (stop: `emu kill`, after the night). The first boot of
+`apodroid-37` ran on 2026-11-22 (below).
 
-| WP | What | Model, effort | Who, device |
-|----|------|---------------|-------------|
-| E0 | The night shift on an emulator: `scripts/emulator.sh`, the pipeline, rosie, the queue rows | Opus, high | a day session, by hand; one boot of `apodroid-29` |
-| E1a | Android 10, the wallpaper: the crop, home and lock, the whole picture, decoder and EXIF through DocumentsUI | Opus, medium | rosie, `apodroid-29` (`emulator-5554`), by night |
-| E1b | Android 10, the rest: the update from 0.5.0, the job and the broadcasts, storage, the page | Opus, medium | rosie, `apodroid-29` (`emulator-5554`), by night |
-| E4 | Android 14: `WallpaperCropper`, home and lock without the lock-screen live wallpaper, the receivers and jobs of 34 | Opus, medium | rosie, `apodroid-34` (`emulator-5564`), by night |
-| E2 | Android 12: colour events after every set (U1), the unused line alone (today's text), DocumentsUI on 12 | Opus, medium | rosie, `apodroid-31` (`emulator-5558`), by night |
-| E3 | Android 13: the system picker, both hint lines, colour events from the foreground only | Opus, medium | rosie, `apodroid-33` (`emulator-5562`), by night |
+The rows below were written for 0.6.0 and kept as the cases per level; **what changed for today's
+app** is in each level's list under "The levels" and in the rules here:
+- **The build:** the candidate is the build the pipeline gives rosie (dev's debug build, and an R8
+  build for the update cases: `release-0.9.0.md` T4), not W's candidate; no sha256 to check.
+  Debug builds give `run-as`; the prefs and files as root otherwise (How a check runs).
+- **The update** is from **0.9.1** (the F-Droid users' newest, versionCode 14), and UP adds 0.7.0
+  and 0.5.0: `app/build/apodroid-v0.5.0.apk` and `-v0.7.0.apk` exist; 0.9.1's must be built from its
+  commit beforehand (release-signed or debug-signed with the same key as the candidate, else
+  `install -r` refuses). What the migrations and the updates do: `CLAUDE.md`, Migrations.
+- **A `BUG:`** becomes a `### [ ] B<n>` package in `release-0.10.0.md` (a fix to the job or the
+  rules restarts the week's count), re-tested on the level that found it; a STOP goes to the user.
+- **Results** go under the package's section in `release-0.10.0.md` (`Checked`: the date, the
+  pipeline run, the serial, the build, a few lines), evidence in `.coord/runs/<n>-<id>/`.
+- **Reply** PASS, FIX, STOP or NOT RUN with `Tested:`, `Not tested:`, `BUG:`, `For the user:`,
+  per case PASS / DIFFERENT / FAIL as T4 and T5 did.
 
-```
-claude --model opus --effort high "Do E0 in .claude/skills/build-apodroid-android/emulator.md"    # by day; the user commits it
-scripts/night.sh --until 07:30    # E1a, E1b, E4, E2, E3 (the queue rows E0 adds), the Opus passes, no tablet regression
-```
-By hand instead (a day, one at a time): `scripts/emulator.sh start apodroid-29`, then
-`ANDROID_SERIAL=emulator-5554 claude --agent rosie --model opus --effort medium "Do E1a in .claude/skills/build-apodroid-android/emulator.md"` (after E0: rosie may use the apodroid emulators); E1b likewise, after a fresh `start`.
+### The levels: what to check on each (0.10.0)
 
-**For every E package** (rosie, as "For rosie" in night.md says, with these changes): the
-device is the package's emulator, never the tablet or the FP6; start it wiped (E0's script,
-or the start line), `adb root`, install W's candidate (sha256 checked). No backup and no
-setting back on the emulator (it's wiped at the next start), but `emu kill` at the end. About 45
-minutes of checks; when time runs short keep the order and name the rest under `Not tested:`.
-Evidence as text first (`dumpsys`, the pulled files' `magick compare` numbers, the log), a
-screenshot for each wallpaper and each text the user approves, into the run folder. The smoke
-list doesn't apply (no build of ours is new); its items are in each package. Reply as night.md
-says (PASS, FIX, STOP, NOT RUN; `Tested:`, `Not tested:`, one `BUG:` line each, `For the user:`)
-and write the package's results under its section here (`Results (<date>)`: a few lines and the
-run folder), committed as a device package's are.
+Each level's list is E1a–E3's below **plus** these (each line says where it comes from). An item
+needing a real maker or real timing is WK's.
 
-### [ ] E0. The night shift on an emulator (Opus, high)
+**All levels (every level runs these):** LOG's file (`--ez weekLog true`, a run, `Download/APODroid/log.txt`
+by `adb pull`; 10's MediaStore Downloads too); Size Auto's subject and Auto's turn (the log's
+`Subject:` line, `, sideways, auto turn`); the darkened set and the limited set through `setBitmap`
+(`debug-set.png` by pixels, `scripts/sh4_check.py`: the system's crop of a screen-sized bitmap);
+Keep running's notification; the pause hint's per-maker path for the stock layout; the detector; Live.
 
-(By day, a session by hand: it changes the night's own scripts, so it can't run in one. User,
-2026-10-29: "E0 by day, then E1–E4 one night"; E1 split in two after a review the same evening.) Small and only what E needs; 0.7.0 reuses it.
-1. **`scripts/emulator.sh`** `start|stop|serial apodroid-<api>`: the port by the formula, the start
-   line of The setup (`-wipe-data` on `start`), detached (`setsid`, stdin `/dev/null`, the log in
-   `.coord/emulator-<api>.log`), waits for `sys.boot_completed` and the ping (at most 4 min, else
-   exit 1 and kill it), prints the serial; refuses without `DISPLAY` (the reason in The setup)
-   and when another `apodroid-*` emulator runs; `stop` is `emu kill` and waits for the process.
-2. **The lock:** `devlock.sh` learns the resource `emulator` (one emulator at a time, any
-   pipeline or day session).
-3. **The spec:** `pipeline-lib.sh`'s `spec_text` learns `emulator <key>` (this file's `### [ ]
-   <key>.` section); `pipeline.sh` passes this file. `pipeline.test.sh` resolves the E rows.
-4. **The device per row:** a rosie row whose Spec is `emulator E<n>` runs on the AVD its section's
-   heading names (`apodroid-<api>`, a field of the heading or the table's "Who, device"; pick one,
-   one rule): `pipeline.sh` takes the `emulator` lock, starts it, sets `ANDROID_SERIAL` to its
-   serial for rosie instead of `$TABLET`, skips the debug build (E installs W's candidate:
-   the prompt names it), and stops the emulator and frees the lock on every exit (the trap). No
-   `adb -s HA24BZ2Y` happens in such a run.
-5. **The regression stays off:** a merge of an emulator row doesn't count for the tablet
-   regression (`merged_since_regression`), so a night of E rows ends with "regression: NOTHING"
-   and W's tablet is left alone. Its RESULT line says `(emulator <avd> PASS)`.
-6. **rosie and the rules:** `rosie.md`'s "The tablet only" and night.md's rule 4 and "For rosie"
-   first bullet allow "the device `ANDROID_SERIAL` names: the tablet, or an `apodroid-*` emulator
-   in an emulator row; never the FP6"; the emulator rows follow this file's "For every E package"
-   (no tablet backup). `agent-settings.json` allows `Bash(adb -s emulator-55*:*)`; the FP6 deny
-   stays.
-7. **The queue rows** (night.md; Tablet no, rosie is the check):
-   `| 67 | E1a | Android 10 in the emulator: the wallpaper | rosie | opus, medium | no | — | emulator E1a |`,
-   `| 68 | E1b | Android 10 in the emulator: the rest | rosie | opus, medium | no | — | emulator E1b |`, then
-   E4, E2, E3 (69–71) in that order. Rows 66+ by night once E0 is committed.
-8. **Docs:** `CLAUDE.md` (Setup and distribution: the emulators, the serials, `DISPLAY`; the
-   decisions above), the skill ("Working on the phone": a line pointing here; Devices: the four
-   AVDs), night.md's "How it works" and Files.
-- **Check:** `scripts/pipeline.test.sh` passes; `scripts/pipeline.sh E1a --dry-run` names
-  `apodroid-29`, the spec and no tablet; `scripts/emulator.sh start apodroid-29` from the night's
-  terminal boots and prints `emulator-5554`, a second `start` refuses, `stop` ends it; a
-  regression dry run on a log with only an emulator row's merge says NOTHING.
-- **Done when:** 1–8 done and checked as above; no app code changed; the user commits it (night.sh
-  refuses uncommitted scripts and skill files).
+| Level | Serial | What differs for today's app (beyond the rows above and E1a–E3's lists) |
+|---|---|---|
+| 10 (`apodroid-29`) | `emulator-5554` | **Auto's subject decoded on 10's `ImageDecoder`** (EXIF: an EXIF-6 and EXIF-8 photo noted and set at its subject; `Subject:` line, the frame's rows); **the video still's `MediaMetadataRetriever`** on 10 (a faked video day with `<source>.videoUrl` of a real NASA mp4: `Video still: <ms> ms`, the tile; a failure is logged and the tile stays black); the sideways and darkened `setBitmap` through 10's `generateCrop` (the frame's rows must survive its aspect fix: tall and wide pictures, numbered rows); Keep running's notification **in the shade** (`dumpsys activity services`: `isForeground`; `specialUse` and its permission don't exist below 34: the service must start without a crash at the switch); no `setExpedited` below 12 (job 2 a plain job, "not expedited" in the log); the detector: no exit records on 10, so only the `PendingIntent` sign (`am force-stop`, the page); Live: a live wallpaper is the home screen's only, the lock screen gets Fill (Decisions), `getWallpaperId` notes the engine's id (`live.homeId`) and `getWallpaperInfo` is null without `QUERY_ALL_PACKAGES`, so `Store.liveOn` takes the id path: the picker, a re-pick (`COMMAND_REAPPLY` unchecked), a lost Live; the pause hint: no line on 10 (nothing to name), the stock App info paths unchanged |
+| 12 (`apodroid-31`) | `emulator-5558` | The colour event after **every** set (U1: the page recreated; Setup's and Advanced's state, the shown source, the draft, a Set's run still going); the pause hint's unused line alone (B25's text, built); DocumentsUI on 12 for "my picture"; job 2 **expedited** (`setExpedited` accepted, `dumpsys jobscheduler`'s expedited lines; forced Doze and battery saver with the network: `deviceidle force-idle`, `cmd power set-mode 1`; the fallback to a plain job when the quota is gone); the exit-record sign on 12 (TP1: `Detector: <n> exit records`, ten force stops with the process alive); Keep running's notification in the shade; the system's crop for the sideways and sharp sets; Live's re-pick and lock screen as on 10 (the id path below 14) |
+| 13 (`apodroid-33`) | `emulator-5562` | The system photo picker; both hint lines (battery 33–34 text, "Pause app activity if unused"), colour events from the foreground app only (U1: a background set waits for sleep); Keep running's notification **only in Quick Settings' Active apps** (no permission asked); expedited job 2 and the exit-record sign as on 12; the id path for Live below 14, the lock screen Fill; the system's crop for the sideways and sharp sets |
+| 14 (`apodroid-34`) | `emulator-5564` | `WallpaperCropper` (no upscale of a small crop: the sharp set's frames, a small "my picture"); `mIsLockscreenLiveWallpaperEnabled=false` on this first build (UE1A): the engine's flags, the picker offers no lock screen, Live's lock screen Fill; the exit-record sign as TP1f1 left it (ten force stops, a Recents swipe and `am kill`: no box); `getWallpaperInfo` works on 14, the `live.homeId` path as the fix of L8f1 describes; expedited job 2; Keep running (type `specialUse`, notification in Active apps); every map in full (0.8.0's and 0.9.0's runs ran a subset) |
+| 17 (`apodroid-37`) | `emulator-5566` | `A17`'s table above, **first** the rows "For E17, first"; every map in full; targetSdk 37's behaviour applies only here |
 
-### [ ] E1a. Android 10, the wallpaper (`apodroid-29`, `emulator-5554`; Opus, medium)
+### E0 (as it stood; not needed again)
+
+The plan of 2026-10-29 for `scripts/emulator.sh` and the per-row device is kept in git
+(`git log -p -- .claude/skills/build-apodroid-android/emulator.md`, before 2026-11-22). What the
+nights use instead is above.
+
+### The cases per level (written for 0.6.0; the 0.10.0 additions are the table above)
+
+### E1a. Android 10, the wallpaper (`apodroid-29`, `emulator-5554`)
 
 The riskiest: 10's own crop code (its aspect fix ignores the hint's top), the decoder (EXIF in the
 codec) and DocumentsUI. The candidate installed fresh, the page opened once (APOD mode, title and
 date, `darkColorScheme()`'s colours: a screenshot). In this order:
-1. **Fill, Both:** Set: one shared wallpaper (no "Lock wallpaper state" id), `mCropHint` the
-   frame in the screen's shape, `wallpaper` vs expected (`magick compare`), home and lock
+1. **Fill, Both** (Size Centre and Auto): Set: one shared wallpaper (no "Lock wallpaper state" id),
+   `mCropHint` the frame in the screen's shape, `wallpaper` vs expected (`magick compare`), home and lock
    screenshots show the frame undistorted.
 2. **⛶ moved:** drag the frame to the left edge, ✓, Set: `mCropHint` moved, `wallpaper` matches.
 3. **Home, then Lock** ("Where", Set each): home alone keeps the old picture on the lock screen
@@ -313,126 +310,90 @@ date, `darkColorScheme()`'s colours: a screenshot). In this order:
    frame's top is not 0, **10's aspect fix**: the crop must keep the frame's height, rows
    numbered so a cut shows), the tiny 200×150, the panorama, EXIF-8. When time runs short, the
    tall picture and EXIF-6 first.
-6. No crash (`logcat -d | grep 'E AndroidRuntime'`; no exit-info on 10).
-- **Done when:** each item ran or is under `Not tested:`; each wallpaper item has its `mCropHint`,
-  the compare number and a screenshot; every failure a `BUG:` line; results written here; the
-  emulator stopped.
+6. **Sideways, darkened, sharp** (0.8.0, 0.9.0): ⛶'s Sideways pill on a wide post, Set; a bright
+   picture (the darkening); Keep pictures sharp on with a small picture: each `setBitmap` set's
+   `mCropHint` the whole bitmap and `wallpaper` by `sh4_check.py`'s numbers.
+7. No crash (`logcat -d | grep 'E AndroidRuntime'`; no exit-info on 10).
 
-### [ ] E1b. Android 10, the rest (`apodroid-29`, `emulator-5554`; Opus, medium)
+### E1b. Android 10, the rest (`apodroid-29`, `emulator-5554`)
 
-The update from 0.5.0, the job and the broadcasts, storage and the page, on a fresh start (wiped).
-In this order:
-1. **The update from 0.5.0:** install `app/build/apodroid-v0.5.0.apk`, open it, daily switch on,
+On a fresh start (wiped). In this order:
+1. **The update from 0.9.1** (then UP's older ones): install 0.9.1's APK, open it, daily switch on,
    "Where" Both, let it set (`dumpsys wallpaper`). Home, then `install -r` the candidate **without
    opening the page**: the log's "Daily job: alarms for …" (`MY_PACKAGE_REPLACED`), the pair in
-   `dumpsys alarm`, the prefs migrated (`allSources` false, `home`/`lock` columns; `cat` as root),
-   the wallpaper untouched (`dumpsys wallpaper`'s id the same). Then open the page: APOD mode,
-   title and date, no box but the problem box if offline (the pause hint has no line on 10).
+   `dumpsys alarm`, the prefs kept (`cat` as root), the wallpaper untouched (`dumpsys wallpaper`'s id
+   the same). Then open the page: APOD mode, title and date (the pause hint has no line on 10). A
+   stored APOD rendition smaller than the screen: the probe's `original …` line, no set.
 2. **The job and the broadcasts:** the pair (`dumpsys alarm`, 10's layout), id 1 6 h/6 h
-   persisted (`dumpsys jobscheduler`); `cmd jobscheduler run -f $P 1` ends as a success;
-   `adb -s $S reboot` (wait for boot): "alarms for …" after `BOOT_COMPLETED`, no set at boot;
-   `cmd alarm set-timezone America/New_York` and back (or `setprop persist.sys.timezone` as
-   root if `cmd alarm` lacks it on 10): armed again; the clock 3 h forward with `auto_time` 0,
-   then `auto_time` 1: armed again (`TIME_SET`).
+   persisted (`dumpsys jobscheduler`); `cmd jobscheduler run -f $P 1` ends as a success, job 2
+   "not expedited"; `adb -s $S reboot` (wait for boot): "alarms for …" after `BOOT_COMPLETED`, no
+   set at boot; `cmd alarm set-timezone America/New_York` and back (or `setprop persist.sys.timezone`
+   as root if `cmd alarm` lacks it on 10): armed again; the clock 3 h forward with `auto_time` 0, then
+   `auto_time` 1: armed again (`TIME_SET`).
 3. **★:** save, `content query` (as in the table): `Pictures/APODroid/APOD_…`, `is_pending` 0;
-   ★ filled; `content delete` it: ☆ at the next resume.
+   ★ filled; `content delete` it: ☆ at the next resume. LOG's file: `Download/APODroid/log.txt`.
 4. **The page's rest:** long press on the title: the toast "Copied" (screenshot); pull to refresh
    (the log's "Page: …"); ⛶ then `KEYCODE_BACK`: closed, the part not kept; the picture tapped:
    "No browser"; landscape (`settings put system accelerometer_rotation 0; settings put system
-   user_rotation 1`, back to 0 after): two panes, nothing under the bars (screenshot).
-5. No crash (`logcat -d | grep 'E AndroidRuntime'`; no exit-info on 10).
-- **Done when:** as E1a's (the wallpaper's numbers only where an item sets one).
+   user_rotation 1`, back to 0 after): two panes, nothing under the bars; the Set bar with Setup open.
+5. **Keep running, the detector, Live, the video still** as the table above says.
+6. No crash (`logcat -d | grep 'E AndroidRuntime'`; no exit-info on 10).
 
-### [ ] E4. Android 14 (`apodroid-34`, `emulator-5564`; Opus, medium)
+### E4. Android 14 (`apodroid-34`, `emulator-5564`)
 
 14's own crop class (`WallpaperCropper`: no upscale of a small crop), the lock data of 14's first
 build (`mIsLockscreenLiveWallpaperEnabled=false`), `mWidth` 4800, and 34's receiver and job rules.
-1. **Install and the page:** fresh install, the page loads in APOD mode, no `SecurityException`
-   (the clock receiver), dynamic colours (screenshot); the pause hint with both lines and the
-   33–34 battery text; "App info" opens App info; its "App battery usage" and "Unused app
-   settings → Pause app activity if unused" are where the lines say (screenshots).
+1. **Install and the page:** the page loads in APOD mode, no `SecurityException` (the clock
+   receiver), dynamic colours (screenshot); the pause hint with both lines and the 33–34 battery
+   text; "App info" opens App info; its "App battery usage" and "Unused app settings → Pause app
+   activity if unused" are where the lines say (screenshots).
 2. **Fill, Both; ⛶ moved; Home, then Lock, then Both:** as E1a's 1–3, with `dumpsys wallpaper`'s
    lock state and both files each time.
 3. **Small and tall:** "my picture" through the photo picker (screenshot): the tiny 200×150 and
-   the tall 1000×4000 on a faked video day: `wallpaper` not scaled up by the system (14 scales only
-   larger crops), the home screen shows it filled and undistorted (screenshot); the panorama;
-   EXIF-6.
-4. **The whole picture** on blur.
+   the tall 1000×4000 on a faked video day: `wallpaper` not scaled up by the system, the home
+   screen shows it filled and undistorted; the panorama; EXIF-6; the sharp set on a small post.
+4. **The whole picture** on blur; sideways and darkened sets (E1a's 6).
 5. **U1 on 14:** Set on the page with the page open: `am_create_activity` or `am_relaunch` for
-   the page right after (recoloured: screenshot before and after), the toast, Setup closed as
-   after any Set, nothing lost; then a job's set in the background (daily on, a change time
-   passed: the skill's "End a turn", `run -f`) with the page on top: no recolour until
-   `KEYCODE_SLEEP`, then after `KEYCODE_WAKEUP` the new colours and the page recreated (say
-   which).
+   the page right after (screenshots before and after), the toast, Setup closed as after any Set,
+   nothing lost; then a job's set in the background with the page on top: no recolour until
+   `KEYCODE_SLEEP`, then after `KEYCODE_WAKEUP` the new colours and the page recreated (say which).
 6. **The job:** the pair, both jobs in `dumpsys jobscheduler` (the network constraint accepted on
-   34), `run -f 1` a success; a time-zone change while the page is open: the status line's
-   time follows; `install -r`: armed again.
+   34), `run -f 1` a success; a time-zone change while the page is open: the status line's time
+   follows; `install -r` from 0.9.1: armed again.
 7. Clipboard (no "Copied" toast on 14), no crash (`exit-info`).
-- **Done when:** as E1a's.
 
-### [ ] E2. Android 12 (`apodroid-31`, `emulator-5558`; Opus, medium)
+### E2. Android 12 (`apodroid-31`, `emulator-5558`)
 
 12's SystemUI recolours after every wallpaper change (U1), the unused line alone, and
 DocumentsUI on 12 (R extension 1).
-1. **The page and the hint:** dynamic colours (screenshot); the pause hint with the unused line
-   alone, today's text (B25's known bug: no new `BUG:` line; B25's own check has its new text);
-   App info's "Remove permissions and free up space" off → the line gone at the next resume
-   (screenshots).
+1. **The page and the hint:** dynamic colours; the pause hint with the unused line alone, B25's text built ("App info › Unused apps › \"Remove permissions and free up space\": off"; the old "Unused app settings" wording on 12 is a `BUG:`); App info's switch off → the line gone at the next resume (screenshots).
 2. **U1 on 12:** Set on the page: recoloured and the page recreated? (as E4's 5); then a job's set
-   in the background with the page on top: **12 accepts it at once** (the page recreated while
-   open, no screen-off needed): Setup's and Advanced's state, the shown source and the draft after
-   it (B13's path); a Set whose run is still going when the recolour comes (Save every picture at
-   No limit makes a run long enough, the skill's V-row trick): the run's end and the toast.
+   in the background with the page on top: **12 accepts it at once**: Setup's and Advanced's state,
+   the shown source and the draft after it (B13's path); a Set whose run is still going when the
+   recolour comes (Save every picture at No limit makes a run long enough): the run's end and the toast.
 3. **Fill, Both, and Home then Lock:** as E1a's 1 and 3 (`mWidth` 4800 here).
 4. **"My picture" through DocumentsUI on 12:** the EXIF-6 JPEG and the tall picture on a faked
    video day, as E1a's 5.
-5. **The job:** the pair (12's layout), `run -f 1`, no crash (`exit-info`), "Copied" toast.
-- **Done when:** as E1a's; the skill's U1 line can say what 12 does.
+5. **The job:** the pair (12's layout), `run -f 1`, job 2 expedited, no crash, "Copied" toast.
 
-### [ ] E3. Android 13 (`apodroid-33`, `emulator-5562`; Opus, medium)
+### E3. Android 13 (`apodroid-33`, `emulator-5562`)
 
-The system photo picker, both hint lines with 13's App info, colour events from the foreground app
-only.
-1. **The page and the hint:** dynamic colours, both lines (33–34 battery text), App info's "App
-   battery usage" and "Unused app settings" as the lines say (screenshots).
+1. **The page and the hint:** dynamic colours, both lines, App info's "App battery usage" and
+   "Unused app settings" as the lines say (screenshots).
 2. **"My picture" through the photo picker** (screenshot): WebP, GIF, EXIF-8 and the panorama,
    each set on a faked video day: `wallpaper` upright and screen-shaped.
 3. **Fill, Both; Home then Lock:** as E1a's 1 and 3.
 4. **U1 on 13:** as E4's 5 (the background set waits for the screen to sleep).
 5. **The rest:** no "Copied" toast (the system's overlay), `KEYCODE_BACK` in crop mode, the job's
    pair and `run -f 1`, no crash.
-- **Done when:** as E1a's.
 
-## For 0.7.0
+## For 0.7.0 (folded into the levels' table, ER, 2026-11-22)
 
-Lines tracks O and L can take into their plans (not edited here). E0's script and the four AVDs
-serve them unchanged; an emulator never stands in for the tablet's or a phone's timing or maker
-layer.
-- **O (Keep running's look):** the notification without `POST_NOTIFICATIONS` on 10–12 (in the
-  shade: `apodroid-29`, `apodroid-31`) and on 13+ only in Quick Settings' Active apps (`apodroid-33`,
-  `apodroid-34`): screenshots of both, `dumpsys activity services` (`isForeground`, the type),
-  O7's step 1 on each level. On 10–13 `FOREGROUND_SERVICE_SPECIAL_USE` and the type
-  `specialUse` don't exist (34+): the service must start there without them (a crash would show at
-  the switch).
-- **O (the expedited run, 12+):** O10's job 2 `setExpedited` on `apodroid-31`, `-33`, `-34`:
-  accepted by `schedule()`, runs (`dumpsys jobscheduler`'s expedited lines) in forced deep Doze
-  and battery saver (`deviceidle force-idle`, `cmd power set-mode 1`) with the network, Optimized;
-  and on `apodroid-29` the plain job (no `setExpedited` below 12: the version check). The real
-  night stays O6's (the tablet).
-- **O (the pause hint per maker, O13):** the stock paths of 10–14 (12's per B25, 13–14 as seen;
-  10–11 have no hibernation line), `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS` opening on each.
-- **O (the detector, O14):** a force stop's signs on 10–14 (`am force-stop`, then the page:
-  alarms gone; `ApplicationExitInfo` from 11 only, none on 10).
-- **L (Live's lock screen on 10–13):** a live wallpaper is the home screen's only; picking Live
-  over a shared still picture leaves the old picture on the lock screen, and the lock screen gets
-  Fill (Decisions): `apodroid-29`, `-31`, `-33` with `dumpsys wallpaper` and screenshots.
-- **L (`getWallpaperFlags` on 14):** `apodroid-34` is 14's first build (UE1A, Aug 2023) with the
-  lock-screen live wallpaper off (`mIsLockscreenLiveWallpaperEnabled=false`): the engine's flags
-  there, and that the picker offers no lock screen; a newer 14 build (QPR) isn't available as a
-  plain image, so 14 with the flag on stays the tablet's (15) analogue.
-- **L (the `getWallpaperId` note path below 14, `getWallpaperInfo` null on 10–13 without
-  `QUERY_ALL_PACKAGES`):** the engine's checks on `apodroid-29`, `-31`, `-33`.
-- **L (colours, U1):** Live's reported colours on 12 (recolours after any set) and 13+ (foreground
-  only): E2's and E3's results are the baseline.
-- **The baseline:** E1–E4's results (this file) tell a 0.7.0 regression on 10–14 from a 0.6.0
-  behaviour; rerun the package of a level whose code path a 0.7.0 package changes.
+Keep running's notification (10–12 in the shade, 13+ only in Active apps, the service starting
+without `specialUse` below 34), the expedited run (12+; the plain job on 10), the pause hint per
+maker (the stock paths), the detector, Live's lock screen on 10–13 (Fill), the `getWallpaperId` path
+below 14 and the colours (12 after any set, 13+ from the foreground app) are lines of "The levels"
+above, with 0.8.0's and 0.9.0's (the sideways, darkened and limited sets through `setBitmap` and the
+system's crop, Auto's subject decoded on 10's `ImageDecoder`, the video still on 10, TP1 on 11–14).
+The first run's results are the baseline that tells a regression on 10–14 from a 0.6.0 behaviour. An
+emulator never stands in for the tablet's or a phone's timing or maker layer.

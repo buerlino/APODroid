@@ -79,6 +79,12 @@ As `release-0.9.0.md`'s ER: E0's state (0.8.0's night already ran rosie on `emul
 E1a–E4 on today's tree, the update from 0.9.1 (not 0.5.0), plus `apodroid-37` (the plain
 `system-images;android-37.0;default;x86_64`, no Google; port 5566) set up and booted once.
 
+**Built** (winston, pipeline run 160, 2026-11-22): `emulator.md` brought to today's tree (the packages
+section: where E0 stands, the levels' table, E1a–E3's cases with 0.8.0's, 0.9.0's and the "For 0.7.0"
+lines folded in; The setup: `apodroid-37`, the update from 0.9.1); `apodroid-37` installed
+(`system-images;android-37.0;default;x86_64`) and created, booted once on `emulator-5566` (24 s, the
+network, root, `mWidth` 4800) and stopped; the packages below, their queue rows in `night.md`.
+
 ### [ ] SIM. 20,000 seeds (Sonnet, low)
 
 `RulesSimulationTest` with 20,000 seeds (so far 2000), by its seed property, on the PC; every
@@ -91,6 +97,71 @@ detector (`DailyJob`, `AlarmReceiver`, `Store.update`/`setDue`, `:core`'s rules)
 wallpaper and Live (`Store.set`, `Drawing.kt`, `LiveWallpaper`, the picker trip); (c) the page
 (`MainActivity`, the draft, the saved state, ⛶). Each finding verified by a second agent before it
 becomes a `BUG:`. Correctness only, no style.
+
+### Rules for the E packages and UP (ER, 2026-11-22)
+
+Each is rosie's, on the emulator the section names, one level per night:
+`APODROID_TABLET=emulator-<port> scripts/night.sh` (night.md, For rosie), the emulator started
+wiped by hand first (`emulator.md`, The setup's start line; `-port` by its serial) and stopped after
+(`emu kill`); `interactions/tester-rules-emulator.md` with that serial in place of `emulator-5564`.
+The cases: `emulator.md`'s "The levels" (that level's row, "All levels", the version table above it,
+and for 17 the A17 table with "For E17, first") and the maps in `interactions/` that run on an
+emulator. The build: dev's debug build, and an R8 build (signed with the debug key) for the update
+cases. Each case PASS / DIFFERENT / FAIL / SKIPPED (why); a FAIL is a `BUG:` line (steps, expected,
+got, evidence, the likely file), which the user turns into a `### [ ] B<n>` package here; a crash is
+`exit-info` and `logcat -b crash`. Evidence in `.coord/runs/<n>-<id>/`; the package's `Checked`
+paragraph under its section. Never the tablet or the FP6; real timing and makers' layers are WK's.
+Done when: every case ran or is under `Not tested:`; no unexplained FAIL; the emulator stopped.
+
+### [ ] E17. Android 17, every map (`apodroid-37`, `emulator-5566`; Opus, medium)
+
+All four maps (setup, page, background, live) and the version rows of A17's table, the rows "For E17,
+first" before the rest. Besides: the picker's forced rebind (live T05–T09, S5, S7), the expedited quota
+with "As soon as it's out" in the WORKING bucket, `am memory-limiter status` and exit records after the
+large-picture, Live and Keep running cases (no "MemoryLimiter"), the fetches under Certificate
+Transparency (every source's `Refresh:` line, the probe, ★'s original, the video still), the detector
+after a force stop (a Recents swipe and `am kill`: no box), LOG's file. The first boot ran in ER
+(2026-11-22: 24 s, no app on it).
+
+### [ ] E14. Android 14, every map (`apodroid-34`, `emulator-5564`; Sonnet, medium)
+
+All four maps in full (0.8.0's T3 and 0.9.0's T4 and T5 ran subsets), E4's cases, the levels' row for
+14: the first 14 build's lock-screen live wallpaper off, `WallpaperCropper`, TP1's ten force stops.
+
+### [ ] E10. Android 10, every map (`apodroid-29`, `emulator-5554`; Sonnet, medium)
+
+E1a and E1b with the 10 row of "The levels": the crop code's aspect fix (tall and wide pictures,
+numbered rows), the decoder and EXIF (Auto's subject on an EXIF-6 and EXIF-8 photo), DocumentsUI,
+scoped storage (★, LOG's file), the video still's `MediaMetadataRetriever`, Keep running in the shade
+without `specialUse`, the plain job 2, Live's id path (`live.homeId`) and the lock screen's Fill,
+the detector with no exit records. Every map that runs.
+
+### [ ] E12. Android 12 (`apodroid-31`, `emulator-5558`; Sonnet, medium)
+
+E2's cases and the 12 row of "The levels", then a smoke of each map (the cases the version table
+says differ: U1's colour events after every set, B25's text, DocumentsUI, the expedited job 2 and the
+fallback, the exit-record sign, Keep running's notification, Live's id path).
+
+### [ ] E13. Android 13 (`apodroid-33`, `emulator-5562`; Sonnet, medium)
+
+E3's cases and the 13 row, then a smoke of each map: the system photo picker, both hint lines, colour
+events from the foreground app only, Keep running only in Active apps, the expedited job 2, Live's id
+path.
+
+### [ ] UP. The update from old versions (Sonnet, medium)
+
+F-Droid users skip versions, so the migrations' last real check: each of **0.5.0, 0.7.0 and 0.9.1**
+installed over fresh data on `apodroid-34` (`emulator-5564`) and again on `apodroid-37`
+(`emulator-5566`; two nights), set up as a real user's (daily switch on, a setup that differs from
+the defaults, 0.5.0: APOD and NASA; 0.7.0: Live on home and a changed order), run once, then the
+candidate R8 build `install -r` without opening the page: `MY_PACKAGE_REPLACED` arming (the pair in
+`dumpsys alarm`), the prefs by `cat` as root (what `CLAUDE.md`, Migrations, says each update does:
+0.5.0 → 0.6.0 `migrateOnce`, 0.6.0 → 0.7.0 `foldRunGoing`, `Post.isNoted`, the old Size `FILL`, the
+left pref keys), the wallpaper ids unchanged and nothing set, then the page opened (Setup as
+before, no crash, the pause hint and the detector's box not wrongly shown), a Set, the job's `run -f`.
+The old APKs: `app/build/apodroid-v0.5.0.apk`, `-v0.7.0.apk` exist; **0.9.1's must be built from its
+commit and signed with the candidate's key beforehand** (the user: it isn't tagged yet), else
+`install -r` refuses.
 
 ### [ ] WK. The real week (the user; three devices, no connection to the PC)
 

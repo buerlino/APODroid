@@ -393,6 +393,60 @@ ran (its Checked above) aren't run again. Results under its own "Checked" here, 
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
 
+**Checked** (rosie, pipeline run 170, 2026-11-22, 14:47–15:14, `emulator-5566`, Android 17, dev's debug build 0.9.2,
+1080×2400 at 420 dpi; evidence in `.coord/runs/170-e17e/tablet/`: `sh4/` (results, PNGs), `sh4-run*.log`,
+`sh4-recheck.txt`, `big2/`, `m0-*.txt`/`.png`, `s3-*.png`, `portrait-setup-open.png`, `landscape-setup-open.png`,
+`alarm-after-install.txt`, `services-after-install.txt`, `exit-info-summary.txt`, before/after prefs and wallpaper):
+**no FAIL, no crash** (`logcat -b crash` empty all along; `exit-info`: 15 SIGNALED = my `kill -9`s, one `kill
+background`, no "MemoryLimiter", `am memory-limiter status` "disabled").
+- **SH4's pixels** PASS, 159 of 159 cases (`scripts/sh4_run.py`, `sh4_check.py`, 1 px tolerance at the frame's
+  edges, its pictures from `run 154`): Matrix A in full (14 pictures × Centre/Auto × switch off/on × Whole
+  off/on, Both, the job; 112), Home and Lock alone, Set's path (Both, Home, Lock), the faked change time, dragged
+  parts at 0 and 1, the pill both ways under Centre and Auto, the "up" text under Auto (47 more). 34 sideways
+  sets (Auto's turn and the pill), 39 limited sets. Needed two changes in a **copy** of the driver (the repo's
+  scripts untouched): its fake post's date 18 Nov lost to today's real post (22 Nov), so every date moved 5 days
+  on (23 Nov, the turn path's stamps too); and its judge still held 0.9.0's "Centre when unsure" (the middle for a
+  move under 0.2): 3 first-run FAILs (`huge_8000x6000` AUTO, `w32_900x600` AUTO Lock set, auto 0.32 and 0.44
+  against 0.50) were that stale expectation, not the app (0.9.1 removed the fallback; judged again with Auto
+  always the subject: 159 PASS). **DIFFERENT (script):** `scripts/sh4_run.py`'s judge needs that line changed
+  (`position = raw`) and its DATE moved; not done here (no code changes).
+- **The large picture** PASS: a made-up 39 MB PNG, 4455×5592 (the 2 Oct case's shape; gradient + noise), as
+  APOD's stored picture: Centre job (setStream, crop hint `[970,1,3486,5592]`), Centre + Keep sharp job, Auto
+  Whole + Keep sharp job and Auto Whole Set (7–15 s, `debug-set.png` read by pixels: R 0→254 across x, B 2→250
+  over y 522–1878, blurred bands above and below: the whole picture right); each `Set: wallpaper set … HOME+LOCK`.
+  The script's checker flagged the Whole cases (`the picture seen 540..543`): my picture's 2 random low bits
+  against a gradient only 0.24 level per px; judged by the pixels by hand. No crash, no "MemoryLimiter" in
+  `exit-info`, `am memory-limiter status` "disabled" on this image.
+- **`install -r` with Keep running on** PASS: Keep running on (foreground, `types=0x40000000`, the process
+  alive), `install -r` of dev's debug build: `Daily job: android.intent.action.MY_PACKAGE_REPLACED, arming
+  again`, `alarms for 2026-11-23T05:01:22Z`, the pair of `RTC_WAKEUP` alarms (window +10 min and the
+  `setAndAllowWhileIdle` one) in `dumpsys alarm`, a new process (pid 10707) with `KeepRunning` `isForeground=true`
+  again, nothing set, no crash.
+- **Setup S3 (P29, the photo picker)** PASS: "If APOD is a video" › "Use my picture" opened AOSP 17's
+  PhotoPickerActivity; a pick copied `files/fallback-draft.jpg` (194,991 bytes); "Skip it": the dropdown "Skip
+  it", Setup's title and the heading in the normal colours (`s3-skip-again.png`, the dropdown's highlight itself
+  not compared by eye); Set: `Set: wallpaper set …`, `fallback.jpg` not there (the draft's pick not renamed);
+  "Use my picture" again: no picker, "Change picture" beside it (the draft's pick, `s3-use-again.png`); "Skip it".
+- **M0's home/lock sequence** PASS (`m0-*.txt`): Home alone from a shared wallpaper: system id 317
+  `mSystemWasBoth=true`, lock id 316 `mWhich=2` (the old shared one moved to the lock screen, `wallpaper_lock*`
+  files there); Lock alone: lock id 321 new, system id 320 kept; Both: one id 322 `mWhich=3`, no
+  `wallpaper_lock` files, "Lock wallpaper state" empty. As M0 saw on 15; no screen blank (`m0-*.png` taken, not
+  all looked at). (My first two rounds' taps missed "Lock screen" and "Both", the page scrolled: those Sets were
+  Home again; the sequence above is the repeat.)
+- **Edge-to-edge and landscape with Setup open** PASS (`portrait-setup-open.png`, `landscape-setup-open.png`):
+  portrait: status bar and the navigation bar both drawn, the pinned "Set as wallpaper" above the navigation bar,
+  last row above it; landscape (`user_rotation 1`, `ROTATION_90`, 2400×1080): two panes, the picture left, the
+  settings right, the pinned Set bar inside the right pane clear of the navigation bar (on the right edge); the
+  status bar's time at the left over the picture's pane.
+- **End state:** the found setup (the setup prefs equal to the start's by a diff: `size` AUTO, `allSources`,
+  `where`, `home`, `lock`, `daily`, `order`, `pictureAt`, `interval`, `keepRunning` off, `soon`, `darken` on,
+  `sharp` off, `saveEvery`), both stills set again from the real 22 and 20 Nov posts (`Set: … NASA … HOME, auto
+  0.69, darker ×0.82 …`), Keep running's service gone, rotation, font scale, density, `auto_time` as found,
+  the test photo and its MediaStore row deleted, the draft file and `debug-*.png` removed. Not restored byte for
+  byte: `files/apod.jpg` etc. are the real posts' again, the parts of NASA 20 Nov as E17d left them.
+- **Not run:** Real timing; the pause hint's 17 App info labels (E17's); `exit-info` rows only after a `kill -9`
+  here, no `am memory-limiter manual` kill during a run.
+
 ### [ ] E14. Android 14, every map (`apodroid-34`, `emulator-5564`; Sonnet, medium)
 
 All four maps in full (0.8.0's T3 and 0.9.0's T4 and T5 ran subsets), E4's cases, the levels' row for

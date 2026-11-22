@@ -240,6 +240,9 @@ class MainActivity : ComponentActivity() {
     private var wholeHeld: Bitmap? = null
     private var stopGen by mutableIntStateOf(0)
 
+    /** True from [onStop] to [onResume]: [WholePreview] shows nothing and keeps no bitmap then. */
+    private var stopped by mutableStateOf(false)
+
     /** The shown source's post: the boxes and the caption below the pager, ⛶'s part, Set's crop. */
     private val post
         get() = posts[shown]
@@ -644,7 +647,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        stopGen++ // B30: ⛶'s whole preview draws again
+        stopped = false
+        if (restore) stopGen++ // B30: after a stop ⛶'s whole preview draws again
         // Back from Set's picker without its result (started from a page in the background, L6).
         pickerBack?.complete(Unit)
         // The picker's dialog of a page that's gone: Cancel, so Set ends.
@@ -682,6 +686,9 @@ class MainActivity : ComponentActivity() {
         // must not draw into the stopped page (its pictures would stay for days).
         showing++
         restore = true
+        // B30: the composition stops drawing the preview (`stopped`, and the recycled check in
+        // [WholePreview]) before its bitmap goes.
+        stopped = true
         wholeHeld?.let { wholeHeld = null; it.recycle() }
         val still = videoStill?.picture
         if (pictures.isEmpty() && still == null) return
@@ -2150,6 +2157,10 @@ class MainActivity : ComponentActivity() {
                     .onFailure { AppLog.w("Part: couldn't draw the whole picture's preview: $it", it) }
                     .getOrNull()
             }
+            if (stopped) { // B30: the page stopped meanwhile; the resume draws it again
+                drawn?.recycle()
+                return@produceState
+            }
             wholeHeld = drawn
             value = drawn?.asImageBitmap()
             awaitDispose {
@@ -2159,7 +2170,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         Box(modifier.background(Color.Black), contentAlignment = Alignment.Center) {
-            preview?.let {
+            preview?.takeIf { !stopped && wholeHeld?.isRecycled == false }?.let {
                 Image(
                     painter = remember(it) { PicturePainter(it) },
                     contentDescription = null,

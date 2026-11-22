@@ -183,7 +183,7 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 80 | ER | emulator.md for today's app; apodroid-37 set up; E17–E13 and UP written into release-0.10.0.md | winston | sonnet, medium | no | A17 | release-0.10.0.md ER |
 | 81 | SIM | RulesSimulationTest over 20,000 seeds; each failing seed a BUG: line | winston | sonnet, low | no | — | release-0.10.0.md SIM |
 | 82 | CR | A code review of the whole app by reading, correctness only, each finding verified | winston | opus, high | no | LOG | release-0.10.0.md CR |
-| 83 | E17 | Android 17, every map (`APODROID_TABLET=emulator-5566`) | rosie | opus, medium | no | A17, ER, the user (emulator-5566 started wiped, the night on it) | release-0.10.0.md E17 |
+| 83 | E17 | Android 17, every map (`APODROID_TABLET=emulator-5566`) | rosie | opus, medium | no | A17, ER (emulator-5566 started wiped: done 2026-11-22) | release-0.10.0.md E17 |
 | 84 | E14 | Android 14, every map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | ER, the user (emulator-5564 started wiped, the night on it) | release-0.10.0.md E14 |
 | 85 | E10 | Android 10, every map (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | ER, the user (emulator-5554 started wiped, the night on it) | release-0.10.0.md E10 |
 | 86 | E12 | Android 12 (`APODROID_TABLET=emulator-5558`) | rosie | sonnet, medium | no | ER, the user (emulator-5558 started wiped, the night on it) | release-0.10.0.md E12 |

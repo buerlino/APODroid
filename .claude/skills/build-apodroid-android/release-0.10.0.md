@@ -36,8 +36,8 @@ android, to really battle harden the app, i want to find any remaining bugs and 
 | 10 | **UP** the update: 0.5.0, 0.7.0 and 0.9.1 each straight to the candidate | Sonnet, medium | `apodroid-34`, `-37` | F-Droid users skip versions; the migrations' last real check |
 | 11 | **B&lt;n&gt;** a fix package per `BUG:` | per bug | where it was found | Re-tested on the level that found it |
 | 12 | **R5** 0.10.0's texts (versionCode 16, `16.txt`; 15 is 0.9.2), the tag | Sonnet, low | none | After 1–11 with no open `BUG:` |
-| 13 | **WK** the real week on three devices | the user; Opus, medium to read the logs | FP6, tablet, third | Real nights, makers' own Android |
-| 14 | **R6** 1.0.0 | Sonnet, low | none | After WK with no `BUG:` |
+| 13 | **WK** the real week on three devices, **CR2** (a second code review) alongside | the user; Opus, medium to read the logs; CR2 Opus, high | FP6, tablet, third | Real nights, makers' own Android |
+| 14 | **R6** 1.0.0 | Sonnet, low | none | After WK: at least 7 days, the last 2 on the current build with no `BUG:` |
 
 "Every map" = the cases of `interactions/` (setup, page, background, live) that can run on an emulator
 (`tester-rules-emulator.md`); a case that needs a real maker (ZUI's cleaner and picker) is WK's.
@@ -570,6 +570,60 @@ background`, no "MemoryLimiter", `am memory-limiter status` "disabled").
 All four maps in full (0.8.0's T3 and 0.9.0's T4 and T5 ran subsets), E4's cases, the levels' row for
 14: the first 14 build's lock-screen live wallpaper off, `WallpaperCropper`, TP1's ten force stops.
 
+### [ ] E14a. Android 14, the setup map (Sonnet, medium)
+
+`interactions/setup.md`, section 2, the phone test list in full, in its order. Device `emulator-5564` (`apodroid-34`, Android 14), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5564` instead of 5564; the cases of the E14 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E14b. Android 14, the page map (Sonnet, medium)
+
+`interactions/page.md`, sections 3 (the prioritized list) and 4 (0.8.0's emulator cases), with K31b (B32). Device `emulator-5564` (`apodroid-34`, Android 14), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5564` instead of 5564; the cases of the E14 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E14c. Android 14, the background map (Sonnet, medium)
+
+`interactions/background.md`, "Phone test list" with a stepped clock; real timing (Doze, buckets) SKIPPED;
+`am kill` with Keep running off (no detector box); the week log over a stale `log.txt` row (B31: `pm clear`, the
+file deleted beneath FUSE with `adb root`, `log (1).txt`). Device `emulator-5564` (`apodroid-34`, Android 14), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5564` instead of 5564; the cases of the E14 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E14d. Android 14, the live map, first half (Opus, medium)
+
+`interactions/live.md`, section 5, T01–T20, and the 14 row's lock-screen live wallpaper (off on the first 14
+build: what the picker offers, the lock screen's Fill). Device `emulator-5564` (`apodroid-34`, Android 14), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5564` instead of 5564; the cases of the E14 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E14e. Android 14, the live map, second half (Opus, medium)
+
+`interactions/live.md`, section 5, T21–T39, and SPLIT's Q1–Q8. Device `emulator-5564` (`apodroid-34`, Android 14), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5564` instead of 5564; the cases of the E14 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E14f. Android 14, the pixels and the rest (Sonnet, medium)
+
+SH4's pixel checks (`sharp-0.9.0-sh4.md`, Testing 2; `scripts/sh4_check.py` and `sh4_run.py` after B34) on Centre,
+Auto, Whole, Sideways and the limited set, both screens; `WallpaperCropper`; TP1's ten force stops with the process
+alive (the detector each time); the large picture (a faked 37 MB PNG); `install -r` with Keep running on; setup S3
+(the photo picker); M0's home/lock sequence; edge-to-edge and landscape screenshots with Setup open. Device `emulator-5564` (`apodroid-34`, Android 14), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5564` instead of 5564; the cases of the E14 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
 ### [ ] E10. Android 10, every map (`apodroid-29`, `emulator-5554`; Sonnet, medium)
 
 E1a and E1b with the 10 row of "The levels": the crop code's aspect fix (tall and wide pictures,
@@ -621,6 +675,51 @@ the preview shown, 11,868 KB 45 s after Home (total PSS 101.6 → 80.0 MB, the p
 O12), the service alive; the resume reopened ⛶ with "✓ Whole picture" drawn again (29,692 KB), no crash; ✓ and a
 Set afterwards set. Not run: a resume after the photo picker (no spinner flash), other levels.
 
+### [ ] B31. The week log over a stale `log.txt` row (Opus, by hand, 2026-11-22)
+
+From E17b and E17c (BUG (a)). After `pm clear` (or a reinstall) the old `log.txt`'s MediaStore row stays, owned by
+nobody the app can see; LOGf1's lookup doesn't find it, the insert of `log.txt` hit `UNIQUE constraint failed:
+files._data` on every line, and no file was written. **Fixed** (wp/b31, 3006f43): `:core`'s `WeekLogNames`
+(`log.txt`, then `log (n).txt`, at most 10; `WeekLogTest`, 8 cases), `AppLog`'s write takes the next name on a
+constraint failure and logs `Week log: log.txt held by an old row, writing log (1).txt`.
+**Checked** (by hand, 2026-11-22, `emulator-5566`, Android 17, wp/b31's debug build): the stale row made as E17b
+saw it (`pm clear`, the file deleted beneath FUSE as root: the row left, `owner_package_name` NULL); the log on:
+`log (1).txt` written with `Week log: on`, the "held by an old row" line and `Process start:`; a force stop and a
+start: the same file grew (two `Process start:` lines), no `log (2).txt`, no second "held" line.
+
+### [ ] B32. A position dragged sideways applies to the upright frame (Opus, by hand, 2026-11-22)
+
+From E17b (BUG (b), K18/K31a): a band dragged sideways (✓: `cropPosition` 0.893, `sideways` true), then ⛶ again,
+the pill off, ✓: the upright frame was set at 0.893. **Fixed** (wp/b32, 4bdb07d): `:core`'s `Part.positionFor
+(sideways)`: a position noted with an orientation applies only to it (none noted, a part from before 0.9.0: both);
+`notedPosition`, ⛶'s frame (`frameOf`), ✓'s `keepPart` and `Store.set` read it; `PartTest` (the repro);
+`interactions/page.md` K31, K31b.
+**Checked** (by hand, 2026-11-22, `emulator-5566`, Android 17, wp/b32's debug build, today's landscape APOD,
+Size Auto, subject 0.35, sideways 0.21): pill on, drag, ✓: `on HOME+LOCK, sideways`, `cropPosition` 1.0, `sideways`
+true; ⛶, pill off, ✓: `on HOME+LOCK, auto 0.35`, no `cropPosition`, `sideways` false; ⛶, pill on, ✓ without a
+drag: `auto 0.21, sideways`. No crash.
+
+### [ ] B33. The page's load loses its log line when the system relaunches the page during it (Sonnet, low)
+
+- **Steps:** E17d's T26: the system relaunches the page while its load runs.
+- **Happened:** no `Page: wallpaper set` line; `lifecycleScope` cancels the rest of the run after `store.update`
+  returns (the sets still happened).
+- **Should happen:** the result is logged inside the IO block.
+- **Done when:** the log line shows in the same case on the emulator, and the fix. Only the log line is lost.
+
+### [ ] B34. `scripts/sh4_run.py` judges Auto with 0.9.0's Centre when unsure (Sonnet, low)
+
+- **Happened:** the judge takes the middle for a move under 0.2 and fakes its post for 18 Nov, so every run reports
+  false FAILs (E17e's 3 first-run FAILs).
+- **Should happen:** the judge's Auto position is the noted subject as it is; DATE = today + 1.
+- **Done when:** a rerun on the emulator with no false FAIL. Before E14f.
+
+### [ ] CR2. A second code review, during the real week (Opus, high)
+
+As CR (three reviewers by area, blind to each other, each finding verified by a second agent; correctness only),
+on the tree the week runs. It runs alongside WK (user, 2026-11-22), so the PC works while the devices do. A
+verified finding is a `B<n>` here; its fix goes into a new build on the devices and the week goes on (WK's rule).
+
 ### [ ] WK. The real week (the user; three devices, no connection to the PC)
 
 The candidate's release-signed build installed on each, LOG turned on, the setup below applied,
@@ -644,8 +743,10 @@ they cover every feature that runs by itself:
 
 Each morning, a glance: the wallpaper changed, the status line's time. At the week's end the three
 `log.txt` files are pulled (adb or a file manager), and an agent reads them against the rules
-(every change time, every set, every failure and its retry). `BUG:` → a fix, a 0.10.x, and the
-week's count starts again only when the fix touches the job or the rules.
+(every change time, every set, every failure and its retry); the logs are also read mid-week.
+**Bugs during the week** (user, 2026-11-22): CR2 runs alongside. A `BUG:` from a device, the logs or CR2 → a
+`B<n>` fix, a new release-signed build on the devices (the setup kept), and the week goes on. **1.0.0 (R6)
+when** the week has run at least 7 days and the last 2 days on the current build had no `BUG:`.
 
 ## Decided (user, 2026-11-22, on this file)
 
@@ -662,3 +763,7 @@ week's count starts again only when the fix touches the job or the rules.
    well over 100 cases. The rest as E17a–e (setup, page, background, the live map's rest, the pixels
    and the rest). E14 and E10 are split the same way (a–e) when their nights come; E12 and E13 stay
    one package each (a smoke and the version rows).
+6. **The real week** (2026-11-22, user): the setup per device is WK's table (one Auto, one Live, one Centre;
+   "looks good"). CR2, the second code review, runs during the week; bugs are fixed and the week goes on; 1.0.0
+   after at least 7 days with the last 2 on the current build bug-free. E14 is split six ways (a–f: the live map
+   in two halves); E10 the same when its night comes.

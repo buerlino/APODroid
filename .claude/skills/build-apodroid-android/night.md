@@ -184,7 +184,7 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 81 | SIM | RulesSimulationTest over 20,000 seeds; each failing seed a BUG: line | winston | sonnet, low | no | — | release-0.10.0.md SIM |
 | 82 | CR | A code review of the whole app by reading, correctness only, each finding verified | winston | opus, high | no | LOG | release-0.10.0.md CR |
 | 83 | E17 | Android 17, every map (`APODROID_TABLET=emulator-5566`) | rosie | opus, medium | no | A17, ER (emulator-5566 started wiped: done 2026-11-22) | release-0.10.0.md E17 |
-| 84 | E14 | Android 14, every map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | ER, the user (emulator-5564 started wiped, the night on it) | release-0.10.0.md E14 |
+| 84 | E14 | Android 14, every map: split as E14a–f (rows 97–102), not run itself | rosie | sonnet, medium | no | never (split) | release-0.10.0.md E14 |
 | 85 | E10 | Android 10, every map (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | ER, the user (emulator-5554 started wiped, the night on it) | release-0.10.0.md E10 |
 | 86 | E12 | Android 12 (`APODROID_TABLET=emulator-5558`) | rosie | sonnet, medium | no | ER, the user (emulator-5558 started wiped, the night on it) | release-0.10.0.md E12 |
 | 87 | E13 | Android 13 (`APODROID_TABLET=emulator-5562`) | rosie | sonnet, medium | no | ER, the user (emulator-5562 started wiped, the night on it) | release-0.10.0.md E13 |
@@ -195,6 +195,14 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 92 | E17c | Android 17, the background map (`APODROID_TABLET=emulator-5566`) | rosie | sonnet, medium | no | E17 | release-0.10.0.md E17c |
 | 93 | E17d | Android 17, the live map's rest (`APODROID_TABLET=emulator-5566`) | rosie | opus, medium | no | E17 | release-0.10.0.md E17d |
 | 94 | E17e | Android 17, the pixels and the rest (`APODROID_TABLET=emulator-5566`) | rosie | sonnet, medium | no | E17 | release-0.10.0.md E17e |
+| 95 | B33 | The page's load logs its result inside the IO block (T26) | winston | sonnet, low | yes | — | release-0.10.0.md B33 |
+| 96 | B34 | `sh4_run.py`'s judge matches 0.9.1's Auto, DATE today + 1 | winston | sonnet, low | yes | — | release-0.10.0.md B34 |
+| 97 | E14a | Android 14, the setup map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | B33, the user (emulator-5564 started wiped) | release-0.10.0.md E14a |
+| 98 | E14b | Android 14, the page map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | E14a | release-0.10.0.md E14b |
+| 99 | E14c | Android 14, the background map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | E14a | release-0.10.0.md E14c |
+| 100 | E14d | Android 14, the live map T01–T20 (`APODROID_TABLET=emulator-5564`) | rosie | opus, medium | no | E14a | release-0.10.0.md E14d |
+| 101 | E14e | Android 14, the live map T21–T39, Q1–Q8 (`APODROID_TABLET=emulator-5564`) | rosie | opus, medium | no | E14d | release-0.10.0.md E14e |
+| 102 | E14f | Android 14, the pixels and the rest (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | B34, E14a | release-0.10.0.md E14f |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

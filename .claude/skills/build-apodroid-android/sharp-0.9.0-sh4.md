@@ -40,7 +40,7 @@ FAIL, so no SH4f package. One DIFFERENT: no real host answers the probe with 200
   the 1.2 at `w105_630x600_AUTO_sharp0_whole0` x, s 3.81). A `grid -/-` below is a case at s < 1,
   checked by the R/B fit and the dest's edges only.
 - `scripts/sh4_run.py`: per case, after `run-as kill -9`, writes APOD's post into the prefs
-  (date 2026-11-18, a day ahead, so the job's fetch of the real post finds it older and keeps the
+  (dated US Eastern's today + 1, published 00:05 Eastern, since B34; 2026-11-18 before, so the job's fetch of the real post finds it older and keeps the
   fake; `sizeChecked` = its URL, so no probe; `darken` off, so the darkening doesn't move a plain Fill
   off `setStream`; Size, `sharp`, `where`, ⛶'s part: `whole`, `cropPosition`, `sideways`), the
   picture as `files/apod.jpg`, then sets it by one of three paths: **job** (the screens' records
@@ -50,9 +50,8 @@ FAIL, so no SH4f package. One DIFFERENT: no real host answers the probe with 200
   line, `dumpsys wallpaper`'s crop hints, the subject notes and `debug-set.png`. The expectation:
   the orientation by the rule (the pill, else Auto + APOD + landscape + `hasUp` false), the
   position (the part's, else Auto's `framePosition` of the noted subject for that orientation and,
-  where the limit bites, the limited frame's, else 0.5; the script's judge still applies 0.9.0's 0.2
-  fallback, which 0.9.1 removed from the app, and its `DATE` is 18 Nov: E17e ran a copy with `position = raw`
-  and the dates 5 days on), the limit (2.0 ×
+  where the limit bites, the limited frame's, else 0.5; the noted subject as it is since B34, as 0.9.1's
+  app: before it the judge applied 0.9.0's 0.2 fallback and faked `autoFallback`), the limit (2.0 ×
   1.03). A layout the limit doesn't bite, upright, not whole: no `debug-set.png` (0.8.0's
   `setStream`) and the crop hint = Fill's frame ± 1.5 px. Also the log: the screens, ", sideways",
   ", sharp ×…", ", auto p". `--recheck <dir>` judges again in parallel, `--report` writes the lines.

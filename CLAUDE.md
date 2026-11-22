@@ -766,7 +766,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the stored daily switch is on, nothing is set while it's off. **A stopped page lets its pictures
   go** (O12, 2026-11-14; O7: with Keep running or Live the process lives for days): `onStop`
   recycles the decoded pictures (the composition would hold them while stopped), `onResume`'s
-  load decodes them again (also while a load runs), each page keeping its height meanwhile (an
+  load decodes them again (also while a load runs; B30: ⛶'s "Whole picture" preview bitmap too, redrawn at the resume), each page keeping its height meanwhile (an
   empty box of the picture's shape); the draft, ⛶'s part, the shown source and Setup's and
   Advanced's state stay. A changed title or explanation for the same
   date is stored. A new date closes crop mode, a same-date change doesn't. A failed refresh keeps the

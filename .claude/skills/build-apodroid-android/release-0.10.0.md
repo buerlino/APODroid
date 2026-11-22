@@ -170,6 +170,16 @@ The old APKs: `app/build/apodroid-v0.5.0.apk`, `-v0.7.0.apk` exist; **0.9.1's mu
 commit and signed with the candidate's key beforehand** (the user: it isn't tagged yet), else
 `install -r` refuses.
 
+### [ ] B30. ⛶'s "Whole picture" preview let go in `onStop` (Sonnet, medium)
+
+From CR (`review-0.10.0-cr.md`, finding 2). (B29, the CR's finding 1, shipped as 0.9.2.)
+- **Steps:** open ⛶, "Whole picture" on, Home, Keep running on, `dumpsys meminfo io.github.buerlino.apodroid`
+  after a while.
+- **Happened:** the preview's screen-sized bitmap (about 10 MB) is held until the page resumes
+  (`WholePreview`'s `produceState` in `MainActivity.kt` against `onStop`).
+- **Should happen:** let go with the other pictures (O12, CLAUDE.md, The page); shown again at the resume.
+- **Done when:** the fix, and a device bullet with the memory after Home, before and after.
+
 ### [ ] WK. The real week (the user; three devices, no connection to the PC)
 
 The candidate's release-signed build installed on each, LOG turned on, the setup below applied,

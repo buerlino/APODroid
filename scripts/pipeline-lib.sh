@@ -126,8 +126,29 @@ unsafe() {
   [[ "$bare" =~ [\;\&\|\`\$\<\>] || "$1" == *[\`\$]* ]]
 }
 
-# is_limit <rc> <files...>: a failed claude call that hit the usage limit.
+# The CLI's own line when the plan's limit is hit (2026-11-22, on stdout, exit 1):
+#   You've hit your 5-hour limit · resets 4:40am (Europe/Zurich)
+limit_line_re="^You.ve hit your .*limit"
+
+# is_limit <rc> <files...>: a claude call that hit the usage limit: a failed call with a limit word,
+# or any call whose output is the CLI's limit line (whatever its exit code).
 is_limit() {
   local rc="$1"; shift
-  [[ "$rc" -ne 0 ]] && grep -qiE 'usage limit|rate limit|limit reached|429|overloaded' "$@" 2>/dev/null
+  { [[ "$rc" -ne 0 ]] && grep -qiE "usage limit|rate limit|limit reached|429|overloaded|hit your .*limit" "$@" 2>/dev/null; } ||
+    grep -qE "$limit_line_re" "$@" 2>/dev/null
+}
+
+# limit_wait_seconds <now-epoch> <files...>: the seconds until 5 min after the reset the CLI's limit
+# line names ("resets 4:40am", "resets 5pm"; the next such time, at most 6 h ahead); nothing when no
+# line names one.
+limit_wait_seconds() {
+  local now="$1"; shift
+  local at target
+  at="$(grep -hE "$limit_line_re" "$@" 2>/dev/null | grep -oiE 'resets [0-9]{1,2}(:[0-9]{2})? ?[ap]m' | tail -n 1 | sed -E 's/^resets //I')"
+  [[ -n "$at" ]] || return 0
+  target="$(date -d "@$now" +%F) $at"
+  target="$(date -d "$target" +%s 2>/dev/null)" || return 0
+  (( target > now )) || target=$((target + 86400))
+  (( target - now <= 21600 )) || return 0
+  echo $((target - now + 300))
 }

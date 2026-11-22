@@ -189,7 +189,7 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 86 | E12 | Android 12 (`APODROID_TABLET=emulator-5558`) | rosie | sonnet, medium | no | ER, the user (emulator-5558 started wiped, the night on it) | release-0.10.0.md E12 |
 | 87 | E13 | Android 13 (`APODROID_TABLET=emulator-5562`) | rosie | sonnet, medium | no | ER, the user (emulator-5562 started wiped, the night on it) | release-0.10.0.md E13 |
 | 88 | UP | The update from 0.5.0, 0.7.0 and 0.9.1 (`APODROID_TABLET=emulator-5564`, then 5566) | rosie | sonnet, medium | no | E14, the user (0.9.1's APK signed with the candidate's key; the emulator started wiped) | release-0.10.0.md UP |
-| 89 | B30 | ⛶'s "Whole picture" preview let go in `onStop` (O12): steps, expected and got in the finding; a device bullet with `dumpsys meminfo` after Home | winston | sonnet, medium | yes | CR | review-0.10.0-cr.md, finding 2 |
+| 89 | B30 | ⛶'s "Whole picture" preview let go in `onStop` (O12): steps, expected and got in the finding; a device bullet with `dumpsys meminfo` after Home | winston | sonnet, medium | yes | CR | release-0.10.0.md B30 |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

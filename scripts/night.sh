@@ -122,16 +122,22 @@ ask_josh() {  # prints josh's one-line reply; waits and asks again on a usage li
     (cd "$josh_dir" && timeout -k 60 600 claude -p --tools "" --model "${APODROID_TEST_MODEL:-sonnet}" --effort medium --system-prompt "$josh_prompt" \
       --strict-mcp-config --output-format text --no-session-persistence "$josh_question") < "$josh_dir/in.md" > "$josh_dir/out.md" 2> "$josh_dir/err.md"
     rc=$?; set -e
-    if is_limit "$rc" "$josh_dir/err.md" "$josh_dir/out.md"; then limit_wait_or_stop "josh"; continue; fi
+    if is_limit "$rc" "$josh_dir/err.md" "$josh_dir/out.md"; then limit_wait_or_stop "josh" "$josh_dir/err.md" "$josh_dir/out.md"; continue; fi
     reply="$(grep -vE '^\s*$' "$josh_dir/out.md" | tail -n 1 | sed 's/^[` ]*//; s/[` ]*$//')"
     echo "${reply:-(josh gave nothing, exit $rc)}"; return 0
   done
 }
 limits=0
-limit_wait_or_stop() {
+limit_wait_or_stop() {  # <who> [files...]: waits until the reset the limit line names, else --limit-wait
+  local who="$1" wait; shift
   limits=$((limits + 1))
   (( limits <= 6 )) || { log "STOPPED night.sh: usage limit 6 times"; say "STOPPED: usage limit 6 times"; exit 1; }
-  log "night.sh: usage limit ($1), waiting $limit_wait s"; say "usage limit ($1), waiting $limit_wait s"; sleep "$limit_wait"
+  wait=""; if (( $# )); then wait="$(limit_wait_seconds "$(date +%s)" "$@")"; fi
+  if [[ -n "$wait" ]]; then
+    log "night.sh: usage limit ($who), waiting until $(date -d "@$(( $(date +%s) + wait ))" +%H:%M) (the reset + 5 min)"
+  else wait="$limit_wait"; log "night.sh: usage limit ($who), waiting $wait s"; fi
+  say "usage limit ($who), waiting $wait s"
+  [[ $dry -eq 1 ]] || sleep "$wait"
 }
 
 if [[ $next_only -eq 1 ]]; then
@@ -140,9 +146,9 @@ fi
 
 declare -A norsl=()
 run_cmd() {  # <cmd>: one pipeline line; returns its exit code (75: a usage limit, after the wait)
-  local cmd="$1" cmdout rc
+  local cmd="$1" cmdout rc stamp limit_files=()
   [[ $dry -eq 0 ]] || return 0
-  cmdout="$(mktemp)"
+  cmdout="$(mktemp)"; stamp="$(mktemp)"
   set +e; (cd "$integ" && eval "timeout -k 60 28800 $cmd") > "$cmdout" 2>&1; rc=$?; set -e
   cat "$cmdout" >> "$out"
   say "rc=$rc: $(grep '^RESULT ' "$cmdout" | tail -n 1 || tail -n 1 "$cmdout")"
@@ -153,7 +159,10 @@ run_cmd() {  # <cmd>: one pipeline line; returns its exit code (75: a usage limi
     else log "RESULT -: FAILED ($cmd: no RESULT line, rc=$rc; run it once more)"; fi
   fi
   rm -f "$cmdout"
-  if [[ $rc -eq 75 ]]; then limit_wait_or_stop "pipeline"; fi
+  # The limit line is in the agent's output under .coord, written during this command.
+  if [[ $rc -eq 75 ]]; then mapfile -t limit_files < <(find "$coord" -type f -newer "$stamp" -size -200k 2>/dev/null)
+    limit_wait_or_stop "pipeline" "${limit_files[@]}"; fi
+  rm -f "$stamp"
   return $rc
 }
 steps=0; bad=0; closing=0

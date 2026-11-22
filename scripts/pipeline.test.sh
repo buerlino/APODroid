@@ -119,6 +119,24 @@ out="$(APODROID_NIGHT_NOW=22:00 "$here/night.sh" --dry-run --max-steps 5 2>&1)"
 grep -q 'josh #2: ' <<<"$out" && ! grep -q 'josh #3: ' <<<"$out" && grep -q 'night.sh #3 (closing 1 of 3)' <<<"$out" && grep -q 'night.sh #4 (closing 2 of 3)' <<<"$out" && grep -q 'night.sh #5 (closing 3 of 3)' <<<"$out" || fail "night.sh --max-steps 5: no closing at steps 3 to 5: $out"
 grep -q '#6' <<<"$out" && fail "night.sh --max-steps 5 runs a sixth step"
 
+# The usage limit (2026-11-22: the CLI's line on stdout, exit 1, wasn't recognised, so josh's reply was
+# taken for a command and the night stopped): is_limit and the wait until the reset it names.
+lim="$(mktemp -d)"; echo "You've hit your 5-hour limit · resets 4:40am (Europe/Zurich)" > "$lim/out.md"; : > "$lim/err.md"
+echo "The pass found nothing; a usage limit is the night's to handle." > "$lim/ok.md"
+is_limit 1 "$lim/err.md" "$lim/out.md" || fail "is_limit misses the CLI's limit line with exit 1"
+is_limit 0 "$lim/err.md" "$lim/out.md" || fail "is_limit misses the CLI's limit line with exit 0"
+is_limit 0 "$lim/ok.md" && fail "is_limit takes a good reply that mentions a usage limit"
+now="$(date -d '2026-11-22 02:26' +%s)"
+[[ "$(limit_wait_seconds "$now" "$lim/out.md")" -eq $(( (2 * 3600 + 14 * 60) + 300 )) ]] || fail "limit_wait_seconds 02:26 to 04:40 + 5 min: $(limit_wait_seconds "$now" "$lim/out.md")"
+now="$(date -d '2026-11-22 23:30' +%s)"
+[[ "$(limit_wait_seconds "$now" "$lim/out.md")" -eq $(( (5 * 3600 + 10 * 60) + 300 )) ]] || fail "limit_wait_seconds over midnight: $(limit_wait_seconds "$now" "$lim/out.md")"
+now="$(date -d '2026-11-22 12:00' +%s)"
+[[ -z "$(limit_wait_seconds "$now" "$lim/out.md")" ]] || fail "limit_wait_seconds waits more than 6 h"
+[[ -z "$(limit_wait_seconds "$now" "$lim/ok.md")" ]] || fail "limit_wait_seconds without a limit line"
+echo "You've hit your 5-hour limit · resets 5pm (Europe/Zurich)" > "$lim/out.md"
+[[ "$(limit_wait_seconds "$now" "$lim/out.md")" -eq $(( 5 * 3600 + 300 )) ]] || fail "limit_wait_seconds of a whole hour: $(limit_wait_seconds "$now" "$lim/out.md")"
+rm -rf "$lim"
+
 # The agent files: the four exist, none forces the background, josh's text is a whole prompt.
 for a in josh winston susanna rosie; do
   f="$integ/.claude/agents/$a.md"; [[ -f "$f" ]] || { fail "no $f"; continue; }

@@ -666,7 +666,7 @@ never read (the log, prefs and dumps stand for them).
   airplane mode off, Wi-Fi on. Not restored: the NASA and APOD parts (`apod.cropPosition` 0.729, `sideways` false).
 
 
-### [ ] E14c. Android 14, the background map (Sonnet, medium)
+### [x] E14c. Android 14, the background map (Sonnet, medium)
 
 `interactions/background.md`, "Phone test list" with a stepped clock; real timing (Doze, buckets) SKIPPED;
 `am kill` with Keep running off (no detector box); the week log over a stale `log.txt` row (B31: `pm clear`, the
@@ -675,6 +675,43 @@ file deleted beneath FUSE with `adb root`, `log (1).txt`). Device `emulator-5564
 aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
+
+**Checked** (rosie, pipeline run 176, 2026-11-22, `emulator-5564`, Android 14 (`apodroid-34`), dev's debug build; evidence in
+`.coord/runs/176-e14c/tablet/`; start: home NASA, lock APOD, Live on home (id 109), daily on, Keep running off, 6:00, E14b's end state; the
+clock stepped once (+15 min, `auto_time 0`, then back to 1), airplane mode on and off). **No crash** (`logcat -b crash` empty).
+- **BUG:** after `am force-stop` (P7's page open, then P17's case) Android 14 turns home into the ImageWallpaper but keeps its wallpaper id
+  (`dumpsys wallpaper`: id 109, component `ImageWallpaper`, was `LiveWallpaper`), so `homeLive` (the noted `live.homeId` equals the id) still says
+  Live is on: `run -f 1` logged no `Live: home isn't live, Fill on HOME+LOCK`, no "Live isn't on. Set as wallpaper turns it on." line
+  (`p17-no-live-line.png`), the record stayed noted live, and Set with Size Live offered no picker (the page believed Live was on; I
+  went through Size Centre and Set to get a picker). Expected (P17): Fill on both, the status line. Likely `Store.kt`'s `liveState`/`homeLive`
+  (L8f1's id rule); the id alone doesn't tell a force stop's revert on 14. Detector lines were right: `the alarms found gone` by the exit record.
+- **PASS:** P1 (daily off: no alarms, no job, no service; `kill -9`: Live kept, no `alarms for` line while off; on: `Switch on: wallpaper
+  set: … LOCK; wallpaper shown live: … HOME`, `alarms for`, job 1 ran, no `Detector:` line after it (J6)), P2 (`not expedited`, alarms
+  by the clock, no set), P3 (offline: `Daily job failed`, retry alarm at +15 min by a stepped clock (`TIME_SET, arming again`),
+  `alarm, run scheduled`, job 2 pending with CONNECTIVITY, `Live: screen on, run owed`, airplane off: `job 2 starts, expedited`, no
+  failure), P4 (second failure: `alarms for` start+1 h), P5 (`kill -9`, page open: `alarms for` the kept retry, no `Detector:` line;
+  a good run afterwards, `failedRuns` gone), P6 (`kill -9`, runs at 4 s and 34 s: new pid, `engine 3 created`, `decoded`, `drew … p=0.79`, ids and
+  component unchanged; ~70 ms of black at the start, accepted), P7, P8 (`drew p=0.77` about once a minute, p matches the clock), P9
+  (a wake within 15 min: only `drew`), P10 (`isForeground=true`, no `couldn't start`, off: service gone), P11 (status lines "Home: …
+  · NASA", "Lock: … · APOD", chip "On home screen"), P12 (job 1 periodic, CONNECTIVITY; job 2 only in P3), P13 (Save every on: one
+  `saved: APOD 2026-11-22 original, NASA 2026-11-20 original`, nothing on the second run; the rows deleted, switch off), P15 (no
+  `arming again` by itself except my own `TIME_SET`), P19 (a fresh install: `Subject: APOD 2026-11-22 p=0.35 (sideways 0.21) in 298 ms`,
+  none at the next process start), P27 (fresh: no `log.txt`; on: `Week log: on` and `Process start: APODroid 0.9.2, Android 14 …`; the run,
+  a `kill -9` with a new pid's `Process start` and the engine's lines in order; `weekLog false`: last line `Week log: off`, a later run not in the
+  file), **B31** (`pm clear`, `log.txt` removed beneath FUSE with `adb root`: `Week log: log.txt held by an old row, writing log (1).txt`, the lines in
+  `log (1).txt`, the next process start wrote the same file, no `log (2).txt`), the `am kill` case (it kills nothing while the wallpaper binds
+  the process, pid unchanged; with `kill -9` and Keep running off no `missed`/box keys, no detector box).
+- **DIFFERENT:** P3's orange box not seen (E14b's Dismiss on NASA's `network` problem the same day still held, `nasa.problemNoticeKey`; the
+  problem itself was stored), P18 (APOD's `stored, check failed: UnknownHostException` and no download ran, but NASA is also in use so
+  the run failed as the map says for a stored-day check only with APOD alone), P5's last step (the airplane toggle took 8 s).
+- **SKIPPED / not run:** P14 (the pause hint's lines read only as page text), P16 (real timing), O6a's Recents reopen (the card tap
+  didn't reopen the page; the file did end with `Week log: off` and a later run wrote nothing), P18's APOD-alone half (would need
+  Setup changes and a new Live picker), P20–P26 (faked posts and fake feeds; E14a ran P32–P34 with `sh4_run.py`), a reboot in P27,
+  Doze and buckets (real timing).
+- **State at the end:** the setup of the start again (home NASA, lock APOD, Live on home, id 116, lock 117, `size` LIVE, daily on, Keep running off, Save every
+  off); to get there I did `pm clear` (B31), restored the prefs file from the start (minus the live notes and `weekLog`) and chose "Home screen" in the picker;
+  `auto_time` 1, airplane off, Wi-Fi on; gallery test rows deleted. Left: `Download/APODroid/log (1).txt` (its MediaStore row is the app's).
+
 
 ### [ ] E14d. Android 14, the live map, first half (Opus, medium)
 

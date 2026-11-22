@@ -197,7 +197,7 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 94 | E17e | Android 17, the pixels and the rest (`APODROID_TABLET=emulator-5566`) | rosie | sonnet, medium | no | E17 | release-0.10.0.md E17e |
 | 95 | B33 | The page's load logs its result inside the IO block (T26) | winston | sonnet, low | yes | — | release-0.10.0.md B33 |
 | 96 | B34 | `sh4_run.py`'s judge matches 0.9.1's Auto, DATE today + 1 | winston | sonnet, low | yes | — | release-0.10.0.md B34 |
-| 97 | E14a | Android 14, the setup map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | B33, the user (emulator-5564 started wiped) | release-0.10.0.md E14a |
+| 97 | E14a | Android 14, the setup map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | B33 (emulator-5564 started wiped: done 2026-11-22) | release-0.10.0.md E14a |
 | 98 | E14b | Android 14, the page map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | E14a | release-0.10.0.md E14b |
 | 99 | E14c | Android 14, the background map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | E14a | release-0.10.0.md E14c |
 | 100 | E14d | Android 14, the live map T01–T20 (`APODROID_TABLET=emulator-5564`) | rosie | opus, medium | no | E14a | release-0.10.0.md E14d |

@@ -181,7 +181,23 @@ fun download(url: String, to: File, userAgent: String, limit: Long = 0) {
  * parse, [HttpStatus] for any other answer, an [IOException] for the network).
  */
 fun firstBytes(url: String, userAgent: String, length: Int): ByteArray =
-    get(url, "image/*", userAgent, range = length) { it.readNBytes(length) }
+    get(url, "image/*", userAgent, range = length) { it.readUpTo(length) }
+
+/**
+ * Up to [length] bytes, fewer at the stream's end. Not `InputStream.readNBytes`: Android has it
+ * only from API 33, and `:core`'s calls aren't checked by lint (B29, 0.9.2: since 0.9.0 the probe
+ * threw `NoSuchMethodError` on Android 10–12, so no new picture was stored).
+ */
+internal fun InputStream.readUpTo(length: Int): ByteArray {
+    val buffer = ByteArray(length)
+    var n = 0
+    while (n < length) {
+        val read = read(buffer, n, length - n)
+        if (read < 0) break
+        n += read
+    }
+    return if (n == length) buffer else buffer.copyOf(n)
+}
 
 /**
  * Blocking. The original's size (SH2b's probe) from its first [PROBE_BYTES], again from its first

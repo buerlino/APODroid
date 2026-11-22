@@ -209,6 +209,63 @@ ran (its Checked above) aren't run again. Results under its own "Checked" here, 
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
 
+**Checked** (rosie, pipeline run 166, 2026-11-22, `emulator-5566`, Android 17, dev's debug build 0.9.2,
+fresh `pm clear`; ~35 min; evidence in `.coord/runs/166-e17a/tablet/`: logs `pNN-log.txt`, `pNN-wp.txt`,
+screenshots, prefs before/after, `crash.txt`, `exit-info.txt`): **no FAIL, no crash** (`logcat -b crash`
+empty, no `E AndroidRuntime`; `exit-info` only my force stops, one `kill background`, one `remove task`).
+The start state P0 describes (home NASA, lock APOD, daily on, Live on home, "Home: NASA · Lock: APOD ·
+6:00 AM · Live") was built first by hand (mode on, the list, Live, AOSP 17's picker "Home screen", the
+daily switch); dates in the map move on (anchor 23 Nov, post 22 Nov / NASA 20 Nov); the clock reads 12 h.
+- **PASS:** P0 (summary, status lines, Earth's greyed "Both", the picker opens for "Use my picture" with
+  no picture, Back keeps "Skip it"; no Keep running look), P1 (`NASA on HOME auto 0.69, APOD on LOCK auto
+  0.35`, home ImageWallpaper, no ` · Live`), P2 (same `Set:` line, both ids change), P3 (no `Set:`, ids
+  kept, `orderFrom` 23 Nov), P4 (Setup untinted after the mode round trip, no `Set:`, ids kept; mode off:
+  Where shows the draft "Lock screen", highlighted), P5 (dialog survives rotation, "Change every" 24 h, ⓘ
+  with the draft's values), P6, P7 (`orderFrom` kept, owners kept, summary "Home: NASA, Earth · Lock: APOD,
+  Earth · every 24 h from 6:00 AM"), P8 (no alarm pending, only `alarm_cancelled` history), P9 (one
+  `Earth on HOME+LOCK`, no `Daily job: alarms`), P10 (`Switch on: … Earth`, one status line "Changed 22 Nov,
+  10:30 AM · Earth", summary as the map), P11, P12 (NASA tick, APOD dropdown and the video dropdown
+  disabled), P13 (`APOD on LOCK` only, home id kept, status "Lock: 22 Nov, 10:32 AM"), P14, P15, P16 (lock
+  keeps its own wallpaper, new id), P17 (the Where of mode off after the Set is the stored one, NASA's "Both"
+  back in the list), P18, P19 (`am kill`: Darken still off, Setup open), P20 (one MainActivity record,
+  "delivered to the running instance"), P22, P23, P24 (no `, darker`; Setup closed on the rotated page), P25
+  (`darker ×0.82` and `×0.80`), P26 (`alarms for 2026-11-22T10:18:45Z` = 11:18 local), P27 (`alarms for
+  2026-11-23T05:03:45Z`), P28 (3 taps from off: one `Switch on:`, alarms armed, ends on), P29 (no
+  picker the second time, the draft's pick; no `fallback.jpg` ever existed, `fallback-draft.jpg` stays),
+  P30 (`Live: back from the picker, a wallpaper changed, home live`, `Live: the engine is on HOME, not
+  noted live`, `Set: … on LOCK; wallpaper shown live … on HOME`, summary with ` · Live`, home
+  LiveWallpaper, lock ImageWallpaper; the dialog "Next, in Android's preview: Set wallpaper › Home
+  screen"), P31 (no "Wide pictures sideways" and no "Centre when unsure" row under Centre, Auto or Live;
+  "Keep pictures sharp" under Centre and Auto, gone under Live; landscape two panes), P32 (galaxy text:
+  `auto 0.56, sideways, auto turn`, `debug-set.png`; horizon text: `auto 0.83`, no `, sideways`,
+  `debug-set.png` gone), P33 (Auto: ⛶ opens with "Sideways" on; off + ✓: `Part: … auto 0.83`, no
+  `sideways`, `sideways=false`; Centre: pill stays off; on + ✓: `, sideways` without `auto turn`), P34
+  (NASA's 3000×1000 file upright, `auto 0.69`), P34c (UI1: the bar over the scroll, the last row "Advanced
+  settings" above it in portrait and at font scale 2.0, the bar in landscape's settings pane; closed: the
+  button after the Setup row), P34d (ⓘ "A small picture is enlarged at most 2×; the rest of the screen shows
+  it blurred.", on kept after a rotation, gone under Live and back off under Auto), P34e (1500×1022 horizon:
+  `auto 0.77, sharp ×2.00 (Fill ×2.35)` and `debug-set.png`; Centre: the same without `auto`; off: no
+  ", sharp", no `debug-set.png`), P35 (three segments in portrait and in the landscape pane, none wrapping),
+  P36 (`auto 0.80`, crop 833–1292 against the middle 521–980, Centre without `auto`, Auto again as the first).
+- **DIFFERENT (noted, not wrong):** P21: Back, then the launcher icon, with the process alive: the
+  draft is dropped (Darken on again, Setup closed); the map asks only to record it. P29: `fallback.jpg`
+  "unchanged" is moot, none existed (a Set with "Skip it" renames nothing).
+- **SKIPPED:** P34a (the update from 0.8.0: no 0.8.0 build on this run).
+- **Method notes:** the faked posts (P32–P36) need the emulator offline (airplane mode, undone and checked):
+  online, the refresh stores the real title, alt and explanation over a faked same-date post and Auto's
+  turn then keeps the picture upright. A `force-stop` with Live on home drops it (Android's rule): the page
+  shows "Live isn't on. Set as wallpaper turns it on." and a Set with the picker puts it back (done at the
+  end). `uiautomator dump` resets `accelerometer_rotation` to 1, so a rotation case sets it to 0 again.
+- **Not run / not looked at** (each a gap, not a pass): the toasts ("Wallpaper set" etc.) were not captured
+  (a screenshot at P24's rotation was not opened); the pixel colours of the `tertiary` highlights (P3's
+  ≡, P4, P17, P27's "Skip it" round trip) were read from the layout (`chk`/text) and from the screenshots
+  of P4 and P17 (Setup title untinted, Where tinted) only; P0's Advanced › Keep running and the page's title
+  and chip (P15, P9's "On wallpaper" chip was seen only as a node); P10's Set disabled during the run
+  (too short to catch); P5's ⓘ was opened after the rotation back, not with the rotation; P30's closing look
+  (mode off shows Where W0, Earth's greyed dropdown, order); P32's `debug-set.png` turn not looked at by the
+  pixels (the log line and the file are the evidence); P31's screenshots (`p31-*.png`) taken, not opened.
+  The pre-0.9.0 ids of the map (`16 Nov`) are today's 23 Nov in the logs.
+
 ### [ ] E17b. Android 17, the page map (Sonnet, medium)
 
 `interactions/page.md`, sections 3 (the prioritized list) and 4 (0.8.0's emulator cases). Device `emulator-5566` (`apodroid-37`, Android 17), dev's debug build, at most 50 min. The rules:

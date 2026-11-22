@@ -292,6 +292,95 @@ ran (its Checked above) aren't run again. Results under its own "Checked" here, 
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
 
+**Checked** (rosie, pipeline run 169, 2026-11-22, 12:08–12:33, `emulator-5566`, Android 17, dev's debug
+build 0.9.2 installed with `install -r` over the data E17a–c left; evidence in `.coord/runs/169-e17d/tablet/`:
+`log-all.txt` (every APODroid line), `cases.txt` (the lines per case), screenshots, prefs and `dumpsys
+wallpaper` before and after): **every case of the list ran but T29 (skipped by the map's own rule); no FAIL,
+no crash** (`logcat -b crash` empty, no `E AndroidRuntime`, one process, pid 23677, all along; `exit-info`
+only older runs' records). The found state was the map's T0 with Size Auto and both stills; T0 was built
+first (Size Live, the dialog "› Home screen", AOSP 17's picker "Home screen"; R2b: no Settings button for
+APODroid in the preview). Dates: APOD 22 Nov, NASA 20 Nov; the clock reads 12 h. Toasts were not captured
+(the screenshots fell before or after them): the log lines stand for them.
+- **T02** PASS: no dialog, `Live: the engine is on HOME, not noted live`, `Set: wallpaper set: …APOD… on
+  LOCK, …; wallpaper shown live: …NASA… on HOME`; home id 135 kept, lock a new still.
+- **T03** PASS: ⛶ with Live, a drag moved nothing (no `cropPosition` noted); Whole › ✓ `Part: wallpaper shown
+  live: … on HOME` (no `, darker`: the whole picture's grey under 100), `live.whole=true`, `Live: decoded
+  1080×2400`; Whole off › ✓ `… on HOME, darker ×0.83`, `live.whole=false`, `decoded 3200×2400`.
+- **T04** PASS: draft Auto, ⛶ opened by the stored Live: the drag left the screenshot byte-identical
+  (`t04-crop-before-drag.png` = `…-after-drag.png`), ✓ logged nothing, no toast, no `cropPosition`; Size › Live
+  again: Setup's title untinted (`t04-size-live-back.png`).
+- **T10** PASS (from M-EQ, home live, lock a NASA still, made by T09's "Not now": `Set: Live on the lock
+  screen not now`, one status line "Changed 22 Nov, 12:13 PM · NASA"): split back, Set: no dialog, lock APOD
+  still (id 139), home id 135 kept.
+- **T13** PASS (P2 made by T11's steps: `engine 1 destroyed`, `engine 3 created`, `… home live, shared`,
+  `shown live: … on HOME+LOCK`): off: the lines gone, summary "NASA · both screens · Live", the engine stays
+  (id 140, mWhich 3); on: `Switch on: wallpaper shown live: … on HOME+LOCK`, one line "Changed 22 Nov,
+  12:14 PM · NASA", summary with "6:00 AM".
+- **T14** PASS: pull: three `Refresh:` lines, nothing set, ids kept.
+- **T16** PASS (AOSP 17's picker offers "Lock screen", started from outside the app with
+  `CHANGE_LIVE_WALLPAPER`): `Live: engine 2 created`, lock id 142 the engine; at the page's return `Live: the
+  engine is on the lock screen alone, Fill on LOCK`, `engine 2 destroyed`, `Page: wallpaper set: …APOD… on
+  LOCK`; home id 140 kept, lock its own still.
+- **T17** PASS: `Live: engine 1 destroyed`, `Set: … NASA … on HOME, auto 0.69, …, APOD … on LOCK, auto
+  0.35`, both stills, summary "Home: NASA · Lock: APOD · 6:00 AM".
+- **T18** PASS: APODroid picked by hand for home with Size Auto: `engine 1 created`, it drew `live.jpg`
+  (NASA) after ~180 ms of `drew black (nothing)` (E17's DIFFERENT), no hand-over, no "Live isn't on"; Set:
+  `engine 1 destroyed`, home a still again (id 147).
+- **T19** PASS: the dialog "Next, in Android's preview: / Set wallpaper › Home screen", Cancel: `Set: the
+  picker's dialog cancelled`, `Set: no pick, nothing saved`, size AUTO stored, Setup open.
+- **T20** PASS: Set wallpaper › Back (the sheet) › Back: `back from the picker, nothing changed, home not
+  live`, `no pick, nothing saved`; the preview drew NASA's `live.jpg` (`t20-preview.png`).
+- **T21** PASS: Home, then the launcher icon brought the picker back on top; Home, Recents (APODroid's card),
+  the picker again; Back: as T20; no `back from the picker` line while away.
+- **T22** PASS (runnable here): "Lock screen" in the app's trip: `Live: back from the picker, the lock screen
+  alone`, `Set: no pick, nothing saved`, `Live: the engine is on the lock screen alone, Fill on LOCK`, `Set:
+  the lock screen put back: …APOD… on LOCK, auto 0.35`; size AUTO stored, Live highlighted in the draft
+  (`t22-toast.png`, taken before the toast).
+- **T23** PASS: as T16 with stored Auto: `Page: wallpaper set: …APOD… on LOCK, auto 0.35`; no "Live isn't on".
+- **T24** PASS: off, on: `Switch on: wallpaper set: … on HOME, auto 0.69 …, … on LOCK, auto 0.35`, both
+  stills, no dialog, no "Live isn't on".
+- **T25** PASS, **DIFFERENT** in its rotation: AOSP 17's preview stays portrait (`user_rotation 1` with
+  `accelerometer_rotation 0`: `mDisplayRotation=ROTATION_0` while the picker was on top and still after the
+  return), so the rotation during the picker didn't happen; Home screen: `a wallpaper changed, home live`,
+  lock APOD still, summary with " · Live", no "Live isn't on".
+- **T26** PASS, **DIFFERENT** in the log: Wallpaper & style › On-device wallpapers › Apply on Home screen
+  alone (id 157); at the page's return `Live: home isn't live, Fill on HOME+LOCK`, both screens set (ids 158,
+  159; `WallpaperManagerService` `setWallpaper which = 1`, then `= 2`), status lines 12:23, "Live isn't on.
+  Set as wallpaper turns it on." shown; but **no `Page: wallpaper set: …` line** (MainActivity.kt:798 logs it
+  after the update). The page had just been relaunched (`AppCompatResourceOverlayPolicy … result: true`,
+  "finishDrawing of relaunch" at the `am start`: the system's new wallpaper colours), so likely the load's
+  coroutine ended with the destroyed page before its log line; not checked further. Outcome right, only the
+  log line missing.
+- **T27** PASS: "Home screen and lock screen" with stored different columns: `engine 3 created`, `… home live,
+  shared`, `Live: engine flags 1`, home live, lock APOD still (id 161).
+- **T28** PASS: the question › OK › Recents › swiped APODroid's task away (the picker had its own task); the
+  process stayed (pid 23677); at the reopening `Live: back from the picker, nothing changed, home live`,
+  `Set: no pick, nothing saved`; stored setup unchanged (home NASA, lock APOD, Live).
+- **T29** SKIPPED: the map runs it only if T28 saved, and T28 saved nothing.
+- **T30** PASS: the question › Recents › swipe: `Set: the picker's dialog cancelled`, `no pick, nothing saved`
+  at the swipe; the reopened page: Setup closed, "Home: NASA · Lock: APOD · 6:00 AM · Live".
+- **T32** PASS (A-L made by T31's steps: `Set: … APOD … on LOCK`, "APOD · lock screen · 6:00 AM"): Where ›
+  Home screen, Set: no dialog, `Live: the engine is on HOME, not noted live`, `Set: wallpaper shown live:
+  …APOD… on HOME, darker ×0.94`, lock id 162 kept.
+- **T35** PASS, a shorter path: from T32 home was still live, so the Set back to M-DIFF opened no dialog
+  (`opensPicker` false; the map's dialog follows T34's Auto, not run here): `… on LOCK; wallpaper shown live:
+  …NASA… on HOME`, "Home: …NASA" / "Lock: …APOD"; New picture at 6, Change every DAY, order APOD,NASA,EARTH,
+  Advanced (Save every picture, Keep running off) unchanged. `where` became HOME by T31–T32 (put back at the end).
+- **T37** PASS, Q7's second outcome: equalise, the question › OK › "Home screen": `engine 1 destroyed`, `engine
+  1 created`, a new home id (164), `a wallpaper changed, home live`, saved, lock a NASA still (id 165); split
+  back and Set: no dialog, lock APOD still (id 166).
+- **T38** PASS: Centre: no dialog, `engine 1 destroyed`, `Set: … NASA … on HOME, darker ×0.84, … APOD … on
+  LOCK, darker ×0.87` without `, auto`, `size=CENTRE`; Live › the dialog "› Home screen" › OK › Home screen:
+  back to T0 (home id 169 live, lock still).
+- **T39** PASS (NASA's 20 Nov picture is landscape, 3200×2400 as Live decodes it, so no fake): Sideways › ✓
+  `Part: wallpaper shown live: … on HOME, sideways, darker ×0.86`, `live.sideways=true`, `Live: decoded
+  1800×2400` (W < H); off › ✓ no `, sideways`, `live.sideways=false`, `decoded 3200×2400`.
+- **End state**: the found setup again (APOD mode's Where Both by a Set in APOD mode, then More NASA pictures,
+  Size Auto, Set): the setup prefs equal to the start's (`size`, `allSources`, `where`, `home`, `lock`, `daily`,
+  `order`, `pictureAt`, `interval`, `keepRunning`, `saveEvery`, `soon`, `darken`, `sharp`), both stills
+  (ids 172, 173); the settings as found (rotation put back). Left: NASA 20 Nov's part now notes `whole=false`,
+  `sideways=false` (was none; NASA's pictures never turn by Auto, so nothing changes), `live.jpg` NASA's.
+
 ### [ ] E17e. Android 17, the pixels and the rest (Sonnet, medium)
 
 SH4's pixel checks (`sharp-0.9.0-sh4.md`, Testing 2; `scripts/sh4_check.py`, 1 px of tolerance at the

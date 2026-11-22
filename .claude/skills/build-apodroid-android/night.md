@@ -97,7 +97,7 @@ out once it's done. Since 2026-11-14 (user: everything queued) no row waits for 
 run as rosie's rows, L6 builds on L1 (L2 on the FP6 checks it later), O12 decides from O7's report;
 left by hand: O9, L2, O16, O17, L9's two days, L10, E, the FP6's week, the tag. The regression after the last row reruns dev's debug build; let it run. Only APODroid's nights
 use the tablet (pascaline's leave HA24BZ2Y alone). Done rows stay in the table: `scripts/pipeline.test.sh` resolves
-every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the hardening; the emulator rounds' rows go in after ER, one level per night). 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-android/night.md`, before 2026-11-13).
+every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the hardening; the emulator rounds' rows go in after ER, one level per night) Their After names `the user` (Opus pass 57): each emulator night is started by hand on its emulator, `APODROID_TABLET=emulator-<port>`, the emulator wiped first, so the user takes the words out of that night's one row (17 first). 0.6.0's 66 rows: git (`git log -p -- .claude/skills/build-apodroid-android/night.md`, before 2026-11-13).
 
 | Step | ID | What | Agent | Model, effort | Tablet | After | Spec |
 |---|---|---|---|---|---|---|---|
@@ -183,12 +183,12 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 80 | ER | emulator.md for today's app; apodroid-37 set up; E17–E13 and UP written into release-0.10.0.md | winston | sonnet, medium | no | A17 | release-0.10.0.md ER |
 | 81 | SIM | RulesSimulationTest over 20,000 seeds; each failing seed a BUG: line | winston | sonnet, low | no | — | release-0.10.0.md SIM |
 | 82 | CR | A code review of the whole app by reading, correctness only, each finding verified | winston | opus, high | no | LOG | release-0.10.0.md CR |
-| 83 | E17 | Android 17, every map (`APODROID_TABLET=emulator-5566`) | rosie | opus, medium | no | A17, ER | release-0.10.0.md E17 |
-| 84 | E14 | Android 14, every map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | ER | release-0.10.0.md E14 |
-| 85 | E10 | Android 10, every map (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | ER | release-0.10.0.md E10 |
-| 86 | E12 | Android 12 (`APODROID_TABLET=emulator-5558`) | rosie | sonnet, medium | no | ER | release-0.10.0.md E12 |
-| 87 | E13 | Android 13 (`APODROID_TABLET=emulator-5562`) | rosie | sonnet, medium | no | ER | release-0.10.0.md E13 |
-| 88 | UP | The update from 0.5.0, 0.7.0 and 0.9.1 (`APODROID_TABLET=emulator-5564`, then 5566) | rosie | sonnet, medium | no | E14 | release-0.10.0.md UP |
+| 83 | E17 | Android 17, every map (`APODROID_TABLET=emulator-5566`) | rosie | opus, medium | no | A17, ER, the user (emulator-5566 started wiped, the night on it) | release-0.10.0.md E17 |
+| 84 | E14 | Android 14, every map (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | ER, the user (emulator-5564 started wiped, the night on it) | release-0.10.0.md E14 |
+| 85 | E10 | Android 10, every map (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | ER, the user (emulator-5554 started wiped, the night on it) | release-0.10.0.md E10 |
+| 86 | E12 | Android 12 (`APODROID_TABLET=emulator-5558`) | rosie | sonnet, medium | no | ER, the user (emulator-5558 started wiped, the night on it) | release-0.10.0.md E12 |
+| 87 | E13 | Android 13 (`APODROID_TABLET=emulator-5562`) | rosie | sonnet, medium | no | ER, the user (emulator-5562 started wiped, the night on it) | release-0.10.0.md E13 |
+| 88 | UP | The update from 0.5.0, 0.7.0 and 0.9.1 (`APODROID_TABLET=emulator-5564`, then 5566) | rosie | sonnet, medium | no | E14, the user (0.9.1's APK signed with the candidate's key; the emulator started wiped) | release-0.10.0.md UP |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

@@ -308,11 +308,14 @@ Set; no Live, as the emulator was found). **No FAIL, no crash** (`logcat -b cras
   0.35`); K27 (⛶ opens at 0.35 = `subjectPosition`, 208/596 px), K28 (✓ untouched: nothing), K29 (drag ✓: `cropPosition`
   0.73, no `, auto`), K31 (undragged, pill on: the band at 0.21 = `subjectSideways`), K31a (drag sideways, pill off, ✓: no
   `cropPosition`, `sideways=false`, the set `auto 0.35`); K30/K33 (an undragged part, Size Centre then Auto and Set: Centre
-  `on LOCK` without `auto`, Auto `auto 0.35`; the dragged part's staying at the next Set not run); K34, K34a–d (APOD faked
+  `on LOCK` without `auto`, Auto `auto 0.35`; the other half, a dragged part staying at the next Set, is under SKIPPED); K34, K34a–d (APOD faked
   1500×1022: sharp on and Set `sharp ×2.00 (Fill ×2.35)`; ⛶'s frame 36% of the picture's width, 2×, against 30.7% by
-  arithmetic with it off (`k34-off.png` taken, not opened); drag ✓ `sharp ×2.00 (Fill ×2.35), darker ×0.98`; a 300×200
+  arithmetic with it off, and by eye in the round-1 fix: `k34-on.png`'s frame 36% of the width (325 of 900 px), `k34-off.png`'s 31%
+  (277 of 900), both opened and compared; drag ✓ `sharp ×2.00 (Fill ×2.35), darker ×0.98`; a 300×200
   picture: ⛶'s screenshot identical after a drag (no drag), "Whole picture" the picture 2× on the blurred strip).
   34 (setup J6) is removed by the map.
+- **BUG:** (a) **The week log is lost after `pm clear`** (round 1: a FAIL-grade defect for 0.10.0's real-week log, not a DIFFERENT). Repro: run the app with the week log on so that `Download/APODroid/log.txt` has a MediaStore row, `pm clear` the app (the row stays, now owned by nobody the app can see), turn the log on again (`--ez weekLog true`): every write fails with `SQLiteConstraintException: UNIQUE constraint failed: files._data` (14 in 30 s), `log.txt` is never created, `log (1).txt` neither. LOGf1's lookup runs only for a file the app can see, so the insert collides. Details under DIFFERENT (1).
+  (b) **A sideways-dragged position applies to the upright frame** (round 1: FP1's failure kind, `notedSideways` was to prevent it; by design only if the user says so). Repro: crop mode on a landscape APOD with the pill on, drag the band, ✓ (cropPosition 0.893, sideways true); open ⛶ again, turn the pill off, ✓: the upright frame is set at 0.893 (`on LOCK`, no `, auto`). Details under DIFFERENT (2).
 - **DIFFERENT:** (1) **The week log after `pm clear`** (the app was cleared by E17a before): `Week log: on` then every
   write `Week log: couldn't write: SQLiteConstraintException: UNIQUE constraint failed: files._data` (14 times in 30 s),
   `Download/APODroid/` empty; the MediaStore row of E17a's `log.txt` is still there and the insert of `log.txt` collides
@@ -332,7 +335,8 @@ Set; no Live, as the emulator was found). **No FAIL, no crash** (`logcat -b cras
   this host, ★ was filled before the new page came up; `Saved`, one row, no crash. **S2a's toast** not read (the star
   stayed `Saved` with the row deleted, as the map's SUSPECT; the next reopen shows ☆, so "Already saved" or a silent
   no-op not told apart). **K24's 3000×1000 galaxy file** (a faked text on the real 3709×2772 Jupiter instead). **R5 in
-  landscape** (the pull on the pane tried in portrait only). **P3a's `am kill` of the second open** done as `kill -9`
+  landscape** (the pull on the pane ran in portrait only; landscape was left for time, so R5 is not done there: still open).
+  **K30/K33's second half** (a dragged part staying at the next Set of Size Centre or Auto): not run, left for time, still open. **P3a's `am kill` of the second open** done as `kill -9`
   (Live's engine rebinds); setup's J6 gone.
 - **End state:** as found: the app's own setup unchanged (daily on, More NASA on, home NASA, lock APOD, Size Auto, Keep
   pictures sharp off, Keep running off, Save every off 20 MB), the real APOD picture put back (the faked ones replaced

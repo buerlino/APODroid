@@ -595,7 +595,7 @@ as it's out"?), Advanced (Save every picture, Keep running), the page's status l
    line). Turn the switch on. Expect: `Live: the engine is on HOME, not noted live`, `Switch on:
    wallpaper set: Of(source=APOD, date=2026-11-15…) on LOCK; wallpaper shown live: Of(source=NASA,
    date=2026-11-13…) on HOME`, toast "Wallpaper set", `Daily job: alarms for <tomorrow 05:0x Z>`,
-   job 1 runs at once (skeleton, nothing set), Keep running back if it was on. **J6 check (fixed by LG):** no `Detector: the alarms found gone` after the switch-on; `Detector: nothing missed` at job 1's run.
+   job 1 runs at once (skeleton, nothing set), Keep running back if it was on. **J6 check (fixed by LG):** no `Detector: the alarms found gone` after the switch-on, and no `Detector:` line at job 1's run either (the switch on drops the loss note, so `judgeMiss` has nothing to judge; E17c, Opus pass 60).
    No detector box on the page either way. Restores itself (both screens set again with the same
    pictures; the status lines' times move).
 2. **P2, baseline good run (D2, A3, A4, B1, E1, E2, I4).** `cmd jobscheduler run -f

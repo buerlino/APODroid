@@ -176,7 +176,7 @@ What each brought: the tags and `changelogs/<versionCode>.txt`.
 - 0.9.0 (13): 2026-11-17, after SH4, T4 and T5 on the Android 14 emulator (no FAIL, no crash) and
   the user's release-signed build; the user's FP6 test follows the tag (user, 2026-11-17: "lets
   release now, i can test the release if we need to fix we do it after 0.9.1"), a fix ships as 0.9.1.
-- 0.9.1 (14): a hotfix, not tagged yet (user, 2026-11-21): "Centre when unsure" removed (The app,
+- 0.9.1 (14): 2026-11-22, a hotfix (user, 2026-11-21): "Centre when unsure" removed (The app,
   Settings), Open question 5 closed; changelog `14.txt` approved by the user. **The FP6**
   (2026-11-22, 00:15, the user's release-signed build over 0.9.0, USB): 0.9.0 had set 21 Nov's APOD
   at 06:19 by itself (Setup APOD, Both, Auto, 06:00, As soon as it's out: the hourly alarms; its
@@ -184,6 +184,16 @@ What each brought: the tags and `changelogs/<versionCode>.txt`.
   alarms, nothing set, no crash; Setup without the row, nothing highlighted; ⛶ opened at the
   subject, ✓ without a drag set nothing; a Set `auto 0.45`, the same crop. Not run: the Android 14
   emulator, the detector's fix on a device (11–14 only).
+- 0.9.2 (15): 2026-11-22, a hotfix from 0.9.1's tag (B29, the code review CR's finding 1; user,
+  2026-11-22): since 0.9.0 Android 10–12 stored no new picture (SH2b's probe called
+  `InputStream.readNBytes`, API 33; `:core` is a JVM module, so lint never checks its calls, and
+  every emulator pass since 0.9.0 ran on API 34). A read loop (`readUpTo`) instead;
+  `AndroidApiTest` bans the Java 9+ stream calls in `:core`'s sources. **Rule:** `:core` may call
+  only what Android 10 has; a new JDK call there is checked against `api-versions.xml`. Checked on
+  the Android 10 emulator: the released 0.9.1 logged the `NoSuchMethodError` and stored nothing;
+  0.9.2's debug and R8 builds stored 22 Nov's APOD, set it by Set and the daily switch, the job ran.
+  Not run: Android 11 and 12, the FP6. Changelog `15.txt` approved by the user. 0.10.0 is
+  versionCode 16.
 
 ## Data source (checked 2026-10-01)
 

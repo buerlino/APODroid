@@ -35,7 +35,7 @@ android, to really battle harden the app, i want to find any remaining bugs and 
 | 9 | **E12, E13** Android 12 and 13: emulator.md's rows that differ by version + a smoke of each map | Sonnet, medium | `apodroid-31`, `-33` | Each map in full on five levels would cost too much; the version table says what differs |
 | 10 | **UP** the update: 0.5.0, 0.7.0 and 0.9.1 each straight to the candidate | Sonnet, medium | `apodroid-34`, `-37` | F-Droid users skip versions; the migrations' last real check |
 | 11 | **B&lt;n&gt;** a fix package per `BUG:` | per bug | where it was found | Re-tested on the level that found it |
-| 12 | **R5** 0.10.0's texts (versionCode 15, `15.txt`), the tag | Sonnet, low | none | After 1–11 with no open `BUG:` |
+| 12 | **R5** 0.10.0's texts (versionCode 16, `16.txt`; 15 is 0.9.2), the tag | Sonnet, low | none | After 1–11 with no open `BUG:` |
 | 13 | **WK** the real week on three devices | the user; Opus, medium to read the logs | FP6, tablet, third | Real nights, makers' own Android |
 | 14 | **R6** 1.0.0 | Sonnet, low | none | After WK with no `BUG:` |
 

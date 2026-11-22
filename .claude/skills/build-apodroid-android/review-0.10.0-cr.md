@@ -34,6 +34,9 @@ included) refers to in the debug APK's dex (`dexdump -d`), against the SDK's
 
 ### 1. Android 10–12: no new picture is ever stored (high, CONFIRMED by the dex; the device's word is E10's and E12's)
 
+**Fixed in 0.9.2** (B29, 2026-11-22; CLAUDE.md, Releases): reproduced with the released 0.9.1 on the
+Android 10 emulator, fixed by a read loop, `AndroidApiTest`. The thought about `Error` in `update`'s loop is still open.
+
 `:core`'s `firstBytes` (`Post.kt:184`, SH2b's probe, 0.9.0) reads the first bytes with
 `InputStream.readNBytes(int)`, a Java 11 method Android has only from API 33. `:core` is a plain
 JVM module, so Android lint's NewApi check never sees it, and D8 doesn't backport it: the debug

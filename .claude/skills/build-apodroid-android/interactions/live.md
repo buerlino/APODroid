@@ -373,7 +373,7 @@ the picker starts.
   lock screen may show NASA for a second before its still lands.
 - Log: `Live: engine 3 created`, `Live: back from the picker, a wallpaper changed, home live, shared`,
   `Live: the engine is on HOME+LOCK, not noted live`, `Set: wallpaper set: Of(source=APOD…) on LOCK;
-  wallpaper shown live: Of(source=NASA…) on HOME`, `Live: engine flags 1`.
+  wallpaper shown live: Of(source=NASA…) on HOME`, `Live: engine flags 1` (not on Android 14's AOSP build, E14d).
 - adb: C2 lock its own still id; C3 `live.shared=true` until the next run (cosmetic).
 
 **K6** From P0, M-EQ or A-B, dialog "› Home screen and lock screen": "Home screen and lock screen".
@@ -747,7 +747,7 @@ T36; in T37 ZUI may share the engine.
 | T12 | N5 | Set | no dialog, Toast WS, `shown live: … on HOME+LOCK` | P2 |
 | T13 | A1, A2 | daily switch off (C5, C2: engine stays); on | off: lines gone; on: Toast WS, `Switch on: wallpaper shown live: … on HOME+LOCK` | P2 |
 | T14 | A4 | pull to refresh | no toast, nothing set | P2 |
-| T15 | N6 | split back; Set | no dialog, Toast WS, lock APOD still, `Live: engine flags 1` | T0 |
+| T15 | N6 | split back; Set | no dialog, Toast WS, lock APOD still, `Live: engine flags 1` (not on Android 14's AOSP build: no flags change, E14d) | T0 |
 | T16 | X7 (S4) | Android's wallpaper settings › Live wallpapers › APODroid › Set wallpaper › Lock screen (the emulator: SKIPPED when AOSP's settings don't offer it); return to APODroid | `Live: engine 2 created`; since S4's fix the page's load replaces it: `Live: the engine is on the lock screen alone, Fill on LOCK`, `Page: wallpaper set: …APOD… on LOCK`; C2 home APODroid (id unchanged), lock its own still | T0 |
 | T17 | N1 | Size › Auto; Set | Toast WS, both stills, summary without " · Live", `Live: engine <flags> destroyed` | P0 Auto |
 | T18 | X4 (S6) | Android's settings › APODroid live › Home screen (note what the preview draws); return; then Set | no hand-over, no status line; engine draws `live.jpg` (`Live: drew Of(source=NASA…)`); Set (Auto) → home still again | P0 Auto |
@@ -759,7 +759,7 @@ T36; in T37 ZUI may share the engine.
 | T24 | A3 | daily switch off, on | Toast WS, both stills, no dialog, no "Live isn't on" | same |
 | T25 | L3, K3 | Set › dialog "› Home screen" › OK › rotate › Set wallpaper › Home screen; rotate back | Toast WS, Setup closes, home live NASA, lock APOD still, "Live isn't on" gone | T0 |
 | T26 | X5 | Android's settings › any built-in still › Set wallpaper › Home screen; return | at once both APODroid stills, `Live: home isn't live, Fill on HOME+LOCK`, "Live isn't on" | P0, stored Live |
-| T27 | K5 | Set › OK › Set wallpaper › Home screen and lock screen | Toast WS, home live, lock APOD still, `…home live, shared`, `Live: engine flags 1` | T0 |
+| T27 | K5 | Set › OK › Set wallpaper › Home screen and lock screen | Toast WS, home live, lock APOD still, `…home live, shared`, `Live: engine flags 1` (not on Android 14's AOSP build: no flags change, E14d) | T0 |
 | T28 | L5 (S1) | equalise; Set › the question › OK › preview › Recents › swipe APODroid away; C4; wait 10 s; open APODroid | since S1's fix nothing saved either way: alive, at the reopening `Live: back from the picker, nothing changed, home live`, `Set: no pick, nothing saved`, the stored setup; killed: a cold start | T0 |
 | T29 | split | only if T28 saved (it shouldn't since S1's fix): split back; Set | as T10 | T0 |
 | T30 | D6 | equalise; Set › dialog › Recents › swipe; C4; reopen | alive: `the picker's dialog cancelled` at the swipe; reopened page shows the stored setup, Setup closed | T0 |

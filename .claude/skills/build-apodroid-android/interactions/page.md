@@ -412,7 +412,8 @@ Portrait: the whole page (picture and settings) is in the pull box; landscape: t
 A pull always fetches the three offered sources (APOD too, `force`), downloads only a new picture, and
 sets a newer picture of each screen's source at once while the daily switch is on.
 - **R1 Pull on NASA's page, network on, nothing new (Sunday).** NOW. The spinner shows and goes;
-  nothing changes; no toast; **no APODroid log line** (a pull that sets nothing logs nothing).
+  nothing changes; no toast; no set line, only the refresh's own (LG, 0.9.0): `Refresh: NASA <date> same post` for today's
+  stored post, else `Refresh: NASA <date> stored, nothing newer`.
 - **R2 Pull in airplane mode.** NOW. Spinner, then an orange box under the picture:
   **"NASA Image of the Day: no connection."** (named: two sources ticked, MA:856; no "since" as the last
   good check is recent). The stored pictures stay. Log (W): `Update failed: <UnknownHostException …>`.
@@ -598,7 +599,7 @@ settings). Deletions and restores are part of the list.
     `p=0.50`, home screencap whole and still, wallpaper ids unchanged.
 18. **K13** ⛶ on NASA, Home key, back: crop mode still open; Back closes it.
 19. **K8** NASA "Whole picture" off, ✓: panning again (`p=0.NN`). (S0's look restored.)
-20. **R1** pull on NASA's page: spinner, no change, no log.
+20. **R1** pull on NASA's page: spinner, no change, only `Refresh:` lines (LG).
 21. Airplane mode on (USB adb). **S3** ☆ on Earth: "Saved a smaller copy…", the W log line.
 22. **R2, R2a** pull: "NASA Image of the Day: no connection.", W `Update failed`; swipe to APOD and
     Earth: their own texts.

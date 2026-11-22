@@ -768,13 +768,76 @@ set back to true.
   scale, `auto_time`, the zone, the network and `locksettings` as found. A leftover `livepicker` task from an earlier run
   stays in Recents (not touched).
 
-### [ ] E14e. Android 14, the live map, second half (Opus, medium)
+### [x] E14e. Android 14, the live map, second half (Opus, medium)
 
 `interactions/live.md`, section 5, T21–T39, and SPLIT's Q1–Q8. Device `emulator-5564` (`apodroid-34`, Android 14), dev's debug build, at most 50 min. The rules:
 `interactions/tester-rules-emulator.md` with the serial `emulator-5564` instead of 5564; the cases of the E14 packages before it ran
 aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
+
+**Checked** (rosie, pipeline run 178, 2026-11-22, 20:26–20:45, `emulator-5564`, Android 14 (`apodroid-34`), dev's debug build,
+the APK the prompt named already installed (same sha256); evidence in `.coord/runs/178-e14e/tablet/` (`log-all.txt` is C1
+for the whole run). The start state was T0 as E14d left it (home id 129 APODroid's engine, NASA 20 Nov; lock id 130 an APOD
+22 Nov still; summary "Home: NASA · Lock: APOD · 6:00 AM · Live"). One process (pid 27789) the whole run. **No crash** of
+the app (`logcat -b crash` names none; one crash of `uiautomator`'s own dump, pid 3866; `exit-info`'s newest rows are
+E14d's). **One FAIL** (T21). Toasts were not read (the `Set:` lines, the ids and the prefs stand for them). The Q cases E14d
+ran (Q1, Q2 as T09; Q4 as T05–T07; Q5 as T11; Q6 as T08) weren't run again. T21 started from P0 Auto, draft Live (Size
+Auto, Set; two extra Sets of the same setup ran by mis-taps on the way, the same stills set again).
+- **FAIL, T21** (L1, L2, L7). Set › OK › the preview › Home › the launcher icon: the picker doesn't come back; the icon
+  stacks a second page over it in the same task (Hist: MainActivity, LiveWallpaperChange, MainActivity, as CLAUDE.md says
+  for a start over another app's screen), and that page's `onResume` ends the picker's wait at once, while the picker is
+  still open under it: `Live: back from the picker, nothing changed, home not live`, `Set: no pick, nothing saved`. Home ›
+  Recents › APODroid › Back then finished the second page and showed the preview again; Back from it: the first page,
+  nothing more logged, Size AUTO stored (`t21-*.png`). **Then a pick is lost** (the same steps, then Set wallpaper › Home
+  screen in the preview that comes back): APODroid's engine on home (id 135, `Live: engine 3 created`) with nothing saved
+  and nothing handed over: stored Size AUTO, the engine drawing the old `live.jpg`, no toast, no line after the pick, the
+  status lines unchanged (`t21b-after-pick.png`); X4's state (S6) until the next still set (here the next Set).
+  BUG: a page started over the picker (the launcher icon while the picker is open) ends Set's wait for the picker in its
+  `onResume`, so a pick made after returning to the picker isn't saved: home live, Size not saved, no hand-over, no toast
+  (MainActivity's `onResume` fallback for the picker's return).
+- **PASS:** T24 (stored Auto: off removed the status lines; on: `Switch on: wallpaper set: … NASA … on HOME, auto 0.69 …,
+  APOD … on LOCK …`, both ImageWallpaper, no dialog, no "Live isn't on"), T25 (dialog "…› Home screen", OK, rotated to
+  landscape with the preview open (the preview stayed portrait), Home screen, rotated back: `Live: back from the picker, a
+  wallpaper changed, home live`, `Live: the engine is on HOME, not noted live`, `Set: … APOD … on LOCK; wallpaper shown
+  live: … NASA … on HOME`; home id 143 APODroid, lock 144 own; Setup closed, summary " · Live", no "Live isn't on"), T26
+  (Android's Wallpapers app (`com.android.wallpaperpicker`, via `SET_WALLPAPER`) › its one built-in still › Set wallpaper ›
+  Home screen: `Live: engine 3 destroyed`, `Live: home isn't live, Fill on HOME+LOCK`, `Page: wallpaper set: … NASA … on
+  HOME …, APOD … on LOCK`, "Live isn't on. Set as wallpaper turns it on."; the launcher showed NASA's still (`t26-home.png`);
+  home's id stayed 146 after the page's set, the lock screen's became 147), T28 (equalised; the question; OK; Recents ›
+  swiped APODroid's task, the picker in it: the process alive (27789), nothing logged at the swipe; reopened after 10 s:
+  `Live: back from the picker, nothing changed, home live`, `Set: no pick, nothing saved`, the stored home NASA, lock APOD,
+  summary with " · Live"), T29 not needed (T28 saved nothing), T30 (equalised; the question; Recents › swipe: `Set: the
+  picker's dialog cancelled`, `Set: no pick, nothing saved` at the swipe; reopened: Setup closed, the stored setup), T31
+  (APOD mode, Where Lock screen: no dialog, `Set: wallpaper set: … APOD … on LOCK`, lock id 151, home's engine id 148 kept;
+  summary "APOD · lock screen · 6:00 AM", no " · Live", no "Live isn't on"), T32 (Where Home screen: no dialog, `Live: the
+  engine is on HOME, not noted live`, `Set: wallpaper shown live: … APOD … on HOME`, lock 151 unchanged, summary "APOD ·
+  home screen · 6:00 AM · Live"), T33 (Q3, Q5 in A-B: the question "Live on the lock screen too?…"; Not now: `Set: Live on
+  the lock screen not now`, `Set: … APOD … on LOCK …; wallpaper shown live: … APOD … on HOME`, lock id 152, one line
+  "Changed 22 Nov, 8:39 PM", summary "APOD · both screens · 6:00 AM · Live"; OK › Home screen and lock screen: `Live: back
+  from the picker, a wallpaper changed, home live, shared`, `Live: the engine is on HOME+LOCK, not noted live`, `Set:
+  wallpaper shown live: … APOD … on HOME+LOCK`, one wallpaper id 153 `mWhich=3`, no lock block, `lock.wallpaperLive` and
+  `live.shared` true), T34 (Where Home screen, Size Auto: `Live: engine 3 destroyed`, `Set: wallpaper set: … APOD … on
+  HOME+LOCK, auto 0.35, darker ×0.80 …`, one shared ImageWallpaper id 154, no engine), T35 (More NASA pictures on: the list
+  NASA Home screen, APOD Lock screen; Live; dialog "…› Home screen" › OK › Home screen: home 155 APODroid, lock 156 own, the
+  status lines Home/Lock; the prefs as at the start but for `where`, HOME since T31–T34, put back to BOTH below), T37 (Q7:
+  equalised; the question › OK › Home screen: **home's id changed** (155 → 157): `Live: engine 3 destroyed`/`created`, `…
+  a wallpaper changed, home live`, `Set: … NASA … on LOCK …; wallpaper shown live: … NASA … on HOME`, lock a NASA still of
+  its own (158), one line "Changed … · NASA"; split back and Set: no dialog, lock an APOD still (159)), T38 (Centre: no
+  dialog, `Live: engine 3 destroyed`, `Set: wallpaper set: … NASA … on HOME, darker ×0.84 …, APOD … on LOCK, darker ×0.87
+  …` without `, auto`, `size=CENTRE`; then APOD mode Where Both, Set (to put `where` back), then More NASA pictures on,
+  Live, the dialog › OK › Home screen: T0), T39 (A5s, NASA's 3200×2400 picture, landscape, no fake needed: ⛶ › Sideways ›
+  ✓: `Part: wallpaper shown live: … on HOME, sideways, darker ×0.86 …`, `live.sideways=true`, `Live: decoded 1800×2400`;
+  off › ✓: no `, sideways`, `live.sideways=false`, `decoded 3200×2400`).
+- **DIFFERENT:** T27 (`Live: back from the picker, a wallpaper changed, home live, shared`, home 148 live, lock its own APOD
+  still 149 as expected, but no `Live: engine flags 1`: as E14d's T15, this build gives the engine no flags change).
+- **SKIPPED:** T22, T23, T36 and Q8 (AOSP 14's live picker offers "Home screen" and "Home screen and lock screen" only, as
+  E14d saw; the Wallpapers app's "Lock screen" is for its stills); the toasts.
+- **State at the end:** T0 again (home id 163 APODroid's engine, NASA; lock id 164 an APOD still; summary "Home: NASA ·
+  Lock: APOD · 6:00 AM · Live", no "Live isn't on"); the prefs as at the start but for ids, stamps and times and one new key,
+  `nasa.sideways=false` (T39's ✓ off noted it; NASA's pictures never turn by Auto's turn, so nothing changes; left);
+  rotation (`accelerometer_rotation` 1, `user_rotation` 0), density, `auto_time`, the zone and the network as found
+  (`prefs-before.xml`, `prefs-end.xml`, `wallpaper-*.txt`).
 
 ### [x] E14f. Android 14, the pixels and the rest (Sonnet, medium)
 

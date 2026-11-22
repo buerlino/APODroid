@@ -185,7 +185,7 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 82 | CR | A code review of the whole app by reading, correctness only, each finding verified | winston | opus, high | no | LOG | release-0.10.0.md CR |
 | 83 | E17 | Android 17, every map (`APODROID_TABLET=emulator-5566`) | rosie | opus, medium | no | A17, ER (emulator-5566 started wiped: done 2026-11-22) | release-0.10.0.md E17 |
 | 84 | E14 | Android 14, every map: split as E14a–f (rows 97–102), not run itself | rosie | sonnet, medium | no | never (split) | release-0.10.0.md E14 |
-| 85 | E10 | Android 10, every map (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | ER, the user (emulator-5554 started wiped, the night on it) | release-0.10.0.md E10 |
+| 85 | E10 | Android 10, every map: split as E10a–f (rows 105–110), not run itself | rosie | sonnet, medium | no | never (split) | release-0.10.0.md E10 |
 | 86 | E12 | Android 12 (`APODROID_TABLET=emulator-5558`) | rosie | sonnet, medium | no | ER, the user (emulator-5558 started wiped, the night on it) | release-0.10.0.md E12 |
 | 87 | E13 | Android 13 (`APODROID_TABLET=emulator-5562`) | rosie | sonnet, medium | no | ER, the user (emulator-5562 started wiped, the night on it) | release-0.10.0.md E13 |
 | 88 | UP | The update from 0.5.0, 0.7.0 and 0.9.1 (`APODROID_TABLET=emulator-5564`, then 5566) | rosie | sonnet, medium | no | E14, the user (0.9.1's APK signed with the candidate's key; the emulator started wiped) | release-0.10.0.md UP |
@@ -205,6 +205,12 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 102 | E14f | Android 14, the pixels and the rest (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | B34, E14a | release-0.10.0.md E14f |
 | 103 | B35 | A force stop on Android 14 keeps home's id: the tablet's L8f1 check first, then `homeLive` by it | winston | opus, medium | yes | E14c, the user (the tablet connected) | release-0.10.0.md B35 |
 | 104 | B36 | A stacked page's `onResume` no longer ends Set's wait for the picker (T21 on the night's emulator) | winston | sonnet, medium | yes | E14e | release-0.10.0.md B36 |
+| 105 | E10a | Android 10, the setup map (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | B36 (emulator-5554 started wiped: done 2026-11-23) | release-0.10.0.md E10a |
+| 106 | E10b | Android 10, the page map (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | E10a | release-0.10.0.md E10b |
+| 107 | E10c | Android 10, the background map (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | E10a | release-0.10.0.md E10c |
+| 108 | E10d | Android 10, the live map T01–T20 (`APODROID_TABLET=emulator-5554`) | rosie | opus, medium | no | E10a | release-0.10.0.md E10d |
+| 109 | E10e | Android 10, the live map T21–T39, Q1–Q8 (`APODROID_TABLET=emulator-5554`) | rosie | opus, medium | no | E10d | release-0.10.0.md E10e |
+| 110 | E10f | Android 10, the pixels and the rest (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | E10a | release-0.10.0.md E10f |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

@@ -896,6 +896,69 @@ scoped storage (★, LOG's file), the video still's `MediaMetadataRetriever`, Ke
 without `specialUse`, the plain job 2, Live's id path (`live.homeId`) and the lock screen's Fill,
 the detector with no exit records. Every map that runs.
 
+### [ ] E10a. Android 10, the setup map (Sonnet, medium)
+
+`interactions/setup.md`, section 2, the phone test list in full, in its order. Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5554` instead of 5564; the cases of the E10 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E10b. Android 10, the page map (Sonnet, medium)
+
+`interactions/page.md`, sections 3 (the prioritized list) and 4 (0.8.0's emulator cases), with K31b (B32); on 10:
+★ through `MediaStore` (scoped storage, S4a), the video still's `MediaMetadataRetriever` (a faked video day with a real
+NASA mp4 as `<source>.videoUrl`: `Video still: <ms> ms`, else logged and black), no pause hint line (nothing to name). Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5554` instead of 5564; the cases of the E10 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E10c. Android 10, the background map (Sonnet, medium)
+
+`interactions/background.md`, "Phone test list" with a stepped clock; real timing (Doze, buckets) SKIPPED;
+`am kill` with Keep running off (no detector box); the week log over a stale `log.txt` row (B31). On 10: job 2 a plain
+job ("not expedited"), Keep running's notification in the shade without `specialUse` (the switch starts it without a
+crash, `isForeground`), the detector with no exit records (only the `PendingIntent` sign after `am force-stop`); P17
+also records whether a force stop keeps home's wallpaper id (`dumpsys wallpaper` before and after; B35: below 14 the id
+is Live's only sign). Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5554` instead of 5564; the cases of the E10 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E10d. Android 10, the live map, first half (Opus, medium)
+
+`interactions/live.md`, section 5, T01–T20, and the 10 row: Live is the home screen's only, the lock screen
+gets Fill; `getWallpaperInfo` is null, so `Store.liveOn` takes the id path (`live.homeId`): the picker, a re-pick
+(`COMMAND_REAPPLY`, unchecked), a lost Live. Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5554` instead of 5564; the cases of the E10 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E10e. Android 10, the live map, second half (Opus, medium)
+
+`interactions/live.md`, section 5, T21–T39, and SPLIT's Q1–Q8 (the 14+ cases SKIPPED with why); T21 on B36's
+fix (Set keeps waiting while a stacked page opens over the picker). Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5554` instead of 5564; the cases of the E10 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
+### [ ] E10f. Android 10, the pixels and the rest (Sonnet, medium)
+
+SH4's pixel checks (`sharp-0.9.0-sh4.md`, Testing 2; `scripts/sh4_check.py` and `sh4_run.py`) on Centre,
+Auto, Whole, Sideways and the limited set, both screens, through 10's `generateCrop` (its aspect fix: tall and wide
+pictures with numbered rows, the frame's rows must survive); Auto's subject on 10's `ImageDecoder` with an EXIF-6 and
+an EXIF-8 photo (`Subject:` line, the frame's rows); the large picture (a faked 37 MB PNG); `install -r` with Keep
+running on; setup S3 (the photo picker, DocumentsUI on 10); M0's home/lock sequence; landscape screenshots with Setup
+open. Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5554` instead of 5564; the cases of the E10 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
 ### [ ] E12. Android 12 (`apodroid-31`, `emulator-5558`; Sonnet, medium)
 
 E2's cases and the 12 row of "The levels", then a smoke of each map (the cases the version table

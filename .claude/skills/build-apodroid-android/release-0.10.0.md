@@ -676,7 +676,7 @@ aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
 
-### [ ] E14d. Android 14, the live map, first half (Opus, medium)
+### [x] E14d. Android 14, the live map, first half (Opus, medium)
 
 `interactions/live.md`, section 5, T01–T20, and the 14 row's lock-screen live wallpaper (off on the first 14
 build: what the picker offers, the lock screen's Fill). Device `emulator-5564` (`apodroid-34`, Android 14), dev's debug build, at most 50 min. The rules:
@@ -684,6 +684,52 @@ build: what the picker offers, the lock screen's Fill). Device `emulator-5564` (
 aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
+
+**Checked** (rosie, pipeline run 177, 2026-11-22, 20:04–20:17, `emulator-5564`, Android 14 (`apodroid-34`), dev's debug build,
+the APK the prompt named already installed (same sha256); evidence in `.coord/runs/177-e14d/tablet/` (`log-all.txt` is C1
+for the whole run). The start state was T0 as E14b left it: More NASA pictures on, NASA "Home screen", APOD "Lock screen",
+Earth unticked, Size Live, Live on home (id 116, NASA 20 Nov), lock an APOD 22 Nov still (own id), daily on; New picture at
+6:00 AM, no "Change every" (one source per column), order APOD, NASA, Earth, Save every picture and Keep running off. One
+process (pid 27789) the whole run. **No crash** (`logcat -b crash` empty; `exit-info`'s newest rows are an earlier run's).
+**No FAIL, no `BUG:`.** Toasts were not read (not in the log; the `Set:` lines, the ids and the prefs stand for them). The
+emulator has no keyguard (lock screen "None"), so the lock screen was looked at once with `locksettings set-disabled false`,
+set back to true.
+- **PASS:** T01 (summary "Home: NASA · Lock: APOD · 6:00 AM · Live", two status lines, no "Live isn't on"; C2 home
+  APODroid, lock its own id; `run-as` works), T02 (no dialog; `Live: the engine is on HOME, not noted live`, `Set: wallpaper
+  set: …APOD… on LOCK, darker ×0.87 …; wallpaper shown live: …NASA… on HOME`, lock id 117→118), T03 (the frame didn't move
+  on a drag, screenshots byte-identical; Whole ✓ `Part: wallpaper shown live: … on HOME`, `live.whole=true`, engine
+  `decoded 1080×2400`, `p=0.50`; off ✓ the same line with `darker ×0.83`, `live.whole=false`), T04 (draft Auto: ⛶ by the
+  stored Live, no drag, ✓ no log; back to Live: the Setup title not tinted), T05 (the question's text exactly as the map,
+  "Not now" and "OK", no Cancel; Back: `Set: the picker's dialog cancelled`, `Set: no pick, nothing saved`, Setup open, the
+  title and the APOD and NASA rows tinted, nothing saved), T06, T07 (the question after a rotation, the rotation back, Home
+  and the launcher icon, Home and Recents; Back at the end: the two lines), T08 (`Live: back from the picker, nothing
+  changed, home live`, `Set: no pick, nothing saved`, nothing saved), T09 (each: `Set: Live on the lock screen not now`,
+  lock a NASA still with its own id 119, then 120; summary "NASA · both screens · 6:00 AM · Live", one line "Changed …
+  · NASA"; the second Set asked again), T10 (no dialog, lock an APOD still, id 121), T11 (`Live: back from the picker, a
+  wallpaper changed, home live, shared`, `Set: wallpaper shown live: … on HOME+LOCK`; C2 one wallpaper id 122 `mWhich=3`,
+  the lock block gone; `lock.wallpaperLive` and `live.shared` true; one status line), T12 (no dialog, `shown live: … on
+  HOME+LOCK`), T13 (off: the status lines gone, the engine stays; on: `Switch on: wallpaper shown live: … on HOME+LOCK`,
+  job 1 ran), T14 (the pull logs `Refresh:` lines only, nothing set), T17 (`Live: engine 3 destroyed`, `Set: … NASA … on
+  HOME, auto 0.69 …, APOD … on LOCK, auto 0.35 …`, both ImageWallpaper, summary without " · Live"), T18 (Android's Live
+  Wallpapers › APODroid › Home screen: the preview and the new engine drew `live.jpg`, `Of(source=NASA, …) p=0.79 ×0.83`;
+  back in the app no set, no "Live isn't on", the status lines unchanged; Set put home's still back, `auto 0.69`), T19
+  (dialog "Next, in Android's preview:\nSet wallpaper › Home screen", Cancel and OK; Cancel: the two lines, Size AUTO kept),
+  T20 (the sheet's Back, then the preview's Back: `Live: back from the picker, nothing changed, home not live`, `Set: no
+  pick, nothing saved`; the preview drew `live.jpg`, NASA p=0.79).
+- **The 14 row, the lock-screen live wallpaper** (`mIsLockscreenLiveWallpaperEnabled=false` throughout): AOSP's picker
+  offers "Home screen" and "Home screen and lock screen", never "Lock screen" (`t11-sheet.png`); "Home screen and lock
+  screen" gives one wallpaper on both (`mWhich=3`, no lock block); with the columns apart the lock screen gets its own still
+  (`FLAG_LOCK`, "Lock wallpaper state" with its own id and `mWallpaperComponent=null`), and the keyguard shows it: APOD's
+  Jupiter as Fill (`lock14-split.png`). No `Live: engine flags` line all run (the engine logged `engine 3 created`).
+- **DIFFERENT:** T15 (split back and Set: no dialog, lock an APOD still id 123, `live.shared=false`, as expected, but no
+  `Live: engine flags 1` line: this build gives the engine no flags change, as the 14 row says). The picker's preview
+  engine drew black for about 0.2 s before its first picture (`drew black (nothing)`, T08, T18), as L9a accepts.
+- **SKIPPED:** T16 (AOSP 14's picker has no "Lock screen" answer, as the list allows); the toasts.
+- **State at the end:** T0 again (`Set: … APOD … on LOCK; wallpaper shown live: … NASA … on HOME`, home id 129
+  APODroid, lock id 130 its own still; summary "Home: NASA · Lock: APOD · 6:00 AM · Live", no "Live isn't on"); the prefs
+  the same as at the start but for ids, stamps and times (`prefs-before.xml`, `prefs-end.xml`); rotation, density, font
+  scale, `auto_time`, the zone, the network and `locksettings` as found. A leftover `livepicker` task from an earlier run
+  stays in Recents (not touched).
 
 ### [ ] E14e. Android 14, the live map, second half (Opus, medium)
 

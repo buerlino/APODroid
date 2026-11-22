@@ -330,13 +330,19 @@ the frame is dragged. Set up: a picture whose noted subject moves the frame off 
   set's line). A part ✓'d by 0.7.0 keeps its number (no migration).
 - **K31 The pill on an undragged frame** (a landscape picture): the band jumps to the sideways
   subject's position (`subjectSideways`, the middle without one or with Centre); tap it back: the
-  upright one. After a drag (K29) the pill keeps the number (K26), and ✓ notes the orientation (K24a).
+  upright one. After a drag (K29) ✓ notes the orientation (K24a); a part ✓'d with a position keeps it
+  in that orientation only (B32, 2026-11-22): the pill turned to the other moves the frame to Size and
+  the subject, back again to the number; a part from before 0.9.0 keeps its number both ways (K26).
 - **K31a A drag belongs to its orientation** (FP1, 2026-11-16, the FP6's bug): Size Auto, a
   landscape picture under 3:2 whose subject is off the middle, no stored part. ⛶, pill on, drag
   the band, pill off: the frame jumps back to the upright subject; ✓: no `<source>.cropPosition`
   in the prefs (`<source>.sideways=false` noted), and the next Set logs `, auto <p>`. Pill on,
   drag, ✓: `cropPosition` noted, `, sideways`. Pill off, drag, ✓: the upright drag noted, no
   `, auto`. A page scroll started on the picture counts as a drag.
+  - **K31b A stored band, then upright** (B32, 2026-11-22, E17b's bug): pill on, drag, ✓
+    (`cropPosition` and `sideways=true` noted); ⛶ again, pill off (the frame jumps to the upright
+    subject), ✓: "Wallpaper set", the log `Part: wallpaper set: …, auto <p>` (no `, sideways`), no
+    `cropPosition` (`sideways=false`). Before B32 the upright frame was set at the band's number.
 - **K32 Rotate in crop mode:** crop mode closes (K12); an undragged part stays undragged. A Set with
   crop mode open (K21) stores the undragged part with the setup: `cropPosition` absent.
 - **K33 A dragged part, then Size Centre ↔ Auto and Set:** the part's position stays (the drag wins);

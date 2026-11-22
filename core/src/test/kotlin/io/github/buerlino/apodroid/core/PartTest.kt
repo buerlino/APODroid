@@ -34,12 +34,55 @@ class PartTest {
 
     @Test
     fun checkNotesThePositionOnlyWhenDragged() {
+        val previous = Part(date, url, 0.3f, false, false)
         // Not dragged: the previous value, null staying null, so Size and the subject keep deciding.
-        assertNull(notedPosition(moved = false, dragged = 0.78f, previous = null))
-        assertEquals(0.3f, notedPosition(moved = false, dragged = 0.78f, previous = 0.3f))
-        // Dragged: where it was left, also back at the middle.
-        assertEquals(0.5f, notedPosition(moved = true, dragged = 0.5f, previous = null))
-        assertEquals(0.9f, notedPosition(moved = true, dragged = 0.9f, previous = 0.3f))
+        assertNull(notedPosition(moved = false, dragged = 0.78f, previous = null, sideways = false))
+        assertNull(notedPosition(moved = false, dragged = 0.78f, previous = previous.copy(position = null), sideways = false))
+        assertEquals(0.3f, notedPosition(moved = false, dragged = 0.78f, previous = previous, sideways = false))
+        // Dragged: where it was left, also back at the middle, in either orientation.
+        assertEquals(0.5f, notedPosition(moved = true, dragged = 0.5f, previous = null, sideways = false))
+        assertEquals(0.9f, notedPosition(moved = true, dragged = 0.9f, previous = previous, sideways = false))
+        assertEquals(0.9f, notedPosition(moved = true, dragged = 0.9f, previous = previous, sideways = true))
+    }
+
+    @Test
+    fun aPositionBelongsToItsOrientation() {
+        // B32: a position noted with an orientation is that orientation's only; in the other, null
+        // (Size and the subject).
+        val sideways = Part(date, url, 0.893f, false, true)
+        assertEquals(0.893f, sideways.positionFor(true))
+        assertNull(sideways.positionFor(false))
+        val upright = Part(date, url, 0.2f, false, false)
+        assertEquals(0.2f, upright.positionFor(false))
+        assertNull(upright.positionFor(true))
+        // K26: a part from before 0.9.0 (a position, no orientation noted) keeps its number in both.
+        val old = Part(date, url, 0.7f, false, null)
+        assertEquals(0.7f, old.positionFor(true))
+        assertEquals(0.7f, old.positionFor(false))
+        assertNull(Part(date, url, null, false, true).positionFor(true))
+    }
+
+    @Test
+    fun aBandDraggedSidewaysDoesntMoveTheUprightFrame() {
+        // B32 (E17b, K18/K31a on the Android 17 emulator): Size Auto, a landscape APOD whose upright
+        // subject is at 0.4. ⛶, the pill on, the band dragged to 0.893, ✓.
+        val first = Part(
+            date, url,
+            notedPosition(moved = true, dragged = 0.893f, previous = null, sideways = true), false,
+            notedSideways(touched = true, moved = true, shown = true, previous = null),
+        )
+        assertEquals(Part(date, url, 0.893f, false, true), first)
+        // ⛶ again: the pill turned off moves the frame to Size's, the upright subject.
+        val frame = framePosition(Size.AUTO, first.positionFor(false), 0.4f)
+        assertEquals(0.4f, frame)
+        // ✓ without a drag: upright noted, no position for it, so the set is Auto's subject.
+        val turned = notedSideways(touched = true, moved = false, shown = false, previous = first.sideways)
+        val second = Part(date, url, notedPosition(moved = false, dragged = frame, previous = first, sideways = turned!!), false, turned)
+        assertEquals(Part(date, url, null, false, false), second)
+        assertEquals(0.4f, framePosition(Size.AUTO, second.positionFor(false), 0.4f))
+        // The pill back on, ✓ without a drag: the band's own position again.
+        assertEquals(0.893f, framePosition(Size.AUTO, first.positionFor(true), 0.62f))
+        assertEquals(0.893f, notedPosition(moved = false, dragged = 0.893f, previous = first, sideways = true))
     }
 
     @Test

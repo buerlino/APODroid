@@ -11,8 +11,9 @@ import java.time.LocalDate
  * Two of them have three values. [sideways] (SW3): true or false as ⛶'s pill noted it (or a drag
  * since 0.9.0, [notedSideways]), null for Auto's turn ([sidewaysOf]). [position] (SA3b): the
  * frame's place when ⛶'s frame was dragged, null when it wasn't, so the stored Size decides
- * ([framePosition]: Auto's subject, else the middle); a part ✓'d only for "Whole picture" or the
- * pill keeps following Centre or Auto; one ✓'d only for "Whole picture" keeps Auto's turn too.
+ * ([framePosition]: Auto's subject, else the middle), and only in the orientation noted with it
+ * ([positionFor], B32); a part ✓'d only for "Whole picture" or the pill keeps following Centre or
+ * Auto; one ✓'d only for "Whole picture" keeps Auto's turn too.
  */
 data class Part(val date: LocalDate, val url: String?, val position: Float?, val whole: Boolean, val sideways: Boolean? = null) {
     /** The part as one line for the page's saved state ([partOf] reads it): "date|position|whole|sideways|url", "null" for a value not noted. */
@@ -39,10 +40,20 @@ fun partOf(text: String): Part {
 fun Map<Source, Part>.forPost(post: Post): Part? = this[post.source]?.takeIf { post.isNoted(it.date, it.url) }
 
 /**
- * The position ⛶'s ✓ notes (SA3b): the frame's [dragged] place when it was [moved] since ⛶
- * opened, else the part's [previous] one (null, not dragged, stays null).
+ * The part's position for the orientation the picture goes on in, [sideways] (B32, 2026-11-22): a
+ * position belongs to the orientation noted with it, so in the other one it's null (Size and the
+ * subject, [framePosition]); a part from before 0.9.0, a position without an orientation noted,
+ * keeps its number in both (no migration). The one reading for ⛶'s frame, ✓ and the sets.
  */
-fun notedPosition(moved: Boolean, dragged: Float, previous: Float?): Float? = if (moved) dragged else previous
+fun Part.positionFor(sideways: Boolean): Float? = position?.takeIf { this.sideways == null || this.sideways == sideways }
+
+/**
+ * The position ⛶'s ✓ notes (SA3b): the frame's [dragged] place when it was [moved] since ⛶
+ * opened, else the [previous] part's one for the orientation the part goes on in, [sideways]
+ * ([positionFor], B32: null, not dragged or noted with the other orientation, stays null).
+ */
+fun notedPosition(moved: Boolean, dragged: Float, previous: Part?, sideways: Boolean): Float? =
+    if (moved) dragged else previous?.positionFor(sideways)
 
 /**
  * The orientation ⛶'s ✓ notes (0.9.0, sharp-0.9.0.md, The rules: ✓ notes the orientation with a

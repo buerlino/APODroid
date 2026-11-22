@@ -172,6 +172,7 @@ import io.github.buerlino.apodroid.core.partOf
 import io.github.buerlino.apodroid.core.pictureAtOrDefault
 import io.github.buerlino.apodroid.core.pictureHours
 import io.github.buerlino.apodroid.core.placing
+import io.github.buerlino.apodroid.core.positionFor
 import io.github.buerlino.apodroid.core.screensOf
 import io.github.buerlino.apodroid.core.sidewaysHelps
 import io.github.buerlino.apodroid.core.SHARP_LIMIT
@@ -1482,22 +1483,23 @@ class MainActivity : ComponentActivity() {
      * Crop mode closes; the frame's place and the "Whole picture" and "Sideways" toggles are
      * [post]'s part in the draft. An untouched "Sideways" keeps the part's previous value (null,
      * Auto's turn, stays null) unless the frame was dragged (0.9.0: the drag notes its orientation,
-     * `:core`'s [notedSideways]), and an undragged frame keeps its position (SA3b: null, the stored
-     * Size's frame, stays null).
+     * `:core`'s [notedSideways]), and an undragged frame keeps its position for the orientation it
+     * goes on in (SA3b: null, the stored Size's frame, stays null; B32, [positionFor]: one noted with
+     * the other orientation becomes null).
      */
     private fun keepPart(post: Post) {
         val previous = parts.forPost(post)
         val sideways = notedSideways(cropSidewaysTouched, cropMoved, cropSideways, previous?.sideways)
-        val position = notedPosition(cropMoved, cropPosition, previous?.position)
+        val position = notedPosition(cropMoved, cropPosition, previous, cropSideways)
         parts = parts + (post.source to Part(post.date, post.imageUrl, position, cropWhole, sideways))
         cropping = false
     }
 
     /**
      * Where [post]'s frame stands with [part] and [sideways] (SA3b, `:core`'s [framePosition], as
-     * [Store.set]): the part's dragged position, else with the **stored** Size Auto its subject
-     * for that orientation ([Store.subject]), else the middle. Stored, not
-     * the draft's: ✓ sets at once by the stored setup.
+     * [Store.set]): the part's dragged position for that orientation ([positionFor], B32), else
+     * with the **stored** Size Auto its subject for that orientation ([Store.subject]), else the
+     * middle. Stored, not the draft's: ✓ sets at once by the stored setup.
      */
     private fun frameOf(post: Post, part: Part?, sideways: Boolean): Float {
         val subject = store.subject(post)
@@ -1508,7 +1510,7 @@ class MainActivity : ComponentActivity() {
             sideways -> subject?.sideways
             else -> subject?.position
         }
-        return framePosition(stored.size, part?.position, raw)
+        return framePosition(stored.size, part?.positionFor(sideways), raw)
     }
 
     /**
@@ -1866,8 +1868,9 @@ class MainActivity : ComponentActivity() {
                             cropSidewaysTouched = true
                             // FP1: a drag belongs to the orientation it was made in, so a turn
                             // drops this crop mode's drag; the frame goes where ✓ would then put
-                            // it, the part's previous position (null: Size and the subject, SA3b;
-                            // a stored number keeps it, K26), until it's dragged again.
+                            // it, the part's previous position for that orientation (null: Size and
+                            // the subject, SA3b; B32: a number noted with the other orientation is
+                            // null; one from before 0.9.0 keeps it, K26), until it's dragged again.
                             if (it != cropSideways) {
                                 cropMoved = false
                                 cropPosition = frameOf(post, parts.forPost(post), it)

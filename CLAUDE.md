@@ -1165,9 +1165,14 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the user's FP6 test: a band dragged sideways, the pill turned off and ✓ noted the band's
   position as the upright frame's, so Auto's subject was lost): toggling the pill drops this
   crop mode's drag (`cropMoved` cleared) and moves the frame to where ✓ would then put it, the
-  part's previous position in that orientation (null: Size and the subject; a stored number keeps
-  it), until it's dragged again. ✓'s no-change check (the page's) compares where the frames
-  stand, so ✓ without a drag on a frame at the subject sets nothing; a drag that ends where the
+  part's previous position in that orientation (null: Size and the subject), until it's dragged
+  again. **A stored position too** (B32, 2026-11-22, E17b on the Android 17 emulator: a band
+  dragged sideways and ✓'d, then ⛶ again, the pill off and ✓ set the upright frame at the band's
+  0.893): a position belongs to the orientation noted with it (`:core`'s `Part.positionFor`, the
+  one reading for ⛶'s frame, ✓'s `notedPosition`, the no-change check and `Store.set`); in the
+  other it's null, so the frame goes to Size and the subject and ✓ notes no position (the key
+  removed) unless dragged; the pill turned back finds the number again. ✓'s no-change check
+  (the page's) compares where the frames stand, so ✓ without a drag on a frame at the subject sets nothing; a drag that ends where the
   frame stood anyway is saved without a set (as a touched pill, SW3).
   **With Live** (L7, 2026-11-14; Decision 7): while the **stored** Size is Live, Live is on
   home (no "Live isn't on" line) and the shown source is in the stored home column (FP6 tests,
@@ -1224,10 +1229,10 @@ set it as wallpaper, and on video days kept the old wallpaper.
   the orientation with a dragged position** (0.9.0, SH2a; `sharp-0.9.0.md`, The rules, FP1's
   kind): when ✓ notes a position after a drag it also notes `Part.sideways` as the orientation the
   drag was made in (`:core`'s `notedSideways`), so a later change of Size or of NASA's text can't
-  move the noted position to the other axis. A part noted before 0.9.0 with a position and no
-  sideways keeps its number when Auto's turn turns that picture, so it then moves along the other
-  axis (no migration). Checked on the
-  Android 14 emulator (SW2T, 2026-11-15: Fill, both screens and the lock screen alone, Whole, the
+  move the noted position to the other axis; in the other orientation that position is null (B32,
+  FP1's). A part noted before 0.9.0 with a position and no sideways keeps its number when Auto's
+  turn or the pill turns that picture, so it then moves along the other axis (no migration).
+  Checked on the Android 14 emulator (SW2T, 2026-11-15: Fill, both screens and the lock screen alone, Whole, the
   darkening, Live, the job, a new post; `sideways-0.8.0.md`, SW2); the FP6's look on 17 Nov.
 - **No notification** (user): it would need the `POST_NOTIFICATIONS` runtime permission, and the
   page shows the title. The one exception is Keep running's (O11, Background update): a

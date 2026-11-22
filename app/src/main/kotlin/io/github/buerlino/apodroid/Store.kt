@@ -57,6 +57,7 @@ import io.github.buerlino.apodroid.core.boxResize
 import io.github.buerlino.apodroid.core.Part
 import io.github.buerlino.apodroid.core.forPost
 import io.github.buerlino.apodroid.core.framePosition
+import io.github.buerlino.apodroid.core.positionFor
 import io.github.buerlino.apodroid.core.sidewaysHelps
 import io.github.buerlino.apodroid.core.sidewaysOf
 import io.github.buerlino.apodroid.core.sidewaysSubjectPosition
@@ -1982,9 +1983,11 @@ class Store(private val context: Context) {
             sideways -> subject?.sideways
             else -> subject?.position
         }
-        val position = framePosition(size, part?.position, raw)
+        // B32: a part's position only in the orientation noted with it (`:core`'s positionFor).
+        val partPosition = part?.positionFor(sideways)
+        val position = framePosition(size, partPosition, raw)
         // The log's note while Auto placed the frame by the subject (not a subject found at the middle).
-        val auto = if (size == Sizing.AUTO && part?.whole != true && part?.position == null && raw != null && position != 0.5f) String.format(Locale.ROOT, ", auto %.2f", position) else ""
+        val auto = if (size == Sizing.AUTO && part?.whole != true && partPosition == null && raw != null && position != 0.5f) String.format(Locale.ROOT, ", auto %.2f", position) else ""
         return auto + setFile(file, screens, position, part?.whole == true, sideways, factor = null, autoTurn = autoTurn, limit = limit)
     }
 

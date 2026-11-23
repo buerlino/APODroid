@@ -19,8 +19,8 @@ object WeekLogNames {
 
     /**
      * [insert]s under the names from index [from] on: one that throws an exception [taken] says is
-     * a name in use goes on to the next; any other exception is rethrown. Null when [insert]
-     * returns null, or when every name up to [TRIES] was taken.
+     * a name in use goes on to the next, and so does a null (MediaProvider returns null on `UNIQUE
+     * constraint failed`, B38); any other exception is rethrown. Null when every name up to [TRIES] was taken.
      */
     fun <T : Any> make(from: Int, insert: (String) -> T?, taken: (Exception) -> Boolean): Made<T>? {
         for (n in maxOf(from, 0) until TRIES) {
@@ -29,7 +29,7 @@ object WeekLogNames {
             } catch (e: Exception) {
                 if (taken(e)) continue else throw e
             }
-            return value?.let { Made(it, n) }
+            if (value != null) return Made(value, n)
         }
         return null
     }

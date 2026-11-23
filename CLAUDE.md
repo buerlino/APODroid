@@ -1045,7 +1045,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   14 emulator: 109, and leaves no engine; a stray on the lock screen is bound but home's id is new;
   `:core`'s `homeLive` with `idCounts`; while the id is kept and Android doesn't name it, logged once
   per process and answer `Live: home's id kept, Android names <component|null>, engine bound|none in
-  this process`, the evidence the tablet's L8f1 kill was to give first), **below 14 while a non-preview engine is bound in this process**
+  this process`; the tablet's L8f1 kill, L8T, 2026-11-23: `Android names null, engine bound`, Live kept), **below 14 while a non-preview engine is bound in this process**
   (B39 with B35's second sign on 10–13, 2026-11-23: `LiveProcess.bound`, set at the engine's
   creation and re-apply, cleared at its destruction and by the app's own still set on home, before
   Android destroys it; `:core`'s `homeLive` with `engine`; home's id noted then, `live.homeId`, but

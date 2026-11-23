@@ -1422,9 +1422,8 @@ drag: `auto 0.21, sideways`. No crash.
   default ImageWallpaper), so it couldn't tell one (rosie, the Android 14 emulator: `Android names null, engine none`, id 413
   kept, then `Fill on HOME+LOCK`, the status line, Set's picker and Live back: P17 PASS). The emulator's `kill -9` stayed
   live, but by name (`getWallpaperInfo` still named APODroid's), so the id-with-engine path never ran on a device.
-  **Open:** the tablet's L8f1 kill (split state, ZUI, Android 15), the case whose `CONNECTION_TRY_TO_REBIND` left Android
-  naming nothing for 11 min: if no engine is bound in the new process meanwhile, B35 sets Fill on both again (regression
-  12); the new log line says which. P17 on Android 10 is B39's.
+  **Closed by L8T** (run 194, 2026-11-23): the tablet's L8f1 kill (split state, ZUI, Android 15) logged `Live: home's id
+  kept, Android names null, engine bound in this process`; the runs 30 s and 5 min after set nothing, Live stayed on home. P17 on Android 10 is B39's.
 
 ### [ ] B36. A second page stacked over the picker ends Set's wait (Sonnet, medium)
 

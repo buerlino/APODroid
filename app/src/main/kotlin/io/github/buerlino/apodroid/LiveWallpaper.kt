@@ -45,6 +45,15 @@ import java.util.concurrent.Executors
 internal object LiveProcess {
     @Volatile
     var engine = false
+
+    /**
+     * B39: the non-preview engine bound in this process now, null when none or let go: set at its
+     * creation and re-apply, cleared at its destruction and by the app's own still set on home
+     * (`Store.setFile`; Android destroys the engine a moment later). Below 14 it alone says
+     * whether home is live (`Store.liveOn`, `:core`'s `homeLive`).
+     */
+    @Volatile
+    var bound: Any? = null
 }
 
 class LiveWallpaper : WallpaperService() {
@@ -100,6 +109,7 @@ class LiveWallpaper : WallpaperService() {
                 // and on 14+ a rebind after a process death may not say it for minutes (noted only while it does).
                 if (!isPreview) store.noteHomeId()
                 if (!isPreview) LiveProcess.engine = true
+                if (!isPreview) LiveProcess.bound = this
                 // Home's record and the copy's notes change together (Store.setDue's commit).
                 listener = store.watch { reload() }
                 reload()
@@ -111,6 +121,7 @@ class LiveWallpaper : WallpaperService() {
 
         override fun onDestroy() {
             destroyed = true
+            if (LiveProcess.bound === this) LiveProcess.bound = null
             handler.removeCallbacksAndMessages(null)
             safely("stop") {
                 listener?.let { store?.stopWatching(it) }
@@ -170,6 +181,7 @@ class LiveWallpaper : WallpaperService() {
             if (action == COMMAND_REAPPLY && !isPreview && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 safely("note the re-apply") {
                     AppLog.i("Live: engine re-applied")
+                    LiveProcess.bound = this
                     store?.noteHomeId()
                 }
                 reload()

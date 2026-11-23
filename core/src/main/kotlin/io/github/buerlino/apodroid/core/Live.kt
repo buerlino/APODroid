@@ -361,8 +361,17 @@ fun liveSettling(engine: Boolean, processAge: Duration): Boolean =
  * didn't name APODroid's for 11 min and more after one `kill -9`, the id unchanged), while
  * Android's revert (Decision 12), a force stop's default, a still set and a new pick each give
  * home a new id. An id of 0 or less (none, or a failed read) never matches.
+ *
+ * B39 (with B35's second sign on 10–13): below 14 [engine] decides alone, the id doesn't
+ * (null on 14+): whether a non-preview engine in this process is bound now and wasn't let go
+ * since (destroyed, or home set still by the app). Android 10 answers the same live wallpaper
+ * picked again with a new id and the same engine bound, no `COMMAND_REAPPLY` (E10d: 156 → 158),
+ * so the id alone took the re-pick for lost Live; a force stop kept the id (E10c: 131, 134, 135)
+ * with no engine left, so the id alone took a dropped Live for on. A process death's rebind
+ * creates the engine again in the new process.
  */
-fun homeLive(named: Boolean, id: Int, noted: Int?): Boolean = named || (id > 0 && id == noted)
+fun homeLive(named: Boolean, id: Int, noted: Int?, engine: Boolean?): Boolean =
+    if (engine != null) engine else named || (id > 0 && id == noted)
 
 /**
  * L8f1: a non-preview engine on 14+ is a stray (Decision 12: home reverted, the engine left on

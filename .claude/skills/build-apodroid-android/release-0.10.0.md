@@ -893,7 +893,7 @@ by hand PASS** (the large picture, below). No `BUG:`.
 E1a and E1b with the 10 row of "The levels": the crop code's aspect fix (tall and wide pictures,
 numbered rows), the decoder and EXIF (Auto's subject on an EXIF-6 and EXIF-8 photo), DocumentsUI,
 scoped storage (★, LOG's file), the video still's `MediaMetadataRetriever`, Keep running in the shade
-without `specialUse`, the plain job 2, Live's id path (`live.homeId`) and the lock screen's Fill,
+without `specialUse`, the plain job 2, Live's bound engine (B39: below 14 the id isn't read) and the lock screen's Fill,
 the detector with no exit records. Every map that runs.
 
 ### [x] E10a. Android 10, the setup map (Sonnet, medium)
@@ -1143,7 +1143,7 @@ one source per screen so no "Change every", order APOD, NASA, Earth, Save every 
   setup's prefs as at the start, NASA's part as at the start); `auto_time` 1, `font_scale` 1.0, rotation 1/0, airplane mode off, all
   untouched; the app not force-stopped.
 
-### [ ] E10e. Android 10, the live map, second half (Opus, medium)
+### [x] E10e. Android 10, the live map, second half (Opus, medium)
 
 `interactions/live.md`, section 5, T21–T39, and SPLIT's Q1–Q8 (the 14+ cases SKIPPED with why); T21 on B36's
 fix (Set keeps waiting while a stacked page opens over the picker). Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at most 50 min. The rules:

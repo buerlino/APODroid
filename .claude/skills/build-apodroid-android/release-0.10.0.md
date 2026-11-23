@@ -1415,6 +1415,16 @@ drag: `auto 0.21, sideways`. No crash.
 - **Files:** `core/.../Live.kt` (`homeLive`), `Store.liveOn`/`liveState`, `LiveWallpaper.kt` if the engine rule, `LiveTest`.
 - **Done when:** a test that fails on the old code (the kept id with another component), the fix, the tablet's L8f1
   kill still Live, P17 again on the Android 14 emulator.
+- **Built** (pipeline run 193, merged 4ece090, 2026-11-23; Opus pass 70): the engine rule on 14+, `homeLive(named, id,
+  noted, engine, idCounts)`: the kept id counts only while a non-preview engine is bound in this process
+  (`LiveTest.fourteenAKeptIdWithNoEngineIsNotLive`), and the line `Live: home's id kept, Android names …, engine bound|none in
+  this process`. Not the plan's **null** branch: after a force stop `getWallpaperInfo(FLAG_SYSTEM)` names nothing too (the
+  default ImageWallpaper), so it couldn't tell one (rosie, the Android 14 emulator: `Android names null, engine none`, id 413
+  kept, then `Fill on HOME+LOCK`, the status line, Set's picker and Live back: P17 PASS). The emulator's `kill -9` stayed
+  live, but by name (`getWallpaperInfo` still named APODroid's), so the id-with-engine path never ran on a device.
+  **Open:** the tablet's L8f1 kill (split state, ZUI, Android 15), the case whose `CONNECTION_TRY_TO_REBIND` left Android
+  naming nothing for 11 min: if no engine is bound in the new process meanwhile, B35 sets Fill on both again (regression
+  12); the new log line says which. P17 on Android 10 is B39's.
 
 ### [ ] B36. A second page stacked over the picker ends Set's wait (Sonnet, medium)
 

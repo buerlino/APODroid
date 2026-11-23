@@ -1356,6 +1356,13 @@ wallpaper id 7 unchanged, nothing set; page: "APOD, NASA · both screens · ever
 job ran. Not run: `foldRunGoing` (neither old version leaves a `runGoing`, which only 0.6.0 wrote), `apodroid-37`
 (next night), the page's Setup rows of 0.5.0 beyond the summary.
 
+### [ ] UP17. The update from old versions on Android 17 (Sonnet, medium)
+
+UP's steps and checks as written there, on `apodroid-37` (`emulator-5566`, Android 17, started wiped 2026-11-23), with
+the same APKs: 0.5.0, 0.7.0 and 0.9.1 each over fresh data, then the release-signed candidate
+`app/build/apodroid-v0.10.0.apk` (`v0.10.0`'s code) by `install -r` (user, 2026-11-23: the rest of UP). Results under its
+own "Checked" here; a FAIL as a `BUG:` line. At most 50 min.
+
 ### [ ] B30. ⛶'s "Whole picture" preview let go in `onStop` (Sonnet, medium)
 
 From CR (`review-0.10.0-cr.md`, finding 2). (B29, the CR's finding 1, shipped as 0.9.2.)

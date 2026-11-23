@@ -55,11 +55,20 @@ def sh(cmd, **kw):
     return adb("shell", cmd, **kw)
 
 
-def kill():
+def kill(drop_task=False):
+    if drop_task:
+        # Android 10 restores the page's saved draft after a plain kill, and Set saves it over the pushed prefs
+        sh(f"am force-stop {P}", check=False)
+        time.sleep(0.5)
+        return
     pid = sh(f"pidof {P}", check=False).strip()
     if pid:
         sh(f"run-as {P} kill -9 {pid}", check=False)
         time.sleep(0.5)
+        # Android 10: run-as kill does nothing; the emulator's shell can kill as root
+        if sh(f"pidof {P}", check=False).strip():
+            sh(f"su 0 kill -9 {pid} || su root kill -9 {pid}", check=False)
+            time.sleep(0.5)
 
 
 def read_prefs():
@@ -133,7 +142,7 @@ def run_case(c, pictures, out):
     w, h = PICTURES[name]
     url = f"https://apod.nasa.gov/sh4/{name}.png"
     sh("input keyevent KEYCODE_HOME")
-    kill()
+    kill(drop_task=c["path"] == "set")
     root = read_prefs()
     title, alt, expl = TEXTS[c["text"]]
     for kind, k, v in [

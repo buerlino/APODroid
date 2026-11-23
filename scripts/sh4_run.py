@@ -60,6 +60,10 @@ def kill():
     if pid:
         sh(f"run-as {P} kill -9 {pid}", check=False)
         time.sleep(0.5)
+        # Android 10: run-as kill does nothing; the emulator's shell can kill as root
+        if sh(f"pidof {P}", check=False).strip():
+            sh(f"su 0 kill -9 {pid} || su root kill -9 {pid}", check=False)
+            time.sleep(0.5)
 
 
 def read_prefs():

@@ -1152,6 +1152,60 @@ aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
 
+**Checked** (rosie, pipeline run 191, 2026-11-23, 14:49–15:02 by the emulator's clock, `emulator-5554`, Android 10 (`apodroid-29`), dev's
+debug build 0.9.2 with B39 (the run's APK, already installed: the same SHA-256 `7b272f8a…`, not reinstalled); evidence in
+`.coord/runs/191-e10e/tablet/` (screenshots `t<nn>-*.png`, `e10e-apodroid.log` the app's whole log, `backup/` with the start's prefs and
+`dumpsys wallpaper`, `apodroid-end.xml`, `wallpaper-end.txt`). **The start wasn't T0:** home a still (327), lock 328, Size Live stored, no
+process ("Live isn't on"), so T0 was set first by Set › OK › Set wallpaper › Home screen (home live 329 = `live.homeId`, lock APOD still 330).
+T01's notes: 6:00 AM, one source per screen (no "Change every"), order APOD, NASA, Earth, "As soon as it's out" off, "Darken" on, Save every
+and Keep running off. **No crash** (`logcat -b crash` empty), no FAIL, **no `BUG:`**. Toasts weren't read (the `Set:`/`Part:` lines and the
+ids stand for them). As E10d saw, Android 10's sheet offers "Home screen" and "Home screen and lock screen" only, Set never opens the picker
+while home is live, and SPLIT's question is 14+ (`opensPicker`'s `LOCK_TOO`).
+- **PASS:** T21 on B36's fix (from P0 Auto, draft Live: Set › OK › Home › the launcher icon (`MAIN`/`LAUNCHER`, `NEW_TASK|RESET_TASK`) put a
+  **second page over the picker** (task 146: page, `LiveWallpaperChange`, page) › Home › Recents › APODroid (the stacked page resumed) ›
+  Back (the picker on top again): no `back from the picker` line through all of it; then Set wallpaper › Home screen: `Live: back from the
+  picker, a wallpaper changed, home live`, the hand-over on HOME, lock APOD still, `live.homeId` 335, Setup's summary with " · Live"),
+  T24 (P0 Auto: the daily switch off, on: `Switch on: wallpaper set: …NASA… on HOME, auto 0.69, …APOD… on LOCK, auto 0.91`, both
+  ImageWallpaper, no dialog, no "Live isn't on"), T25 (dialog "Next, in Android's preview:\nSet wallpaper › Home screen" › OK › rotated in the
+  preview (the preview engine destroyed and created again) › Set wallpaper › Home screen › back upright: home live NASA, lock APOD still,
+  "Live isn't on" gone; R2b: the preview has no Settings entry, here and in every other picker case), T26 (Android's Wallpapers app (the
+  `SET_WALLPAPER` chooser › com.android.wallpaperpicker) › its built-in still › Set wallpaper › Home screen; back to the page: `Live: home
+  isn't live, Fill on HOME+LOCK`, `Page: wallpaper set: …NASA… on HOME, …APOD… on LOCK`, "Live isn't on"; as E10d's lost Live, this time
+  with the page in the background), T31 (APOD mode, Where › Lock screen, Size Live: no dialog, `Set: wallpaper set: …APOD… on LOCK`, home's
+  engine kept, summary "APOD · lock screen · 6:00 AM", one line "Changed …", no "Live isn't on"), T32 (Where › Home screen: no dialog,
+  `Set: wallpaper shown live: …APOD… on HOME`, lock unchanged 348, "APOD · home screen · 6:00 AM · Live"), T35 (the list back (NASA Home
+  screen, APOD Lock screen), Live, Set › the dialog › OK › Home screen: T0, summary "Home: NASA · Lock: APOD · 6:00 AM · Live", both status
+  lines, T01's notes unchanged), T38 (Centre: no dialog, `Live: engine home destroyed`, `Set: wallpaper set: …NASA… on HOME, …APOD… on LOCK`
+  without `, auto`, home's crop the middle 1060–2140 of 3200, `size=CENTRE`; then Live › the dialog › OK › Home screen: T0, home 357), T39
+  (NASA's 3200×2400 picture, no fake needed: ⛶ › Sideways › ✓: `Part: wallpaper shown live: …NASA… on HOME, sideways, darker ×0.86`,
+  `live.sideways=true`, `Live: decoded 1800×2400`; ⛶ › Sideways off › ✓: no `, sideways`, `darker ×0.83`, `live.sideways=false`, decoded
+  3200×2400).
+- **PASS in Android 10's form** (the question is 14+, so the same exits from the plain dialog and the picker, from P0 with Size Live stored):
+  T30 (Set › the dialog › Recents › swipe: `Set: the picker's dialog cancelled`, `Set: no pick, nothing saved` at the swipe; the swipe killed
+  the process (pid 4427 gone); the reopened page (6503) a cold start with the stored setup, Setup closed, nothing set), T28 (Set › OK › the
+  preview › Recents › swipe: killed, no line, nothing saved or set (ids 344/345 kept); reopened 10 s later: a cold start, `size` LIVE as
+  stored, "Live isn't on"). T29 doesn't apply (T28 saved nothing).
+- **DIFFERENT** (as Android 10 should be: the engine is never on the lock screen): T27 ("Home screen and lock screen": home live, the lock
+  screen an APOD still 347 by the same Set, `live.shared` false; no `…, shared`, no `Live: engine flags 1`), T33 (Where › Both with home
+  live: no question, the Set saved at once as "Not now" would: `Set: wallpaper set: …APOD… on LOCK; wallpaper shown live: …APOD… on HOME`,
+  lock an APOD still 349, one line "Changed …", "APOD · both screens · 6:00 AM · Live"; a second Set the same, lock 350; Q5's OK branch
+  can't be reached), T34 (Where › Home screen, Auto: `Live: engine home destroyed`, `Set: wallpaper set: …APOD… on HOME, auto 0.91`, the
+  lock screen kept its own APOD still 350: nothing shared to follow, so `sharedLockFollows` has nothing to do; no APODroid engine).
+- **T37's Android 10 form, the re-pick (B39's fix):** from T0, Home › Android's chooser (`LIVE_WALLPAPER_CHOOSER`) › APODroid › Set wallpaper
+  › Home screen: home's id 352 → 354, the engine kept (no `Live: engine home created`, no `engine re-applied`), then `cmd jobscheduler run -f
+  … 1`: `Refresh:` lines only, nothing set, home still APODroid's, `wallpaperLive` true, `live.homeId` 354. **E10d's BUG is fixed on 10.**
+- **SKIPPED:** T22 and T36 (Android 10's sheet has no "Lock screen"; T36 also needs the question), T23 (Android's settings › APODroid live ›
+  Lock screen: the same sheet, no such answer), T37 as written (the question, 14+; its 10 form above), Q1, Q2, Q4, Q5, Q6, Q7, Q8 (the
+  question "Live on the lock screen too?" is 14+, `opensPicker`'s `LOCK_TOO`: on 10 a Set with equal columns and home live saves without it,
+  T33 and E10d's T05/T09; Q8 also needs "Lock screen"), Q3 (the question; its setup A-B ran as T33), real timing.
+- **Seen, not a bug:** once, as the preview engine was destroyed after a pick, `W Live: couldn't draw: java.lang.IllegalArgumentException`
+  after Android's `queueBuffer … failed (No such device)`: a draw on the preview's surface while it went; caught and logged, home's engine
+  drew on.
+- **State at the end:** T0 (home live NASA 357 = `live.homeId`, lock APOD still 360, Size Live, daily on); APOD mode's hidden "Where", HOME
+  after T32–T34, put back to BOTH by two Sets (APOD mode, Both; then the list); the setup's prefs (`size`, `allSources`, `where`, `home`,
+  `lock`, `daily`, `pictureAt`, `interval`, `order`, `soon`, `darken`, `sharp`, `saveEvery`, `keepRunning`, NASA's part) as at the start;
+  `auto_time` 1, Europe/Zurich, `font_scale` 1.0, rotation 1/0 (T25's landscape set back), density 420, airplane mode off; the app alive.
+
 ### [x] E10f. Android 10, the pixels and the rest (Sonnet, medium)
 
 SH4's pixel checks (`sharp-0.9.0-sh4.md`, Testing 2; `scripts/sh4_check.py` and `sh4_run.py`) on Centre,

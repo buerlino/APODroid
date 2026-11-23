@@ -44,6 +44,9 @@ folder `APODroid`. Release APKs are named `apodroid-vX.Y.Z.apk`.
 - 0.10.0, the hardening, then 1.0.0 (user, 2026-11-22: emulators 10, 12, 13, 14, 17, a code review, SIM 20k, the
   updates from old versions, a real week on three devices with the app's log file; a feature freeze until 1.0.0):
   [.claude/skills/build-apodroid-android/release-0.10.0.md](.claude/skills/build-apodroid-android/release-0.10.0.md).
+- 0.10.0, Auto tuned from the user's picks (Neptune should turn, 23 Nov's panels should go on whole; 300
+  posts picked twice, 88% the same; a plan, paused before A2; in 0.10.0, user, 2026-11-23):
+  [.claude/skills/build-apodroid-android/auto-tuning.md](.claude/skills/build-apodroid-android/auto-tuning.md).
 - A clearer Setup and leaner texts (planned for 0.7.0, 2026-10-29; MK and UI1–UI3 built in 0.6.0 as U0, 2026-11-02, with ⛶'s ✓ setting again; what's left for 0.7.0 is there): [.claude/skills/build-apodroid-android/lean-ui-0.7.0.md](.claude/skills/build-apodroid-android/lean-ui-0.7.0.md).
 - Night shifts (user, 2026-10-19): the agents josh, winston, susanna and rosie work through a queue of packages
   unattended (`scripts/night.sh`). How it works, the rules and the queue: [.claude/skills/build-apodroid-android/night.md](.claude/skills/build-apodroid-android/night.md).

@@ -171,8 +171,8 @@ fun wholePicture(file: File, screen: Size, sideways: Boolean = false, limit: Dou
 /**
  * "Keep pictures sharp"'s set (SH2c, `:core`'s [Layout] from limitedLayout while it bites): a bitmap
  * of the [screen]'s size, the whole picture's background ([drawBackground]: black or blurred), and
- * [layout]'s frame of [file] decoded alone, upright, straight to its dest size (the decoder's crop
- * after `setTargetSize`, which enlarges as the whole picture's does) and drawn into the dest, turned
+ * [layout]'s frame of [file] decoded alone, upright, at most the file's own size (the crop, with `setTargetSize` only
+ * when shrinking; the filtered draw enlarges, B37) and drawn into the dest, turned
  * 90° clockwise when sideways ([drawTurned]). Not darkened: the caller measures what's drawn.
  */
 fun limitedPicture(file: File, screen: Size, layout: Layout): Bitmap {
@@ -182,9 +182,11 @@ fun limitedPicture(file: File, screen: Size, layout: Layout): Bitmap {
     val dest = layout.dest.run { Rect(left, top, right, bottom) }
     val frame = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
         val (w, h) = info.size.width to info.size.height
-        val s = layout.scale
+        // Never decode above the file's size (B37: Android 10's decoder came out white with a crop
+        // after an enlarging setTargetSize); the filtered drawBitmap into dest enlarges.
+        val s = minOf(1.0, layout.scale.toDouble())
         val (tw, th) = maxOf(1, (w * s).roundToInt()) to maxOf(1, (h * s).roundToInt())
-        decoder.setTargetSize(tw, th)
+        if (s < 1.0) decoder.setTargetSize(tw, th)
         val f = layout.frame
         fun x(v: Int) = (v * tw.toDouble() / w).roundToInt().coerceIn(0, tw)
         fun y(v: Int) = (v * th.toDouble() / h).roundToInt().coerceIn(0, th)

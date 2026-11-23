@@ -1030,6 +1030,62 @@ aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
 
+**Checked** (rosie, pipeline run 184, 2026-11-23, 09:41–09:58 by the emulator's clock (the clock was stepped forward twice and set back), `emulator-5554`,
+Android 10 (`apodroid-29`), the installed debug build 0.9.2 (E10b's; no `install -r`); evidence in `.coord/runs/184-e10c/tablet/` (`p<n>*.log`, `backup/`
+with the start's prefs and dumps, `wallpaper-p17-*.txt`, `p17-intents.txt`, screenshots). Start state as E10b left it (home NASA, lock APOD, Size Live by the
+picker, daily on, More NASA pictures on, Keep running off, `weekLog` unset). No crash (`logcat -b crash` empty). The `p<n>` ids are the list's cases.
+- **BUG:** B35 holds on Android 10: a force stop keeps home's wallpaper id and the app still believes Live is on. Steps: Live on home (id 131), `am force-stop`
+  (Keep running on, then off, three times: ids 131, 134, 135 stayed), `dumpsys wallpaper`: home is now `com.android.systemui.ImageWallpaper` with the same id;
+  the page opens, job 1 runs: no `Live: home isn't live, Fill on HOME+LOCK`, no "Live isn't on. Set as wallpaper turns it on." line, Setup's summary still ends
+  " · Live", and a Set (`Set: wallpaper set: … on LOCK; wallpaper shown live: Of(source=NASA …) on HOME`, logged after `Live: the engine is on HOME, not noted
+  live`) handed home's picture to an engine that isn't there: home shows AOSP's default. Expected (P17): Fill on both, the status line. Likely `Store.liveOn` /
+  `:core`'s `homeLive(named, id, noted)` (`id == noted` below 14 and, as the package says, on 14: B35's fix is open, `night.md` row 103). Restore needed the
+  picker each time (done).
+- **BUG:** the week log over a stale row (B31) writes nothing on Android 10. Steps: `--ez weekLog true`, a run, `--ez weekLog false`; `rm` the file and set the row's
+  `owner_package_name` to another package (`content update … --bind owner_package_name:s:com.example.old`: a row an old install left); `kill -9` (a new process),
+  weekLog on. Got: the process start line is written to logcat only; MediaProvider logs `UNIQUE constraint failed: files._data` for each `log.txt` insert (14 times in
+  a minute, the same on each line) and no `log (1).txt` is made, no `Week log: log.txt held by an old row …`, no `couldn't write`. Cause by reading: on Android 10
+  MediaProvider catches the constraint error and `ContentResolver.insert` returns null instead of throwing, and `WeekLogNames.make` returns null at once for a null
+  (`WeekLog.kt`: "Null when [insert] returns null"), so only a thrown `SQLiteConstraintException` (Android 17's, where B31 was found) goes on to the next name;
+  `AppLog.make` also stops trying after a null unless the name was the tenth. Expected: `log (1).txt`. The stale-row case with the app's own row (the file `rm`'d
+  only) wrote `log.txt` again through the same row, no error.
+- **PASS:** P0 (baseline: pair of alarms 06:05:20 at the offset 320 s, job 1 PERIODIC +6h flex +6h PERSISTED CONNECTIVITY, Live on home id 131, lock its own id 132,
+  Keep running off), P2 (`job 1 starts`, `alarms for start+15m`, same post / nothing newer, `jobFinished`, `alarms for 2026-11-24T05:05:20Z` = `dumpsys alarm`; job
+  1 still periodic), P3 (airplane on, `Refresh: APOD … stored, check failed: UnknownHostException`, `Daily job failed`, alarms start+15 min twice; the retry alarm
+  by a clock step of +15 min: `alarm, run scheduled`, job 2 pending with CONNECTIVITY unsatisfied, **no** APODroid alarm, the second alarm `alarm, a run is
+  pending`; airplane off: `job 2 starts` within 5 s, no failure, `alarms for` +1 h at its start (it was the second failed run in a row), the clock's next check at its
+  end), P4 (two forced failures: the second `alarms for start+1h`), P5 (`kill -9` as root with Keep running off: a new pid, `alarms for` the retry kept (`09:58:40Z`, not
+  tomorrow's), no `Detector:` line; airplane off, a forced run: alarms by the clock again), P6's equivalent on 10 (engine `home created`, `decoded`, `drew … p=0.22 ×0.83`,
+  id 131 and the component unchanged, no `not live yet`, no `Fill on`), P7 (page open: `alarms for 2026-11-24T05:05:20Z`, the pair in `dumpsys alarm`), P8 (`drew
+  Of(source=NASA …) p=0.22` at 10:00 = (10:00 − 06:00) ÷ 18 h, lock still APOD), P9 (Home within 15 min of a run: no `screen on, run owed`), P10 (Keep running on:
+  `KeepRunning` `isForeground=true foregroundId=1`, channel `keep`, `NotificationRecord` importance 2 posted, so it is in the shade on 10 without `specialUse`; a forced
+  run: no `couldn't start`; a kill while on: back foreground within 15 s; off: the service and the notification gone), P11 (status lines "Home: 23 Nov, 10:03 AM · NASA",
+  "Lock: … · APOD", chip "On home screen"), P12 (job 1 periodic, no job 2 outside P3), P15 (4 `TIME_SET, arming again`, each followed by `alarms for` the same T or the
+  owed check), P17 up to the wallpaper (see the BUG and DIFFERENT), P19 (APOD's subject keys removed, `run -f 1`: `Subject: APOD 2026-11-23 p=0.91 in 115 ms`, a second run
+  none; also after a force stop), P20 (keys removed, the page opened: the job the open started logged `Subject: APOD … p=0.91 in 80 ms`; the page's own and the job's
+  line can't be told apart here), P24's probe half (`sizeChecked` removed: `Refresh: APOD 2026-11-23 rendition (original 2160×2700)`, the key noted again), P26's first
+  half (`subjectSharp` removed: `Subject: … p=0.91`, the key noted again; the 2160×2700 file doesn't bite, so no `(sharp …)`), P27 (fresh install state: no
+  `Download/APODroid`; `--ez weekLog true` while the page was on top: `Week log: on`, the process-start line with `Android 10 (API 29)`, `Keep running on`, the run's
+  lines in order, the same as logcat's; a `kill -9` and Keep running's restart: a `Process start:` line with the new pid; `--ez weekLog false`, a run: the file ends with
+  `Week log: off`, the run's lines only in logcat).
+- **DIFFERENT:** P2/P3 ("not expedited"): on Android 10 `job 1 starts` and `alarm, run scheduled` carry no ", not expedited" (`DailyJob.kt` writes it from API 31, the
+  plain job being the only kind below 12; the package text and the map's line are for 12+). P17: `am force-stop` on 10 deletes the two alarms, **keeps** the two broadcast
+  `PendingIntent`s (`dumpsys activity intents` before and after: `#1`, `#2` `broadcastIntent` there, `p17-intents.txt`) and drops Live to the default, so the page open found
+  nothing gone: no `Detector:` line, no box (also with the clock stepped to 24 Nov 06:50 after a force stop: no line, no box), job 1 runs at once, the alarms armed again. The
+  gap the plan expected (10–14: the `PendingIntent` sign only until system_server's GC; no exit records on 10). Not narrowed: earlier lines in the buffer (09:08–09:10,
+  E10b's run) show `Detector: the alarms found gone` after force stops on 10, right after the install; this run's three force stops never did. P3 (the orange box): not seen,
+  `problemNoticeKey` was still E10b's dismissed `nasa:network:2026-11-23` (a Dismiss holds for the same kind and day, as `CLAUDE.md` says), so the box stayed hidden.
+- **SKIPPED / not run:** P16 (a real morning: real timing); **left for time, not for an Android 10 reason** (so the package is not done and stays unticked): P13 (Save every
+  picture is off; E10b ran A3 and the saves), P14 (no pause hint on 10; E10b's BH0–BH3), P18's APOD-only half (APOD mode would change the setup: only the stored-day failure
+  line `Refresh: APOD … stored, check failed: …` was seen, in a run that failed through NASA as in P3), P19's broken-`apod.jpg` half, P20's separate page line, P21 (an edit of
+  `size` and the records: the first try left a `apodroid.xml.bak` in `shared_prefs`, SharedPreferences' own backup name, which Android restored over the edit at the next
+  start, so the run was P2's: nothing to judge; not repeated, and B35 would mask it after a force stop), P22, P23, P24's replacement half, P25, P26's `sharp` bite (a faked
+  1500×1022 picture: E10a's P34e/B37 is the open item), P27's O6a (the Recents path), real timing, the toasts.
+- **State at the end:** the prefs equal the start's but the timestamps, `live.homeId` (139) and `weekLog` false; Live on home again by the picker (home id 139, the lock
+  screen its own still, id 133), daily on, More NASA pictures on, Keep running off, Save every off; the stale row and the empty `Download/APODroid` folder removed; the clock
+  back by `auto_time` 1 (09:57, the host's), airplane mode off, network checked, rotation, font scale (1.0), density (420) and `screen_off_timeout` untouched; no alarm of the
+  app lost (the pair at 24 Nov 06:05:20, job 1 periodic). The app is running, not force-stopped.
+
 ### [ ] E10d. Android 10, the live map, first half (Opus, medium)
 
 `interactions/live.md`, section 5, T01–T20, and the 10 row: Live is the home screen's only, the lock screen

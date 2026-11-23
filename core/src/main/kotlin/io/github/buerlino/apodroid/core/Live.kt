@@ -356,22 +356,26 @@ fun liveSettling(engine: Boolean, processAge: Duration): Boolean =
 /**
  * L8f1 fix round 1: whether APODroid's live wallpaper is on home. [named]: Android says so
  * (`getWallpaperInfo(FLAG_SYSTEM)` names it, 14+; always false below 14, where the app can't
- * ask). Else home's wallpaper id [id] equal to the one [noted] while home was live: a rebind
+ * ask). Else home's wallpaper id [id] equal to the one [noted] while home was live (14+, with [engine]): a rebind
  * after a process death keeps the id (the tablet, Android 15, split state: `getWallpaperInfo`
  * didn't name APODroid's for 11 min and more after one `kill -9`, the id unchanged), while
  * Android's revert (Decision 12), a force stop's default, a still set and a new pick each give
  * home a new id. An id of 0 or less (none, or a failed read) never matches.
  *
- * B39 (with B35's second sign on 10–13): below 14 [engine] decides alone, the id doesn't
- * (null on 14+): whether a non-preview engine in this process is bound now and wasn't let go
- * since (destroyed, or home set still by the app). Android 10 answers the same live wallpaper
- * picked again with a new id and the same engine bound, no `COMMAND_REAPPLY` (E10d: 156 → 158),
- * so the id alone took the re-pick for lost Live; a force stop kept the id (E10c: 131, 134, 135)
- * with no engine left, so the id alone took a dropped Live for on. A process death's rebind
- * creates the engine again in the new process.
+ * [engine]: a non-preview engine is bound in this process now and wasn't let go since
+ * (destroyed, or home set still by the app). A force stop keeps home's id and leaves no engine:
+ * Android 14 (E14c's P17: id 109) and 10 (E10c: 131, 134, 135) alike, so the id alone took a
+ * dropped Live for on. A process death's rebind creates the engine again in the new process.
+ *
+ * B35 (14+, [idCounts]): Android named, or the id kept **while the engine is bound**.
+ * B39 (with B35's second sign on 10–13, ![idCounts]): [engine] decides alone, the id doesn't:
+ * Android 10 answers the same live wallpaper picked again with a new id and the same engine
+ * bound, no `COMMAND_REAPPLY` (E10d: 156 → 158), so the id alone took the re-pick for lost Live.
+ * On 14+ the id stays: a stray engine on the lock screen after home's revert (Decision 12) is
+ * bound too, and the revert gave home a new id.
  */
-fun homeLive(named: Boolean, id: Int, noted: Int?, engine: Boolean?): Boolean =
-    if (engine != null) engine else named || (id > 0 && id == noted)
+fun homeLive(named: Boolean, id: Int, noted: Int?, engine: Boolean, idCounts: Boolean): Boolean =
+    named || (engine && (!idCounts || (id > 0 && id == noted)))
 
 /**
  * L8f1: a non-preview engine on 14+ is a stray (Decision 12: home reverted, the engine left on

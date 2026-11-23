@@ -1320,7 +1320,7 @@ E3's cases and the 13 row, then a smoke of each map: the system photo picker, bo
 events from the foreground app only, Keep running only in Active apps, the expedited job 2, Live's id
 path.
 
-### [ ] UP. The update from old versions (Sonnet, medium)
+### [ ] UP. The update from old versions (Sonnet, medium; on `emulator-5564` only, user, 2026-11-23; E12 and E13 after 0.10.0)
 
 F-Droid users skip versions, so the migrations' last real check: each of **0.5.0, 0.7.0 and 0.9.1**
 installed over fresh data on `apodroid-34` (`emulator-5564`) and again on `apodroid-37`

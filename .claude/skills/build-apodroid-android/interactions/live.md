@@ -695,6 +695,22 @@ APODroid's still again.
 **X9** As X8 with the daily switch off: nothing replaces it (the page's update ends before `setDue`,
 Store.kt:1149) until Set (K17/K18) or the switch on.
 
+**X10** (Android 10–13, B39) Stored Live, home live, pick APODroid again in Android's own chooser
+(`LIVE_WALLPAPER_CHOOSER` › APODroid › Set wallpaper › Home screen), then any run or the page.
+- Screen: Live stays; no still set, no "Live isn't on".
+- Log: no `Live: home isn't live`; Android 10 gives home a new id with the same engine bound and no
+  `Live: engine re-applied` (E10d: 156 → 158), 11–13 may log the re-apply. `live.homeId` follows the
+  new id at the run's `liveOn`.
+- Why: below 14 home is live while a non-preview engine is bound in this process (`LiveProcess.bound`,
+  `:core`'s `homeLive` with `engine`), not by the id.
+
+**X11** (Android 10–13, B35's second sign) Stored Live, home live, `am force-stop`, then the page.
+- Screen: both screens Fill at the page's load, "Live isn't on." (Android dropped Live; the id kept,
+  E10c: 131/134/135).
+- Log: `Live: home isn't live, Fill on HOME+LOCK`.
+- A `kill -9` instead (the process dies, Android rebinds): `Live: engine home created` in the new
+  process, Live stays, nothing set.
+
 ---
 
 ## 4. SUSPECTs

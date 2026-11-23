@@ -1790,8 +1790,8 @@ stored setup in one line), and turning it on writes `Week log: on` and that line
 off` last. After a reinstall or "Clear storage" the old file isn't the app's (MediaStore's owner),
 so a new one is `log (1).txt` (night default), and that file is used from then on (LOGf1: the lookup takes `log.txt` or `log (N).txt`, newest first, so a start finds it instead of making `log (2).txt`). **A stale row** (B31, 2026-11-22, the Android 17 emulator, E17b and E17c: after `pm clear` the old
 `log.txt` row stayed while its file was gone, and MediaStore renamed nothing (its rename seemingly looks at the disk), so every
-insert failed, `UNIQUE constraint failed: files._data`, and nothing was written): an insert that fails so tries the next
-name, `log (1).txt`, `log (2).txt`, … (`:core`'s `WeekLogNames`, at most 10; logged `Week log: log.txt held by an old
+insert failed, `UNIQUE constraint failed: files._data`, and nothing was written): an insert that fails so (it throws, or
+on Android 10 returns null, B38) tries the next name, `log (1).txt`, `log (2).txt`, … (`:core`'s `WeekLogNames`, at most 10; logged `Week log: log.txt held by an old
 row, writing log (1).txt`), and the process keeps that file.
 
 Permissions (user approved, 2026-10-01), all granted at install with no prompt: `INTERNET`,

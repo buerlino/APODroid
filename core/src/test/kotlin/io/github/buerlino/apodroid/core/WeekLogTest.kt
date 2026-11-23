@@ -65,9 +65,16 @@ class WeekLogTest {
     }
 
     @Test
-    fun aNullInsertTriesNoOtherName() {
-        assertNull(WeekLogNames.make(0, { tried += it; null as String? }) { true })
-        assertEquals(listOf("log.txt"), tried)
+    fun aNullInsertTriesTheNextName() {
+        val made = WeekLogNames.make(0, { tried += it; if (it == "log.txt") null else "uri" }) { false }
+        assertEquals(1, made?.index)
+        assertEquals(listOf("log.txt", "log (1).txt"), tried)
+    }
+
+    @Test
+    fun nullInsertsEverywhereGiveNull() {
+        assertNull(WeekLogNames.make(0, { tried += it; null as String? }) { false })
+        assertEquals(WeekLogNames.TRIES, tried.size)
     }
 
     @Test

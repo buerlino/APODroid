@@ -1363,6 +1363,24 @@ the same APKs: 0.5.0, 0.7.0 and 0.9.1 each over fresh data, then the release-sig
 `app/build/apodroid-v0.10.0.apk` (`v0.10.0`'s code) by `install -r` (user, 2026-11-23: the rest of UP). Results under its
 own "Checked" here; a FAIL as a `BUG:` line. At most 50 min.
 
+**Checked** (rosie, pipeline run 196, 2026-11-23, `emulator-5566`, Android 17, `apodroid-37`, the candidate
+`app/build/apodroid-v0.10.0.apk`, sha256 8b6a93e3…, the same certificate as 0.5.0, 0.7.0 and 0.9.1's files; each old
+version over fresh data, set up by the page, a job run, then `install -r` without opening the page; evidence in
+`.coord/runs/196-up17/tablet/`, `050-`, `070-`, `091-`): **no FAIL, no crash** (`logcat -b crash` empty, exit-info only
+`PACKAGE UPDATED`). **0.5.0** (daily on, APOD + NASA, 6 h): `Migrated from 0.5.0: Migration(write={allSources=true,
+home=APOD,NASA, lock=APOD,NASA, …` once, `MY_PACKAGE_REPLACED, arming again`, the pair in `dumpsys alarm`; the left
+`sources` and no `size`; wallpaper ids (3 system, 1 lock) unchanged and nothing set (the update's own job 1 run found
+`same post`, NASA's picture replaced by its smaller original); page: "APOD, NASA · both screens · every 6 h from 6:00 AM",
+Size Auto, nothing highlighted, no detector box, the pause hint; Set set APOD (id 4), the job ran. **0.7.0** (Live on
+home and lock, order NASA, APOD, 12 h): the same arming; `size` LIVE, `order`, `orderFrom`, `live.homeId` 6 kept, the
+prefs differ only by `armedAt`/`armedUpdate`; wallpaper id 6 and the live component unchanged, nothing set, the engine
+back (`engine 3 created`, about 0.1 s of `drew black (nothing)`); page: "NASA, APOD · both screens · every 12 h from
+6:00 AM · Live", no "Live isn't on", no box; Set: `wallpaper shown live`, the job ran. **0.9.1** (Centre, sharp on, As
+soon as it's out, APOD + NASA 6 h): arming, prefs identical but `armedAt`/`armedUpdate`, wallpaper id 9 unchanged,
+nothing set; page "APOD, NASA · both screens · every 6 h from 6:00 AM", no box; Set and the job ran. Not run:
+`foldRunGoing` (no old version leaves a `runGoing`), the page's Setup rows of 0.7.0 and 0.9.1 beyond the summary. The
+emulator is back as booted (the app uninstalled, settings untouched).
+
 ### [ ] B30. ⛶'s "Whole picture" preview let go in `onStop` (Sonnet, medium)
 
 From CR (`review-0.10.0-cr.md`, finding 2). (B29, the CR's finding 1, shipped as 0.9.2.)

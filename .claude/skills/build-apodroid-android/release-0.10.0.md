@@ -1007,7 +1007,8 @@ twice, 12 s apart, as SKILL.md says for Live.
   credit stayed whole), A2's "Advanced stays open" after the rotation back to portrait (it was open in landscape and closed in portrait, not read again), P2 (a
   browser exists), S4's "Still saving" toast, K16b (left for time, not run), K24 and K24a–c (Auto's turn on a faked 3000×1000: E10a ran them as P32/P33), K26 (no part from before 0.9.0),
   K34a–d beyond the frame (the faked 1500×1022 and 300×200 pictures, the drag ✓ `, sharp ×2.00`, the Whole preview at 2×: E10a's P34e BUG (Keep pictures sharp's limited set
-  white on 10) was found before this run and B37 (merged into dev, 48ca5b7's parent) is its fix, so the bug is fixed in code but not yet re-tested on 10 here; Earth's real
+  white on 10) was found before this run and B37 (merged into dev, 48ca5b7's parent) is its fix, so the bug is fixed in code but not yet re-tested on 10 here
+  (B37's own device check re-ran P34e on 10, PASS, Opus pass 66); Earth's real
   1440×960 file is on no screen here, so no set bit), P3b and P3e (left for time, not run), real timing.
 - **Not done (round 1):** O2/R5's landscape pulls, K16b, P3b and P3e were left for time, not for an Android 10 reason; the package is therefore not done and
   stays unticked. A later pass runs these four and K34a–d once B37 is re-tested on 10.
@@ -1115,6 +1116,10 @@ constraint failure and logs `Week log: log.txt held by an old row, writing log (
 saw it (`pm clear`, the file deleted beneath FUSE as root: the row left, `owner_package_name` NULL); the log on:
 `log (1).txt` written with `Week log: on`, the "held by an old row" line and `Process start:`; a force stop and a
 start: the same file grew (two `Process start:` lines), no `log (2).txt`, no second "held" line.
+**Android 10 fails** (E10c, pipeline run 184, 2026-11-23, `emulator-5554`, wp/e10c unmerged; evidence
+`.coord/runs/184-e10c/tablet/p27-stale-evidence.txt`): MediaProvider logs `UNIQUE constraint failed: files._data` and
+returns null from `insert` instead of throwing, so `WeekLogNames.make` stops at the null: no `log (1).txt`, nothing
+written. Open: a null insert taken as a taken name (the next one tried), `AppLog.kt`'s `make` and `WeekLog.kt`'s `make`.
 
 ### [ ] B32. A position dragged sideways applies to the upright frame (Opus, by hand, 2026-11-22)
 
@@ -1157,7 +1162,10 @@ drag: `auto 0.21, sideways`. No crash.
   names nothing (Opus pass 63); **another component** → trust the id only while a non-preview engine runs in this
   process (a kill rebinds and starts one, a force stop doesn't), the grace as before. Either way L8f1's case stays live.
 - **Below 14** the id is the only sign: whether a force stop keeps the id there too, E10's P17 tells (a BUG line there
-  extends this package).
+  extends this package). **It does** (E10c, pipeline run 184, 2026-11-23, `emulator-5554`, wp/e10c unmerged): three
+  force stops, home `ImageWallpaper` each time with its id kept (131, 134, 135), no Fill, no "Live isn't on" line, and a
+  Set logged `wallpaper shown live … on HOME` to no engine. So the fix needs a sign besides the id on 10–13 too
+  (`getWallpaperInfo(FLAG_SYSTEM)` naming another component, or no non-preview engine in this process), and P17 again on 10.
 - **Files:** `core/.../Live.kt` (`homeLive`), `Store.liveOn`/`liveState`, `LiveWallpaper.kt` if the engine rule, `LiveTest`.
 - **Done when:** a test that fails on the old code (the kept id with another component), the fix, the tablet's L8f1
   kill still Live, P17 again on the Android 14 emulator.
@@ -1175,7 +1183,7 @@ drag: `auto 0.21, sideways`. No crash.
   and `interactions/live.md`'s T21.
 - **Done when:** the fix and T21 again on the night's emulator (the code isn't version-specific).
 
-### [ ] B37. Keep pictures sharp's limited set comes out white on Android 10 (Sonnet, medium)
+### [x] B37. Keep pictures sharp's limited set comes out white on Android 10 (Sonnet, medium)
 
 - **Steps:** E10a's P34e: Android 10 emulator, Size Centre or Auto, "Keep pictures sharp" on, a 3:2 picture whose
   limit bites (Fill would enlarge it over 2×), Set.
@@ -1189,6 +1197,11 @@ drag: `auto 0.21, sideways`. No crash.
   upscale of a small picture) and say in the report.
 - **Done when:** the fix, P34e again on `emulator-5554` (`sh4_run.py`'s Set path; its job path doesn't work on 10),
   and SH4's limited cases unchanged on 14 by reading (the look the same).
+- **Checked** (pipeline run 182, merged 48ca5b7, 2026-11-23, `emulator-5554`): P34e's 1500×1022 under Auto, Centre and
+  Home `, sharp ×2.00 (Fill ×2.35)`, the frame at ×2 on the blurred bands, no white strip; 900×600, 400×600 and Auto
+  sideways pass; the switch off unchanged; Whole on 900×600 and 640×480 passes (`drawWhole`'s enlarging
+  `setTargetSize` shows no fault on 10). Not run: SH4's limited cases on 14 (by reading: nothing changes at scale ≤ 1).
+  `sh4_run.py`'s fake doesn't work on 10 (`run-as … kill -9` does nothing; rosie ran a copy with `am force-stop`).
 
 ### [ ] CR2. A second code review, during the real week (Opus, high)
 

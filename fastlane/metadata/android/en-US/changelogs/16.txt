@@ -1,0 +1,5 @@
+- Android 10: "Keep pictures sharp" no longer sets a white wallpaper
+- Live: noticed correctly after a force stop or when picked again
+- Set with Live keeps waiting for Android's picker if APODroid is opened meanwhile
+- ⛶: a frame dragged sideways no longer moves the upright one
+- Less memory used in the background

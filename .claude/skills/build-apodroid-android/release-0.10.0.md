@@ -957,7 +957,7 @@ page first (it also ran P30's picker path once: dialog, AOSP's "Set wallpaper" �
   `accelerometer_rotation` 1, `user_rotation` 0, `font_scale` deleted (null), `auto_time` 1, network on, no alarm or job of the app;
   `screen_off_timeout` untouched. The system wallpaper is an ImageWallpaper (the last still of the run).
 
-### [ ] E10b. Android 10, the page map (Sonnet, medium)
+### [x] E10b. Android 10, the page map (Sonnet, medium)
 
 `interactions/page.md`, sections 3 (the prioritized list) and 4 (0.8.0's emulator cases), with K31b (B32); on 10:
 ★ through `MediaStore` (scoped storage, S4a), the video still's `MediaMetadataRetriever` (a faked video day with a real
@@ -966,6 +966,52 @@ NASA mp4 as `<source>.videoUrl`: `Video still: <ms> ms`, else logged and black),
 aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
+
+**Checked** (rosie, pipeline run 183, 2026-11-23, 09:11–09:36 by the emulator's clock, `emulator-5554`, Android 10 (`apodroid-29`), dev's debug build 0.9.2;
+evidence in `.coord/runs/183-e10b/tablet/`: screenshots, `backup/` (prefs and `dumpsys wallpaper` of the built S0). The app was installed and
+never started, so the map's S0 was built from the page: daily on, More NASA pictures on, home NASA, lock APOD, Earth unticked, Size Live by AOSP's
+picker (dialog, "Set wallpaper" › "Home screen"; engine on home, id 114, the lock screen a still). Dates: APOD 23 Nov (portrait 2160×2700), NASA 20 Nov
+(4200×3150), Earth 23 Nov (1440×960), 12 h clock. **No crash** (`logcat -b crash` empty). **No FAIL, no `BUG:`.** Toasts were never read (log, prefs and
+dumps stand for them). Android 10 has no `exit-info`; `run-as … kill -9` does nothing there, so the prefs edits (faked video day) used `adb root`'s `kill -9`
+twice, 12 s apart, as SKILL.md says for Live.
+- **PASS:** P-baseline, T1, L1, H1 (no chip on Earth, not in use), W1–W3 (end stops), T2/T2a/T2c, C1–C3, C5 (explanation 2 lines → all → 2, by the
+  explanation and by the title block; still open after a swipe away and back), C6/C7 (long presses ran, clipboard not read, no toast check), O1 (two panes
+  in landscape), A1, A2 (Advanced open in landscape, closed ⓘ "Saves each new picture to Pictures/APODroid: …"), O3 (the ⓘ dialog stayed open across
+  the rotation), P1 (the WebView browser opened, Back: APOD, `Daily job: alarms for 2026-11-24T05:05:20Z`), **S1a** (a double tap on Earth's ☆: one row
+  `EO_2026-11-23_…jpg` in `Pictures/APODroid/` through `MediaStore`, scoped storage, no permission), **S1b** (no second row), O4 (☆ after Home and reopen),
+  K1/K1a/K1b (Back kept no `cropPosition`), K10, K11 (title → APOD closed crop mode), K1c (`earth.cropPosition` 0.009, no log), K2 (lock id 116→117,
+  `Part: wallpaper set: … on LOCK`), K12 (crop mode closed by the rotation), K3 (lock id 118), K6 (✓ without change: no `Part:` line), K7 (`Part: wallpaper
+  shown live … on HOME`, engine `p=0.50`, ids 114/118 unchanged), K13 (⛶ open after Home and back, Back closes it), K8 (`darker ×0.83`, `p=0.18`
+  again), R1, **S3** offline (`Original failed, saving the stored picture: UnknownHostException`, the row written), R2/R2a ("Earth Observatory: no connection.",
+  `Update failed`, APOD's page "Astronomy Picture of the Day: no connection."), R3 (no box after Home and reopen, network back, ping works), BH0–BH3
+  (**no pause hint on Android 10**: nothing to name, as the plan says), A3/A3a/A3b (`saveEvery`, `saveLimit` 50, 20, off), A4 (ⓘ dialog), A5 (Keep running on:
+  `KeepRunning` foreground, notification channel `keep` importance 2 posted, so it shows in the shade on 10 without `specialUse`; off: gone), D1 (alarms,
+  job 1, service and the rows gone, no log), D1a (the pull logged `Refresh:` only), D2 (`Switch on:` set, `Daily job: job 1 starts` … `jobFinished (job 1)`,
+  alarms for 2026-11-24, Live still on home, id 114), **P3a** (a faked video day with `videoUrl` = `…/september/NoctilucentNeowise_Girotti.mp4`, 4.8 MB:
+  `Video still: 486 ms, 864×1080`, the dimmed still behind ▶ on APOD's tile, `files/video-still.jpg` 71 KB, `videoStill.date/url` noted; after a kill no second
+  line, none at the next open either), **P3c** (offline on a fresh fake: `Video still: couldn't make one of …: java.lang.RuntimeException: setDataSource failed:
+  status = 0x80000000`, after about 30 s; `videoStillTried` kept, no new try at the next open), **P3d** (`videoUrl` removed: black tile, no line; a pull restored
+  `isVideo` false), K27 (⛶ on NASA opened at 0.69 = `subjectPosition`, Size Auto), K28 (✓ untouched: no `Part:` line), K29 (drag ✓: `nasa.cropPosition`
+  0.175, `Part: … on HOME` without `, auto`, `sideways=false` noted), K31a (pill on, drag, pill off, ✓: the stored 0.175 kept, no set), K16/K17/K18 (pill on, band
+  dragged down, ✓: `Part: … on HOME, sideways, darker ×0.88 (grey 113)`, `sideways=true`, `cropPosition` 0.0), **K31b** (the band ✓'d, ⛶ again, pill off, ✓:
+  `Part: wallpaper set: … on HOME, auto 0.69`, no `, sideways`, no `cropPosition`, `sideways=false`: B32 holds on 10), K30/K33 (Whole ✓ without a drag: no
+  `cropPosition`; Whole off: `, auto 0.69`; Size Centre and Set: no `auto`, `mCropHint` 1060..2140 = the middle), K34 (the ⛶ frame on Earth's 1440×960 picture with
+  "Keep pictures sharp" on is wider than with it off, 270 → 338 of 900 px on the screenshots `k34-off.png`/`k34-on.png`).
+- **DIFFERENT:** R1 (the pull logs `Refresh: … same post` / `stored, nothing newer`, the map says "no log": LG's lines, as on 14), S2a (as on 14: after the
+  row was deleted by adb ★ stayed filled and a tap saved nothing, no row; after Home and reopen ☆), BP1/BP2 (Dismiss on APOD, Earth, NASA: APOD's page shows
+  NASA's box, the next candidate not dismissed, as CLAUDE.md says; each source's own Dismiss held, no box after the last), S4/S4a (a 14.5 MB NASA original saved in
+  under 2 s on the emulator's network, so the "Still saving" window wasn't there; the ★ was filled after a rotation at once, row `NASA_…jpg` 14,472,481 B),
+  P3a with the first mp4 tried (`…/september/xz_and.mp4`, 49 MB): `Video still: couldn't make one of …: java.io.IOException: no frame` (logged, tile black,
+  as the package says); the second file gave a frame, so this one is the file or Android 10's decoder, not the code path (not narrowed).
+- **Not run / SKIPPED:** O2/R5 (a pull on each pane in landscape), C8's expanded explanation in landscape (the left pane's node wasn't found in the dump; the
+  credit stayed whole), A2's "Advanced stays open" after the rotation back to portrait (it was open in landscape and closed in portrait, not read again), P2 (a
+  browser exists), S4's "Still saving" toast, K16b, K24 and K24a–c (Auto's turn on a faked 3000×1000: E10a ran them as P32/P33), K26 (no part from before 0.9.0),
+  K34a–d beyond the frame (the faked 1500×1022 and 300×200 pictures, the drag ✓ `, sharp ×2.00`, the Whole preview at 2×: E10a's P34e found the BUG on 10 for
+  such a set; Earth's real 1440×960 file is on no screen here, so no set bit), P3b, P3e, real timing.
+- **State at the end:** same setup as built (home NASA, lock APOD, Size Live by the picker again (ids 131/132, engine on home), daily on, More NASA pictures on, "Keep
+  pictures sharp" off, Keep running off, Save every off, 20 MB), gallery rows of S1a, S3 and S4 deleted, `accelerometer_rotation` 1, `user_rotation` 0,
+  `auto_time` 1, `font_scale` 1.0 (as found), airplane mode off, network checked, `debug-*.png` and the video fake removed, Earth's stored part removed;
+  `screen_off_timeout` untouched (2147483647 as found). The app is installed (it was at the start) and not force-stopped.
 
 ### [ ] E10c. Android 10, the background map (Sonnet, medium)
 

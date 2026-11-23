@@ -1205,6 +1205,15 @@ screen) and, for the plain `setStream` cases, a read of Android 10's cropped wal
   Size Live, daily on, More NASA pictures on, Keep running off, ids 215/216; the page shows no "Live isn't on"), `fallback-draft.jpg`, `debug-*.png`, the test photo and its
   MediaStore row removed, `accelerometer_rotation` 1, `user_rotation` 0, `auto_time` 1, `font_scale` 1.0, airplane mode off.
 
+### [ ] E10g. Android 10, the cases E10b and E10c left (Sonnet, medium)
+
+E10b's left cases (O2/R5's landscape pulls, K16b, P3b, P3e, K34a–d) and E10c's (P13, P14, P18's APOD-alone half,
+P19's broken-file half, P21–P23, P25, P26's sharp bite, P27's O6a), on B38's and B39's tree. Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at most 50 min. The rules:
+`interactions/tester-rules-emulator.md` with the serial `emulator-5554` instead of 5564; the cases of the E10 packages before it ran
+aren't run again. Results under its own "Checked" here, per case PASS /
+FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
+listed under Not run with why (a case left for time is not done: say so first in the report).
+
 ### [ ] E12. Android 12 (`apodroid-31`, `emulator-5558`; Sonnet, medium)
 
 E2's cases and the 12 row of "The levels", then a smoke of each map (the cases the version table
@@ -1291,7 +1300,7 @@ drag: `auto 0.21, sideways`. No crash.
 - **Should happen:** the judge's Auto position is the noted subject as it is; DATE = today + 1.
 - **Done when:** a rerun on the emulator with no false FAIL. Before E14f.
 
-### [ ] B35. A force stop on Android 14 keeps home's wallpaper id, so `homeLive` still says Live is on (Opus, medium)
+### [ ] B35. A force stop on Android 14 (14+; 10–13 by B39) keeps home's wallpaper id, so `homeLive` still says Live is on (Opus, medium)
 
 - **Steps:** E14c's P17: Android 14 emulator, Size Live, home live, `am force-stop`, then a run (`run -f 1`) and the page.
 - **Happened:** home becomes the ImageWallpaper but keeps its id (109), so `homeLive`'s id rule (`Live.kt`, L8f1's fix
@@ -1345,6 +1354,49 @@ drag: `auto 0.21, sideways`. No crash.
   sideways pass; the switch off unchanged; Whole on 900×600 and 640×480 passes (`drawWhole`'s enlarging
   `setTargetSize` shows no fault on 10). Not run: SH4's limited cases on 14 (by reading: nothing changes at scale ≤ 1).
   `sh4_run.py`'s fake doesn't work on 10 (`run-as … kill -9` does nothing; rosie ran a copy with `am force-stop`).
+
+### [ ] B38. The week log's stale-row fallback writes nothing on Android 10 (Sonnet, low)
+
+- **Steps:** Android 10 emulator, the week log off, `rm` `Download/APODroid/log.txt`, give its MediaStore row another
+  owner, `kill -9` the app, switch the log on. (E10c's P27.)
+- **Happened:** MediaProvider logs `UNIQUE constraint failed: files._data` and returns **null** from `insert` instead
+  of throwing, so `WeekLogNames.make` stops at that null: no `log (1).txt`, no log line, nothing written.
+- **Should happen** (B31): a taken name tries the next one, `log (1).txt`, `log (2).txt`, ...
+- **Fix:** in `WeekLog.kt` and `AppLog.kt`, treat a null insert like a taken name and try the next one.
+- **Files:** `app/.../WeekLog.kt`, `app/.../AppLog.kt`, `core/.../WeekLogNames.kt` if it holds the loop, `WeekLogTest`.
+- **Done when:** a `WeekLogTest` case that fails on the old code (a null insert), the fix, and P27's stale-row steps
+  again on `emulator-5554`.
+
+### [ ] B39. Android 10–13: a re-pick gives home a new id (Live taken as lost), a force stop keeps it (Live taken as on) (Opus, medium)
+
+- **Steps:** Android 10 emulator, Live on home. Pick APODroid again in Android's own chooser
+  (`LIVE_WALLPAPER_CHOOSER` › APODroid › Set wallpaper › Home screen), then any run (`cmd jobscheduler run -f
+  io.github.buerlino.apodroid 1`) or reopen the page. (E10d's `x-repick` steps.)
+- **Happened:** home's wallpaper id changes (156 → 158) and the same engine stays bound; no `COMMAND_REAPPLY` arrives
+  (no `Live: engine re-applied`). `live.homeId` stays 156, so the next run logs `Live: home isn't live, Fill on
+  HOME+LOCK`, sets stills, destroys the engine, and the page says "Live isn't on." Live the user just picked is gone.
+- **Should happen:** the re-pick stays Live.
+- **Fix:** in `Store.liveOn` below 14, while a non-preview engine in this process is still bound and has not been
+  destroyed since `live.homeId` was noted, take home's new id as live and note it. Do it together with **B35's second
+  sign on Android 10–13** (pass 66; E10c: a force stop keeps the id 131/134/135, so `getWallpaperInfo(FLAG_SYSTEM)`
+  naming another component, or no non-preview engine in this process, must also count): both decide `homeLive` on 10–13.
+  The engine-bound rule serves both. CLAUDE.md's "Is it on" already says Android 10 sends no `COMMAND_REAPPLY`
+  (doc fix 8b0d92b).
+- **Files:** `core/.../Live.kt` (`homeLive`), `Store.liveOn`/`liveState`, `LiveWallpaper.kt` (the engine's bound state), `LiveTest`.
+- **Scope** (user, 2026-11-23): below 14 only; B35 keeps 14+ with its tablet check, and takes this engine sign if
+  the tablet shows it's needed there.
+- **Done when:** a `:core` test of the rule that fails on the old code (a new id with the engine bound; a kept id with
+  no engine), the fix, E10d's re-pick steps, E10c's P17 and a `kill -9` with Live on (still Live) again on
+  `emulator-5554`.
+
+### [ ] B40. `scripts/sh4_run.py` works on Android 10 (Sonnet, low)
+
+- **Steps:** run `sh4_run.py`'s job path on the Android 10 emulator.
+- **Happened:** `run-as ... kill -9` does nothing on 10, and `am force-stop` deletes job 1, so rosie ran a scratchpad
+  copy (E10a, E10f, regression 19).
+- **Should happen:** the script's fake and kill step works on 10 (`kill -9` as root, or the Set path), unchanged on 14 and 17.
+- **Files:** `scripts/sh4_run.py` (and `sh4_check.py` if the EXIF JPEG chroma FAIL needs the control inside it).
+- **Done when:** the script's 31 pixel cases run on `emulator-5554` and `emulator-5564` without a scratchpad copy.
 
 ### [ ] CR2. A second code review, during the real week (Opus, high)
 

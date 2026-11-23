@@ -1497,7 +1497,7 @@ counts, 0.9.1, Open question 5; logged
 user-requested record counts (TP1's fix round 1): a Recents swipe's ("remove task") and
 `killBackgroundProcesses`' ("kill background", "kill all background": `am kill`, task killers,
 makers' cleaners) leave the alarms, and `pm clear` wipes `armedAt`. 35+
-and 29 as before. A force stop with no process alive leaves no record (accepted). Checked on
+and 29 as before. A force stop with no process alive leaves no record (accepted). **Android 10** (API 29) has no exit records, so a force stop whose `PendingIntent`s survive (the 10–14 gap) shows no box (E10c; accepted, user, 2026-11-23). Checked on
 the Android 14 emulator (TP1f1, pipeline run 156, 2026-11-17): ten force stops with the process alive,
 `Detector: the alarms found gone` each time (six by the exit record, four with the `PendingIntent`s
 already gone), the box after a missed change; a Recents swipe and `am kill` only the records' line;

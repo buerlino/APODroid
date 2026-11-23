@@ -1502,6 +1502,16 @@ drag: `auto 0.21, sideways`. No crash.
 - **Files:** `scripts/sh4_run.py` (and `sh4_check.py` if the EXIF JPEG chroma FAIL needs the control inside it).
 - **Done when:** the script's 31 pixel cases run on `emulator-5554` and `emulator-5564` without a scratchpad copy.
 
+### [ ] L8T. L8f1's kill on the tablet after B35 (Sonnet, medium)
+
+The real-device case behind L8f1 (regression 12), on B35's tree (user, 2026-11-23, Opus pass 70): HA24BZ2Y
+(Android 15, ZUI), the split state (Live on home, a still on the lock screen), `lastRunAt` over 15 min old, one
+`run-as … kill -9`, then a run (`run -f 1`) 30 s and 5 min after. Read B35's log line `Live: home's id kept, Android
+names …, engine bound|none`. **Done when:** Live still on home after both runs (PASS); with `engine none` a `BUG:` line
+(a fix package then holds such a run while the id is kept). B35's rule kept (user, 2026-11-23).
+Also noted (user, 2026-11-23): the video still's "no frame" on the Android 10 emulator (E10g, 9 of 12) is left as is
+in the freeze, seen on the emulator only.
+
 ### [ ] CR2. A second code review, during the real week (Opus, high)
 
 As CR (three reviewers by area, blind to each other, each finding verified by a second agent; correctness only),

@@ -216,6 +216,7 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 109 | E10e | Android 10, the live map T21–T39, Q1–Q8 (`APODROID_TABLET=emulator-5554`) | rosie | opus, medium | no | B39 (E10d merged by hand, 2026-11-23) | release-0.10.0.md E10e |
 | 110 | E10f | Android 10, the pixels and the rest (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | B37 | release-0.10.0.md E10f |
 | 115 | E10g | Android 10, the cases E10b and E10c left (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | B38, B39 | release-0.10.0.md E10g |
+| 116 | L8T | L8f1's kill on the tablet after B35 (split state, `kill -9`, B35's log line) | rosie | sonnet, medium | no | B35 | release-0.10.0.md L8T |
 
 An Opus pass follows every three finished packages (MERGED or NOT MERGED; fix packages count), and the last one
 comes when no queue step can run.

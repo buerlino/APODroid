@@ -1533,7 +1533,7 @@ The candidate's release-signed build installed on each, LOG turned on, the setup
 then a week of real use with no adb. Each device covers a different part of the app, so together
 they cover every feature that runs by itself:
 
-| | FP6 (LineageOS, Android 16, the user's phone) | Tablet (Lenovo ZUI, Android 15) | Third (LineageOS, 14 or newer) |
+| | FP6 (LineageOS, Android 16, the user's phone) | Tablet (Lenovo ZUI, Android 15) | Jelly Star (Unihertz, LineageOS 20 GSI, Android 13, 480×854 at 220 dpi: 349 dp wide) |
 |---|---|---|---|
 | More NASA pictures | off (APOD mode) | on | on |
 | Where / the list | Both | Home: APOD, NASA, Earth; Lock: APOD alone (columns differ) | Both: Earth, NASA, APOD (a changed order) |

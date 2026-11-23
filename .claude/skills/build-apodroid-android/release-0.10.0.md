@@ -1126,6 +1126,21 @@ drag: `auto 0.21, sideways`. No crash.
   and `interactions/live.md`'s T21.
 - **Done when:** the fix and T21 again on the night's emulator (the code isn't version-specific).
 
+### [ ] B37. Keep pictures sharp's limited set comes out white on Android 10 (Sonnet, medium)
+
+- **Steps:** E10a's P34e: Android 10 emulator, Size Centre or Auto, "Keep pictures sharp" on, a 3:2 picture whose
+  limit bites (Fill would enlarge it over 2×), Set.
+- **Happened:** `files/debug-set.png` is white but for a strip about 120 px wide; the set's log line as expected
+  (", sharp ×2.00 (Fill ×…)"). Android 14 and 17 pass the same case.
+- **Should happen:** the limited frame drawn into its dest on the blurred or black background, as on 14.
+- **Fix (Opus pass 65; user, 2026-11-23):** `Drawing.kt`'s `limitedPicture` never decodes above the file's size: when
+  the scale is over 1, decode only the frame's crop at the file's own size (no `setTargetSize`) and let the filtered
+  `drawBitmap` into dest enlarge it. Suspected, not proven: Android 10's `ImageDecoder` mishandles `setTargetSize`
+  larger than the file together with `setCrop`. Check the same pattern elsewhere (`decodeFrame`, `wholePicture`'s
+  upscale of a small picture) and say in the report.
+- **Done when:** the fix, P34e again on `emulator-5554` (`sh4_run.py`'s Set path; its job path doesn't work on 10),
+  and SH4's limited cases unchanged on 14 by reading (the look the same).
+
 ### [ ] CR2. A second code review, during the real week (Opus, high)
 
 As CR (three reviewers by area, blind to each other, each finding verified by a second agent; correctness only),

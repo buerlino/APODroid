@@ -896,13 +896,66 @@ scoped storage (★, LOG's file), the video still's `MediaMetadataRetriever`, Ke
 without `specialUse`, the plain job 2, Live's id path (`live.homeId`) and the lock screen's Fill,
 the detector with no exit records. Every map that runs.
 
-### [ ] E10a. Android 10, the setup map (Sonnet, medium)
+### [x] E10a. Android 10, the setup map (Sonnet, medium)
 
 `interactions/setup.md`, section 2, the phone test list in full, in its order. Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at most 50 min. The rules:
 `interactions/tester-rules-emulator.md` with the serial `emulator-5554` instead of 5564; the cases of the E10 packages before it ran
 aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
+
+**Checked** (rosie, pipeline run 181, 2026-11-23, 00:57–01:35, `emulator-5554`, Android 10 (`apodroid-29`, QSR1.210820.001),
+dev's debug build 0.9.2 (the run's APK, `install -r` once); evidence in `.coord/runs/181-e10a/tablet/` (screenshots `p<n>-*.png`,
+`sh4/` results and PNGs, `backup/`, wallpaper dumps). The app was not installed at the start (a fresh install), so the map's baseline B0
+(daily on, More NASA pictures on, home NASA / lock APOD, Size Live by AOSP's picker, 6:00 AM, Skip it, Darken on) was built from the
+page first (it also ran P30's picker path once: dialog, AOSP's "Set wallpaper" › "Home screen", the log lines of the map). Dates: APOD
+22 Nov, NASA and Earth 20 Nov, 12 h clock. No crash (`logcat -b crash` empty; Android 10 has no `exit-info`). Toasts were never read
+(not in the log: the `Set:` lines, the status lines and the wallpaper ids stand for them).
+- **BUG:** Keep pictures sharp's limited set draws the frame wrongly on Android 10 when the frame is a crop of a wide picture. Steps:
+  Setup Size Centre or Auto, "Keep pictures sharp" on, a 3:2 APOD (made-up `w32_1500x1022` or `w32_900x600`, Fill ×2.35 / ×4) set by Set
+  (`scripts/sh4_run.py` copy, path `set`). Expected: `, sharp ×2.00 (Fill ×2.35)` and `files/debug-set.png` with the frame at twice the
+  file's scale. Got: the set is logged as expected, but `debug-set.png` is white except a strip about 120 px wide at the left edge (the
+  grid there at a period of 12–19 px, not 32), blurred bands above and below; `sh4_check` FAIL (scale −1.30 / −2.02, the picture seen at
+  540..541). The same pictures set without the switch (Auto and Centre) PASS, portrait `p23_400x600` with the switch (Fill ×4) PASS, and the
+  1764×1200 picture didn't bite (no `sharp` in the line). The same cases PASS on Android 14 (E14a, E14f), so the suspect is 10's `ImageDecoder`
+  with `setTargetSize` and then a crop (`Drawing.kt`'s `limitedPicture`, "the `limitedLayout`'s frame decoded alone, upright, straight to
+  its dest size"); the made-up pictures are PNG. Not narrowed further (time).
+- **PASS:** P0 (baseline; Earth's greyed dropdown "Both" (E0), stored Where "Both" (W0), no "my picture": AOSP's DocumentsUI opened empty,
+  Back kept "Skip it"; Keep running off), P1 (`NASA on HOME, auto 0.69, APOD on LOCK, auto 0.35`, no dialog, home ImageWallpaper, no " · Live"),
+  P2, P3 (no `Set:` line, ids unchanged, Setup closed; the handles and the Setup title tertiary, pixel-checked), P4 (Setup title untinted
+  after mode on; no `Set:` line; mode off showed Where "Home screen" highlighted), P5 (the dialog survived a rotation; ⓘ "Every 24 h from
+  6:00 AM, each screen switches to its next source in the list; a new order starts with the top one at 6:00 AM."), P6 (6 h back to 24 h),
+  P7 (summary "Home: NASA, Earth · Lock: APOD, Earth · every 24 h from 6:00 AM"), P8 (rows gone, no alarm, no job, Setup title untinted,
+  summary "Home: NASA, Earth · Lock: APOD, Earth"), P9 (`EARTH … on HOME+LOCK, auto 0.25`, one shared wallpaper, no alarms line, chip "On
+  wallpaper"), P10 (`Switch on: … EARTH … on HOME+LOCK`, "Changed 23 Nov, 1:06 AM · Earth", alarms 05:07:59Z; the tap on Set during the run did
+  nothing: the run took under a second, so "Set greyed" wasn't seen), P11, P12 (NASA's tick unchanged, APOD's dropdown greyed; the video
+  dropdown's greyed state not inspected), P13 (`APOD on LOCK` only, home id unchanged), P14, P15 (`APOD on HOME+LOCK`, no chip), P16 (lock got
+  its own id), P17 (NASA "Both" shown after mode on; Setup untinted before the Set), P18, P19 (Recents card and reopened page: Darken off tinted,
+  Setup tinted), P20 (one `MainActivity` record, draft kept), P22, P24 (`Set:` without `darker`; Setup closed on the rotated page), P25, P26
+  (alarm 01:22:59 = the next HH:15 + offset), P27 (Setup untinted after "Skip it" again), P28 (four quick taps: one `Switch on:` set, six
+  alarm lines, job 1), P29 (DocumentsUI, a pushed JPEG in Downloads picked: `fallback-draft.jpg` only, `fallback.jpg` never written; "Use my
+  picture" again: no picker), P30 (as the map; but the stored Where was "Home screen" since P15/P16 saved it with the mode off, so mode off
+  shows W0 "Both" highlighted, as on Android 14), P31 (no "Wide pictures sideways", no "Centre when unsure" under any Size; "Keep pictures
+  sharp" under Centre and Auto, gone under Live), P32 and P33 and P34e's logs by `sh4_run.py`'s Set path (4:1 galaxy Auto `, auto 1.00,
+  sideways, auto turn`; horizon text no `sideways`; 900×600 galaxy Centre upright, Auto `, auto 0.25, sideways, auto turn`, pill off upright,
+  Centre with the pill on `, sideways` without `auto turn`; 1500×1022 Auto without the switch `auto 1.00`, no `sharp`; the pixel checks PASS),
+  P34c (font scale 2.0: the bar pinned above the navigation bar, the last row above it; landscape two panes as P34d's screenshots; closed:
+  the button after the Setup row), P34d (dialog "A small picture is enlarged at most 2×; the rest of the screen shows it blurred."; on:
+  tertiary, kept after a rotation; gone under Live, off again under Auto), P35 (three segments, none wrapping, portrait and landscape),
+  P36 (Auto `auto 0.69` / `0.35`, `mCropHint` home 1463..2543; Centre no `auto`, 1060..2140; Auto again as the first).
+- **FAIL:** P34e (the limited set's pixels, the BUG above); its Centre and off steps PASS (Centre without `auto`, off without `sharp`).
+- **DIFFERENT:** P21 (Back, then the launcher: the draft was dropped, Setup closed, Darken on; as the map expects for 14 and 17).
+  P23 (the picker is in APODroid's own task on Android 10: `am start -n` with DocumentsUI on top only brought the task forward ("intent
+  delivered to the top-most instance"), no second page appeared, so the second-page steps couldn't run; Back from the picker returned
+  to the first page with Darken off highlighted and "Skip it").
+- **SKIPPED / not run:** P34a (the update from 0.8.0: no such build here), P33's ⛶ steps ("✓ Sideways" shown, the pill tapped off, ✓, the
+  `Part:` line: the pill's states ran by prefs only), P34 (NASA's 3000×1000 post: no such post), P34b (removed in 0.9.1), P32/P33/P34e by the
+  job path (see the next line), P10's Set-greyed and the toasts, real timing. **The job path of `sh4_run.py` doesn't run here as written:**
+  on 10 `run-as … kill -9` does nothing and `am force-stop` deletes job 1, and with the page started first the run set nothing
+  ("no set logged"); so P32, P33 and P34e ran by Set's path instead (the same drawing code; the job's own set paths ran in P1–P30).
+- **State at the end:** `pm clear` (the app was not installed at the start), the test photo and its MediaStore row deleted,
+  `accelerometer_rotation` 1, `user_rotation` 0, `font_scale` deleted (null), `auto_time` 1, network on, no alarm or job of the app;
+  `screen_off_timeout` untouched. The system wallpaper is an ImageWallpaper (the last still of the run).
 
 ### [ ] E10b. Android 10, the page map (Sonnet, medium)
 

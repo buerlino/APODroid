@@ -950,8 +950,9 @@ set it as wallpaper, and on video days kept the old wallpaper.
   upright size (`uprightSize`) in the orientation used, `Drawing.kt`'s `limitedPicture`: a bitmap of
   the screen's portrait size, the whole picture's background (`drawBackground`: black when
   `edgesBlack`, else `blurred`, the picture's middle in the screen's shape, as `drawWhole`), the
-  `limitedLayout`'s frame decoded alone, upright, straight to its dest size (`setTargetSize` then
-  the decoder's crop) and drawn into the dest, turned through `drawTurned` when sideways; measured
+  `limitedLayout`'s frame decoded alone, upright, at most the file's own size (the decoder's crop,
+  `setTargetSize` only when shrinking; B37: Android 10 came out white with a crop after an enlarging
+  `setTargetSize`; the filtered draw enlarges) and drawn into the dest, turned through `drawTurned` when sideways; measured
   as drawn (`topThirdGrey`, as the whole picture) and darkened (`darkened`); `setBitmap`, the hint
   all of it. The whole picture by `limitedFit` (`wholePicture`'s `limit`). When it doesn't bite
   every path is as before, byte for byte. The log's set line adds ", sharp ×2.00 (Fill ×2.43)"

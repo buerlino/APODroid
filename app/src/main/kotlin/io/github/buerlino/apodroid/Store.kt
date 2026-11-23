@@ -1822,9 +1822,11 @@ class Store(private val context: Context) {
     /**
      * Whether APODroid's live wallpaper is on [screen] (L1's table): home on Android 14+ when
      * `getWallpaperInfo(FLAG_SYSTEM)` names it or home's wallpaper id is the one noted while it
-     * did (L8f1 fix round 1: a rebind after a process death), below 14 when home's wallpaper id
-     * is the one the engine noted at its start (`live.homeId`: `getWallpaperInfo()` needs
-     * `QUERY_ALL_PACKAGES` there); `:core`'s [homeLive]. The lock screen only while home is and
+     * did (L8f1 fix round 1: a rebind after a process death), below 14 while a non-preview
+     * engine is bound in this process and wasn't let go ([LiveProcess.bound], B39:
+     * `getWallpaperInfo()` needs `QUERY_ALL_PACKAGES` there, and the id misleads both ways: a
+     * re-pick gives a new one with the engine still bound, a force stop keeps it with none left;
+     * home's id is noted then); `:core`'s [homeLive]. The lock screen only while home is and
      * the one engine is shared ([liveShared]).
      * The engine's own flags aren't asked (a stray on the lock screen says 3).
      */
@@ -1874,7 +1876,10 @@ class Store(private val context: Context) {
         val id = runCatching { manager.getWallpaperId(WallpaperManager.FLAG_SYSTEM) }.getOrDefault(-1)
         if (named) noteId(id)
         val noted = if (prefs.contains("live.homeId")) prefs.getInt("live.homeId", -1) else null
-        val home = homeLive(named, id, noted)
+        // B39: below 14 the engine bound in this process decides; a re-pick's new id is noted.
+        val engine = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) null else LiveProcess.bound != null
+        if (engine == true) noteId(id)
+        val home = homeLive(named, id, noted, engine)
         val shared = home && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
             runCatching { manager.getWallpaperId(WallpaperManager.FLAG_LOCK) == -1 }.getOrDefault(false)
         return LiveState(home, shared)
@@ -2008,6 +2013,8 @@ class Store(private val context: Context) {
     ): String {
         val flags = screens.fold(0) { flags, it -> flags or if (it == Screen.HOME) WallpaperManager.FLAG_SYSTEM else WallpaperManager.FLAG_LOCK }
         val manager = WallpaperManager.getInstance(context)
+        // B39: a still on home lets the engine go below 14 (Android destroys it a moment later), so liveOn says so at once.
+        if (Screen.HOME in screens && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) LiveProcess.bound = null
         val screen = screen
         val darken = factor == null && darken
         val fixed = factor

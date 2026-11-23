@@ -1040,12 +1040,18 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `Live: home isn't live (stray on the lock screen)` (14+, non-preview, at a visibility).
   **Is it on** (`Store.liveOn`, L1's table): home on 14+ when `getWallpaperInfo(FLAG_SYSTEM)`
   names `LiveWallpaper` or home's wallpaper id is the one noted while it did (L8f1's fix round 1,
-  A process death isn't a revert), below 14 when `getWallpaperId(FLAG_SYSTEM)` is the id a non-preview
-  engine noted at its start (`live.homeId`; untested, E), and again when the same live wallpaper
-  is picked again (R2a, 2026-11-15: Android 11–13 give a new id and send the engine
-  `COMMAND_REAPPLY`, `"android.wallpaper.reapply"`, hidden in the SDK, instead of a new engine;
-  `LiveEngine.onCommand` notes it and reloads, logged `Live: engine re-applied`; read from AOSP,
-  unchecked, E; Android 10 sends none, E10d on its emulator, 2026-11-23: a re-pick gives a new id with the engine still bound, so the next run takes Live for lost, its BUG on wp/e10d); the lock screen (`liveShared`) only on
+  A process death isn't a revert), **below 14 while a non-preview engine is bound in this process**
+  (B39 with B35's second sign on 10–13, 2026-11-23: `LiveProcess.bound`, set at the engine's
+  creation and re-apply, cleared at its destruction and by the app's own still set on home, before
+  Android destroys it; `:core`'s `homeLive` with `engine`; home's id noted then, `live.homeId`, but
+  not read): the id misleads both ways there. A re-pick of the same live wallpaper gives a new id
+  with the engine still bound (Android 10 sends no `COMMAND_REAPPLY`, E10d on its emulator: 156 →
+  158, so the id took the re-pick for lost Live; Android 11–13 send it, R2a, `"android.wallpaper.reapply"`,
+  hidden in the SDK, read from AOSP: `LiveEngine.onCommand` claims the engine again and reloads,
+  logged `Live: engine re-applied`), and a force stop keeps the id with no engine left (E10c: 131,
+  134, 135, so the id took a dropped Live for on). A process death's rebind creates the engine
+  again in the new process (night default: a run in a process that started before the rebind's
+  engine reads home not live, as after a force stop; the settling grace needs an engine too); the lock screen (`liveShared`) only on
   14+ while home is and `getWallpaperId(FLAG_LOCK)` is -1. The engine's flags aren't trusted.
   Each `Store.update` notes `live.shared` at its start while home is live. **`setDue`** (and
   ⛶'s ✓, `setPart`) splits the sets by `:core`'s `stillOrLive`: while home is live home's set

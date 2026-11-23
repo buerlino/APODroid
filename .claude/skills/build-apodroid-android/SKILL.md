@@ -92,7 +92,7 @@ packages unattended): `night.md`.
   an engine that became visible starts the alarms' run; `Store.screenOnRunOwed(stray)` with `Store.liveNoted`).
   L8f1: `liveReconnect` (15 s), `liveSettling(engine, processAge)` (a process with a non-preview engine younger than it:
   Android may be rebinding), `liveStray(homeLive, settling)` and `liveHolds(settling, lost)` (a run then sets nothing);
-  `homeLive(named, id, noted)` (fix round 1: home live by `getWallpaperInfo` or by its id unchanged since noted live).
+  `homeLive(named, id, noted, engine)` (fix round 1: home live by `getWallpaperInfo` or by its id unchanged since noted live; B39: below 14 `engine`, the engine bound in this process, decides alone, null on 14+).
   `core/.../Turn.kt`: `nextSource(ticked, after, hasPicture, order)` (the next ticked source in
   the list's order for which a test holds, from `after`'s place, ticked or not), `Rotation(order,
   from)` (OR1: the list's order and the anchor's date, `orderFrom`; `ordered(column)`; the
@@ -165,7 +165,7 @@ packages unattended): `night.md`.
   `copyForLive`, the records noted `wallpaperLive`; L6: `unnotedLive` forgets too, `lockFollowsHome` plans again; B27: when it still holds, the lock screen keeps what the engine draws, `liveFile` or `liveFallback()`, by a still `setFile` before the hand-over, its record kept), Live (L5): `size` (L6: the pref `size`, read by `sizeOf`, Auto by default since SA3a), `liveFile` (`files/live.jpg`),
   `liveWhole`, `liveSideways` (SW2, `live.sideways`), `liveDarken`, `livePicture` and `putLive` (the notes beside it), `copyForLive` (via `live.part`; returns
   a `LiveCopy`: the whole and sideways flags and, with `darken`, the factor and the grey measured once, BR3, turned when sideways; `liveNote` its log note), `liveFallback()` (no copy: home's first source's file, else APOD's), `liveAt(now)` (`livePosition` for
-  home's column), `liveOn(screen)`/`liveShared`/`liveState()` (L1's table; `live.homeId`, below 14 the engine's, on 14+ noted while `getWallpaperInfo` names it: `noteHomeId`, `liveNamed`, `noteId`), L8f1's
+  home's column), `liveOn(screen)`/`liveShared`/`liveState()` (L1's table; `live.homeId`, below 14 the engine's, on 14+ noted while `getWallpaperInfo` names it: `noteHomeId`, `liveNamed`, `noteId`; B39: below 14 home is live while `LiveProcess.bound`, the non-preview engine bound in this process, set at its creation and re-apply, cleared at its destruction and by `setFile` on home), L8f1's
   `liveSettling`/`liveSettlingLeft` (`LiveProcess.engine`, `LiveWallpaper.kt`, and the process's age; `setDue` holds
   by `liveHolds`, `LiveSettling` its failure),
   `noteShared()` (`live.shared` at `update`'s start while home is live), L6's `opensPicker(draft)` (a `PickerTrip`), `liveMissing`

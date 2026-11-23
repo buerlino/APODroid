@@ -704,12 +704,15 @@ Store.kt:1149) until Set (K17/K18) or the switch on.
 - Why: below 14 home is live while a non-preview engine is bound in this process (`LiveProcess.bound`,
   `:core`'s `homeLive` with `engine`), not by the id.
 
-**X11** (Android 10–13, B35's second sign) Stored Live, home live, `am force-stop`, then the page.
+**X11** (Android 10–13, B35's second sign; 14+ by B35 itself, E14c's P17: id 109 kept) Stored
+Live, home live, `am force-stop`, then the page.
 - Screen: both screens Fill at the page's load, "Live isn't on." (Android dropped Live; the id kept,
   E10c: 131/134/135).
 - Log: `Live: home isn't live, Fill on HOME+LOCK`.
+- Log on 14+ first: `Live: home's id kept, Android names <component|null>, engine none in this process`.
 - A `kill -9` instead (the process dies, Android rebinds): `Live: engine home created` in the new
-  process, Live stays, nothing set.
+  process, Live stays, nothing set (on 14+ the line above says `engine bound` while Android doesn't
+  name APODroid's: L8f1's split state on the tablet is the key case).
 
 ---
 

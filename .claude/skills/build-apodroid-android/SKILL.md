@@ -92,7 +92,7 @@ packages unattended): `night.md`.
   an engine that became visible starts the alarms' run; `Store.screenOnRunOwed(stray)` with `Store.liveNoted`).
   L8f1: `liveReconnect` (15 s), `liveSettling(engine, processAge)` (a process with a non-preview engine younger than it:
   Android may be rebinding), `liveStray(homeLive, settling)` and `liveHolds(settling, lost)` (a run then sets nothing);
-  `homeLive(named, id, noted, engine)` (fix round 1: home live by `getWallpaperInfo` or by its id unchanged since noted live; B39: below 14 `engine`, the engine bound in this process, decides alone, null on 14+).
+  `homeLive(named, id, noted, engine, idCounts)` (fix round 1: home live by `getWallpaperInfo` or by its id unchanged since noted live; B35: on 14+, `idCounts`, the id only while `engine`, a non-preview engine bound in this process; B39: below 14 `engine` decides alone). `Store.liveState` logs `Live: home's id kept, Android names …` on 14+ (B35's evidence).
   `core/.../Turn.kt`: `nextSource(ticked, after, hasPicture, order)` (the next ticked source in
   the list's order for which a test holds, from `after`'s place, ticked or not), `Rotation(order,
   from)` (OR1: the list's order and the anchor's date, `orderFrom`; `ordered(column)`; the

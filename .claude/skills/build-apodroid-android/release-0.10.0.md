@@ -1335,6 +1335,27 @@ The old APKs: `app/build/apodroid-v0.5.0.apk`, `-v0.7.0.apk` exist; **0.9.1's mu
 commit and signed with the candidate's key beforehand** (the user: it isn't tagged yet), else
 `install -r` refuses.
 
+**Checked** (rosie, pipeline run 195, 2026-11-23, `emulator-5564` only, Android 14, the candidate
+`app/build/apodroid-v0.10.0.apk`, sha256 8b6a93e3…, the same certificate as 0.5.0, 0.7.0 and 0.9.1's
+files, `apksigner`; each old version over fresh data, set up by the page, a job run, then `install -r` without
+opening the page; evidence in `.coord/runs/195-up/tablet/`, `050-`, `070-`, `091-`): **no FAIL, no crash**
+(`logcat -b crash` empty, exit-info only `PACKAGE UPDATED`). **0.5.0** (daily on, APOD + NASA, 6 h): the log's
+`Migrated from 0.5.0: Migration(write={allSources=true, home=APOD,NASA, lock=APOD,NASA, …` once, then
+`MY_PACKAGE_REPLACED, arming again`, the pair in `dumpsys alarm` (codes 1 and 2); the left keys `sources`,
+`turnStartedAt` stay, no `size`; wallpaper ids unchanged and nothing set (the update's own job 1 run, the fallback's
+timing differs from 0.5.0's, found only `same post`; the NASA picture replaced by its smaller original, SH2b's
+once-per-post probe); page: Setup summary "APOD, NASA · both screens · every 6 h from 6:00 AM", "More NASA pictures"
+on, Size Auto, no highlight, no detector box, the pause hint (this emulator is Optimized: right); Set set APOD, the job
+ran. **0.7.0** (Live on home and the lock screen, order NASA, APOD, 12 h): the same arming; `size` LIVE, `order`,
+`orderFrom`, `live.homeId` 5 kept, the prefs differ only by the new notes (`alt`, `subject…`, `sizeChecked`, `armed…`),
+wallpaper id 5 and the live component unchanged, nothing set, the engine back in the new process (`engine 3 created`;
+about 0.2 s of `drew black (nothing)` before its first picture, L9a's known frame); page: "NASA, APOD · both screens ·
+every 12 h from 6:00 AM · Live", Size Live selected, no "Live isn't on", order kept, no highlight; Set: `wallpaper shown
+live`, the job ran. **0.9.1** (Centre, sharp on, As soon as it's out, 6 h): arming, prefs identical but the arming notes,
+wallpaper id 7 unchanged, nothing set; page: "APOD, NASA · both screens · every 6 h from 6:00 AM", no box; Set and the
+job ran. Not run: `foldRunGoing` (neither old version leaves a `runGoing`, which only 0.6.0 wrote), `apodroid-37`
+(next night), the page's Setup rows of 0.5.0 beyond the summary.
+
 ### [ ] B30. ⛶'s "Whole picture" preview let go in `onStop` (Sonnet, medium)
 
 From CR (`review-0.10.0-cr.md`, finding 2). (B29, the CR's finding 1, shipped as 0.9.2.)

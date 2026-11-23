@@ -1822,7 +1822,9 @@ class Store(private val context: Context) {
     /**
      * Whether APODroid's live wallpaper is on [screen] (L1's table): home on Android 14+ when
      * `getWallpaperInfo(FLAG_SYSTEM)` names it or home's wallpaper id is the one noted while it
-     * did (L8f1 fix round 1: a rebind after a process death), below 14 while a non-preview
+     * did while a non-preview engine is bound in this process (L8f1 fix round 1: a rebind after
+     * a process death keeps the id and binds the engine again; B35: a force stop keeps the id
+     * and leaves none), below 14 while a non-preview
      * engine is bound in this process and wasn't let go ([LiveProcess.bound], B39:
      * `getWallpaperInfo()` needs `QUERY_ALL_PACKAGES` there, and the id misleads both ways: a
      * re-pick gives a new one with the engine still bound, a force stop keeps it with none left;
@@ -1876,13 +1878,31 @@ class Store(private val context: Context) {
         val id = runCatching { manager.getWallpaperId(WallpaperManager.FLAG_SYSTEM) }.getOrDefault(-1)
         if (named) noteId(id)
         val noted = if (prefs.contains("live.homeId")) prefs.getInt("live.homeId", -1) else null
+        val fourteen = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
         // B39: below 14 the engine bound in this process decides; a re-pick's new id is noted.
-        val engine = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) null else LiveProcess.bound != null
-        if (engine == true) noteId(id)
-        val home = homeLive(named, id, noted, engine)
+        // B35: on 14+ the kept id counts only while it's bound (a force stop keeps the id, no engine).
+        val engine = LiveProcess.bound != null
+        if (engine && !fourteen) noteId(id)
+        val home = homeLive(named, id, noted, engine, idCounts = fourteen)
+        if (fourteen && !named && id > 0 && id == noted) logKeptId(manager, engine)
         val shared = home && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
             runCatching { manager.getWallpaperId(WallpaperManager.FLAG_LOCK) == -1 }.getOrDefault(false)
         return LiveState(home, shared)
+    }
+
+    /**
+     * B35's evidence (14+): home's id is the one noted live while `getWallpaperInfo(FLAG_SYSTEM)`
+     * doesn't name APODroid's (L8f1's rebind, or a force stop): logs what it names instead and
+     * whether an engine is bound in this process, once per process for each answer.
+     */
+    private fun logKeptId(manager: WallpaperManager, engine: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+        val info = runCatching { manager.getWallpaperInfo(WallpaperManager.FLAG_SYSTEM)?.component?.flattenToShortString() ?: "null" }
+            .getOrElse { "failed: ${it.javaClass.simpleName}" }
+        val line = "Live: home's id kept, Android names $info, engine ${if (engine) "bound" else "none"} in this process"
+        if (LiveProcess.keptIdLogged == line) return
+        LiveProcess.keptIdLogged = line
+        AppLog.i(line)
     }
 
     /**

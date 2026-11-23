@@ -349,8 +349,14 @@ or days of time.
   revert). Next run: `Live: home isn't live, Fill on HOME+LOCK`, both set still, status line
   "Live isn't on. Set as wallpaper turns it on.". Phone: only with a force stop and its restore
   through Set's picker (P17, optional, ask the user). Unit: `homeLostLiveForgetsBothAndSetsBothStill`.
+  A force stop keeps home's id (Android 14: 109, Android 10: 131) and leaves no engine in the new
+  process, so home's kept id counts only while a non-preview engine is bound there (B35 on 14+, B39
+  on 10–13); on 14+ a line `Live: home's id kept, Android names <component|null>, engine none in this
+  process` comes first (once per process for each answer). Unit: `fourteenAKeptIdWithNoEngineIsNotLive`.
 - **G7 One process death with Live on (L8f1).** Android rebinds the engine in a new process:
-  `Live: engine 1 created` (new pid); home stays live by name or by the unchanged id; no `Fill on`,
+  `Live: engine 1 created` (new pid); home stays live by name or by the unchanged id with the
+  engine bound in the new process (B35; on 14+ `Live: home's id kept, Android names …, engine
+  bound in this process` while Android doesn't name it); no `Fill on`,
   no `stray` line, not then, not after the 15 s grace, not at the next screen-on. Phone: **yes,
   key test on Android 16** (P6). Unit: `aKillInTheSplitStateAfterTheGraceIsNoLoss`,
   `homesUnchangedIdKeepsItLive`.

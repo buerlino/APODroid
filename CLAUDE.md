@@ -1039,8 +1039,13 @@ set it as wallpaper, and on video days kept the old wallpaper.
   `Live: decoded <w>×<h> in <n> ms`, `Live: drew <picture> p=<0.00> in <n> ms`, and a stray's
   `Live: home isn't live (stray on the lock screen)` (14+, non-preview, at a visibility).
   **Is it on** (`Store.liveOn`, L1's table): home on 14+ when `getWallpaperInfo(FLAG_SYSTEM)`
-  names `LiveWallpaper` or home's wallpaper id is the one noted while it did (L8f1's fix round 1,
-  A process death isn't a revert), **below 14 while a non-preview engine is bound in this process**
+  names `LiveWallpaper` or home's wallpaper id is the one noted while it did **and a non-preview
+  engine is bound in this process** (L8f1's fix round 1, A process death isn't a revert: the rebind
+  binds it again; B35, 2026-11-23: a force stop keeps home's id there too, E14c's P17 on the Android
+  14 emulator: 109, and leaves no engine; a stray on the lock screen is bound but home's id is new;
+  `:core`'s `homeLive` with `idCounts`; while the id is kept and Android doesn't name it, logged once
+  per process and answer `Live: home's id kept, Android names <component|null>, engine bound|none in
+  this process`, the evidence the tablet's L8f1 kill was to give first), **below 14 while a non-preview engine is bound in this process**
   (B39 with B35's second sign on 10–13, 2026-11-23: `LiveProcess.bound`, set at the engine's
   creation and re-apply, cleared at its destruction and by the app's own still set on home, before
   Android destroys it; `:core`'s `homeLive` with `engine`; home's id noted then, `live.homeId`, but
@@ -1051,7 +1056,7 @@ set it as wallpaper, and on video days kept the old wallpaper.
   logged `Live: engine re-applied`), and a force stop keeps the id with no engine left (E10c: 131,
   134, 135, so the id took a dropped Live for on). A process death's rebind creates the engine
   again in the new process (accepted, user, 2026-11-23, Opus pass 68: a run in a process that started before the rebind's
-  engine reads home not live, as after a force stop, and sets stills on both screens; the settling grace needs an engine too); the lock screen (`liveShared`) only on
+  engine reads home not live, as after a force stop, and sets stills on both screens; the settling grace needs an engine too; on 14+ too since B35 while Android doesn't name it); the lock screen (`liveShared`) only on
   14+ while home is and `getWallpaperId(FLAG_LOCK)` is -1. The engine's flags aren't trusted.
   Each `Store.update` notes `live.shared` at its start while home is live. **`setDue`** (and
   ⛶'s ✓, `setPart`) splits the sets by `:core`'s `stillOrLive`: while home is live home's set

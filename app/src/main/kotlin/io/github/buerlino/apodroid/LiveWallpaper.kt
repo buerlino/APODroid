@@ -50,10 +50,15 @@ internal object LiveProcess {
      * B39: the non-preview engine bound in this process now, null when none or let go: set at its
      * creation and re-apply, cleared at its destruction and by the app's own still set on home
      * (`Store.setFile`; Android destroys the engine a moment later). Below 14 it alone says
-     * whether home is live (`Store.liveOn`, `:core`'s `homeLive`).
+     * whether home is live, on 14+ (B35) home's kept id counts only while it's set
+     * (`Store.liveOn`, `:core`'s `homeLive`).
      */
     @Volatile
     var bound: Any? = null
+
+    /** B35: the last `Live: home's id kept, …` line logged in this process (once per answer). */
+    @Volatile
+    var keptIdLogged: String? = null
 }
 
 class LiveWallpaper : WallpaperService() {

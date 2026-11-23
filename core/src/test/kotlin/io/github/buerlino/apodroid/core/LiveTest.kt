@@ -691,19 +691,19 @@ class LiveTest {
 
     @Test
     fun homesUnchangedIdKeepsItLive() {
-        assertTrue(homeLive(named = true, id = 1499, noted = 1499, engine = null))
-        assertTrue(homeLive(named = true, id = 1499, noted = null, engine = null), "Android says so: no id needed")
-        assertTrue(homeLive(named = false, id = 1499, noted = 1499, engine = null), "a rebind keeps the id")
-        assertFalse(homeLive(named = false, id = 1501, noted = 1499, engine = null), "a revert, a still set or another pick: a new id")
-        assertFalse(homeLive(named = false, id = 1499, noted = null, engine = null), "never noted live")
-        assertFalse(homeLive(named = false, id = -1, noted = -1, engine = null), "a failed read never matches")
-        assertFalse(homeLive(named = false, id = 0, noted = 0, engine = null))
+        assertTrue(homeLive(named = true, id = 1499, noted = 1499, engine = true, idCounts = true))
+        assertTrue(homeLive(named = true, id = 1499, noted = null, engine = true, idCounts = true), "Android says so: no id needed")
+        assertTrue(homeLive(named = false, id = 1499, noted = 1499, engine = true, idCounts = true), "a rebind keeps the id")
+        assertFalse(homeLive(named = false, id = 1501, noted = 1499, engine = true, idCounts = true), "a revert, a still set or another pick: a new id")
+        assertFalse(homeLive(named = false, id = 1499, noted = null, engine = true, idCounts = true), "never noted live")
+        assertFalse(homeLive(named = false, id = -1, noted = -1, engine = true, idCounts = true), "a failed read never matches")
+        assertFalse(homeLive(named = false, id = 0, noted = 0, engine = true, idCounts = true))
     }
 
     @Test
     fun aKillInTheSplitStateAfterTheGraceIsNoLoss() {
         // Rosie's 01:38 run: Live on home, the lock screen still (split), one kill, the run 30 s on.
-        val home = homeLive(named = false, id = 1499, noted = 1499, engine = null)
+        val home = homeLive(named = false, id = 1499, noted = 1499, engine = true, idCounts = true)
         val settling = liveSettling(engine = true, processAge = Duration.ofSeconds(30))
         assertFalse(liveStray(home, settling), "no stray at the grace's end")
         assertFalse(owed(stray = liveStray(home, settling), notedLive = true))
@@ -715,7 +715,7 @@ class LiveTest {
 
     @Test
     fun decision12sRevertGivesANewIdAndFill() {
-        val home = homeLive(named = false, id = 1501, noted = 1499, engine = null)
+        val home = homeLive(named = false, id = 1501, noted = 1499, engine = true, idCounts = true)
         assertTrue(liveStray(home, settling = false))
         assertEquals(setOf(HOME, LOCK), lostLive(true, true, homeLive = home, shared = false, sharedNote = true, lockColumn = true).forget)
     }
@@ -725,22 +725,42 @@ class LiveTest {
     @Test
     fun belowFourteenARepickWithTheEngineBoundStaysLive() {
         // E10d: the chooser's "Home screen" over a live home: id 156 → 158, the same engine bound, no re-apply.
-        assertTrue(homeLive(named = false, id = 158, noted = 156, engine = true))
-        assertEquals(LostLive(), lostLive(homeNoted = true, lockNoted = false, homeLive = homeLive(false, 158, 156, engine = true), shared = false, sharedNote = false, lockColumn = true))
+        assertTrue(homeLive(named = false, id = 158, noted = 156, engine = true, idCounts = false))
+        assertEquals(LostLive(), lostLive(homeNoted = true, lockNoted = false, homeLive = homeLive(false, 158, 156, engine = true, idCounts = false), shared = false, sharedNote = false, lockColumn = true))
     }
 
     @Test
     fun belowFourteenAKeptIdWithNoEngineIsNotLive() {
         // E10c: a force stop keeps home's id (131) and leaves no engine in the new process.
-        assertFalse(homeLive(named = false, id = 131, noted = 131, engine = false))
-        assertEquals(setOf(HOME, LOCK), lostLive(true, false, homeLive = homeLive(false, 131, 131, engine = false), shared = false, sharedNote = false, lockColumn = true).forget)
+        assertFalse(homeLive(named = false, id = 131, noted = 131, engine = false, idCounts = false))
+        assertEquals(setOf(HOME, LOCK), lostLive(true, false, homeLive = homeLive(false, 131, 131, engine = false, idCounts = false), shared = false, sharedNote = false, lockColumn = true).forget)
         // The app's own still set lets the engine go before Android destroys it: a new id, not live.
-        assertFalse(homeLive(named = false, id = 160, noted = 158, engine = false))
+        assertFalse(homeLive(named = false, id = 160, noted = 158, engine = false, idCounts = false))
     }
 
     @Test
     fun fourteenAndUpStillGoByNameAndId() {
-        assertTrue(homeLive(named = false, id = 1499, noted = 1499, engine = null))
-        assertFalse(homeLive(named = false, id = 1501, noted = 1499, engine = null))
+        assertTrue(homeLive(named = false, id = 1499, noted = 1499, engine = true, idCounts = true))
+        assertFalse(homeLive(named = false, id = 1501, noted = 1499, engine = true, idCounts = true))
+    }
+
+    // B35: on 14+ a force stop keeps home's id too (E14c's P17: 109) and leaves no engine in the new process.
+
+    @Test
+    fun fourteenAKeptIdWithNoEngineIsNotLive() {
+        assertFalse(homeLive(named = false, id = 109, noted = 109, engine = false, idCounts = true), "a force stop: the id kept, no engine")
+        assertEquals(
+            setOf(HOME, LOCK),
+            lostLive(true, false, homeLive = homeLive(false, 109, 109, engine = false, idCounts = true), shared = false, sharedNote = false, lockColumn = true).forget,
+            "both screens Fill (Decision 12)",
+        )
+        // No engine means no grace: the run sets, it doesn't hold.
+        assertFalse(liveSettling(engine = false, processAge = Duration.ofSeconds(5)))
+        // L8f1's kill: the rebind binds the engine again in the new process, the id kept: still live.
+        assertTrue(homeLive(named = false, id = 1499, noted = 1499, engine = true, idCounts = true))
+        // A stray on the lock screen after home's revert is bound too, but home has a new id.
+        assertFalse(homeLive(named = false, id = 1501, noted = 1499, engine = true, idCounts = true))
+        // Android naming APODroid's needs neither.
+        assertTrue(homeLive(named = true, id = 109, noted = 99, engine = false, idCounts = true))
     }
 }

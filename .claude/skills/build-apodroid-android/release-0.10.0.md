@@ -658,7 +658,7 @@ never read (the log, prefs and dumps stand for them).
   E14a), S2a (the map's SUSPECT: after the row was deleted by adb ★ stayed filled, a tap saved nothing, Home and reopen: ☆),
   BP2 (Dismiss on APOD, Earth, then NASA: APOD's page shows NASA's box, the next candidate not dismissed, as CLAUDE.md says; each
   source's own Dismiss held).
-- **Not run:** S4/S4a (no original of several MB here), P2 (a browser exists), O2/R5 (a pull on each pane in landscape),
+- **Not run:** S4/S4a (no original of several MB here), P2 (a browser exists), O2/R5 (a pull on each pane in landscape; left for time, not run),
   K24, K24a–c and K34, K34a–d (faked 3000×1000 and 1500×1022 pictures: E14a ran them with `sh4_run.py`, P32, P33, P34e), K16b,
   K26 (a part from before 0.9.0), K27's "Centre keeps the middle" beyond K30's Set, real timing. P3e (the next post), P3b.
 - **State at the end:** same setup as built (home NASA, lock APOD, Live on home (id 90 shared engine), `size` LIVE, daily on, Keep
@@ -957,7 +957,7 @@ page first (it also ran P30's picker path once: dialog, AOSP's "Set wallpaper" �
   `accelerometer_rotation` 1, `user_rotation` 0, `font_scale` deleted (null), `auto_time` 1, network on, no alarm or job of the app;
   `screen_off_timeout` untouched. The system wallpaper is an ImageWallpaper (the last still of the run).
 
-### [x] E10b. Android 10, the page map (Sonnet, medium)
+### [ ] E10b. Android 10, the page map (Sonnet, medium)
 
 `interactions/page.md`, sections 3 (the prioritized list) and 4 (0.8.0's emulator cases), with K31b (B32); on 10:
 ★ through `MediaStore` (scoped storage, S4a), the video still's `MediaMetadataRetriever` (a faked video day with a real
@@ -1005,9 +1005,12 @@ twice, 12 s apart, as SKILL.md says for Live.
   as the package says); the second file gave a frame, so this one is the file or Android 10's decoder, not the code path (not narrowed).
 - **Not run / SKIPPED:** O2/R5 (a pull on each pane in landscape), C8's expanded explanation in landscape (the left pane's node wasn't found in the dump; the
   credit stayed whole), A2's "Advanced stays open" after the rotation back to portrait (it was open in landscape and closed in portrait, not read again), P2 (a
-  browser exists), S4's "Still saving" toast, K16b, K24 and K24a–c (Auto's turn on a faked 3000×1000: E10a ran them as P32/P33), K26 (no part from before 0.9.0),
-  K34a–d beyond the frame (the faked 1500×1022 and 300×200 pictures, the drag ✓ `, sharp ×2.00`, the Whole preview at 2×: E10a's P34e found the BUG on 10 for
-  such a set; Earth's real 1440×960 file is on no screen here, so no set bit), P3b, P3e, real timing.
+  browser exists), S4's "Still saving" toast, K16b (left for time, not run), K24 and K24a–c (Auto's turn on a faked 3000×1000: E10a ran them as P32/P33), K26 (no part from before 0.9.0),
+  K34a–d beyond the frame (the faked 1500×1022 and 300×200 pictures, the drag ✓ `, sharp ×2.00`, the Whole preview at 2×: E10a's P34e BUG (Keep pictures sharp's limited set
+  white on 10) was found before this run and B37 (merged into dev, 48ca5b7's parent) is its fix, so the bug is fixed in code but not yet re-tested on 10 here; Earth's real
+  1440×960 file is on no screen here, so no set bit), P3b and P3e (left for time, not run), real timing.
+- **Not done (round 1):** O2/R5's landscape pulls, K16b, P3b and P3e were left for time, not for an Android 10 reason; the package is therefore not done and
+  stays unticked. A later pass runs these four and K34a–d once B37 is re-tested on 10.
 - **State at the end:** same setup as built (home NASA, lock APOD, Size Live by the picker again (ids 131/132, engine on home), daily on, More NASA pictures on, "Keep
   pictures sharp" off, Keep running off, Save every off, 20 MB), gallery rows of S1a, S3 and S4 deleted, `accelerometer_rotation` 1, `user_rotation` 0,
   `auto_time` 1, `font_scale` 1.0 (as found), airplane mode off, network checked, `debug-*.png` and the video fake removed, Earth's stored part removed;

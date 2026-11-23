@@ -888,7 +888,7 @@ by hand PASS** (the large picture, below). No `BUG:`.
   as found; the app force-stopped (its alarms arm at the next start). **Not restored: Live on home** (it needs Android's picker; home and lock
   are one ImageWallpaper, id 328, the setup says Size Live, so the page shows "Live isn't on" until a Set picks it).
 
-### [ ] E10. Android 10, every map (`apodroid-29`, `emulator-5554`; Sonnet, medium)
+### [x] E10. Android 10, every map (`apodroid-29`, `emulator-5554`; Sonnet, medium)
 
 E1a and E1b with the 10 row of "The levels": the crop code's aspect fix (tall and wide pictures,
 numbered rows), the decoder and EXIF (Auto's subject on an EXIF-6 and EXIF-8 photo), DocumentsUI,
@@ -957,7 +957,7 @@ page first (it also ran P30's picker path once: dialog, AOSP's "Set wallpaper" â
   `accelerometer_rotation` 1, `user_rotation` 0, `font_scale` deleted (null), `auto_time` 1, network on, no alarm or job of the app;
   `screen_off_timeout` untouched. The system wallpaper is an ImageWallpaper (the last still of the run).
 
-### [ ] E10b. Android 10, the page map (Sonnet, medium)
+### [x] E10b. Android 10, the page map (Sonnet, medium)
 
 `interactions/page.md`, sections 3 (the prioritized list) and 4 (0.8.0's emulator cases), with K31b (B32); on 10:
 â˜… through `MediaStore` (scoped storage, S4a), the video still's `MediaMetadataRetriever` (a faked video day with a real
@@ -1017,7 +1017,7 @@ twice, 12 s apart, as SKILL.md says for Live.
   `auto_time` 1, `font_scale` 1.0 (as found), airplane mode off, network checked, `debug-*.png` and the video fake removed, Earth's stored part removed;
   `screen_off_timeout` untouched (2147483647 as found). The app is installed (it was at the start) and not force-stopped.
 
-### [ ] E10c. Android 10, the background map (Sonnet, medium)
+### [x] E10c. Android 10, the background map (Sonnet, medium)
 
 `interactions/background.md`, "Phone test list" with a stepped clock; real timing (Doze, buckets) SKIPPED;
 `am kill` with Keep running off (no detector box); the week log over a stale `log.txt` row (B31). On 10: job 2 a plain

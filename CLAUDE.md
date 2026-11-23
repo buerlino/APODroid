@@ -1050,8 +1050,8 @@ set it as wallpaper, and on video days kept the old wallpaper.
   hidden in the SDK, read from AOSP: `LiveEngine.onCommand` claims the engine again and reloads,
   logged `Live: engine re-applied`), and a force stop keeps the id with no engine left (E10c: 131,
   134, 135, so the id took a dropped Live for on). A process death's rebind creates the engine
-  again in the new process (night default: a run in a process that started before the rebind's
-  engine reads home not live, as after a force stop; the settling grace needs an engine too); the lock screen (`liveShared`) only on
+  again in the new process (accepted, user, 2026-11-23, Opus pass 68: a run in a process that started before the rebind's
+  engine reads home not live, as after a force stop, and sets stills on both screens; the settling grace needs an engine too); the lock screen (`liveShared`) only on
   14+ while home is and `getWallpaperId(FLAG_LOCK)` is -1. The engine's flags aren't trusted.
   Each `Store.update` notes `live.shared` at its start while home is live. **`setDue`** (and
   ⛶'s ✓, `setPart`) splits the sets by `:core`'s `stillOrLive`: while home is live home's set

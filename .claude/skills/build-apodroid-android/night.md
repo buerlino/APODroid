@@ -203,7 +203,7 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 100 | E14d | Android 14, the live map T01–T20 (`APODROID_TABLET=emulator-5564`) | rosie | opus, medium | no | E14a | release-0.10.0.md E14d |
 | 101 | E14e | Android 14, the live map T21–T39, Q1–Q8 (`APODROID_TABLET=emulator-5564`) | rosie | opus, medium | no | E14d | release-0.10.0.md E14e |
 | 102 | E14f | Android 14, the pixels and the rest (`APODROID_TABLET=emulator-5564`) | rosie | sonnet, medium | no | B34, E14a | release-0.10.0.md E14f |
-| 103 | B35 | A force stop on Android 14 keeps home's id (14+; 10–13 by B39): the tablet's L8f1 check first, then `homeLive` by it | winston | opus, medium | yes | E14c, the user (the tablet connected) | release-0.10.0.md B35 |
+| 103 | B35 | A force stop on Android 14 keeps home's id (14+; 10–13 by B39): the tablet's L8f1 check first, then `homeLive` by it | winston | opus, medium | yes | — (the tablet connected: 2026-11-23) | release-0.10.0.md B35 |
 | 104 | B36 | A stacked page's `onResume` no longer ends Set's wait for the picker (T21 on the night's emulator) | winston | sonnet, medium | yes | — (E14e merged by hand, 2026-11-22) | release-0.10.0.md B36 |
 | 105 | E10a | Android 10, the setup map (`APODROID_TABLET=emulator-5554`) | rosie | sonnet, medium | no | — (emulator-5554 started wiped: done 2026-11-23) | release-0.10.0.md E10a |
 | 111 | B37 | Keep pictures sharp's limited set never decodes above the file's size (white on Android 10; P34e on the night's emulator) | winston | sonnet, medium | yes | — (E10a merged by hand, 2026-11-23) | release-0.10.0.md B37 |

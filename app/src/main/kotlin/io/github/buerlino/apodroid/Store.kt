@@ -1896,6 +1896,7 @@ class Store(private val context: Context) {
      * whether an engine is bound in this process, once per process for each answer.
      */
     private fun logKeptId(manager: WallpaperManager, engine: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
         val info = runCatching { manager.getWallpaperInfo(WallpaperManager.FLAG_SYSTEM)?.component?.flattenToShortString() ?: "null" }
             .getOrElse { "failed: ${it.javaClass.simpleName}" }
         val line = "Live: home's id kept, Android names $info, engine ${if (engine) "bound" else "none"} in this process"

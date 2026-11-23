@@ -1049,7 +1049,7 @@ aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
 
-### [ ] E10f. Android 10, the pixels and the rest (Sonnet, medium)
+### [x] E10f. Android 10, the pixels and the rest (Sonnet, medium)
 
 SH4's pixel checks (`sharp-0.9.0-sh4.md`, Testing 2; `scripts/sh4_check.py` and `sh4_run.py`) on Centre,
 Auto, Whole, Sideways and the limited set, both screens, through 10's `generateCrop` (its aspect fix: tall and wide
@@ -1061,6 +1061,46 @@ open. Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at 
 aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
+
+**Checked** (rosie, pipeline run 186, 2026-11-23, 10:13–10:34 by the emulator's clock, `emulator-5554`, Android 10 (`apodroid-29`), dev's debug build 0.9.2,
+`install -r` over E10b's install; evidence in `.coord/runs/186-e10f/tablet/`: `sh4/`, `exif/`, `large/`, `m0/` (results.jsonl, the pulled `debug-set.png`
+in `png/`, the system's cropped wallpaper JPEGs in `wp/`), screenshots, `backup/` (the start's prefs, `files/`, wallpaper dump). **No crash**
+(`logcat -b crash` empty), **no FAIL of the app, no `BUG:`.** The pixel cases ran by Set's path (the job path of `sh4_run.py` doesn't run on 10, E10a): a copy of
+the scripts in the scratchpad with `am force-stop` for the kill, two extra tall pictures (600×2400, 1000×3000: none of `sh4_pictures.py`'s is taller than the
+screen) and, for the plain `setStream` cases, a read of Android 10's cropped wallpaper (`/data/system/users/0/wallpaper`, a JPEG written by `generateCrop`, via
+`adb root`, decoded on the host by a Java `ImageIO` helper; the source rows and columns from a line fitted to the B and R gradients).
+- **PASS:** the pixels, 31 cases of `sh4_run.py`, all PASS by its own judge: Centre and Auto on 2:3 (400×600), 0.45 (2160×4800), tall (600×2400, 1000×3000),
+  3:2 (1500×1022, 900×600), 4:1 (2400×600), square 1200 (the plain path: crop hint = the frame, no `debug-set.png`); Whole (1500×1022, 400×600, 600×2400);
+  the limited set (400×600 Centre and Auto `sharp ×2.00 (Fill ×4.00)`, 900×600 Centre, 640×480 `Fill ×5.00`, 1200×300 sideways `Fill ×3.60`, 1500×1022 Auto
+  `, auto 1.00, sharp ×2.00 (Fill ×2.35)` with the grid at twice the file's scale: **B37's case, PASS on 10 again**); Auto's turn (`auto 0.00, sideways, auto turn`,
+  4:1 `auto 1.00, sideways, auto turn`), the pill on under Centre (`, sideways`), dragged parts at 0.0 and 1.0; Home alone, Lock alone and Both.
+  **The aspect fix of `generateCrop`:** the system's cropped wallpaper is 1080×2400 in every plain case and shows the frame's own rows and columns: wide
+  pictures all rows and the middle columns (400×600: columns 64..334 of 400, rows −1..599; 1500×1022: 520..979, rows −1..1019; 2400×600: 1064..1334; 900×600:
+  314..584), tall ones all columns and the middle rows (600×2400: rows 533..1866 of 2400, the frame is 533..1867; 1000×3000: 389..2608, the frame 389..2611), the
+  0.45 picture (2160×4800) all of it within 0.4%, the square 330..868 of 1200 (the frame 330..870).
+- **PASS:** Auto's subject on 10's `ImageDecoder` with EXIF photos (JPEG q 100 made from the numbered picture, turned and tagged 6 and 8; upright 1200×800 and
+  800×1200): `Subject: APOD 2026-11-24 p=1.00 (sideways 0.29) (sharp 1.00) in 247 ms` for both landscape photos and `p=0.79 in 126 ms` for both portrait ones
+  (so the photos were decoded upright, EXIF 6 and 8 alike); the sets `auto 0.29, sideways, auto turn` and `auto 0.79`, crop hint 204..744 × 0..1200 for the
+  portrait ones. The frame's rows: portrait columns 207..733 of 800, all rows; the sideways band (its edge rows 701..188 of 800, the same as a no-EXIF JPEG of
+  the same content, 700..188, where the frame is 726..186: the 4% deviation is the lossy JPEG source's chroma, not the orientation). `sh4_check.py` FAILs
+  these (scale 2.03 for 2.0, frame off by 12–30 px) for the same reason, also for the no-EXIF JPEG control: its gradients need a lossless source. DIFFERENT
+  only in that: the cases are PASS by the control.
+- **PASS:** the large picture (a faked PNG 4455×5592, 49 MB, random noise; decodes to 99.6 MB): Centre, Auto (`Subject: … p=0.52 in 461 ms`, `auto 0.52`) and
+  Auto with the switch and Whole (`debug-whole.png`, `debug-set.png` written) set on HOME+LOCK, no out-of-memory, no crash. The pixel judge doesn't apply (noise).
+- **PASS:** `install -r` with Keep running on (switch on in Advanced: `KeepRunning` `isForeground=true`, channel `keep`): after the install the service is foreground again
+  (a new record), `MY_PACKAGE_REPLACED, arming again`, `alarms for 2026-11-24T05:05:20Z`, the pair in `dumpsys alarm`, job 1 present, `keepRunning` and `daily` kept,
+  no crash.
+- **PASS:** setup S3 (P29): "If APOD is a video" › "Use my picture" opened AOSP's DocumentsUI (`com.android.documentsui/.picker.PickActivity`, "Downloads", "IMAGES ON
+  DOWNLOADS"); the pushed JPEG picked: `fallback-draft.jpg` written (862,105 B), `fallback.jpg` not; back to "Skip it" and Set: `fallback.jpg` still absent; "Use my
+  picture" again: no picker, "Change picture" shown (the draft's pick); "Skip it" again.
+- **PASS:** M0's home/lock sequence on 10 (`dumpsys wallpaper` after each Set): Both → one shared wallpaper (id 208, no lock one); Home alone → home 209, the lock screen
+  got the shared one (id 208); Lock alone → lock 210, home still 209; Both again → one shared (211), no lock one. As on Android 15 (CLAUDE.md, Wallpaper). No screen blank.
+- **PASS:** landscape (2400×1080) with Setup open: two panes, the picture left, "Wallpaper", "Change automatically", "Setup ▴", "More NASA pictures", "Where" and the
+  pinned "Set as wallpaper" bar right (`land-setup-open-1.png`, `-2.png`).
+- **Not run:** the job path of `sh4_run.py` (E10a: doesn't run on 10), the update from 0.8.0, Live (E10d/E10e), real timing, toasts.
+- **State at the end:** the start's prefs and `files/` put back (`apod.jpg`, `earth.jpg`, `nasa.jpg`, `live.jpg`), Live on home picked again by AOSP's picker (home NASA, lock APOD,
+  Size Live, daily on, More NASA pictures on, Keep running off, ids 215/216; the page shows no "Live isn't on"), `fallback-draft.jpg`, `debug-*.png`, the test photo and its
+  MediaStore row removed, `accelerometer_rotation` 1, `user_rotation` 0, `auto_time` 1, `font_scale` 1.0, airplane mode off.
 
 ### [ ] E12. Android 12 (`apodroid-31`, `emulator-5558`; Sonnet, medium)
 

@@ -1259,7 +1259,7 @@ screen) and, for the plain `setStream` cases, a read of Android 10's cropped wal
   Size Live, daily on, More NASA pictures on, Keep running off, ids 215/216; the page shows no "Live isn't on"), `fallback-draft.jpg`, `debug-*.png`, the test photo and its
   MediaStore row removed, `accelerometer_rotation` 1, `user_rotation` 0, `auto_time` 1, `font_scale` 1.0, airplane mode off.
 
-### [ ] E10g. Android 10, the cases E10b and E10c left (Sonnet, medium)
+### [x] E10g. Android 10, the cases E10b and E10c left (Sonnet, medium)
 
 E10b's left cases (O2/R5's landscape pulls, K16b, P3b, P3e, K34a–d) and E10c's (P13, P14, P18's APOD-alone half,
 P19's broken-file half, P21–P23, P25, P26's sharp bite, P27's O6a), on B38's and B39's tree. Device `emulator-5554` (`apodroid-29`, Android 10), dev's debug build, at most 50 min. The rules:
@@ -1267,6 +1267,46 @@ P19's broken-file half, P21–P23, P25, P26's sharp bite, P27's O6a), on B38's a
 aren't run again. Results under its own "Checked" here, per case PASS /
 FAIL / DIFFERENT / SKIPPED; a FAIL as a `BUG:` line. **Done when** every case of the list ran or is
 listed under Not run with why (a case left for time is not done: say so first in the report).
+
+**Checked** (rosie, pipeline run 192, 2026-11-23, 15:10–15:30 by the emulator's clock, `emulator-5554`, Android 10 (`apodroid-29`), dev's debug build with B38 and B39
+(`install -r` of the run's APK, SHA-256 7b272f8a…); evidence in `.coord/runs/192-e10g/tablet/`: `backup/` (the start's and end's prefs and `dumpsys wallpaper`), screenshots
+`k16b-*`, `k34*`, `p3b-*`, `p26-*`, `p22-galaxy-debug-set.png`). Start state as E10d/E10e left it (home NASA live, lock APOD still, Size Live, daily on, More NASA pictures
+on, Keep running off, Save every off, "Keep pictures sharp" off). **No crash** (`logcat -b crash` empty), **no FAIL, no `BUG:`.** Toasts were never read. Several cases need
+Size Auto and a stored picture of my own, so the run set Size Auto by Set (Live off), did the cases, and picked Live again in AOSP's picker at the end.
+- **PASS:** O2 and R5 (landscape 2400×1080: a pull on the left pane logged `Refresh:` for the three sources, a pull on the right pane nothing, the pinned bar and the pane unmoved),
+  K16b (NASA's 4200×3150 post, Size Auto: "✓ Sideways" in tertiary, a horizontal band across the full width, the page's picture upright, `k16b-sideways.png`), K34 (APOD faked 1500×1022 with
+  "Keep pictures sharp" stored on: ⛶'s frame 325 of 900 px on the screenshot = 36% of the width, Fill's would be 31%; the Setup draft still showed the older state after `am kill`, the saved
+  state), **K34a** (300×200: no frame outline, a drag moved nothing, ✓ no `Part:` line, no `cropPosition`), K34b (undragged ✓: no `Part:` line; a drag then ✓: `Part: wallpaper set: … on LOCK,
+  sharp ×2.00 (Fill ×2.35)`, `cropPosition` 0.2326, no `, auto`), **K34c** (Whole picture on the 300×200 picture: about 55% of the preview's width, i.e. 600 of 1080 px = 2×, `k34c2-small.png`; on
+  the 1500×1022 picture the preview is the plain fit, the limit doesn't bite), K34d (stored Size Live, `sharp` true, NASA on home: the frame 364 of 1080 px = Fill's 33.7%, two screenshots byte-identical
+  after a drag, ✓ no `Part:` line, no `cropPosition`), P3b (4 of 5 tries failed, see DIFFERENT; the successful one, rotation set right after the start: one `Video still: 329 ms, 864×1080`, a non-black
+  tile after the rotation), P3e (a faked older stored date and `isVideo` true, `run -f 1`: `Refresh: APOD … rendition`, `video-still.jpg`, `videoStill.date/url` and `videoUrl` gone, `isVideo` false,
+  `videoStillTried` kept; a second faked video day with another mp4 (`Auroras_Esa.mp4`): `Video still: 941 ms, 1080×608` once, none at the next open), P13 (`saveEvery` on, a new post faked: `Daily job: saved:
+  APOD 2026-11-23 original`, one row `APOD_2026-11-23_…jpg` in `Pictures/APODroid/`; a second forced run: nothing; row deleted, switch off), P14 (no pause hint on the page; the app is not on
+  `deviceidle whitelist`, bucket 50), **P18's APOD-alone half** (APOD mode by Set: `run -f 1` online `Refresh: APOD … same post`, no download, no set; airplane on: `Refresh: APOD 2026-11-23 stored, check
+  failed: UnknownHostException`, `jobFinished`, no `Daily job failed`, the alarms the clock's next check 24 Nov 06:05:20, no `problem` key, no box on the page), **P19's broken-file half** (`apod.jpg` = 7 bytes, subject keys
+  removed: `Subject: APOD 2026-11-23 couldn't: …ImageDecoder$DecodeException … Input contained an error`, `subjectDate` noted without a position; the real file back, the keys removed, a page open: `Subject: … p=1.00`),
+  P21 (Size Auto, the records forgotten: `Daily job: wallpaper set: … NASA … on HOME, auto 0.69`, `… APOD … on LOCK, auto 0.91`, later `auto 0.51`, `auto 0.43`, `auto 0.39` for the faked pictures; no 0.55–0.65
+  picture existed, 0.69 is the nearest), P22 (3000×1000 APOD on the lock screen, the job with airplane mode on so that its refresh didn't restore the real title: the galaxy text `… auto 0.43, sideways, auto turn`
+  and `debug-set.png` 1080×2400 written; the horizon text `, auto 0.51` upright, no `debug-set.png`; Size Centre no `auto`, upright; the part's pill noted off: upright), **P23** (the large original: `Refresh: APOD
+  2026-11-23 rendition (original 2160×2700)`, `apod.jpg` 1920×2400, as tall as the screen; the small original by the page's hook: the stored post's `imageUrl` faked to 7 Nov's `GerlacheKocherMassif_Sans.jpg`,
+  `sizeChecked` removed, a page open: `Refresh: APOD 2026-11-23 original 1500×1022 (smaller than the screen)`, `stored picture replaced by the original`, `Subject: … p=0.39`, `apod.jpg` 1500×1022, a second open
+  none of it), **P25** (a faked `imageUrl` `…/Nonexistent_P25.jpg`, hook at a page open: `Refresh: APOD 2026-11-23 probe failed: …HttpStatus: HTTP 404`, the subject and the page's set went on), **P26's sharp bite** (APOD faked 1500×1022,
+  `sharp` true, Size Auto, the lock record forgotten, `run -f 1`: `Daily job: wallpaper set: … on LOCK, auto 0.85, sharp ×2.00 (Fill ×2.35)`, `debug-set.png` 1080×2400 with the picture's
+  background colour in the band rows and the frame bright: not white, so B37 holds in the job path; `subjectSharp` removed: `Subject: APOD … p=0.85 (sideways 0.40) (sharp 0.85)` once, none at the second open; `sharp` false: no `, sharp`),
+  P27's O6a (`am force-stop`, `--ez weekLog true` as the task's first start, `--ez weekLog false` while the page was on top (delivered to the running top-most instance), Back, the Recents card tapped, a `run -f 1`:
+  `weekLog` stays false, `Download/APODroid/log.txt` ends with `Week log: off` and holds none of the run's lines, logcat has them).
+- **DIFFERENT:** P3a/P3b's frame on Android 10: for the same 4.8 MB `NoctilucentNeowise_Girotti.mp4`, `MediaMetadataRetriever` gave a frame on 3 tries (326–826 ms) and `StagefrightMetadataRetriever: all codecs failed
+  to extract frame` (`IOException: no frame`, logged as `Video still: couldn't make one`, the tile black) on 9, with or without a rotation, so the software decoder here is flaky, not the code path (as E10b's first file); the
+  rotation race of P3b was one start plus `settings put system user_rotation 1` about 0.3 s later, so the rotation may have come after the try's first steps. P22 (the job path): as the package says
+  the job's refresh restores the real title for the same date, so the faked text only reached the set with airplane mode on (a failed check of a stored day, as D1); with a stored part whose pill was noted off the
+  galaxy text stayed upright (my first run, K29's `sideways=false` left in the prefs).
+- **Not run:** P24 and E9a's real feed (the 7 Nov post can't be served: the hook with a faked `imageUrl` stands for it), the picture of P22's `debug-set.png` turned was not looked at pixel by pixel (size only),
+  P14's "unused apps" line (none on 10), the toasts, real timing.
+- **State at the end:** Live on home picked again by AOSP's picker (home NASA, lock APOD still, Size Live, daily on, home id 382→ the app's `live.homeId` 382 then a restart, summary "… · Live", no "Live isn't on"), More NASA pictures
+  on with the same list (APOD Lock, NASA Home, Earth unticked), Save every and Keep running off, "Keep pictures sharp" off, `weekLog` false and `Download/APODroid/` empty, the gallery without APODroid rows, `files/`
+  as at the start (the fakes, `debug-*.png`, `video-still.jpg` removed; `apod.jpg` is the real 1920×2400 rendition, it was 400×600 at the start), the prefs equal the start's but `live.homeId`, `cropDate`/`cropUrl` (APOD's stored part), the
+  `videoStillTried` key removed; `accelerometer_rotation` 1, `user_rotation` 0, `auto_time` 1, `font_scale` 1.0, density 420, airplane mode off, network pinged. The app is running, not force-stopped.
 
 ### [ ] E12. Android 12 (`apodroid-31`, `emulator-5558`; Sonnet, medium)
 

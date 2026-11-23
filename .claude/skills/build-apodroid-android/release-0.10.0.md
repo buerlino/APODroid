@@ -1502,7 +1502,7 @@ drag: `auto 0.21, sideways`. No crash.
 - **Files:** `scripts/sh4_run.py` (and `sh4_check.py` if the EXIF JPEG chroma FAIL needs the control inside it).
 - **Done when:** the script's 31 pixel cases run on `emulator-5554` and `emulator-5564` without a scratchpad copy.
 
-### [ ] L8T. L8f1's kill on the tablet after B35 (Sonnet, medium)
+### [x] L8T. L8f1's kill on the tablet after B35 (Sonnet, medium)
 
 The real-device case behind L8f1 (regression 12), on B35's tree (user, 2026-11-23, Opus pass 70): HA24BZ2Y
 (Android 15, ZUI), the split state (Live on home, a still on the lock screen), `lastRunAt` over 15 min old, one
@@ -1511,6 +1511,16 @@ names …, engine bound|none`. **Done when:** Live still on home after both runs
 (a fix package then holds such a run while the id is kept). B35's rule kept (user, 2026-11-23).
 Also noted (user, 2026-11-23): the video still's "no frame" on the Android 10 emulator (E10g, 9 of 12) is left as is
 in the freeze, seen on the emulator only.
+
+**Result (rosie, 2026-11-23, HA24BZ2Y, Android 15 ZUI, the dev debug build, run 194): PASS.** Split state built by prefs
+(More NASA pictures on, home APOD+NASA, lock APOD, 6 h, Size Live, daily on) and Android's picker by adb ("Home screen"),
+then `run -f 1` (home live, id 1605; lock its own still, 1606). At 19:17:04 `lastRunAt` was 17.5 min old; one
+`run-as … kill -9` (pid 17561 → 17913, rebound at once). B35's line: `Live: home's id kept, Android names null, engine
+bound in this process`. The run 30 s after (19:17:38) and 5 min after (19:22:16): `same post` for APOD and NASA, no set,
+no `Live: home isn't live`, no `HOLDS`; `dumpsys wallpaper` after each: home 1605 `LiveWallpaper`, lock 1606 still;
+`wallpaperLive` still true; no crash. `engine none` did not occur, so no `BUG:` line. B35's rule stands. Evidence:
+`.coord/runs/194-l8t/tablet/` (dumps, `log-run30.txt`, `log-run5m.txt`, `logcat-all.txt`). Not run: the smoke list's
+Set (not a winston check); the kill was one, never a second within 10 s.
 
 ### [ ] CR2. A second code review, during the real week (Opus, high)
 

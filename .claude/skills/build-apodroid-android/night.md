@@ -188,7 +188,7 @@ every row. 0.10.0's rows from 78 (user, 2026-11-22: `release-0.10.0.md`, the har
 | 85 | E10 | Android 10, every map: split as E10a–f (rows 105–110), not run itself | rosie | sonnet, medium | no | never (split) | release-0.10.0.md E10 |
 | 86 | E12 | Android 12 (`APODROID_TABLET=emulator-5558`) | rosie | sonnet, medium | no | postponed (user, 2026-11-23: after 0.10.0; the Jelly Star covers 13 in WK) | release-0.10.0.md E12 |
 | 87 | E13 | Android 13 (`APODROID_TABLET=emulator-5562`) | rosie | sonnet, medium | no | postponed (user, 2026-11-23: after 0.10.0; the Jelly Star covers 13 in WK) | release-0.10.0.md E13 |
-| 88 | UP | The update from 0.5.0, 0.7.0 and 0.9.1 (`APODROID_TABLET=emulator-5564` only, user, 2026-11-23) | rosie | sonnet, medium | no | L8T, the user (the candidate release-signed; 0.9.1 is GitHub's signed APK in app/build; the emulator started wiped) | release-0.10.0.md UP |
+| 88 | UP | The update from 0.5.0, 0.7.0 and 0.9.1 (`APODROID_TABLET=emulator-5564` only, user, 2026-11-23) | rosie | sonnet, medium | no | L8T (the candidate app/build/apodroid-v0.10.0.apk, release-signed, the same certificate as 0.5.0, 0.7.0 and 0.9.1; emulator-5564 started wiped: done 2026-11-23) | release-0.10.0.md UP |
 | 89 | B30 | ⛶'s "Whole picture" preview let go in `onStop` (O12): steps, expected and got in the finding; a device bullet with `dumpsys meminfo` after Home | winston | sonnet, medium | yes | CR | release-0.10.0.md B30 |
 | 90 | E17a | Android 17, the setup map (`APODROID_TABLET=emulator-5566`) | rosie | sonnet, medium | no | E17 | release-0.10.0.md E17a |
 | 91 | E17b | Android 17, the page map (`APODROID_TABLET=emulator-5566`) | rosie | sonnet, medium | no | E17 | release-0.10.0.md E17b |

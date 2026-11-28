@@ -195,8 +195,11 @@ What each brought: the tags and `changelogs/<versionCode>.txt`.
   only what Android 10 has; a new JDK call there is checked against `api-versions.xml`. Checked on
   the Android 10 emulator: the released 0.9.1 logged the `NoSuchMethodError` and stored nothing;
   0.9.2's debug and R8 builds stored 22 Nov's APOD, set it by Set and the daily switch, the job ran.
-  Not run: Android 11 and 12, the FP6. Changelog `15.txt` approved by the user. 0.10.0 is
-  versionCode 16.
+  Not run: Android 11 and 12, the FP6. Changelog `15.txt` approved by the user.
+- 0.10.0 (16): 2026-11-23, the hardening (`release-0.10.0.md`).
+- 1.0.0 (17): 2026-11-28, 0.10.0's code unchanged, after five days of the real week (WK) on the FP6, the tablet
+  and the Jelly Star with no `BUG:` (user, 2026-11-28: "just release 1.0.0 now", before the planned 7 days; CR2
+  skipped; the log line `Refresh: … new post` left for 1.0.1). Changelog `17.txt` approved by the user.
 
 ## Data source (checked 2026-10-01)
 

@@ -1601,6 +1601,67 @@ Each morning, a glance: the wallpaper changed, the status line's time. At the we
 `B<n>` fix, a new release-signed build on the devices (the setup kept), and the week goes on. **1.0.0 (R6)
 when** the week has run at least 7 days and the last 2 days on the current build had no `BUG:`.
 
+**Started** 2026-11-23 evening on all three (0.10.0, the release key; each device's setup checked against its
+column from its log's `Process start` line: all match; the FP6 has Keep running on, its owner's setup, Decided 2).
+The logs are read on Saturdays, not daily (user, 2026-11-24: the weekly session limit); copies in
+`private/wk/<device>-<date>.txt`. **Day 1** (read 2026-11-24, 09:20; no `BUG:`, no APODroid crash):
+- FP6: 24 Nov's APOD set at 06:15:34 (change time 06:09:42, APOD out 06:05), Auto 0.51, the original 1179×1422;
+  a reboot at 21:34 explained by the boot; hourly checks all night (As soon as it's out), all expedited.
+- Tablet: Earth's turn live on home at 00:13, APOD live on home and still on the lock screen at 06:13 (B28),
+  the saves logged. **B40 (log only, waits for a real fix):** at 06:13 the engine decoded the new APOD (1111×1340)
+  but logged `drew … EARTH 2026-11-23`: the hand-over renames `live.jpg` before it commits `live.picture`; the lock
+  screen's record commit in between wakes the engine (`reload`), which takes the old name, and the later commit
+  finds the same key (the name isn't in it), so the name stays stale. The screen was right.
+- Jelly Star: the order's anchor worked (Earth, the top, at the first 07:00). **DIFFERENT:** Optimized, the 07:00:03
+  alarm came at 08:00:03, an hour late (on-time-0.7.0 expects the alarm on time and the expedited run's network);
+  the bucket was ACTIVE at the setup, not read since. Watch the next mornings before calling it a bug. A failed
+  check of the stored day at 08:26 (timeout) only logged, as the rule says.
+
+**Saturday 28 Nov, the Jelly Star** (read 09:55 over USB, `private/wk/jelly-2026-11-28.txt`, 616 lines; no `BUG:`, no
+`E` line, one process since the setup; bucket ACTIVE at the reading):
+- **The rotation right at every change time** (Earth, NASA, APOD, 12 h from 07:00): 24 Nov Earth, NASA; 25 Nov my
+  picture (APOD's video day, "Use my picture"), Earth; 26 Nov NASA, APOD; 27 Nov Earth, NASA; 28 Nov APOD. Two ⛶ ✓
+  sets (25 Nov 22:45, 27 Nov 08:59).
+- **The alarm on Optimized: up to an hour late, never more** (Day 1's DIFFERENT, now the pattern): the 07:00:03 and
+  19:00:03 alarms came at +60 min to the second six times (24, 25 Nov both, 27 Nov evening), +54 and +41 min (27, 28
+  Nov mornings), on time twice (26 Nov). Consistent with Android 12+'s window for `setAndAllowWhileIdle` (J0: "a 1 h
+  window"), the `setWindow` alarm not firing in Doze. Each alarm's run was an expedited job 2 (48 of 48) and had the
+  network at once (the set within 5 s). So on this phone "Optimized: the alarm on time" (Background update) doesn't
+  hold: an hour at most. The pause hint's Optimized line already says a picture can come late. Not a `BUG:` (the
+  fixes, exact alarms or `setAlarmClock`, were rejected); the user decides whether the text changes.
+- **26 Nov, no DNS from 09:10 to 00:36** (every host, the phone's network): failed runs retried hourly as the rules
+  say; the 19:00 turn set the stored APOD "Despite the failure".
+- **27 Nov 09:08:13, job 1 stopped 6 ms after its start**: `Daily job failed: java.lang.InterruptedException` from
+  `Store.update`'s stop check before the first source (R8 mapping: `Store.kt` 1332), so `onStopJob` came at once (or
+  the thread was interrupted); counted as failed, the 09:20 alarm's run fine. `onStopJob` logs nothing, so the log
+  can't say why (on API 31+ `params.stopReason` would). Not a `BUG:`.
+- Not done in the week: the force stop by hand (the detector's box); only the setup's force stop on 23 Nov, which
+  the detector found ("nothing missed").
+
+**Saturday 28 Nov, the FP6** (read 10:05 over USB, `private/wk/fp6-2026-11-28.txt`, 949 lines; no `BUG:`, no `E`
+or `W` line, one process since the reboot of 23 Nov (Keep running on), bucket EXEMPTED):
+- **Every morning on time:** each day's APOD set by the 06:19:42 alarm's run (the change time 06:09:42, the
+  `setWindow` alarm's +10 min), on both screens, Auto 0.51, 0.21 (sideways 0.66 noted, upright by its text), 0.58
+  (darker ×0.70), 0.56; 24 Nov at 06:15:34 (a 06:15 check). 25 Nov APOD's video day with "Skip it": nothing set, and
+  no line for the new post (the run's only trace is job 2's start and end: what the uncommitted `Refresh: … new post`
+  line in `Store.kt` covers). Four ⛶ ✓ sets (24, 26, 27, 28 Nov). The Sideways pill wasn't used.
+- 114 alarm runs, all expedited job 2; 19 fallback runs; the hourly checks all night (As soon as it's out). Two failed
+  checks of the stored day, only logged.
+
+**Saturday 28 Nov, the tablet** (read 10:15 over USB, `private/wk/tablet-2026-11-28.txt`, 1077 lines; no `BUG:`, no
+`E` or `W` line, one process since the setup (Keep running on), bucket EXEMPTED):
+- **Home's rotation right at all 18 change times** (APOD, NASA, Earth every 6 h; Live): the turn by the clock each
+  time; APOD's video day (25 Nov 18:00) NASA's picture instead; NASA's 25 Nov picture again at its turns while NASA
+  posted nothing (US Thanksgiving), as RO1 accepts. Hand-overs at :13 (the offset), three by the fallback job at
+  12:00:03, 00:02 and 00:01 (job 1 ran just after the change time).
+- **The lock screen (APOD alone) its own still each morning**, `FLAG_LOCK` before home's hand-over (B28); 25 Nov's
+  video day NASA's picture instead. The darkening on both (×0.70, ×0.80).
+- **Live:** black and `apod.jpg (no copy)` only at the setup on 23 Nov (the picker's preview before the first
+  hand-over, as described). B40's stale name once in five mornings with a lock set first (24 Nov); 25–28 Nov named
+  right. No `Live: couldn't`, no lost Live.
+- **Save every picture** (20 MB): every new post saved as its original, none over the limit.
+- `TIME_SET` at 23:00 on 27 Nov (network time) armed again, nothing lost.
+
 ## Decided (user, 2026-11-22, on this file)
 
 1. LOG's file in `Download/APODroid/log.txt` (a file manager can copy it; no adb needed at the week's end).
@@ -1619,4 +1680,13 @@ when** the week has run at least 7 days and the last 2 days on the current build
 6. **The real week** (2026-11-22, user): the setup per device is WK's table (one Auto, one Live, one Centre;
    "looks good"). CR2, the second code review, runs during the week; bugs are fixed and the week goes on; 1.0.0
    after at least 7 days with the last 2 on the current build bug-free. E14 is split six ways (a–f: the live map
-   in two halves); E10 the same when its night comes.
+   in two halves); E10 the same when its night comes.7. **Posts about 1.0.0** (user, 2026-11-28): Reddit's **r/androidapps**, **r/apod** and **r/space** only (not
+   r/fdroid, Lemmy, Mastodon, HN and the like). After F-Droid has built 1.0.0, so the link works. Before each post,
+   read the subreddit's rules: r/androidapps reportedly sends developers' own apps to r/droidappshowcase, r/space
+   allows self-promotion only in its own threads, and r/apod's activity wasn't checked (2026-11-28). Say plainly
+   that it's an unofficial app, not NASA's.
+
+**1.0.0 (R6) released 2026-11-28** (user: "just release 1.0.0 now"): after five days of WK on three devices with no
+`BUG:` (the Saturday readings above), before the planned 7; 0.10.0's code unchanged (versionCode 17); CR2 skipped;
+the uncommitted log line `Refresh: … new post` (`Store.kt`) and B40 go to 1.0.1. The Jelly Star's Optimized alarm (up
+to an hour late) kept as it is, the pause hint's text unchanged.

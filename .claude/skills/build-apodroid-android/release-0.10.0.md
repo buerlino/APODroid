@@ -1680,11 +1680,12 @@ or `W` line, one process since the reboot of 23 Nov (Keep running on), bucket EX
 6. **The real week** (2026-11-22, user): the setup per device is WK's table (one Auto, one Live, one Centre;
    "looks good"). CR2, the second code review, runs during the week; bugs are fixed and the week goes on; 1.0.0
    after at least 7 days with the last 2 on the current build bug-free. E14 is split six ways (a–f: the live map
-   in two halves); E10 the same when its night comes.7. **Posts about 1.0.0** (user, 2026-11-28): Reddit's **r/androidapps**, **r/apod** and **r/space** only (not
-   r/fdroid, Lemmy, Mastodon, HN and the like). After F-Droid has built 1.0.0, so the link works. Before each post,
-   read the subreddit's rules: r/androidapps reportedly sends developers' own apps to r/droidappshowcase, r/space
-   allows self-promotion only in its own threads, and r/apod's activity wasn't checked (2026-11-28). Say plainly
-   that it's an unofficial app, not NASA's.
+   in two halves); E10 the same when its night comes.
+7. **Posts about 1.0.0** (user, 2026-11-28, the list changed the same day): Reddit's **r/Astronomy**, **r/space**,
+   **r/nasa** and **r/droidappshowcase** (where r/androidapps sends developers' own apps). After F-Droid shows 1.0.0,
+   one sub a day. r/space reportedly allows no self-promotion and r/Astronomy's and r/nasa's rules weren't found
+   (2026-11-28): ask their moderators first. r/droidappshowcase: the Promo flair, an app store link (F-Droid), one
+   app post a week. Say plainly that it's an unofficial app, not NASA's.
 
 **1.0.0 (R6) released 2026-11-28** (user: "just release 1.0.0 now"): after five days of WK on three devices with no
 `BUG:` (the Saturday readings above), before the planned 7; 0.10.0's code unchanged (versionCode 17); CR2 skipped;

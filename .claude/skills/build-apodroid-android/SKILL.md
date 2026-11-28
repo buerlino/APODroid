@@ -585,6 +585,17 @@ it).
 - 0.6.0's `1.png` (R, 2026-11-02): the user's own setup as it was (APOD + NASA, APOD's page,
   Setup closed) on the FP6 with the tag's release build, nothing set, SystemUI demo mode only (a
   release build has no `run-as`, so no faked page). Only `1.png` (user); `README.md` embeds it.
+- 1.0.0's `1.png` (2026-11-28, the user's pick: 13 Nov's "NGC 206 and the Star Clouds of
+  Andromeda"): on the FP6 without losing its setup. A debug build signed by the user with the
+  release key (`apksigner sign --ks ~/KEY99/keys/apps/apodroid-release.jks --ks-key-alias apodroid
+  --out …-releasekey.apk …-debugkey.apk`, their terminal) installs over the release with `-r`, so
+  `run-as` works; force-stop, back up `shared_prefs/apodroid.xml` and `files/apod.jpg` to
+  `private/screenshot/backup/`, write the post's keys, the records, `wallpaperSetAt`, `checkedAt`
+  now (the page skips the fetch) and `problemNoticeKey` `network:<today>`, the `?h=2484` rendition
+  as `apod.jpg`, block the app's network (the reopened page schedules the fallback job, which runs
+  at once), demo mode, the shot; then restore byte for byte (`cmp`), unblock, and install the
+  release APK over it again. A force stop drops the alarms; the reinstall's update explains it to
+  the detector, and the next page open arms them again.
 - Screenshot with SystemUI demo mode, as in gridload: `settings put global sysui_demo_allowed 1`,
   broadcasts `enter`, `clock -e hhmm 1200`, `notifications -e visible false`,
   `network -e wifi show -e level 4 -e fully true` (without `fully` the Wi-Fi icon shows "!"),
